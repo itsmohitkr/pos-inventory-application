@@ -57,11 +57,12 @@ model Batch {
 }
 
 model Sale {
-  id          Int        @id @default(autoincrement())
-  totalAmount Float
-  discount    Float      @default(0)
-  items       SaleItem[]
-  createdAt   DateTime   @default(now())
+  id           Int        @id @default(autoincrement())
+  totalAmount  Float
+  discount     Float      @default(0)
+  extraDiscount Float      @default(0)
+  items        SaleItem[]
+  createdAt    DateTime   @default(now())
 }
 
 model SaleItem {
@@ -74,6 +75,7 @@ model SaleItem {
   returnedQuantity Int   @default(0)
   sellingPrice     Float
   costPrice        Float
+  mrp              Float
 }
 
 model StockMovement {

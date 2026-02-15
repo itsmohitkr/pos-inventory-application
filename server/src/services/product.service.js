@@ -7,6 +7,11 @@ const normalizeCategory = (value) => {
     return trimmed ? trimmed : null;
 };
 
+const normalizeSearch = (value) => {
+    if (value === null || value === undefined) return '';
+    return String(value).trim();
+};
+
 const generateBatchCode = () => {
     // Generate timestamp-based batch code: B-YYYYMMDDHHMMSSmmm
     const now = new Date();
@@ -66,8 +71,9 @@ const validatePricing = ({ mrp, costPrice, sellingPrice }) => {
 const buildWhereSql = ({ search, category }) => {
     const clauses = [];
 
-    if (search) {
-        const like = `%${search}%`;
+    const normalizedSearch = normalizeSearch(search);
+    if (normalizedSearch) {
+        const like = `%${normalizedSearch}%`;
         // Support multi-barcode search: search for exact match or as part of pipe-separated list
         clauses.push(Prisma.sql`(p.name LIKE ${like} OR p.barcode LIKE ${like})`);
     }
@@ -91,12 +97,13 @@ const buildWhereSql = ({ search, category }) => {
 const buildWhereFilter = ({ search, category }) => {
     const andFilters = [];
 
-    if (search) {
+    const normalizedSearch = normalizeSearch(search);
+    if (normalizedSearch) {
         // Support multi-barcode search: search for exact match or as part of pipe-separated list
         andFilters.push({
             OR: [
-                { name: { contains: search, mode: 'insensitive' } },
-                { barcode: { contains: search, mode: 'insensitive' } }
+                { name: { contains: normalizedSearch, mode: 'insensitive' } },
+                { barcode: { contains: normalizedSearch, mode: 'insensitive' } }
             ]
         });
     }
@@ -268,15 +275,17 @@ const getProductById = async (id) => {
 };
 
 const getProductByBarcode = async (barcode) => {
+    const normalizedBarcode = normalizeSearch(barcode);
+    if (!normalizedBarcode) return null;
     // Support multi-barcode search: find product where barcode matches exactly
     // or is part of a pipe-separated list (e.g., "123|456|789")
     const products = await prisma.product.findMany({
         where: {
             OR: [
-                { barcode: barcode },                    // Exact match
-                { barcode: { startsWith: `${barcode}|` } }, // First in list
-                { barcode: { endsWith: `|${barcode}` } },   // Last in list
-                { barcode: { contains: `|${barcode}|` } }   // Middle of list
+                { barcode: normalizedBarcode },                       // Exact match
+                { barcode: { startsWith: `${normalizedBarcode}|` } }, // First in list
+                { barcode: { endsWith: `|${normalizedBarcode}` } },   // Last in list
+                { barcode: { contains: `|${normalizedBarcode}|` } }   // Middle of list
             ]
         },
         include: {

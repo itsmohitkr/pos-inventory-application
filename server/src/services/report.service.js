@@ -15,8 +15,18 @@ const getReports = async ({ startDate, endDate }) => {
             items: {
                 include: {
                     batch: {
-                        include: {
-                            product: true
+                        select: {
+                            id: true,
+                            batchCode: true,
+                            expiryDate: true,
+                            product: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    barcode: true,
+                                    category: true
+                                }
+                            }
                         }
                     }
                 }
@@ -50,7 +60,7 @@ const getReports = async ({ startDate, endDate }) => {
             return {
                 ...item,
                 productName: item.batch.product.name,
-                mrp: item.batch.mrp,
+                mrp: item.mrp,
                 profit: itemProfit,
                 margin: margin.toFixed(2),
                 netQuantity // Include netQuantity helper
@@ -59,8 +69,9 @@ const getReports = async ({ startDate, endDate }) => {
 
         // Net sale amount considering discount and returns
         // We assume the discount applies to the remaining items or the overall bill
-        const finalSaleNetTotal = saleNetTotal - sale.discount;
-        const finalSaleProfit = saleProfit - sale.discount;
+        const extraDiscount = sale.extraDiscount || 0;
+        const finalSaleNetTotal = saleNetTotal - sale.discount - extraDiscount;
+        const finalSaleProfit = saleProfit - sale.discount - extraDiscount;
 
         totalSales += finalSaleNetTotal;
         totalProfit += finalSaleProfit;

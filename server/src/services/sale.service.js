@@ -1,6 +1,6 @@
 const prisma = require('../config/prisma');
 
-const processSale = async ({ items, discount = 0 }) => {
+const processSale = async ({ items, discount = 0, extraDiscount = 0 }) => {
     return await prisma.$transaction(async (tx) => {
         let totalAmount = 0;
         const saleItemsData = [];
@@ -26,7 +26,8 @@ const processSale = async ({ items, discount = 0 }) => {
                 batchId: item.batch_id,
                 quantity: item.quantity,
                 sellingPrice: batch.sellingPrice,
-                costPrice: batch.costPrice
+                costPrice: batch.costPrice,
+                mrp: batch.mrp
             });
 
             movementData.push({
@@ -40,8 +41,9 @@ const processSale = async ({ items, discount = 0 }) => {
 
         const sale = await tx.sale.create({
             data: {
-                totalAmount: totalAmount - discount,
+                totalAmount: totalAmount - discount - extraDiscount,
                 discount: discount,
+                extraDiscount: extraDiscount,
                 items: {
                     create: saleItemsData
                 }
@@ -63,8 +65,18 @@ const getSaleById = async (id) => {
             items: {
                 include: {
                     batch: {
-                        include: {
-                            product: true
+                        select: {
+                            id: true,
+                            batchCode: true,
+                            expiryDate: true,
+                            product: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    barcode: true,
+                                    category: true
+                                }
+                            }
                         }
                     }
                 }
