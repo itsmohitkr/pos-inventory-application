@@ -34,7 +34,7 @@ const renderBarcodeChips = (barcode) => {
     );
 };
 
-const ProductRow = ({ product, onDelete, onEdit, onEditBatch, onAddStock }) => {
+const ProductRow = ({ product, onDelete, onEdit, onEditBatch, onAddStock, onBatchUpdated }) => {
     const [open, setOpen] = useState(false);
     const hasBatches = product.batches && product.batches.length > 0;
 
@@ -73,11 +73,11 @@ const ProductRow = ({ product, onDelete, onEdit, onEditBatch, onAddStock }) => {
                     >
                         Add Stock
                     </Button>
-                    <IconButton color="primary" onClick={() => onEdit(product)}>
-                        <EditIcon />
+                    <IconButton color="primary" size="medium" onClick={() => onEdit(product)}>
+                        <EditIcon fontSize="medium" />
                     </IconButton>
-                    <IconButton color="error" onClick={() => onDelete(product.id)}>
-                        <DeleteIcon />
+                    <IconButton color="error" size="medium" onClick={() => onDelete(product.id)}>
+                        <DeleteIcon fontSize="medium" />
                     </IconButton>
                 </TableCell>
             </TableRow>
@@ -89,7 +89,12 @@ const ProductRow = ({ product, onDelete, onEdit, onEditBatch, onAddStock }) => {
                                 <Typography variant="h6" gutterBottom component="div">
                                     Batch Details
                                 </Typography>
-                                <BatchTable batches={product.batches} onEditBatch={onEditBatch} />
+                                <BatchTable
+                                    batches={product.batches}
+                                    onEditBatch={onEditBatch}
+                                    onBatchUpdated={onBatchUpdated}
+                                    productName={product.name}
+                                />
                             </Box>
                         </Collapse>
                     </TableCell>

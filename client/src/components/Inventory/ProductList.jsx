@@ -5,7 +5,7 @@ import {
     Paper, Typography, TextField, Box, InputAdornment, IconButton,
     Chip, Button, List, ListItemButton, ListItemIcon, ListItemText, Divider,
     TableSortLabel, Dialog, DialogTitle, DialogContent, DialogActions,
-    Menu, MenuItem, Collapse, LinearProgress, TablePagination
+    Menu, MenuItem, Collapse, LinearProgress, TablePagination, Tooltip
 } from '@mui/material';
 import {
     Search as SearchIcon,
@@ -17,23 +17,27 @@ import {
     SortByAlpha as SortByAlphaIcon,
     ExpandMore as ExpandMoreIcon,
     ExpandLess as ExpandLessIcon,
-    History as HistoryIcon
+    History as HistoryIcon,
+    Inventory2 as InventoryIcon,
+    Print as PrintIcon
 } from '@mui/icons-material';
 
 import EditProductDialog from './EditProductDialog';
 import EditBatchDialog from './EditBatchDialog';
 import AddStockDialog from './AddStockDialog';
 import ProductHistoryDialog from './ProductHistoryDialog';
+import QuickInventoryDialog from './QuickInventoryDialog';
+import BarcodePrintDialog from './BarcodePrintDialog';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
 
 // Helper to render barcodes as chips
 const renderBarcodeChips = (barcode, size = 'small') => {
     if (!barcode) return <Typography variant="body2" color="text.secondary">—</Typography>;
-    
+
     const barcodes = barcode.split('|').map(b => b.trim()).filter(Boolean);
     if (barcodes.length === 0) return <Typography variant="body2" color="text.secondary">—</Typography>;
-    
+
     return (
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {barcodes.map((bc, idx) => (
@@ -69,6 +73,9 @@ const ProductList = () => {
     const [historyData, setHistoryData] = useState(null);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [currentBatch, setCurrentBatch] = useState(null);
+    const [quickInventoryBatch, setQuickInventoryBatch] = useState(null);
+    const [quickInventoryOpen, setQuickInventoryOpen] = useState(false);
+    const [barcodePrintOpen, setBarcodePrintOpen] = useState(false);
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [sortBy, setSortBy] = useState('name');
     const [sortOrder, setSortOrder] = useState('asc');
@@ -79,6 +86,7 @@ const ProductList = () => {
     const [isLoadingBatches, setIsLoadingBatches] = useState(false);
     const [leftPanelWidth, setLeftPanelWidth] = useState(280);
     const [rightPanelWidth, setRightPanelWidth] = useState(360);
+    const [showCategories, setShowCategories] = useState(true);
     const [isResizingLeft, setIsResizingLeft] = useState(false);
     const [isResizingRight, setIsResizingRight] = useState(false);
     const [categorySortOrder, setCategorySortOrder] = useState('asc');
@@ -298,42 +306,19 @@ const ProductList = () => {
     };
 
     const handleEditSave = async () => {
-        try {
-            await axios.put(`/api/products/${currentProduct.id}`, {
-                name: toTitleCase(currentProduct.name),
-                barcode: currentProduct.barcode,
-                category: currentProduct.category,
-                batchTrackingEnabled: currentProduct.batchTrackingEnabled
-            });
-            setEditOpen(false);
-            fetchProducts();
-            fetchSummary();
-            // Refresh the selected product details on the right side
-            setSelectedProductRefresh(prev => prev + 1);
-        } catch (error) {
-            console.error(error);
-            showError('Failed to update product: ' + (error.response?.data?.error || error.message));
-        }
+        // This handler is called by EditProductDialog's onProductUpdated callback
+        fetchProducts();
+        fetchSummary();
+        setSelectedProductRefresh(prev => prev + 1);
+        setEditOpen(false);
     };
 
     const handleBatchEditSave = async () => {
-        try {
-            await axios.put(`/api/batches/${currentBatch.id}`, {
-                batchCode: currentBatch.batchCode,
-                quantity: currentBatch.quantity,
-                mrp: currentBatch.mrp,
-                costPrice: currentBatch.costPrice,
-                sellingPrice: currentBatch.sellingPrice,
-                expiryDate: currentBatch.expiryDate
-            });
-            setBatchEditOpen(false);
-            fetchProducts();
-            fetchSummary();
-            setSelectedProductRefresh((value) => value + 1);
-        } catch (error) {
-            console.error(error);
-            showError('Failed to update batch: ' + (error.response?.data?.error || error.message));
-        }
+        // This handler is called by EditBatchDialog's onBatchUpdated callback
+        fetchProducts();
+        fetchSummary();
+        setSelectedProductRefresh((value) => value + 1);
+        setBatchEditOpen(false);
     };
 
     const handleBatchDelete = async (batchId) => {
@@ -361,6 +346,15 @@ const ProductList = () => {
         fetchProducts();
         fetchSummary();
         setSelectedProductRefresh((value) => value + 1);
+    };
+
+    const handleQuickInventoryOpen = (batch) => {
+        setQuickInventoryBatch(batch);
+        setQuickInventoryOpen(true);
+    };
+
+    const handleQuickInventoryClose = () => {
+        setQuickInventoryOpen(false);
     };
 
     const handleOpenHistory = () => {
@@ -458,6 +452,8 @@ const ProductList = () => {
             await axios.delete(`/api/categories/${category.id}`);
             if (categoryFilter === category.path || categoryFilter.startsWith(`${category.path}/`)) {
                 setCategoryFilter('all');
+                setSelectedProduct(null);
+                setSelectedProductDetails(null);
             }
             fetchCategories();
             fetchProducts();
@@ -516,6 +512,7 @@ const ProductList = () => {
                     onClick={() => {
                         setCategoryFilter(node.path);
                         setSelectedProduct(null);
+                        setSelectedProductDetails(null);
                     }}
                     onContextMenu={(event) => openCategoryMenu(event, node)}
                     onDragOver={handleCategoryDragOver}
@@ -566,100 +563,106 @@ const ProductList = () => {
                 display: 'grid',
                 gridTemplateColumns: {
                     xs: '1fr',
-                    lg: `${leftPanelWidth}px 1.2fr ${rightPanelWidth}px`
+                    lg: showCategories
+                        ? (displayProduct ? `${leftPanelWidth}px 1fr ${rightPanelWidth}px` : `${leftPanelWidth}px 1fr`)
+                        : (displayProduct ? `1fr ${rightPanelWidth}px` : '1fr')
                 },
-                gap: 3,
+                gap: 1.5,
                 height: 'calc(100vh - 200px)',
                 minHeight: 480,
                 alignItems: 'stretch'
             }}
         >
             {/* Category List */}
-            <Paper
-                elevation={0}
-                onDoubleClick={displayProduct ? handleOpenHistory : undefined}
-                sx={{ p: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}
-            >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>Categories</Typography>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton
-                            size="small"
-                            onClick={() => setCategorySortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))}
-                            title={`Sort ${categorySortOrder === 'asc' ? 'A-Z' : 'Z-A'}`}
-                        >
-                            <SortByAlphaIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                            size="small"
-                            onClick={() => openAddCategoryDialog(null)}
-                            title="Add category"
-                        >
-                            <AddIcon fontSize="small" />
-                        </IconButton>
+            {showCategories && (
+                <Paper
+                    elevation={0}
+                    onDoubleClick={displayProduct ? handleOpenHistory : undefined}
+                    sx={{ p: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}
+                >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>Categories</Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <IconButton
+                                size="small"
+                                onClick={() => setCategorySortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))}
+                                title={`Sort ${categorySortOrder === 'asc' ? 'A-Z' : 'Z-A'}`}
+                            >
+                                <SortByAlphaIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                                size="small"
+                                onClick={() => openAddCategoryDialog(null)}
+                                title="Add category"
+                            >
+                                <AddIcon fontSize="small" />
+                            </IconButton>
+                        </Box>
                     </Box>
-                </Box>
-                <Divider sx={{ mb: 1.5 }} />
-                <List disablePadding sx={{ overflow: 'auto', flex: 1 }}>
-                    <ListItemButton
-                        selected={categoryFilter === 'all'}
-                        onClick={() => {
-                            setCategoryFilter('all');
-                            setSelectedProduct(null);
-                        }}
-                        sx={{ borderRadius: 1.5, mb: 0.5 }}
-                    >
-                        <ListItemIcon sx={{ minWidth: 32 }}>
-                            {categoryFilter === 'all' ? (
-                                <FolderOpenIcon fontSize="small" color="primary" />
-                            ) : (
-                                <FolderIcon fontSize="small" color="action" />
-                            )}
-                        </ListItemIcon>
-                        <ListItemText primary="All Categories" secondary={`${totalCount} items`} />
-                    </ListItemButton>
-                    {hasUncategorized && (
+                    <Divider sx={{ mb: 1.5 }} />
+                    <List disablePadding sx={{ overflow: 'auto', flex: 1 }}>
                         <ListItemButton
-                            selected={categoryFilter === 'uncategorized'}
+                            selected={categoryFilter === 'all'}
                             onClick={() => {
-                                setCategoryFilter('uncategorized');
+                                setCategoryFilter('all');
                                 setSelectedProduct(null);
+                                setSelectedProductDetails(null);
                             }}
-                            onDragOver={handleCategoryDragOver}
-                            onDrop={(event) => handleCategoryDrop(event, 'uncategorized')}
                             sx={{ borderRadius: 1.5, mb: 0.5 }}
                         >
                             <ListItemIcon sx={{ minWidth: 32 }}>
-                                {categoryFilter === 'uncategorized' ? (
+                                {categoryFilter === 'all' ? (
                                     <FolderOpenIcon fontSize="small" color="primary" />
                                 ) : (
                                     <FolderIcon fontSize="small" color="action" />
                                 )}
                             </ListItemIcon>
-                            <ListItemText
-                                primary="Uncategorized"
-                                secondary={`${uncategorizedCount} items`}
-                            />
+                            <ListItemText primary="All Categories" secondary={`${totalCount} items`} />
                         </ListItemButton>
-                    )}
-                    {sortedCategoryTree.map((category) => renderCategoryNode(category))}
-                </List>
-                <Box
-                    role="separator"
-                    aria-orientation="vertical"
-                    onMouseDown={() => setIsResizingLeft(true)}
-                    sx={{
-                        display: { xs: 'none', lg: 'block' },
-                        position: 'absolute',
-                        top: 0,
-                        right: -6,
-                        width: 12,
-                        height: '100%',
-                        cursor: 'col-resize',
-                        backgroundColor: 'transparent'
-                    }}
-                />
-            </Paper>
+                        {hasUncategorized && (
+                            <ListItemButton
+                                selected={categoryFilter === 'uncategorized'}
+                                onClick={() => {
+                                    setCategoryFilter('uncategorized');
+                                    setSelectedProduct(null);
+                                    setSelectedProductDetails(null);
+                                }}
+                                onDragOver={handleCategoryDragOver}
+                                onDrop={(event) => handleCategoryDrop(event, 'uncategorized')}
+                                sx={{ borderRadius: 1.5, mb: 0.5 }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 32 }}>
+                                    {categoryFilter === 'uncategorized' ? (
+                                        <FolderOpenIcon fontSize="small" color="primary" />
+                                    ) : (
+                                        <FolderIcon fontSize="small" color="action" />
+                                    )}
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary="Uncategorized"
+                                    secondary={`${uncategorizedCount} items`}
+                                />
+                            </ListItemButton>
+                        )}
+                        {sortedCategoryTree.map((category) => renderCategoryNode(category))}
+                    </List>
+                    <Box
+                        role="separator"
+                        aria-orientation="vertical"
+                        onMouseDown={() => setIsResizingLeft(true)}
+                        sx={{
+                            display: { xs: 'none', lg: 'block' },
+                            position: 'absolute',
+                            top: 0,
+                            right: -6,
+                            width: 12,
+                            height: '100%',
+                            cursor: 'col-resize',
+                            backgroundColor: 'transparent'
+                        }}
+                    />
+                </Paper>
+            )}
 
             <Menu
                 open={Boolean(contextMenu)}
@@ -704,59 +707,186 @@ const ProductList = () => {
             </Menu>
             {/* Left Side: Product List */}
             <Paper elevation={0} sx={{ p: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h5" component="h2">Products</Typography>
-                    <TextField
-                        variant="outlined"
-                        size="small"
-                        placeholder="Search name or barcode..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon />
-                                </InputAdornment>
-                            ),
-                        }}
-                        sx={{ width: 320 }}
-                    />
-                </Box>
-                
-                {/* Category Summary */}
-                <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <Chip label={categoryLabel} size="small" color="primary" variant="outlined" />
-                        <Chip label={`Products: ${summaryTotals.productCount}`} size="small" color="info" variant="outlined" />
-                        <Chip label={`Total Stock: ${summaryTotals.totalQty}`} size="small" color="warning" variant="outlined" />
-                        <Chip label={`Cost: ₹${summaryTotals.totalCost.toFixed(2)}`} size="small" color="error" variant="outlined" />
-                        <Chip label={`Selling: ₹${summaryTotals.totalSelling.toFixed(2)}`} size="small" color="success" variant="outlined" />
-                        <Chip label={`Avg Margin: ${averageMargin}%`} size="small" color="secondary" variant="outlined" />
-                        <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => {
-                                setCategoryFilter('all');
-                                setSortBy('name');
-                                setSortOrder('asc');
-                                setSearchTerm('');
-                            }}
-                        >
-                            Reset
-                        </Button>
-                    </Box>
-                    {searchTerm && (
-                        <Box sx={{ mt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {/* Header Card */}
+                <Paper
+                    elevation={0}
+                    sx={{
+                        p: 1.75,
+                        mb: 2,
+
+                    }}
+                >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>Products</Typography>
                             <Chip
-                                label={`Search: "${searchTerm}"`}
-                                onDelete={() => setSearchTerm('')}
+                                label={categoryLabel}
                                 size="small"
-                                color="primary"
-                                variant="outlined"
+                                sx={{
+                                    bgcolor: 'rgba(31, 41, 55, 0.15)',
+                                    color: '#1f2937',
+                                    fontWeight: 600,
+                                    fontSize: '0.7rem',
+                                    height: '22px'
+                                }}
                             />
                         </Box>
-                    )}
-                </Box>
+                        <TextField
+                            variant="outlined"
+                            size="small"
+                            placeholder="Search name or barcode..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon sx={{ color: 'rgba(31, 41, 55, 0.6)', fontSize: '1.1rem' }} />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            sx={{
+                                width: 280,
+                                '& .MuiOutlinedInput-root': {
+                                    color: '#1f2937',
+                                    fontSize: '0.85rem',
+                                    bgcolor: 'rgba(255, 255, 255, 0.5)',
+                                    '& fieldset': {
+                                        borderColor: 'rgba(31, 41, 55, 0.3)',
+                                    },
+                                    '&:hover fieldset': {
+                                        borderColor: 'rgba(31, 41, 55, 0.5)',
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: '#d97706',
+                                    },
+                                },
+                                '& .MuiOutlinedInput-input': {
+                                    padding: '7px 10px',
+                                    '&::placeholder': {
+                                        color: 'rgba(31, 41, 55, 0.5)',
+                                        opacity: 1,
+                                    }
+                                }
+                            }}
+                        />
+                    </Box>
+
+                    {/* Stats Row */}
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            gap: 2.5,
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                            pt: 1.5,
+                            borderTop: '1px solid rgba(31, 41, 55, 0.2)'
+                        }}
+                    >
+                        <Box>
+                            <Typography variant="caption" sx={{ color: 'rgba(31, 41, 55, 0.65)', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.3px' }}>
+                                Products
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3 }}>
+                                {summaryTotals.productCount}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" sx={{ color: 'rgba(31, 41, 55, 0.65)', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.3px' }}>
+                                Total Stock
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3 }}>
+                                {summaryTotals.totalQty}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" sx={{ color: 'rgba(31, 41, 55, 0.65)', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.3px' }}>
+                                Cost Value
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3 }}>
+                                ₹{summaryTotals.totalCost.toFixed(2)}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" sx={{ color: 'rgba(31, 41, 55, 0.65)', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.3px' }}>
+                                Selling Value
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3 }}>
+                                ₹{summaryTotals.totalSelling.toFixed(2)}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" sx={{ color: 'rgba(31, 41, 55, 0.65)', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.3px' }}>
+                                Avg Margin
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: '#16a34a' }}>
+                                {averageMargin}%
+                            </Typography>
+                        </Box>
+                        <Box sx={{ ml: 'auto', display: 'flex', gap: 1, alignItems: 'center' }}>
+                            {searchTerm && (
+                                <Chip
+                                    label={`Search: "${searchTerm}"`}
+                                    onDelete={() => setSearchTerm('')}
+                                    size="small"
+                                    sx={{
+                                        bgcolor: 'rgba(31, 41, 55, 0.15)',
+                                        color: '#1f2937',
+                                        fontSize: '0.7rem',
+                                        height: '24px',
+                                        '& .MuiChip-deleteIcon': {
+                                            color: 'rgba(31, 41, 55, 0.7)',
+                                            fontSize: '1rem',
+                                            '&:hover': {
+                                                color: '#1f2937'
+                                            }
+                                        }
+                                    }}
+                                />
+                            )}
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => setShowCategories(prev => !prev)}
+                                sx={{
+                                    color: '#1f2937',
+                                    borderColor: 'rgba(31, 41, 55, 0.4)',
+                                    fontSize: '0.75rem',
+                                    padding: '4px 12px',
+                                    '&:hover': {
+                                        borderColor: 'rgba(31, 41, 55, 0.7)',
+                                        bgcolor: 'rgba(31, 41, 55, 0.1)'
+                                    }
+                                }}
+                            >
+                                {showCategories ? 'Hide Categories' : 'Show Categories'}
+                            </Button>
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                    setCategoryFilter('all');
+                                    setSortBy('name');
+                                    setSortOrder('asc');
+                                    setSearchTerm('');
+                                    setSelectedProduct(null);
+                                    setSelectedProductDetails(null);
+                                }}
+                                sx={{
+                                    color: '#1f2937',
+                                    borderColor: 'rgba(31, 41, 55, 0.4)',
+                                    fontSize: '0.75rem',
+                                    padding: '4px 12px',
+                                    '&:hover': {
+                                        borderColor: 'rgba(31, 41, 55, 0.7)',
+                                        bgcolor: 'rgba(31, 41, 55, 0.1)'
+                                    }
+                                }}
+                            >
+                                Reset
+                            </Button>
+                        </Box>
+                    </Box>
+                </Paper>
                 {isLoadingProducts && <LinearProgress sx={{ mb: 1 }} />}
                 <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
                     <Table size="small" stickyHeader>
@@ -809,8 +939,8 @@ const ProductList = () => {
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Box>
                                                 <Typography variant="body2" fontWeight="bold">{product.name}</Typography>
-                                                <Typography 
-                                                    variant="caption" 
+                                                <Typography
+                                                    variant="caption"
                                                     color="text.secondary"
                                                 >
                                                     {product.category || 'Uncategorized'}
@@ -828,14 +958,11 @@ const ProductList = () => {
                                         <Typography variant="body2" fontWeight="bold">{product.total_stock}</Typography>
                                     </TableCell>
                                     <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                                        <IconButton size="small" color="primary" onClick={() => handleAddStock(product)}>
-                                            <AddIcon fontSize="small" />
+                                        <IconButton size="medium" color="primary" onClick={() => handleEditClick(product)}>
+                                            <EditIcon fontSize="medium" />
                                         </IconButton>
-                                        <IconButton size="small" color="primary" onClick={() => handleEditClick(product)}>
-                                            <EditIcon fontSize="small" />
-                                        </IconButton>
-                                        <IconButton size="small" color="error" onClick={() => handleDelete(product.id)}>
-                                            <DeleteIcon fontSize="small" />
+                                        <IconButton size="medium" color="error" onClick={() => handleDelete(product.id)}>
+                                            <DeleteIcon fontSize="medium" />
                                         </IconButton>
                                     </TableCell>
                                 </TableRow>
@@ -858,6 +985,7 @@ const ProductList = () => {
             </Paper>
 
             {/* Right Side: Batch Details */}
+            {displayProduct && (
             <Paper elevation={0} sx={{ p: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                 <Box
                     role="separator"
@@ -877,21 +1005,62 @@ const ProductList = () => {
                 {displayProduct ? (
                     <>
                         <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid rgba(16, 24, 40, 0.08)' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    <Typography variant="h5" component="h2">{displayProduct.name}</Typography>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: { xs: 'flex-start', sm: 'center' },
+                                    flexDirection: { xs: 'column', sm: 'row' },
+                                    justifyContent: 'space-between',
+                                    gap: 2,
+                                    mb: 2
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                                    <Typography
+                                        variant="h5"
+                                        component="h2"
+                                        sx={{ wordBreak: 'break-word' }}
+                                    >
+                                        {displayProduct.name}
+                                    </Typography>
                                     {displayProduct.batchTrackingEnabled && (
                                         <Chip label="Batch Tracking Enabled" size="small" color="primary" variant="filled" />
                                     )}
                                 </Box>
-                                <Button
-                                    size="small"
-                                    variant="outlined"
-                                    startIcon={<HistoryIcon />}
-                                    onClick={handleOpenHistory}
-                                >
-                                    History
-                                </Button>
+                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
+                                    {displayProduct.batchTrackingEnabled && (
+                                        <Button
+                                            size="small"
+                                            variant="contained"
+                                            startIcon={<AddIcon />}
+                                            onClick={() => handleAddStock(displayProduct)}
+                                            fullWidth
+                                            sx={{ flex: { xs: '1 1 160px', sm: '0 0 auto' } }}
+                                        >
+                                            Add Batch
+                                        </Button>
+                                    )}
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<HistoryIcon />}
+                                        onClick={handleOpenHistory}
+                                        fullWidth
+                                        sx={{ flex: { xs: '1 1 160px', sm: '0 0 auto' } }}
+                                    >
+                                        History
+                                    </Button>
+                                    <Button
+                                        size="small"
+                                        variant="contained"
+                                        startIcon={<PrintIcon />}
+                                        onClick={() => setBarcodePrintOpen(true)}
+                                        fullWidth
+                                        sx={{ flex: { xs: '1 1 160px', sm: '0 0 auto' }, bgcolor: '#1f8a5b', '&:hover': { bgcolor: '#166d47' } }}
+                                    >
+                                        Print Barcode
+                                    </Button>
+                                </Box>
                             </Box>
                             <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                                 <Box>
@@ -958,12 +1127,23 @@ const ProductList = () => {
                                                         </TableCell>
                                                     )}
                                                     <TableCell align="center">
-                                                        <IconButton size="small" color="primary" onClick={() => handleBatchEditClick(batch)}>
-                                                            <EditIcon fontSize="small" />
-                                                        </IconButton>
-                                                        <IconButton size="small" color="error" onClick={() => handleBatchDelete(batch.id)}>
-                                                            <DeleteIcon fontSize="small" />
-                                                        </IconButton>
+                                                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                                                            <Tooltip title="Quick Inventory" arrow>
+                                                                <IconButton size="medium" color="primary" onClick={() => handleQuickInventoryOpen(batch)}>
+                                                                    <InventoryIcon fontSize="medium" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                            <Tooltip title="Edit Batch" arrow>
+                                                                <IconButton size="medium" color="primary" onClick={() => handleBatchEditClick(batch)}>
+                                                                    <EditIcon fontSize="medium" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                            <Tooltip title="Delete Batch" arrow>
+                                                                <IconButton size="medium" color="error" onClick={() => handleBatchDelete(batch.id)}>
+                                                                    <DeleteIcon fontSize="medium" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </Box>
                                                     </TableCell>
                                                 </TableRow>
                                             );
@@ -986,8 +1166,20 @@ const ProductList = () => {
                     </Box>
                 )}
             </Paper>
+            )}
 
-            <Dialog open={addCategoryOpen} onClose={() => setAddCategoryOpen(false)}>
+            <Dialog
+                open={addCategoryOpen}
+                onClose={() => setAddCategoryOpen(false)}
+                onKeyDown={(event) => {
+                    if (event.defaultPrevented) return;
+                    if (event.key !== 'Enter') return;
+                    if (event.shiftKey) return;
+                    if (event.target?.tagName === 'TEXTAREA') return;
+                    event.preventDefault();
+                    handleSaveCategory();
+                }}
+            >
                 <DialogTitle>{categoryDialogMode === 'edit' ? 'Edit Category' : 'Add Category'}</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -1022,16 +1214,22 @@ const ProductList = () => {
                 open={editOpen}
                 onClose={() => setEditOpen(false)}
                 product={currentProduct}
-                onProductChange={setCurrentProduct}
-                onSave={handleEditSave}
+                onProductUpdated={handleEditSave}
             />
 
             <EditBatchDialog
                 open={batchEditOpen}
                 onClose={() => setBatchEditOpen(false)}
                 batch={currentBatch}
-                onBatchChange={setCurrentBatch}
-                onSave={handleBatchEditSave}
+                onBatchUpdated={handleBatchEditSave}
+            />
+
+            <QuickInventoryDialog
+                open={quickInventoryOpen}
+                onClose={handleQuickInventoryClose}
+                batch={quickInventoryBatch}
+                productName={displayProduct?.name}
+                onUpdated={handleStockAdded}
             />
 
             <AddStockDialog
@@ -1040,7 +1238,13 @@ const ProductList = () => {
                 product={currentProduct}
                 onStockAdded={handleStockAdded}
             />
-            
+
+            <BarcodePrintDialog
+                open={barcodePrintOpen}
+                onClose={() => setBarcodePrintOpen(false)}
+                product={displayProduct}
+            />
+
             <CustomDialog {...dialogState} onClose={closeDialog} />
         </Box>
     );

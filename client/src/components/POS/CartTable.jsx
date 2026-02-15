@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Typography, IconButton
+    Typography, IconButton, Chip, Tooltip
 } from '@mui/material';
 import {
     Delete as DeleteIcon,
@@ -9,6 +9,46 @@ import {
     Remove as RemoveIcon,
     ShoppingCart as ShoppingCartIcon
 } from '@mui/icons-material';
+
+const ShortBatchCode = ({ batchCode }) => {
+    if (!batchCode || batchCode === 'N/A') {
+        return <Typography variant="caption" color="text.secondary">No batch</Typography>;
+    }
+    
+    // If batch code is short (<=8 chars), display it normally
+    if (batchCode.length <= 8) {
+        return (
+            <Chip 
+                label={batchCode} 
+                size="small" 
+                variant="outlined"
+                sx={{ 
+                    fontFamily: 'monospace', 
+                    fontSize: '0.7rem',
+                    height: '18px'
+                }} 
+            />
+        );
+    }
+    
+    // For longer codes, show first 6 chars + "..."
+    const shortCode = batchCode.substring(0, 6) + '...';
+    return (
+        <Tooltip title={`Batch: ${batchCode}`} arrow placement="top">
+            <Chip 
+                label={shortCode} 
+                size="small" 
+                variant="outlined"
+                sx={{ 
+                    fontFamily: 'monospace', 
+                    fontSize: '0.7rem',
+                    height: '18px',
+                    cursor: 'help'
+                }} 
+            />
+        </Tooltip>
+    );
+};
 
 const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart }) => {
     return (
@@ -34,7 +74,7 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart }) => {
                                 <TableRow key={item.batch_id} hover>
                                     <TableCell>
                                         <Typography variant="subtitle2" fontWeight="600">{item.name}</Typography>
-                                        <Typography variant="caption" color="text.secondary">Code: {item.batch_code || 'N/A'}</Typography>
+                                        <ShortBatchCode batchCode={item.batch_code} />
                                     </TableCell>
                                     <TableCell align="center">
                                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 1, width: 'fit-content', mx: 'auto' }}>
@@ -60,8 +100,8 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart }) => {
                                         <Typography variant="body2" fontWeight="bold">₹{(item.price * item.quantity).toFixed(2)}</Typography>
                                     </TableCell>
                                     <TableCell>
-                                        <IconButton size="small" color="error" onClick={() => onRemoveFromCart(item.batch_id)}>
-                                            <DeleteIcon fontSize="small" />
+                                        <IconButton size="medium" color="error" onClick={() => onRemoveFromCart(item.batch_id)}>
+                                            <DeleteIcon fontSize="medium" />
                                         </IconButton>
                                     </TableCell>
                                 </TableRow>

@@ -17,12 +17,26 @@ const ReceiptPreviewDialog = ({
     showShopNameField = true,
     saveLabel = 'Save'
 }) => {
+    const handleKeyDown = (event) => {
+        if (event.defaultPrevented) return;
+        if (event.key !== 'Enter') return;
+        if (event.shiftKey) return;
+        if (event.target?.tagName === 'TEXTAREA') return;
+        event.preventDefault();
+        if (onSave) {
+            onSave();
+            return;
+        }
+        onClose();
+    };
+
     return (
         <Dialog
             open={open}
             onClose={onClose}
             maxWidth="md"
             fullWidth
+            onKeyDown={handleKeyDown}
         >
             <DialogTitle sx={{ borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 Bill Preview & Settings

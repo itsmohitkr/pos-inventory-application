@@ -84,9 +84,18 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
     const sellingAboveMrp = sellingPrice > mrp;
     const sellingInvalid = sellingBelowCost || sellingAboveMrp;
 
+    const handleKeyDown = (event) => {
+        if (event.defaultPrevented) return;
+        if (event.key !== 'Enter') return;
+        if (event.shiftKey) return;
+        if (event.target?.tagName === 'TEXTAREA') return;
+        event.preventDefault();
+        handleSave(event);
+    };
+
     return (
         <>
-            <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+            <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth onKeyDown={handleKeyDown}>
                 <DialogTitle>Edit Batch Details</DialogTitle>
                 <DialogContent component="form" onSubmit={handleSave} sx={{ pt: 2 }}>
                     <Grid container spacing={2} sx={{ mt: 0.5 }}>

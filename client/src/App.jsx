@@ -48,6 +48,7 @@ import Reporting from './components/Reporting/Reporting';
 import Refund from './components/Refund/Refund';
 import ReceiptPreviewDialog from './components/POS/ReceiptPreviewDialog';
 import DashboardPage from './components/Dashboard/Dashboard';
+import SaleHistory from './components/SaleHistory/SaleHistory';
 import LoginPage from './components/Auth/LoginPage';
 import UserManagementDialog from './components/Auth/UserManagementDialog';
 import AccountDetailsDialog from './components/Settings/AccountDetailsDialog';
@@ -188,11 +189,11 @@ const Dashboard = ({ shopName, userRole }) => (
             {shopName} POS Suite
           </Typography>
           <Typography variant="body1" sx={{ color: 'rgba(248, 245, 240, 0.8)', maxWidth: 520 }}>
-            {userRole === 'cashier' 
+            {userRole === 'cashier'
               ? 'Process transactions quickly with our focused checkout interface.'
               : userRole === 'admin'
-              ? 'Complete control over inventory, sales, and user management.'
-              : 'Comprehensive sales and refund management capabilities.'}
+                ? 'Complete control over inventory, sales, and user management.'
+                : 'Comprehensive sales and refund management capabilities.'}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5} flexWrap="wrap">
@@ -267,9 +268,11 @@ const Inventory = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [inventoryKey, setInventoryKey] = useState(0);
   const inventoryRef = React.useRef();
 
   const handleProductAdded = () => {
+    setInventoryKey(prev => prev + 1);
     if (inventoryRef.current?.refresh) {
       inventoryRef.current.refresh();
     }
@@ -277,6 +280,7 @@ const Inventory = () => {
   };
 
   const handleImportComplete = () => {
+    setInventoryKey(prev => prev + 1);
     if (inventoryRef.current?.refresh) {
       inventoryRef.current.refresh();
     }
@@ -364,11 +368,11 @@ const Inventory = () => {
           </Paper>
         </Container>
       ) : (
-        <ProductList ref={inventoryRef} />
+        <ProductList key={inventoryKey} ref={inventoryRef} />
       )}
 
-      <BulkImportDialog 
-        open={showImport} 
+      <BulkImportDialog
+        open={showImport}
         onClose={() => setShowImport(false)}
         onImportComplete={handleImportComplete}
       />
@@ -513,6 +517,7 @@ function App() {
   const canAccessReports = isAdmin;
   const canAccessDashboard = isAdmin;
   const canAccessRefund = isAdmin || currentUser?.role === 'salesman';
+  const canAccessSaleHistory = isAdmin || currentUser?.role === 'salesman';
 
   if (loading) return <Box>Loading...</Box>;
 
@@ -522,7 +527,7 @@ function App() {
 
   return (
     <Router>
-      <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: '#fafafa' }}>
+      <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
         <AppBar position="sticky" elevation={0}>
           <Toolbar sx={{ gap: 2 }}>
             <Box sx={{ flexGrow: 1 }}>
@@ -537,6 +542,7 @@ function App() {
             </Box>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
               <Button color="inherit" component={RouterLink} to="/pos">POS</Button>
+              {canAccessSaleHistory && <Button color="inherit" component={RouterLink} to="/sale-history">Sale History</Button>}
               {canAccessInventory && <Button color="inherit" component={RouterLink} to="/inventory">Inventory</Button>}
               {canAccessReports && <Button color="inherit" component={RouterLink} to="/reports">Reports</Button>}
               {canAccessRefund && <Button color="inherit" component={RouterLink} to="/refund">Refund</Button>}
@@ -549,12 +555,29 @@ function App() {
         </AppBar>
 
         <Routes>
-          <Route path="/" element={<Box sx={{ bgcolor: '#f8f9fa' }}><Dashboard shopName={shopName} userRole={currentUser.role} /></Box>} />
-          <Route path="/pos" element={<Box sx={{ bgcolor: '#e3f2fd', minHeight: '100vh' }}><POS /></Box>} />
-          {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: '#fff8e1', minHeight: '100vh' }}><Inventory /></Box>} />}
-          {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: '#f3e5f5', minHeight: '100vh' }}><Reporting /></Box>} />}
-          {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: '#fce4ec', minHeight: '100vh' }}><Refund /></Box>} />}
-          {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: '#e8f5e9', minHeight: '100vh' }}><DashboardPage /></Box>} />}
+          <Route path="/" element={<Box sx={{ bgcolor: 'background.default' }}><Dashboard shopName={shopName} userRole={currentUser.role} /></Box>} />
+          <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><POS /></Box>} />
+          {canAccessSaleHistory && (
+            <Route
+              path="/sale-history"
+              element={
+                <Box
+                  sx={{
+                    bgcolor: 'background.default',
+                    height: 'calc(100vh - 64px)',
+                    minHeight: 0,
+                    overflow: 'hidden'
+                  }}
+                >
+                  <SaleHistory />
+                </Box>
+              }
+            />
+          )}
+          {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><Inventory /></Box>} />}
+          {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><Reporting /></Box>} />}
+          {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><Refund /></Box>} />}
+          {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><DashboardPage /></Box>} />}
         </Routes>
 
         <Menu
@@ -588,7 +611,7 @@ function App() {
             <ListItemText onClick={() => {
               setShowChangePasswordDialog(true);
               handleCloseSettingsMenu();
-            }}>Change password</ListItemText>
+            }}>Change Password</ListItemText>
           </MenuItem>
           {isAdmin && <Divider />}
           {isAdmin && (
@@ -599,7 +622,7 @@ function App() {
               <ListItemIcon>
                 <PeopleIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Manage users</ListItemText>
+              <ListItemText>Manage Users</ListItemText>
             </MenuItem>
           )}
           <Divider />
@@ -607,7 +630,7 @@ function App() {
             <ListItemIcon>
               <StoreIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText>Account details</ListItemText>
+            <ListItemText>Settings</ListItemText>
           </MenuItem>
           <MenuItem onClick={handleLogout}>
             <ListItemIcon>

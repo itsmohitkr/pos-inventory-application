@@ -112,6 +112,19 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
       maxWidth="md"
       fullWidth
       disableEscapeKeyDown={showWipeConfirm}
+      onKeyDown={(event) => {
+        if (event.defaultPrevented) return;
+        if (event.key !== 'Enter') return;
+        if (event.shiftKey) return;
+        if (event.target?.tagName === 'TEXTAREA') return;
+        event.preventDefault();
+        if (showWipeConfirm) {
+          if (!wipePassword || wipeLoading) return;
+          handleWipeDatabase();
+          return;
+        }
+        handleSave();
+      }}
     >
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

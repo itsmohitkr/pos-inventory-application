@@ -62,7 +62,7 @@ const TransactionPanel = ({
                 </Grid>
 
                 <Box sx={{ mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary" fontWeight="bold">APPLY DISCOUNT (₹)</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold">APPLY EXTRA DISCOUNT (₹)</Typography>
                     <TextField
                         fullWidth
                         type="number"
@@ -85,7 +85,7 @@ const TransactionPanel = ({
                     <Typography variant="body2" fontWeight="bold">₹{subTotal.toFixed(2)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2" color="error.main">Manual Discount</Typography>
+                    <Typography variant="body2" color="error.main">Extra Discount</Typography>
                     <Typography variant="body2" color="error.main">- ₹{discount.toFixed(2)}</Typography>
                 </Box>
 

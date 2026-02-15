@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import axios from 'axios';
 import {
     Box, Paper, TextField, Chip, Stack, Grid, Card, CardContent, CardActions, Button,
@@ -51,6 +51,7 @@ const InventoryTree = forwardRef((props, ref) => {
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [expandedCategories, setExpandedCategories] = useState({});
     const [editOpen, setEditOpen] = useState(false);
     const [batchEditOpen, setBatchEditOpen] = useState(false);
@@ -66,6 +67,13 @@ const InventoryTree = forwardRef((props, ref) => {
     useImperativeHandle(ref, () => ({
         refresh: fetchProducts
     }));
+
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            setDebouncedSearch(searchTerm.trim());
+        }, 200);
+        return () => clearTimeout(handle);
+    }, [searchTerm]);
 
     const fetchProducts = async () => {
         try {
@@ -101,31 +109,35 @@ const InventoryTree = forwardRef((props, ref) => {
         }));
     };
 
-    const getProductsInCategory = (category) => {
-        if (category === 'All Products') {
-            return products.filter(p =>
-                !searchTerm ||
-                p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.barcode.includes(searchTerm)
-            );
-        }
-        if (category === 'Uncategorized') {
-            return products.filter(p =>
-                !p.category && (
-                    !searchTerm ||
-                    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    p.barcode.includes(searchTerm)
-                )
-            );
-        }
-        return products.filter(p =>
-            p.category === category && (
-                !searchTerm ||
-                p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.barcode.includes(searchTerm)
-            )
-        );
-    };
+    const normalizedSearch = debouncedSearch.toLowerCase();
+
+    const filteredProducts = useMemo(() => {
+        if (!normalizedSearch) return products;
+        return products.filter((product) => {
+            const nameMatch = product.name?.toLowerCase().includes(normalizedSearch);
+            const barcodeMatch = product.barcode?.toLowerCase().includes(normalizedSearch);
+            return nameMatch || barcodeMatch;
+        });
+    }, [products, normalizedSearch]);
+
+    const productsByCategory = useMemo(() => {
+        const map = new Map();
+        map.set('All Products', filteredProducts);
+        map.set('Uncategorized', []);
+
+        filteredProducts.forEach((product) => {
+            if (!product.category) {
+                map.get('Uncategorized').push(product);
+                return;
+            }
+            if (!map.has(product.category)) {
+                map.set(product.category, []);
+            }
+            map.get(product.category).push(product);
+        });
+
+        return map;
+    }, [filteredProducts]);
 
     const handleEditProduct = (product) => {
         setCurrentProduct(product);
@@ -161,7 +173,7 @@ const InventoryTree = forwardRef((props, ref) => {
         setBatchEditOpen(false);
     };
 
-    const currentCategoryProducts = getProductsInCategory(selectedCategory);
+    const currentCategoryProducts = productsByCategory.get(selectedCategory) || [];
 
     return (
         <Box sx={{ display: 'flex', height: 'calc(100vh - 120px)', gap: 3 }}>
@@ -186,7 +198,7 @@ const InventoryTree = forwardRef((props, ref) => {
                     {categories.map((category) => {
                         const isSelected = selectedCategory === category;
                         const isExpanded = expandedCategories[category];
-                        const itemsInCategory = getProductsInCategory(category);
+                        const itemsInCategory = productsByCategory.get(category) || [];
 
                         return (
                             <Box key={category}>
@@ -408,7 +420,18 @@ const InventoryTree = forwardRef((props, ref) => {
             )}
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+            <Dialog
+                open={deleteConfirmOpen}
+                onClose={() => setDeleteConfirmOpen(false)}
+                onKeyDown={(event) => {
+                    if (event.defaultPrevented) return;
+                    if (event.key !== 'Enter') return;
+                    if (event.shiftKey) return;
+                    if (event.target?.tagName === 'TEXTAREA') return;
+                    event.preventDefault();
+                    confirmDelete();
+                }}
+            >
                 <DialogTitle>Delete Product</DialogTitle>
                 <DialogContent>
                     <Typography>

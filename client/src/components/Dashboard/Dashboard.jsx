@@ -8,84 +8,114 @@ import {
     Paper,
     TextField,
     Typography,
-    Divider
+    Divider,
+    Tabs,
+    Tab
 } from '@mui/material';
+import { CalendarToday as CalendarIcon } from '@mui/icons-material';
 
 const LOW_STOCK_THRESHOLD = 10;
 const CATEGORY_COLORS = ['#0b1d39', '#f2b544', '#1f8a5b', '#d97706', '#2563eb', '#7c3aed'];
 
-const formatDate = (date) => date.toISOString().split('T')[0];
-
-const startOfDay = (date) => {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    return d;
-};
-
-const endOfDay = (date) => {
-    const d = new Date(date);
-    d.setHours(23, 59, 59, 999);
-    return d;
-};
-
-const getRangeFromPreset = (preset) => {
-    const today = new Date();
-
-    if (preset === 'today') {
-        const start = startOfDay(today);
-        const end = endOfDay(today);
-        return { start, end };
-    }
-
-    if (preset === 'week') {
-        const start = startOfDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6));
-        const end = endOfDay(today);
-        return { start, end };
-    }
-
-    if (preset === 'month') {
-        const start = startOfDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29));
-        const end = endOfDay(today);
-        return { start, end };
-    }
-
-    return { start: startOfDay(today), end: endOfDay(today) };
-};
-
 const Dashboard = () => {
-    const [preset, setPreset] = useState('week');
-    const [startDate, setStartDate] = useState(formatDate(getRangeFromPreset('week').start));
-    const [endDate, setEndDate] = useState(formatDate(getRangeFromPreset('week').end));
     const [report, setReport] = useState(null);
     const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [tabValue, setTabValue] = useState(0);
+    const [dateRange, setDateRange] = useState({
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: new Date().toISOString().split("T")[0],
+    });
+
+    const timeframes = [
+        { label: "Today", getValue: () => getRange("day") },
+        { label: "Yesterday", getValue: () => getRange("yesterday") },
+        { label: "This Week", getValue: () => getRange("week") },
+        { label: "This Month", getValue: () => getRange("month") },
+        { label: "Custom", getValue: () => null },
+    ];
+
+    const getRange = (type) => {
+        const now = new Date();
+        let start = new Date();
+        let end = new Date();
+
+        switch (type) {
+            case "day":
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
+                break;
+            case "yesterday":
+                start.setDate(now.getDate() - 1);
+                start.setHours(0, 0, 0, 0);
+                end.setDate(now.getDate() - 1);
+                end.setHours(23, 59, 59, 999);
+                break;
+            case "week": {
+                const dayOfWeek = now.getDay();
+                const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                start.setDate(now.getDate() - diffToMonday);
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
+                break;
+            }
+            case "month":
+                start.setDate(1);
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
+                break;
+            default:
+                break;
+        }
+        return { start: start.toISOString(), end: end.toISOString() };
+    };
+
+    const fetchData = async (start, end) => {
+        setLoading(true);
+        try {
+            const [reportRes, productRes] = await Promise.all([
+                axios.get('/api/reports', {
+                    params: {
+                        startDate: start,
+                        endDate: end
+                    }
+                }),
+                axios.get('/api/products', {
+                    params: { page: 1, pageSize: 1000 }
+                })
+            ]);
+
+            setReport(reportRes.data);
+            setProducts(productRes.data.data || []);
+        } catch (error) {
+            console.error('Failed to load dashboard data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const start = startOfDay(new Date(startDate));
-                const end = endOfDay(new Date(endDate));
+        const range = getRange("day");
+        fetchData(range.start, range.end);
+    }, []);
 
-                const [reportRes, productRes] = await Promise.all([
-                    axios.get('/api/reports', {
-                        params: {
-                            startDate: start.toISOString(),
-                            endDate: end.toISOString()
-                        }
-                    }),
-                    axios.get('/api/products', {
-                        params: { page: 1, pageSize: 1000 }
-                    })
-                ]);
+    const handleTabChange = (event, newValue) => {
+        setTabValue(newValue);
+        if (newValue < 4) {
+            const range = timeframes[newValue].getValue();
+            fetchData(range.start, range.end);
+        }
+    };
 
-                setReport(reportRes.data);
-                setProducts(productRes.data.data || []);
-            } catch (error) {
-                console.error('Failed to load dashboard data:', error);
-            }
-        };
-
-        fetchData();
-    }, [startDate, endDate]);
+    const handleApplyCustomRange = () => {
+        if (dateRange.startDate && dateRange.endDate) {
+            const start = new Date(dateRange.startDate);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(dateRange.endDate);
+            end.setHours(23, 59, 59, 999);
+            fetchData(start.toISOString(), end.toISOString());
+        }
+    };
 
     const metrics = useMemo(() => {
         const sales = report?.sales || [];
@@ -121,13 +151,9 @@ const Dashboard = () => {
             });
         });
 
-        const topSelling = [...productTotals.entries()]
-            .sort((a, b) => b[1] - a[1]);
-
+        const topSelling = [...productTotals.entries()].sort((a, b) => b[1] - a[1]);
         const topSellingProduct = topSelling[0] || ['N/A', 0];
-
-        const highestMargin = [...productMargins.entries()]
-            .sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
+        const highestMargin = [...productMargins.entries()].sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
 
         const hourlySales = sales.reduce((acc, sale) => {
             const hour = new Date(sale.createdAt).getHours();
@@ -135,47 +161,33 @@ const Dashboard = () => {
             return acc;
         }, {});
 
-        const peakHourEntry = Object.entries(hourlySales)
-            .sort((a, b) => b[1] - a[1])[0];
-
+        const peakHourEntry = Object.entries(hourlySales).sort((a, b) => b[1] - a[1])[0];
         const peakHour = peakHourEntry ? Number(peakHourEntry[0]) : null;
         const peakHourLabel = peakHour === null
             ? 'No data'
             : `${((peakHour + 11) % 12) + 1}:00 ${peakHour < 12 ? 'AM' : 'PM'} - ${((peakHour + 12) % 12) + 1}:00 ${peakHour < 11 ? 'AM' : 'PM'}`;
-
-        const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
-        const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
-        const maxHourlyQty = Math.max(...hourlyQty, 0);
-
-        const categoryMix = [...categoryTotals.entries()]
-            .sort((a, b) => b[1] - a[1]);
 
         return {
             totalSales,
             totalProfit,
             totalOrders,
             totalItemsSold,
-            profitMargin,
-            avgOrderValue,
+            profitMargin: totalSales > 0 ? (totalProfit / totalSales) * 100 : 0,
+            avgOrderValue: totalOrders > 0 ? totalSales / totalOrders : 0,
             topSelling,
             topSellingProduct,
             highestMargin,
             peakHourLabel,
             hourlyQty,
-            maxHourlyQty,
-            categoryMix
+            maxHourlyQty: Math.max(...hourlyQty, 0),
+            categoryMix: [...categoryTotals.entries()].sort((a, b) => b[1] - a[1])
         };
     }, [report]);
 
-    const stockWarnings = useMemo(() => {
-        const lowStock = products.filter(p => p.total_stock > 0 && p.total_stock <= LOW_STOCK_THRESHOLD);
-        const zeroStock = products.filter(p => p.total_stock === 0);
-
-        return {
-            lowStock,
-            zeroStock
-        };
-    }, [products]);
+    const stockWarnings = useMemo(() => ({
+        lowStock: products.filter(p => p.total_stock > 0 && p.total_stock <= LOW_STOCK_THRESHOLD),
+        zeroStock: products.filter(p => p.total_stock === 0)
+    }), [products]);
 
     const topSellingGraph = metrics.topSelling.slice(0, 5);
     const maxTopQty = topSellingGraph[0]?.[1] || 1;
@@ -186,9 +198,7 @@ const Dashboard = () => {
         const top = entries.slice(0, 5);
         const otherQty = entries.slice(5).reduce((sum, [, qty]) => sum + qty, 0);
         const segments = [...top];
-        if (otherQty > 0) {
-            segments.push(['Other', otherQty]);
-        }
+        if (otherQty > 0) segments.push(['Other', otherQty]);
 
         const gradientStops = segments.map(([, qty], index) => {
             const percent = (qty / total) * 100;
@@ -210,58 +220,55 @@ const Dashboard = () => {
         };
     }, [metrics.categoryMix]);
 
-    const rangeLabel = `${startDate} to ${endDate}`;
-
-    const handlePreset = (value) => {
-        const range = getRangeFromPreset(value);
-        setPreset(value);
-        setStartDate(formatDate(range.start));
-        setEndDate(formatDate(range.end));
-    };
-
-    const handleCustomRange = (field, value) => {
-        setPreset('custom');
-        if (field === 'start') setStartDate(value);
-        if (field === 'end') setEndDate(value);
-    };
-
     return (
         <Container maxWidth="xl" sx={{ mt: { xs: 3, md: 5 }, mb: 6 }}>
-            <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, background: 'linear-gradient(120deg, rgba(11, 29, 57, 0.95) 0%, rgba(27, 62, 111, 0.9) 100%)', color: '#f8f5f0' }}>
-                <Typography variant="h4" fontWeight="bold">Dashboard</Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(248, 245, 240, 0.75)' }}>Selected range: {rangeLabel}</Typography>
-            </Paper>
+            <Paper
+                elevation={0}
+                sx={{
+                    m: -3,
+                    mb: 4,
+                    px: 4,
+                    py: 2.5,
+                    background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
+                    borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
+                }}
+            >
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
+                        Dashboard
+                    </Typography>
+                    <Box sx={{ minWidth: 280, display: "flex", justifyContent: "flex-end" }}>
+                        <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtonsDisplay="auto">
+                            {timeframes.map((tf, idx) => (
+                                <Tab key={idx} label={tf.label} />
+                            ))}
+                        </Tabs>
+                    </Box>
+                </Box>
 
-            <Paper elevation={0} sx={{ p: 2.5, mb: 3, borderRadius: 2 }}>
-                <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} md={6}>
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            <Button variant={preset === 'today' ? 'contained' : 'outlined'} onClick={() => handlePreset('today')}>Today</Button>
-                            <Button variant={preset === 'week' ? 'contained' : 'outlined'} onClick={() => handlePreset('week')}>This Week</Button>
-                            <Button variant={preset === 'month' ? 'contained' : 'outlined'} onClick={() => handlePreset('month')}>This Month</Button>
-                        </Box>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Box sx={{ display: 'flex', gap: 2, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-                            <TextField
-                                type="date"
-                                label="Start"
-                                size="small"
-                                InputLabelProps={{ shrink: true }}
-                                value={startDate}
-                                onChange={(e) => handleCustomRange('start', e.target.value)}
-                            />
-                            <TextField
-                                type="date"
-                                label="End"
-                                size="small"
-                                InputLabelProps={{ shrink: true }}
-                                value={endDate}
-                                onChange={(e) => handleCustomRange('end', e.target.value)}
-                            />
-                        </Box>
-                    </Grid>
-                </Grid>
+                {tabValue === 4 && (
+                    <Box sx={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "flex-end", mt: 2, pt: 2, borderTop: "1px solid #eee", flexWrap: "wrap" }}>
+                        <TextField
+                            type="date"
+                            label="From"
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                            value={dateRange.startDate}
+                            onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                        />
+                        <TextField
+                            type="date"
+                            label="To"
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                            value={dateRange.endDate}
+                            onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                        />
+                        <Button variant="contained" onClick={handleApplyCustomRange} startIcon={<CalendarIcon />} sx={{ bgcolor: "#0b1d39", "&:hover": { bgcolor: "#1b3e6f" } }}>
+                            Apply
+                        </Button>
+                    </Box>
+                )}
             </Paper>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -325,14 +332,7 @@ const Dashboard = () => {
                                 <Box key={name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <Typography variant="caption" sx={{ width: 120 }} noWrap>{name}</Typography>
                                     <Box sx={{ flex: 1, height: 8, bgcolor: 'rgba(11, 29, 57, 0.1)', borderRadius: 99 }}>
-                                        <Box
-                                            sx={{
-                                                width: `${(qty / maxTopQty) * 100}%`,
-                                                height: '100%',
-                                                bgcolor: 'primary.main',
-                                                borderRadius: 99
-                                            }}
-                                        />
+                                        <Box sx={{ width: `${(qty / maxTopQty) * 100}%`, height: '100%', bgcolor: 'primary.main', borderRadius: 99 }} />
                                     </Box>
                                     <Typography variant="caption" sx={{ width: 36, textAlign: 'right' }}>{qty}</Typography>
                                 </Box>
@@ -357,9 +357,7 @@ const Dashboard = () => {
                                             transition: 'height 0.2s ease'
                                         }}
                                     />
-                                    {(hour % 6 === 0) && (
-                                        <Typography variant="caption" color="text.secondary">{hour}</Typography>
-                                    )}
+                                    {(hour % 6 === 0) && <Typography variant="caption" color="text.secondary">{hour}</Typography>}
                                 </Box>
                             ))}
                         </Box>
@@ -370,15 +368,7 @@ const Dashboard = () => {
                     <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
                         <Typography variant="subtitle1" fontWeight="bold">Category mix</Typography>
                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
-                            <Box
-                                sx={{
-                                    width: 160,
-                                    height: 160,
-                                    borderRadius: '50%',
-                                    background: categoryMix.gradient,
-                                    boxShadow: '0 12px 30px rgba(11, 29, 57, 0.15)'
-                                }}
-                            />
+                            <Box sx={{ width: 160, height: 160, borderRadius: '50%', background: categoryMix.gradient, boxShadow: '0 12px 30px rgba(11, 29, 57, 0.15)' }} />
                             <Box sx={{ display: 'grid', gap: 1, flex: 1 }}>
                                 {categoryMix.segments.map(([name, qty], index) => (
                                     <Box key={name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -387,9 +377,7 @@ const Dashboard = () => {
                                         <Typography variant="caption" color="text.secondary">{Math.round((qty / categoryMix.total) * 100)}%</Typography>
                                     </Box>
                                 ))}
-                                {!categoryMix.segments.length && (
-                                    <Typography variant="body2" color="text.secondary">No category data.</Typography>
-                                )}
+                                {!categoryMix.segments.length && <Typography variant="body2" color="text.secondary">No category data.</Typography>}
                             </Box>
                         </Box>
                     </Paper>
@@ -408,9 +396,7 @@ const Dashboard = () => {
                                 <Typography variant="body2" fontWeight="bold">{item.total_stock}</Typography>
                             </Box>
                         ))}
-                        {!stockWarnings.lowStock.length && (
-                            <Typography variant="body2" color="text.secondary">No low stock items.</Typography>
-                        )}
+                        {!stockWarnings.lowStock.length && <Typography variant="body2" color="text.secondary">No low stock items.</Typography>}
                     </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -424,9 +410,7 @@ const Dashboard = () => {
                                 <Typography variant="body2" fontWeight="bold">0</Typography>
                             </Box>
                         ))}
-                        {!stockWarnings.zeroStock.length && (
-                            <Typography variant="body2" color="text.secondary">No zero stock items.</Typography>
-                        )}
+                        {!stockWarnings.zeroStock.length && <Typography variant="body2" color="text.secondary">No zero stock items.</Typography>}
                     </Paper>
                 </Grid>
             </Grid>

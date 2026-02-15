@@ -211,7 +211,18 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
             </DialogActions>
 
             {/* Add User Dialog */}
-            <AddUserDialog open={showAddDialog} onClose={() => setShowAddDialog(false)}>
+            <AddUserDialog
+                open={showAddDialog}
+                onClose={() => setShowAddDialog(false)}
+                onKeyDown={(event) => {
+                    if (event.defaultPrevented) return;
+                    if (event.key !== 'Enter') return;
+                    if (event.shiftKey) return;
+                    if (event.target?.tagName === 'TEXTAREA') return;
+                    event.preventDefault();
+                    handleAddUser();
+                }}
+            >
                 <AddUserTitle>Add New User</AddUserTitle>
                 <AddUserContent sx={{ minWidth: 400 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
@@ -248,7 +259,18 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
             </AddUserDialog>
 
             {/* Edit User Dialog */}
-            <AddUserDialog open={showEditDialog} onClose={() => setShowEditDialog(false)}>
+            <AddUserDialog
+                open={showEditDialog}
+                onClose={() => setShowEditDialog(false)}
+                onKeyDown={(event) => {
+                    if (event.defaultPrevented) return;
+                    if (event.key !== 'Enter') return;
+                    if (event.shiftKey) return;
+                    if (event.target?.tagName === 'TEXTAREA') return;
+                    event.preventDefault();
+                    handleUpdateUser();
+                }}
+            >
                 <AddUserTitle>Edit User: {selectedUser?.username}</AddUserTitle>
                 <AddUserContent sx={{ minWidth: 400 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>

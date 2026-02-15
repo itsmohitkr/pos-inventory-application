@@ -82,6 +82,13 @@ const POS = () => {
 
     useEffect(() => {
         fetchProducts();
+        
+        // Auto-refresh products every 30 seconds to get updated stock levels
+        const interval = setInterval(() => {
+            fetchProducts();
+        }, 30000);
+        
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
@@ -249,7 +256,11 @@ const POS = () => {
     const handleCheckout = async () => {
         try {
             const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
-            const res = await axios.post('/api/sale', { items, discount });
+            const res = await axios.post('/api/sale', {
+                items,
+                discount: 0,
+                extraDiscount: discount
+            });
             const detailedRes = await axios.get(`/api/sale/${res.data.saleId}`);
             setLastSale(detailedRes.data);
 
@@ -284,11 +295,17 @@ const POS = () => {
     const totalSavings = totalMrp - totalAmount;
 
     const filterOptions = (options, { inputValue }) => {
-        const lowerInput = inputValue.toLowerCase();
-        return options.filter(option => {
-            const nameMatch = option.name.toLowerCase().includes(lowerInput);
-            const barcodeMatch = option.barcode ? option.barcode.toLowerCase().includes(lowerInput) : false;
-            const priceMatch = option.batches.some(b => b.sellingPrice.toString().includes(lowerInput));
+        const normalizedInput = inputValue.trim().toLowerCase();
+        if (!normalizedInput) return [];
+
+        return options.filter((option) => {
+            const nameValue = option.name ? option.name.toLowerCase() : '';
+            const barcodeValue = option.barcode ? option.barcode.toLowerCase() : '';
+            const nameMatch = nameValue.includes(normalizedInput);
+            const barcodeMatch = barcodeValue.includes(normalizedInput);
+            const priceMatch = (option.batches || []).some((batch) =>
+                String(batch.sellingPrice).includes(normalizedInput)
+            );
             return nameMatch || barcodeMatch || priceMatch;
         });
     };
@@ -348,7 +365,18 @@ const POS = () => {
                     onClose={() => setScannedProduct(null)}
                 />
 
-                <Dialog open={showPrintDialog} onClose={() => handlePrintDecision(false)}>
+                <Dialog
+                    open={showPrintDialog}
+                    onClose={() => handlePrintDecision(false)}
+                    onKeyDown={(event) => {
+                        if (event.defaultPrevented) return;
+                        if (event.key !== 'Enter') return;
+                        if (event.shiftKey) return;
+                        if (event.target?.tagName === 'TEXTAREA') return;
+                        event.preventDefault();
+                        handlePrintDecision(true);
+                    }}
+                >
                     <DialogTitle>Payment Accepted</DialogTitle>
                     <DialogContent>
                         <Typography variant="body1">

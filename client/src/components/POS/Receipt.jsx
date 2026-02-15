@@ -66,7 +66,9 @@ const Receipt = ({ sale, settings }) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {sale.items.map((item, idx) => (
+                    {sale.items.map((item, idx) => {
+                        const mrp = item.mrp || item.sellingPrice;
+                        return (
                         <tr key={idx}>
                             {config.productName && (
                                 <td style={{ padding: '4px 0', verticalAlign: 'top' }}>
@@ -80,7 +82,7 @@ const Receipt = ({ sale, settings }) => {
                                         </div>
                                     )}
                                     {config.mrp && (
-                                        <div style={{ fontSize: '0.6rem' }}>MRP: ₹{item.batch?.mrp.toFixed(2)}</div>
+                                        <div style={{ fontSize: '0.6rem' }}>MRP: ₹{mrp.toFixed(2)}</div>
                                     )}
                                 </td>
                             )}
@@ -96,7 +98,8 @@ const Receipt = ({ sale, settings }) => {
                                 {(item.quantity * item.sellingPrice).toFixed(2)}
                             </td>
                         </tr>
-                    ))}
+                    );
+                    })}
                 </tbody>
             </table>
 
@@ -106,12 +109,18 @@ const Receipt = ({ sale, settings }) => {
             <Box sx={{ ml: 'auto', width: '80%' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>Subtotal:</Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>₹{(sale.totalAmount + sale.discount).toFixed(2)}</Typography>
+                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>₹{(sale.totalAmount + sale.discount + (sale.extraDiscount || 0)).toFixed(2)}</Typography>
                 </Box>
                 {config.discount && sale.discount > 0 && (
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>Discount:</Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>MRP Discount:</Typography>
                         <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>-₹{sale.discount.toFixed(2)}</Typography>
+                    </Box>
+                )}
+                {config.discount && (sale.extraDiscount || 0) > 0 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>Extra Discount:</Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>-₹{(sale.extraDiscount || 0).toFixed(2)}</Typography>
                     </Box>
                 )}
                 {config.totalValue && (
@@ -130,8 +139,12 @@ const Receipt = ({ sale, settings }) => {
                     }}>
                         <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
                             TOTAL SAVINGS: ₹{(
-                                sale.items.reduce((acc, item) => acc + ((item.batch?.mrp - item.sellingPrice) * item.quantity), 0) +
-                                sale.discount
+                                sale.items.reduce((acc, item) => {
+                                    const mrp = item.mrp || item.sellingPrice;
+                                    return acc + ((mrp - item.sellingPrice) * item.quantity);
+                                }, 0) +
+                                sale.discount +
+                                (sale.extraDiscount || 0)
                             ).toFixed(2)}
                         </Typography>
                     </Box>

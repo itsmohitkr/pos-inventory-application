@@ -194,12 +194,28 @@ const Refund = () => {
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Typography variant="body2" fontWeight="bold">
-                                                        {item.batch.product.name}
-                                                    </Typography>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Batch: {item.batch.batchCode}
-                                                    </Typography>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                        <Box>
+                                                            <Typography variant="body2" fontWeight="bold">
+                                                                {item.batch.product.name}
+                                                            </Typography>
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                Batch: {item.batch.batchCode}
+                                                            </Typography>
+                                                        </Box>
+                                                        {alreadyReturned > 0 && (
+                                                            <Chip
+                                                                label={alreadyReturned === item.quantity ? 'Refunded' : 'Returned'}
+                                                                size="small"
+                                                                sx={{
+                                                                    bgcolor: alreadyReturned === item.quantity ? '#ffebee' : '#e8f5e9',
+                                                                    color: alreadyReturned === item.quantity ? '#d32f2f' : '#2e7d32',
+                                                                    fontWeight: 700,
+                                                                    fontSize: '0.65rem'
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </Box>
                                                 </TableCell>
                                                 <TableCell align="center">{item.quantity}</TableCell>
                                                 <TableCell align="center" sx={{ color: 'error.main' }}>

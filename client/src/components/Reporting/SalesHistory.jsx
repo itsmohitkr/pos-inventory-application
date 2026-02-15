@@ -7,6 +7,7 @@ import {
     ListAlt as OrdersIcon,
     Visibility as ViewIcon
 } from '@mui/icons-material';
+import { getRefundStatus, getStatusDisplay } from '../../utils/refundStatus';
 
 const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
     return (
@@ -26,11 +27,12 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                 <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '30%', py: 2 }}>DATE & TIME</TableCell>
-                            <TableCell sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '15%', py: 2 }}>ORDER ID</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '20%', py: 2 }}>AMOUNT</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '20%', py: 2 }}>PROFIT</TableCell>
-                            <TableCell align="center" sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '15%', py: 2 }}>ACTIONS</TableCell>
+                            <TableCell sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '25%', py: 2 }}>DATE & TIME</TableCell>
+                            <TableCell sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '12%', py: 2 }}>ORDER ID</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '18%', py: 2 }}>AMOUNT</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '18%', py: 2 }}>PROFIT</TableCell>
+                            <TableCell align="center" sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '15%', py: 2 }}>STATUS</TableCell>
+                            <TableCell align="center" sx={{ fontWeight: 800, bgcolor: '#f8fafc', color: '#64748b', width: '12%', py: 2 }}>ACTIONS</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -43,20 +45,37 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                                     </Typography>
                                 </TableCell>
                                 <TableCell sx={{ fontWeight: 500 }}>#{sale.id}</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700 }}>₹{sale.netTotalAmount.toFixed(0)}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700 }}>₹{sale.netTotalAmount.toFixed(2)}</TableCell>
                                 <TableCell align="right">
-                                    <Typography sx={{ color: '#2e7d32', fontWeight: 700 }}>₹{sale.profit.toFixed(0)}</Typography>
+                                    <Typography sx={{ color: '#2e7d32', fontWeight: 700 }}>₹{sale.profit.toFixed(2)}</Typography>
+                                </TableCell>
+                                <TableCell align="center">
+                                    {(() => {
+                                        const refundStatus = getRefundStatus(sale.items);
+                                        const display = getStatusDisplay(refundStatus);
+                                        return (
+                                            <Chip
+                                                label={display.label}
+                                                size="small"
+                                                sx={{
+                                                    bgcolor: display.bgcolor,
+                                                    color: display.color,
+                                                    fontWeight: 700
+                                                }}
+                                            />
+                                        );
+                                    })()}
                                 </TableCell>
                                 <TableCell align="center">
                                     <IconButton size="small" onClick={() => onSelectSale(sale)} sx={{ color: '#1a73e8' }}>
-                                        <ViewIcon fontSize="small" />
+                                        <ViewIcon />
                                     </IconButton>
                                 </TableCell>
                             </TableRow>
                         ))}
                         {(!sales || sales.length === 0) && (
                             <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 12 }}>
+                                <TableCell colSpan={6} align="center" sx={{ py: 12 }}>
                                     <Box sx={{ opacity: 0.5 }}>
                                         <OrdersIcon sx={{ fontSize: 48, mb: 1, color: '#94a3b8' }} />
                                         <Typography sx={{ color: '#64748b', fontWeight: 500 }}>No transactions found for this period.</Typography>

@@ -97,6 +97,14 @@ const ProductHistoryDialog = ({
             maxWidth="lg"
             fullWidth
             PaperProps={{ sx: { minHeight: '75vh' } }}
+            onKeyDown={(event) => {
+                if (event.defaultPrevented) return;
+                if (event.key !== 'Enter') return;
+                if (event.shiftKey) return;
+                if (event.target?.tagName === 'TEXTAREA') return;
+                event.preventDefault();
+                onClose();
+            }}
         >
             <DialogTitle>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>

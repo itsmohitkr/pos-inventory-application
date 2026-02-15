@@ -125,9 +125,18 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
     const marginValue = sellingPrice - costPrice;
     const marginPercent = sellingPrice > 0 ? (marginValue / sellingPrice) * 100 : 0;
 
+    const handleKeyDown = (event) => {
+        if (event.defaultPrevented) return;
+        if (event.key !== 'Enter') return;
+        if (event.shiftKey) return;
+        if (event.target?.tagName === 'TEXTAREA') return;
+        event.preventDefault();
+        handleSubmit(event);
+    };
+
     return (
         <>
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth onKeyDown={handleKeyDown}>
             <DialogTitle>
                 Add Stock for <strong>{product?.name}</strong> ({product?.barcode})
             </DialogTitle>

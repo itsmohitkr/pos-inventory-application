@@ -262,9 +262,23 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
     onClose();
   };
 
+  const handleKeyDown = (event) => {
+    if (event.defaultPrevented) return;
+    if (event.key !== 'Enter') return;
+    if (event.shiftKey) return;
+    if (event.target?.tagName === 'TEXTAREA') return;
+    event.preventDefault();
+    if (result) {
+      handleClose();
+      return;
+    }
+    if (!file || importing || validating || hasErrors) return;
+    handleImport();
+  };
+
   return (
     <>
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth onKeyDown={handleKeyDown}>
       <DialogTitle>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6">Import Products from CSV</Typography>

@@ -61,10 +61,20 @@ const CustomDialog = ({
         onClose();
     };
 
+    const handleKeyDown = (event) => {
+        if (event.defaultPrevented) return;
+        if (event.key !== 'Enter') return;
+        if (event.shiftKey) return;
+        if (event.target?.tagName === 'TEXTAREA') return;
+        event.preventDefault();
+        handleConfirm();
+    };
+
     return (
         <Dialog
             open={open}
             onClose={type === 'confirm' ? undefined : onClose}
+            onKeyDown={handleKeyDown}
             maxWidth="xs"
             fullWidth
             PaperProps={{
