@@ -1,0 +1,122 @@
+{
+    "name": "bachat-bazaar",
+    "version": "1.0.0",
+    "description": "POS Application for Bachat Bazaar",
+    "main": "desktop/main.js",
+    "homepage": "./",
+    "author": "POS Application <support@bachatbazaar.local>",
+    "license": "ISC",
+    "scripts": {
+        "electron-dev": "concurrently \"npm run client-dev\" \"wait-on http://localhost:5173 && electron .\"",
+        "electron-build": "npm run client-build && npm run electron-pack",
+        "electron-pack": "electron-builder --publish never",
+        "electron-publish": "electron-builder --publish always",
+        "client-dev": "cd client && npm run dev",
+        "client-build": "cd client && npm run build",
+        "server": "cd server && npm run dev",
+        "dev": "concurrently \"npm run client-dev\" \"npm run server\""
+    },
+    "keywords": [],
+    "devDependencies": {
+        "concurrently": "^8.2.2",
+        "electron": "latest",
+        "electron-builder": "^24.6.4",
+        "electron-is-dev": "^3.0.1",
+        "fs-extra": "^11.3.3",
+        "prisma": "^5.22.0",
+        "wait-on": "^7.0.1"
+    },
+    "type": "commonjs",
+    "build": {
+        "appId": "com.bachatbazaar.pos",
+        "productName": "Bachat Bazaar",
+        "asar": true,
+        "afterPack": "./scripts/post-build.js",
+        "files": [
+            "desktop/**/*",
+            "client/dist/**/*",
+            "server/**/*",
+            "node_modules/**/*",
+            "!node_modules/.cache"
+        ],
+        "asarUnpack": [
+            "server/**/*",
+            "node_modules/**/*"
+        ],
+        "extraFiles": [
+            {
+                "from": "node_modules/.prisma",
+                "to": "app.asar.unpacked/node_modules/.prisma",
+                "filter": [
+                    "**/*"
+                ]
+            }
+        ],
+        "directories": {
+            "buildResources": "assets"
+        },
+        "mac": {
+            "target": [
+                "dmg",
+                "zip"
+            ],
+            "category": "public.app-category.business",
+            "identity": null,
+            "gatekeeperAssess": false
+        },
+        "dmg": {
+            "contents": [
+                {
+                    "x": 130,
+                    "y": 220
+                },
+                {
+                    "x": 410,
+                    "y": 220,
+                    "type": "link",
+                    "path": "/Applications"
+                }
+            ]
+        },
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64"
+                    ]
+                },
+                {
+                    "target": "portable",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "icon": "assets/icon.ico"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "Bachat Bazaar"
+        },
+        "linux": {
+            "target": [
+                "AppImage",
+                "deb"
+            ],
+            "icon": "assets/icon.png",
+            "category": "Utility"
+        }
+    },
+    "dependencies": {
+        "@prisma/client": "^7.4.0",
+        "body-parser": "^2.2.2",
+        "cors": "^2.8.6",
+        "dotenv": "^17.3.1",
+        "express": "^5.2.1",
+        "multer": "^2.0.2"
+    }
+}

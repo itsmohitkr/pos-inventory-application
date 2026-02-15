@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      String   @default("cashier") // admin, salesman, cashier
+  status    String   @default("active") // active, inactive
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  parentId  Int?
+  parent    Category? @relation("CategoryToChildren", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryToChildren")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([name, parentId])
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String
+  barcode   String?   @unique
+  category  String?
+  batchTrackingEnabled Boolean @default(false)
+  batches   Batch[]
+  movements StockMovement[]
+  createdAt DateTime @default(now())
+}
+
+model Batch {
+  id           Int        @id @default(autoincrement())
+  productId    Int
+  product      Product    @relation(fields: [productId], references: [id])
+  batchCode    String?
+  quantity     Int        @default(0)
+  mrp          Float
+  costPrice    Float
+  sellingPrice Float
+  expiryDate   DateTime?
+  saleItems    SaleItem[]
+  movements    StockMovement[]
+  createdAt    DateTime   @default(now())
+}
+
+model Sale {
+  id          Int        @id @default(autoincrement())
+  totalAmount Float
+  discount    Float      @default(0)
+  items       SaleItem[]
+  createdAt   DateTime   @default(now())
+}
+
+model SaleItem {
+  id               Int   @id @default(autoincrement())
+  saleId           Int
+  sale             Sale  @relation(fields: [saleId], references: [id])
+  batchId          Int
+  batch            Batch @relation(fields: [batchId], references: [id])
+  quantity         Int
+  returnedQuantity Int   @default(0)
+  sellingPrice     Float
+  costPrice        Float
+}
+
+model StockMovement {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  batchId   Int?
+  batch     Batch?   @relation(fields: [batchId], references: [id])
+  type      String
+  quantity  Int
+  note      String?
+  createdAt DateTime @default(now())
+}
