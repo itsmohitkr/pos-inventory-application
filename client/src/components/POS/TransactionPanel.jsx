@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    Box, Typography, Grid, Paper, Divider, TextField, InputAdornment, Button, Chip, Stack
+    Box, Typography, Grid, Paper, Divider, TextField, InputAdornment, Button, Stack
 } from '@mui/material';
 import {
     ReceiptLong as ReceiptIcon,
@@ -11,12 +11,12 @@ import {
 } from '@mui/icons-material';
 
 const PAYMENT_METHOD_OPTIONS = {
-    cash: { label: 'Cash', icon: '💵', color: '#16a34a' },
-    upi: { label: 'UPI', icon: '📱', color: '#0369a1' },
-    card: { label: 'Card', icon: '💳', color: '#7c3aed' },
-    wallet: { label: 'Digital Wallet', icon: '💰', color: '#ea580c' },
-    bank_transfer: { label: 'Bank Transfer', icon: '🏦', color: '#0891b2' },
-    cheque: { label: 'Cheque', icon: '📄', color: '#64748b' }
+    cash: { label: 'Cash', color: '#16a34a' },
+    upi: { label: 'UPI', color: '#0369a1' },
+    card: { label: 'Card', color: '#7c3aed' },
+    wallet: { label: 'Digital Wallet', color: '#ea580c' },
+    bank_transfer: { label: 'Bank Transfer', color: '#0891b2' },
+    cheque: { label: 'Cheque', color: '#64748b' }
 };
 
 const TransactionPanel = ({
@@ -48,7 +48,6 @@ const TransactionPanel = ({
             methods.push({
                 id: m.id,
                 label: m.label,
-                icon: '💳',
                 color: '#64748b'
             });
         });
@@ -145,25 +144,29 @@ const TransactionPanel = ({
                     <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ display: 'block', mb: 1 }}>
                         SELECT PAYMENT METHOD
                     </Typography>
-                    <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
                         {getAvailablePaymentMethods().map((method) => (
-                            <Chip
+                            <Button
                                 key={method.id}
-                                icon={<span>{method.icon}</span>}
-                                label={method.label}
+                                variant={selectedPaymentMethod?.id === method.id ? 'contained' : 'outlined'}
+                                color={selectedPaymentMethod?.id === method.id ? 'primary' : 'inherit'}
                                 onClick={() => onSelectPaymentMethod(method)}
-                                variant={selectedPaymentMethod?.id === method.id ? 'filled' : 'outlined'}
-                                color={selectedPaymentMethod?.id === method.id ? 'primary' : 'default'}
+                                size="small"
                                 sx={{
-                                    cursor: 'pointer',
-                                    fontWeight: selectedPaymentMethod?.id === method.id ? 600 : 500,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    py: 0.8,
+                                    px: 1.5,
+                                    border: '1px solid rgba(16, 24, 40, 0.12)',
                                     borderColor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'rgba(16, 24, 40, 0.12)',
                                     '&:hover': {
                                         borderColor: 'primary.main',
                                         bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'action.hover'
                                     }
                                 }}
-                            />
+                            >
+                                {method.label}
+                            </Button>
                         ))}
                     </Stack>
                     {!selectedPaymentMethod && (

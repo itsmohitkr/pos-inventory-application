@@ -400,24 +400,27 @@ const POS = () => {
                     <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}>
                         <IconButton
                             onClick={handleFullscreenToggle}
-                            size="small"
+                            size="large"
                             sx={{
                                 position: 'fixed',
-                                bottom: 24,
-                                left: 24,
+                                bottom: 20,
+                                left: 20,
                                 zIndex: 999,
-                                bgcolor: 'background.paper',
-                                border: '1px solid rgba(16, 24, 40, 0.08)',
+                                bgcolor: '#1976d2',
+                                color: 'white',
+                                boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+                                border: 'none',
                                 '&:hover': {
-                                    bgcolor: 'action.hover',
-                                    borderColor: 'primary.main'
-                                }
+                                    bgcolor: '#1565c0',
+                                    boxShadow: '0 6px 16px rgba(25, 118, 210, 0.5)'
+                                },
+                                transition: 'all 0.3s ease'
                             }}
                         >
                             {isFullscreen ? (
-                                <FullscreenExitIcon fontSize="small" />
+                                <FullscreenExitIcon sx={{ fontSize: '1.8rem' }} />
                             ) : (
-                                <FullscreenIcon fontSize="small" />
+                                <FullscreenIcon sx={{ fontSize: '1.8rem' }} />
                             )}
                         </IconButton>
                     </Tooltip>
