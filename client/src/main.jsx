@@ -5,6 +5,7 @@ import './index.css';
 import App from './App.jsx';
 import theme from './theme.js';
 import axios from 'axios';
+import GlobalErrorBoundary from './components/common/GlobalErrorBoundary';
 
 // In production (Electron build), use the local server URL
 // In development, the Vite proxy handles /api requests
@@ -14,9 +15,11 @@ if (import.meta.env.PROD) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
+    <GlobalErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <App />
+      </ThemeProvider>
+    </GlobalErrorBoundary>
   </StrictMode>
 );

@@ -2,6 +2,11 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const { PrismaClient } = require('@prisma/client');
+const { spawn } = require('child_process');
+const path = require('path');
+
+const prisma = new PrismaClient();
 
 // Import modular routes
 const productRoutes = require('./src/routes/product.routes');
@@ -26,6 +31,42 @@ apiRouter.use(reportRoutes);
 
 app.use('/api', apiRouter);
 
-app.listen(PORT, () => {
+// Auto-seed database on first run
+async function checkAndSeed() {
+    try {
+        // Check if any users exist in the database
+        const userCount = await prisma.user.count();
+        
+        if (userCount === 0) {
+            console.log('Database is empty. Running seed script...');
+            
+            // Run seed script
+            const seedPath = path.join(__dirname, 'seed.js');
+            const seedProcess = spawn('node', [seedPath], {
+                stdio: 'inherit',
+                env: process.env
+            });
+            
+            await new Promise((resolve, reject) => {
+                seedProcess.on('close', (code) => {
+                    if (code === 0) {
+                        console.log('Database seeded successfully!');
+                        resolve();
+                    } else {
+                        reject(new Error(`Seed process exited with code ${code}`));
+                    }
+                });
+                seedProcess.on('error', reject);
+            });
+        } else {
+            console.log('Database already seeded.');
+        }
+    } catch (error) {
+        console.error('Error checking/seeding database:', error);
+    }
+}
+
+app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+    await checkAndSeed();
 });

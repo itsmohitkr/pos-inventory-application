@@ -2,9 +2,22 @@ import React, { useEffect, useRef } from 'react';
 import { Box, Autocomplete, TextField, InputAdornment, Typography, Chip, IconButton } from '@mui/material';
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 
+import { keyframes } from '@mui/system';
+
+const barcodeAnim = keyframes`
+    0% { opacity: 0; transform: translateX(-40px); }
+    10% { opacity: 1; transform: translateX(0px); }
+    80% { opacity: 1; transform: translateX(60px); }
+    100% { opacity: 0; transform: translateX(120px); }
+`;
+
 const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProduct, filterOptions }) => {
     const inputRef = useRef(null);
     const timerRef = useRef(null);
+    const [animating, setAnimating] = React.useState(false);
+    const [typewriterBarcode, setTypewriterBarcode] = React.useState('');
+    const [pendingBarcode, setPendingBarcode] = React.useState('');
+    const filteredProductsRef = useRef([]);
 
     useEffect(() => {
         // Auto-focus on mount
@@ -49,15 +62,43 @@ const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProd
         }
     };
 
+    const handleKeyDown = (event) => {
+        if (event.key === 'Enter' && searchQuery.trim()) {
+            event.preventDefault();
+            const filtered = filterOptions(products, { inputValue: searchQuery });
+            if (filtered.length > 0) {
+                setAnimating(true);
+                setTypewriterBarcode(searchQuery);
+                onSelectProduct(filtered[0]);
+                setTimeout(() => {
+                    setAnimating(false);
+                    setTypewriterBarcode('');
+                    setPendingBarcode('');
+                    onSearchInputChange('');
+                }, 30); // instant
+            } else {
+                // No product found: show notification and clear search
+                if (window && window.dispatchEvent) {
+                    window.dispatchEvent(new CustomEvent('pos-barcode-not-found', { detail: searchQuery }));
+                }
+                setTypewriterBarcode(searchQuery);
+                setTimeout(() => {
+                    setTypewriterBarcode('');
+                    onSearchInputChange('');
+                }, 300);
+            }
+        }
+    };
+
     return (
-        <Box sx={{ p: 2, borderBottom: '1px solid rgba(16, 24, 40, 0.08)', bgcolor: 'rgba(255, 255, 255, 0.9)' }}>
+        <Box sx={{ p: 2, borderBottom: '1px solid rgba(16, 24, 40, 0.08)', bgcolor: 'rgba(255, 255, 255, 0.9)', position: 'relative' }}>
             <Autocomplete
                 id="pos-search"
                 options={products}
                 getOptionLabel={(option) => `${option.name}${option.barcode ? ` (${option.barcode})` : ''}`}
                 filterOptions={filterOptions}
                 value={null}
-                inputValue={searchQuery}
+                inputValue={animating ? typewriterBarcode : searchQuery}
                 onInputChange={(event, newInputValue) => {
                     onSearchInputChange(newInputValue);
                 }}
@@ -78,6 +119,7 @@ const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProd
                         inputRef={inputRef}
                         onBlur={handleBlur}
                         onFocus={handleFocus}
+                        onKeyDown={handleKeyDown}
                         sx={{ bgcolor: 'background.paper' }}
                         InputProps={{
                             ...params.InputProps,
@@ -89,7 +131,7 @@ const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProd
                             ),
                             endAdornment: (
                                 <>
-                                    {searchQuery && (
+                                    {searchQuery && !animating ? (
                                         <InputAdornment position="end">
                                             <IconButton
                                                 size="small"
@@ -100,7 +142,7 @@ const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProd
                                                 <ClearIcon />
                                             </IconButton>
                                         </InputAdornment>
-                                    )}
+                                    ) : null}
                                     {params.InputProps.endAdornment}
                                 </>
                             )

@@ -24,9 +24,11 @@ import TransactionPanel from './TransactionPanel';
 import BatchSelectionDialog from './BatchSelectionDialog';
 import ReceiptPreviewDialog from './ReceiptPreviewDialog';
 import POSTabs from './POSTabs';
+import Receipt from './Receipt';
 import CustomDialog from '../common/CustomDialog';
+import SuccessNotification from '../common/SuccessNotification';
 import useCustomDialog from '../../hooks/useCustomDialog';
-import { getStoredPaymentSettings, getFullscreenEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
+import { getStoredPaymentSettings, getFullscreenEnabled, getNotificationDuration, getExtraDiscountEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
 
 const STORAGE_KEYS = {
     receipt: 'posReceiptSettings',
@@ -47,7 +49,9 @@ const DEFAULT_RECEIPT_SETTINGS = {
     totalSavings: true,
     customShopName: 'Bachat Bazaar',
     customHeader: '123 Business Street, City',
-    customFooter: 'Thank You! Visit Again'
+    customFooter: 'Thank You! Visit Again',
+    directPrint: false,
+    printerType: 'Thermal Printer'
 };
 
 const getStoredReceiptSettings = () => {
@@ -68,6 +72,13 @@ const POS = () => {
     const navigate = useNavigate();
     const { dialogState, showError, showWarning, showConfirm, closeDialog } = useCustomDialog();
     const [products, setProducts] = useState([]);
+    const [currentUser] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('posCurrentUser'));
+        } catch {
+            return null;
+        }
+    });
 
     // Multi-tab state
     const [tabs, setTabs] = useState([
@@ -81,15 +92,26 @@ const POS = () => {
     const [showReceipt, setShowReceipt] = useState(false);
     const [showPrintDialog, setShowPrintDialog] = useState(false);
     const [receiptSettings, setReceiptSettings] = useState(getStoredReceiptSettings);
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState({ label: 'Cash', color: '#16a34a' });
     const [paymentSettings, setPaymentSettings] = useState(() => getStoredPaymentSettings());
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled);
+    const [extraDiscountEnabled, setExtraDiscountEnabled] = useState(() => getExtraDiscountEnabled());
     const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
+    const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
+    const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
-    const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
-    const cart = activeTab.cart;
-    const discount = activeTab.discount;
+    useEffect(() => {
+        const handleBarcodeNotFound = (e) => {
+            setNotification({ open: true, message: `No product found for barcode: ${e.detail}`, severity: 'error', duration: 300 });
+        };
+        window.addEventListener('pos-barcode-not-found', handleBarcodeNotFound);
+        return () => window.removeEventListener('pos-barcode-not-found', handleBarcodeNotFound);
+    }, []);
+
+    const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0] || { id: 1, name: 'Order 1', cart: [], discount: 0 };
+    const cart = activeTab.cart || [];
+    const discount = activeTab.discount || 0;
 
     // ===== All Functions Declared BEFORE useEffect =====
 
@@ -171,10 +193,6 @@ const POS = () => {
         setCart(prev => {
             const existing = prev.find(item => item.batch_id === batch.id);
             if (existing) {
-                if (existing.quantity >= batch.quantity) {
-                    showWarning(`Cannot add more. Only ${batch.quantity} in stock.`);
-                    return prev;
-                }
                 return prev.map(item => item.batch_id === batch.id ? { ...item, quantity: item.quantity + 1 } : item);
             }
             return [...prev, {
@@ -188,8 +206,10 @@ const POS = () => {
                 max_quantity: batch.quantity
             }];
         });
-        setScannedProduct(null);
+
+        // Clear search and close dialog immediately
         setSearchQuery('');
+        setScannedProduct(null);
     };
 
     const removeFromCart = (batchId) => {
@@ -200,10 +220,6 @@ const POS = () => {
         setCart(prev => prev.map(item => {
             if (item.batch_id === batchId) {
                 const newQty = item.quantity + change;
-                if (newQty > item.max_quantity) {
-                    showWarning(`Stock limit reached! Max: ${item.max_quantity}`);
-                    return item;
-                }
                 if (newQty < 1) return item;
                 return { ...item, quantity: newQty };
             }
@@ -212,30 +228,32 @@ const POS = () => {
     };
 
     const handleProductInteraction = (product) => {
-        const batches = product.batches?.filter(b => b.quantity > 0) || [];
+        // Clear search query immediately for fast scanning
+        setSearchQuery('');
+
+        const batches = product.batches || [];
         const isBatchTracked = product.batchTrackingEnabled !== false;
 
-        if (batches.length === 0) {
-            showError('Out of stock!');
-            setSearchQuery('');
-            return;
-        }
+        if (batches.length === 0) return;
+
+        // Check if this was a barcode scan (exact match with barcode)
+        const isBarcodeScanned = searchQuery.trim() && product.barcode && searchQuery.trim() === product.barcode.trim();
 
         if (!isBatchTracked) {
-            if (batches.length === 1) {
+            if (batches.length === 1 || isBarcodeScanned) {
+                // Auto-add first batch if barcode scanned or only one batch available
                 addToCart(product, batches[0]);
             } else {
                 setScannedProduct({ product, batches, mode: 'price' });
-                setSearchQuery('');
             }
             return;
         }
 
-        if (batches.length === 1) {
+        if (batches.length === 1 || isBarcodeScanned) {
+            // Auto-add first batch if barcode scanned or only one batch available
             addToCart(product, batches[0]);
         } else {
             setScannedProduct({ product, batches, mode: 'batch' });
-            setSearchQuery('');
         }
     };
 
@@ -248,6 +266,14 @@ const POS = () => {
 
     const handleSelectPaymentMethod = (method) => {
         setSelectedPaymentMethod(method);
+    };
+
+    const showNotification = (message, severity = 'success') => {
+        setNotification({ open: true, message, severity });
+    };
+
+    const handleCloseNotification = () => {
+        setNotification({ ...notification, open: false });
     };
 
     const handlePay = async () => {
@@ -271,11 +297,9 @@ const POS = () => {
             handleCloseTab(activeTabId);
             fetchProducts();
             setSelectedPaymentMethod(null);
-            
-            // Show confirmation message
-            showConfirm('Payment completed successfully!').then(() => {
-                // Reset
-            });
+
+            // Show success notification
+            showNotification('Sale Completed Successfully!');
         } catch (error) {
             console.error(error);
             const msg = error.response?.data?.error || error.message || 'Payment failed';
@@ -304,9 +328,16 @@ const POS = () => {
             handleCloseTab(activeTabId);
             fetchProducts();
             setSelectedPaymentMethod(null);
-            
-            // Show receipt for printing
-            setShowReceipt(true);
+
+            // Handle Printing
+            if (receiptSettings.directPrint) {
+                // Short timeout to ensure the DOM is updated for the hidden print container
+                setTimeout(() => {
+                    window.print();
+                }, 500);
+            } else {
+                setShowReceipt(true);
+            }
         } catch (error) {
             console.error(error);
             const msg = error.response?.data?.error || error.message || 'Payment failed';
@@ -340,12 +371,12 @@ const POS = () => {
 
     useEffect(() => {
         fetchProducts();
-        
+
         // Auto-refresh products every 30 seconds to get updated stock levels
         const interval = setInterval(() => {
             fetchProducts();
         }, 30000);
-        
+
         return () => clearInterval(interval);
     }, []);
 
@@ -354,15 +385,17 @@ const POS = () => {
             setReceiptSettings(getStoredReceiptSettings());
             setFullscreenEnabled(getFullscreenEnabled());
             setPaymentSettings(getStoredPaymentSettings());
+            setNotificationDuration(getNotificationDuration());
+            setExtraDiscountEnabled(getExtraDiscountEnabled());
         };
 
         window.addEventListener('pos-settings-updated', handleSettingsUpdated);
         return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
     }, []);
 
-    const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const totalMrp = cart.reduce((sum, item) => sum + (item.mrp * item.quantity), 0);
-    const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const subTotal = (cart || []).reduce((sum, item) => sum + ((item?.price || 0) * (item?.quantity || 0)), 0);
+    const totalMrp = (cart || []).reduce((sum, item) => sum + ((item?.mrp || 0) * (item?.quantity || 0)), 0);
+    const totalQty = (cart || []).reduce((sum, item) => sum + (item?.quantity || 0), 0);
     const totalAmount = Math.max(0, subTotal - discount);
     const totalSavings = totalMrp - totalAmount;
 
@@ -371,12 +404,13 @@ const POS = () => {
         if (!normalizedInput) return [];
 
         return options.filter((option) => {
-            const nameValue = option.name ? option.name.toLowerCase() : '';
-            const barcodeValue = option.barcode ? option.barcode.toLowerCase() : '';
+            if (!option) return false;
+            const nameValue = option.name ? String(option.name).toLowerCase() : '';
+            const barcodeValue = option.barcode ? String(option.barcode).toLowerCase() : '';
             const nameMatch = nameValue.includes(normalizedInput);
             const barcodeMatch = barcodeValue.includes(normalizedInput);
             const priceMatch = (option.batches || []).some((batch) =>
-                String(batch.sellingPrice).includes(normalizedInput)
+                batch && String(batch.sellingPrice || '').includes(normalizedInput)
             );
             return nameMatch || barcodeMatch || priceMatch;
         });
@@ -384,6 +418,13 @@ const POS = () => {
 
     return (
         <>
+            <SuccessNotification
+                open={notification.open}
+                message={notification.message}
+                severity={notification.severity}
+                onClose={() => setNotification({ ...notification, open: false })}
+                duration={notification.duration || notificationDuration}
+            />
             <Box
                 sx={{
                     display: 'grid',
@@ -391,7 +432,8 @@ const POS = () => {
                     gap: 2,
                     px: { xs: 2, md: 3 },
                     py: { xs: 2, md: 3 },
-                    minHeight: 'calc(100vh - 72px)',
+                    height: 'calc(100vh - 72px)',
+                    overflow: 'hidden',
                     position: 'relative'
                 }}
             >
@@ -399,6 +441,7 @@ const POS = () => {
                 {fullscreenEnabled && (
                     <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}>
                         <IconButton
+                            className="pos-action-btn"
                             onClick={handleFullscreenToggle}
                             size="large"
                             sx={{
@@ -425,7 +468,7 @@ const POS = () => {
                         </IconButton>
                     </Tooltip>
                 )}
-                <Paper elevation={0} sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <Paper elevation={0} sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
                     <POSTabs
                         tabs={tabs}
                         activeTabId={activeTabId}
@@ -459,6 +502,7 @@ const POS = () => {
                     onSelectPaymentMethod={handleSelectPaymentMethod}
                     selectedPaymentMethod={selectedPaymentMethod}
                     paymentSettings={paymentSettings}
+                    extraDiscountEnabled={extraDiscountEnabled}
                     subTotal={subTotal}
                     totalMrp={totalMrp}
                     totalQty={totalQty}
@@ -479,9 +523,24 @@ const POS = () => {
                     receiptSettings={receiptSettings}
                     onSettingChange={handleSettingChange}
                     onTextSettingChange={handleTextSettingChange}
+                    isAdmin={currentUser?.role === 'admin'}
                 />
             </Box>
             <CustomDialog {...dialogState} onClose={closeDialog} />
+            <SuccessNotification
+                open={notification.open}
+                message={notification.message}
+                severity={notification.severity}
+                onClose={handleCloseNotification}
+                duration={notificationDuration}
+            />
+
+            {/* Hidden Print Container for Direct Printing */}
+            <Box sx={{ display: 'none', displayPrint: 'block' }}>
+                <div id="thermal-receipt-print">
+                    {lastSale && <Receipt sale={lastSale} settings={receiptSettings} />}
+                </div>
+            </Box>
         </>
     );
 };

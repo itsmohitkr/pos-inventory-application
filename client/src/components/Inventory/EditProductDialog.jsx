@@ -130,18 +130,11 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
         }
     };
 
-    const handleKeyDown = (event) => {
-        if (event.defaultPrevented) return;
-        if (event.key !== 'Enter') return;
-        if (event.shiftKey) return;
-        if (event.target?.tagName === 'TEXTAREA') return;
-        event.preventDefault();
-        handleSave();
-    };
+    // Removed global onKeyDown handler to prevent premature saving
 
     return (
         <>
-            <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth onKeyDown={handleKeyDown}>
+            <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
                 <DialogTitle>Edit Product Information</DialogTitle>
             <DialogContent sx={{ pt: 2 }}>
                 <TextField

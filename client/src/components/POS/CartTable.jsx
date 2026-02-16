@@ -14,37 +14,37 @@ const ShortBatchCode = ({ batchCode }) => {
     if (!batchCode || batchCode === 'N/A') {
         return <Typography variant="caption" color="text.secondary">No batch</Typography>;
     }
-    
+
     // If batch code is short (<=8 chars), display it normally
     if (batchCode.length <= 8) {
         return (
-            <Chip 
-                label={batchCode} 
-                size="small" 
+            <Chip
+                label={batchCode}
+                size="small"
                 variant="outlined"
-                sx={{ 
-                    fontFamily: 'monospace', 
+                sx={{
+                    fontFamily: 'monospace',
                     fontSize: '0.7rem',
                     height: '18px'
-                }} 
+                }}
             />
         );
     }
-    
+
     // For longer codes, show first 6 chars + "..."
     const shortCode = batchCode.substring(0, 6) + '...';
     return (
         <Tooltip title={`Batch: ${batchCode}`} arrow placement="top">
-            <Chip 
-                label={shortCode} 
-                size="small" 
+            <Chip
+                label={shortCode}
+                size="small"
                 variant="outlined"
-                sx={{ 
-                    fontFamily: 'monospace', 
+                sx={{
+                    fontFamily: 'monospace',
                     fontSize: '0.7rem',
                     height: '18px',
                     cursor: 'help'
-                }} 
+                }}
             />
         </Tooltip>
     );

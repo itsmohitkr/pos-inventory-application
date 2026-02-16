@@ -51,9 +51,6 @@ const createWindow = () => {
 
   mainWindow = new BrowserWindow(windowConfig);
   
-  // Set app title
-  mainWindow.setWindowButtonVisibility(true);
-
   const startUrl = isDev
     ? 'http://localhost:5173'
     : `file://${path.join(__dirname, '../client/dist/index.html')}`;

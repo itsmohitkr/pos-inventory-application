@@ -122,6 +122,44 @@ const SaleHistory = () => {
     }
   }, [autoPrint, selectedSale]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't navigate if user is typing in an input field
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+      if (sales.length === 0) return;
+
+      const currentIndex = sales.findIndex((s) => s.id === selectedSale?.id);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const nextIndex = Math.min(currentIndex + 1, sales.length - 1);
+        if (nextIndex !== currentIndex) {
+          const nextSale = sales[nextIndex];
+          setSelectedSale(nextSale);
+          document.getElementById(`sale-row-${nextSale.id}`)?.scrollIntoView({
+            block: 'nearest',
+            behavior: 'smooth'
+          });
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prevIndex = Math.max(currentIndex - 1, 0);
+        if (prevIndex !== currentIndex) {
+          const prevSale = sales[prevIndex];
+          setSelectedSale(prevSale);
+          document.getElementById(`sale-row-${prevSale.id}`)?.scrollIntoView({
+            block: 'nearest',
+            behavior: 'smooth'
+          });
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [sales, selectedSale]);
+
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
     if (newValue < 4) {
@@ -344,11 +382,23 @@ const SaleHistory = () => {
                 }}
               >
                 <Box
-                  sx={{ p: 2, borderBottom: "1px solid #eee", flexShrink: 0 }}
+                  sx={{
+                    p: 2,
+                    borderBottom: "1px solid #eee",
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     Sales ({sales.length})
                   </Typography>
+                  <Chip
+                    label={`Total Sales: ₹${sales.reduce((sum, s) => sum + (s.netTotalAmount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                    color="success"
+                    sx={{ fontWeight: 700 }}
+                  />
                 </Box>
                 <TableContainer sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
                   <Table stickyHeader>
@@ -408,6 +458,7 @@ const SaleHistory = () => {
                       {sales.map((sale) => (
                         <TableRow
                           key={sale.id}
+                          id={`sale-row-${sale.id}`}
                           hover
                           selected={selectedSale?.id === sale.id}
                           onClick={() => setSelectedSale(sale)}
@@ -530,7 +581,7 @@ const SaleHistory = () => {
                     <Box
                       sx={{
                         display: "flex",
-                        alignItems: "center",
+                        alignItems: "stretch",
                         justifyContent: "space-between",
                         gap: 2,
                         whiteSpace: "nowrap",
@@ -543,15 +594,13 @@ const SaleHistory = () => {
                         >
                           Order ORD-{selectedSale.id}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                           {new Date(selectedSale.createdAt).toLocaleDateString()} {new Date(selectedSale.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: "#64748b", display: 'block', mt: 0.5 }}>
+                          Total Items: {selectedSale.items.reduce((sum, item) => sum + item.quantity, 0)}
+                        </Typography>
                       </Box>
-                      <Chip
-                        label={`Items: ${selectedSale.items.length}`}
-                        size="small"
-                        sx={{ fontWeight: 700, bgcolor: "#f8fafc", border: "1px solid #e2e8f0" }}
-                      />
                       <Box
                         sx={{
                           flex: 1,
@@ -559,6 +608,9 @@ const SaleHistory = () => {
                           borderRadius: 1.5,
                           bgcolor: "#f8fafc",
                           border: "1px solid #eef2f6",
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
                         }}
                       >
                         <Typography
@@ -582,6 +634,9 @@ const SaleHistory = () => {
                           borderRadius: 1.5,
                           bgcolor: "#fff5f5",
                           border: "1px solid #ffe4e6",
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
                         }}
                       >
                         <Typography

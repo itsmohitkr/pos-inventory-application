@@ -18,7 +18,7 @@ import {
     Add as AddIcon,
     Delete as DeleteIcon
 } from '@mui/icons-material';
-import { getStoredPaymentSettings, STORAGE_KEYS, getFullscreenEnabled } from '../../utils/paymentSettings';
+import { getStoredPaymentSettings, STORAGE_KEYS, getFullscreenEnabled, getNotificationDuration, setNotificationDuration, getExtraDiscountEnabled, setExtraDiscountEnabled } from '../../utils/paymentSettings';
 
 const PAYMENT_METHOD_OPTIONS = [
     { id: 'cash', label: 'Cash', icon: '💵' },
@@ -32,6 +32,8 @@ const PAYMENT_METHOD_OPTIONS = [
 const PaymentSettingsPanel = () => {
     const [paymentSettings, setPaymentSettings] = useState(getStoredPaymentSettings);
     const [enableFullscreen, setEnableFullscreen] = useState(getFullscreenEnabled);
+    const [enableExtraDiscount, setEnableExtraDiscountState] = useState(getExtraDiscountEnabled);
+    const [notificationDuration, setNotificationDurationState] = useState(() => getNotificationDuration() / 1000); // Convert to seconds for display
     const [customMethod, setCustomMethod] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
 
@@ -78,6 +80,19 @@ const PaymentSettingsPanel = () => {
         setEnableFullscreen(enabled);
         localStorage.setItem(STORAGE_KEYS.enableFullscreen, JSON.stringify(enabled));
         window.dispatchEvent(new Event('pos-settings-updated'));
+    };
+
+    const handleEnableExtraDiscount = (enabled) => {
+        setEnableExtraDiscountState(enabled);
+        setExtraDiscountEnabled(enabled);
+    };
+
+    const handleNotificationDurationChange = (value) => {
+        const seconds = parseFloat(value);
+        if (!isNaN(seconds) && seconds > 0) {
+            setNotificationDurationState(seconds);
+            setNotificationDuration(seconds * 1000); // Convert to milliseconds for storage
+        }
     };
 
     const handleMultiplePaymentToggle = () => {
@@ -234,10 +249,37 @@ const PaymentSettingsPanel = () => {
                             }
                             label="Enable Fullscreen Toggle Button"
                         />
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={enableExtraDiscount}
+                                    onChange={(e) => handleEnableExtraDiscount(e.target.checked)}
+                                />
+                            }
+                            label="Enable Extra Discount Field"
+                        />
                     </FormGroup>
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
                         Shows a fullscreen button in the bottom-left corner of the POS screen
                     </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 3 }}>
+                        Shows an extra discount field in the POS transaction panel
+                    </Typography>
+
+                    {/* Notification Duration */}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                        Notification Duration
+                    </Typography>
+                    <TextField
+                        type="number"
+                        size="small"
+                        value={notificationDuration}
+                        onChange={(e) => handleNotificationDurationChange(e.target.value)}
+                        inputProps={{ min: 1, max: 10, step: 0.5 }}
+                        label="Duration (seconds)"
+                        helperText="How long success notifications are displayed (1-10 seconds)"
+                        sx={{ maxWidth: 300 }}
+                    />
                 </Box>
 
                 <Alert severity="info" sx={{ mt: 2 }}>

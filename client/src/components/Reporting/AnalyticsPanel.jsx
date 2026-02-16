@@ -16,7 +16,7 @@ const AnalyticsPanel = ({
     loading
 }) => {
     return (
-        <Box sx={{ bgcolor: '#fcfcfc', p: 4, display: 'flex', flexDirection: 'column', gap: 4, height: '100%', overflowY: 'auto' }}>
+        <Box sx={{ bgcolor: '#fcfcfc', p: 4, display: 'flex', flexDirection: 'column', gap: 4, height: '100%', overflowY: 'auto', borderRadius: 1 }}>
             {/* Performance Grid */}
             <Box>
                 <Typography variant="overline" sx={{ color: '#64748b', fontWeight: 800, letterSpacing: 1.5, mb: 2, display: 'block' }}>

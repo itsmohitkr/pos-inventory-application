@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link as RouterLink } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link as RouterLink, useLocation, Navigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -74,7 +74,9 @@ const DEFAULT_RECEIPT_SETTINGS = {
   totalSavings: true,
   customShopName: 'Bachat Bazaar',
   customHeader: '123 Business Street, City',
-  customFooter: 'Thank You! Visit Again'
+  customFooter: 'Thank You! Visit Again',
+  directPrint: false,
+  printerType: 'Thermal'
 };
 
 const SAMPLE_SALE = {
@@ -127,6 +129,37 @@ const getStoredReceiptSettings = (fallbackShopName) => {
       customShopName: fallbackShopName
     };
   }
+};
+
+const NavButton = ({ to, children, ...props }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+  return (
+    <Button
+      component={RouterLink}
+      to={to}
+      color="inherit"
+      {...props}
+      sx={{
+        px: 2,
+        py: 1,
+        fontWeight: isActive ? 700 : 500,
+        bgcolor: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+        color: isActive ? '#ffffff' : 'rgba(248, 245, 240, 0.85)',
+        borderBottom: isActive ? '3px solid #f2b544' : '3px solid transparent',
+        borderRadius: '4px 4px 0 0',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          bgcolor: 'rgba(255, 255, 255, 0.2)',
+          color: '#ffffff',
+          borderRadius: '4px'
+        },
+        ...props.sx
+      }}
+    >
+      {children}
+    </Button>
+  );
 };
 
 const DashboardCard = ({ to, title, description, icon, tone }) => (
@@ -307,7 +340,7 @@ const Inventory = () => {
   };
 
   return (
-    <Container maxWidth="100%" disableGutters sx={{ mt: { xs: 2, md: 3 }, mb: 3, px: { xs: 1, md: 2 } }}>
+    <Container maxWidth="100%" disableGutters sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', px: { xs: 1, md: 2 }, py: 2 }}>
       <Paper
         elevation={0}
         sx={{
@@ -317,7 +350,8 @@ const Inventory = () => {
           background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          flexShrink: 0
         }}
       >
         <Box>
@@ -358,18 +392,20 @@ const Inventory = () => {
         </Stack>
       </Paper>
 
-      {showAddProduct ? (
-        <Container maxWidth="md" sx={{ mt: 3 }}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button size="small" onClick={() => setShowAddProduct(false)}>Back to Inventory</Button>
-            </Box>
-            <AddProductForm onProductAdded={handleProductAdded} />
-          </Paper>
-        </Container>
-      ) : (
-        <ProductList key={inventoryKey} ref={inventoryRef} />
-      )}
+      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0 }}>
+        {showAddProduct ? (
+          <Container maxWidth="md" sx={{ height: '100%', overflowY: 'auto' }}>
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <Button size="small" onClick={() => setShowAddProduct(false)}>Back to Inventory</Button>
+              </Box>
+              <AddProductForm onProductAdded={handleProductAdded} />
+            </Paper>
+          </Container>
+        ) : (
+          <ProductList key={inventoryKey} ref={inventoryRef} />
+        )}
+      </Box>
 
       <BulkImportDialog
         open={showImport}
@@ -396,6 +432,28 @@ function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [passwordData, setPasswordData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [passwordError, setPasswordError] = useState('');
+  const [uiZoom, setUiZoom] = useState(() => Number(localStorage.getItem('posUiZoom')) || 100);
+  const [monochromeMode, setMonochromeMode] = useState(() => localStorage.getItem('posMonochromeMode') === 'true');
+
+  useEffect(() => {
+    const handleSettingsUpdated = () => {
+      setMonochromeMode(localStorage.getItem('posMonochromeMode') === 'true');
+    };
+    window.addEventListener('pos-settings-updated', handleSettingsUpdated);
+    return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${uiZoom}%`;
+  }, [uiZoom]);
+
+  useEffect(() => {
+    const handleZoomUpdated = () => {
+      setUiZoom(Number(localStorage.getItem('posUiZoom')) || 100);
+    };
+    window.addEventListener('pos-ui-zoom-updated', handleZoomUpdated);
+    return () => window.removeEventListener('pos-ui-zoom-updated', handleZoomUpdated);
+  }, []);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -527,12 +585,22 @@ function App() {
 
   return (
     <Router>
-      <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Box
+        className={monochromeMode ? 'monochrome' : ''}
+        sx={{
+          flexGrow: 1,
+          height: '100vh',
+          overflow: 'hidden',
+          bgcolor: 'background.default',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         <AppBar position="sticky" elevation={0}>
           <Toolbar sx={{ gap: 2 }}>
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
-                <RouterLink to="/" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <RouterLink to="/pos" style={{ color: 'inherit', textDecoration: 'none' }}>
                   {shopName}
                 </RouterLink>
               </Typography>
@@ -540,45 +608,55 @@ function App() {
                 {currentUser.username} • {currentUser.role}
               </Typography>
             </Box>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
-              <Button color="inherit" component={RouterLink} to="/pos">POS</Button>
-              {canAccessSaleHistory && <Button color="inherit" component={RouterLink} to="/sale-history">Sale History</Button>}
-              {canAccessInventory && <Button color="inherit" component={RouterLink} to="/inventory">Inventory</Button>}
-              {canAccessReports && <Button color="inherit" component={RouterLink} to="/reports">Reports</Button>}
-              {canAccessRefund && <Button color="inherit" component={RouterLink} to="/refund">Refund</Button>}
-              {canAccessDashboard && <Button color="inherit" component={RouterLink} to="/dashboard">Dashboard</Button>}
-              <IconButton color="inherit" onClick={handleOpenSettingsMenu} aria-label="Settings">
+            <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+              <NavButton to="/pos">POS</NavButton>
+              {canAccessSaleHistory && <NavButton to="/sale-history">Sale History</NavButton>}
+              {canAccessInventory && <NavButton to="/inventory">Inventory</NavButton>}
+              {canAccessReports && <NavButton to="/reports">Reports</NavButton>}
+              {canAccessRefund && <NavButton to="/refund">Refund</NavButton>}
+              {canAccessDashboard && <NavButton to="/dashboard">Dashboard</NavButton>}
+              <IconButton
+                color="inherit"
+                onClick={handleOpenSettingsMenu}
+                aria-label="Settings"
+                sx={{
+                  ml: 1,
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.15)' }
+                }}
+              >
                 <SettingsIcon />
               </IconButton>
             </Stack>
           </Toolbar>
         </AppBar>
 
-        <Routes>
-          <Route path="/" element={<Box sx={{ bgcolor: 'background.default' }}><Dashboard shopName={shopName} userRole={currentUser.role} /></Box>} />
-          <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><POS /></Box>} />
-          {canAccessSaleHistory && (
-            <Route
-              path="/sale-history"
-              element={
-                <Box
-                  sx={{
-                    bgcolor: 'background.default',
-                    height: 'calc(100vh - 64px)',
-                    minHeight: 0,
-                    overflow: 'hidden'
-                  }}
-                >
-                  <SaleHistory />
-                </Box>
-              }
-            />
-          )}
-          {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><Inventory /></Box>} />}
-          {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><Reporting /></Box>} />}
-          {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><Refund /></Box>} />}
-          {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}><DashboardPage /></Box>} />}
-        </Routes>
+        <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/pos" replace />} />
+            <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><POS /></Box>} />
+            {canAccessSaleHistory && (
+              <Route
+                path="/sale-history"
+                element={
+                  <Box
+                    sx={{
+                      bgcolor: 'background.default',
+                      height: '100%',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <SaleHistory />
+                  </Box>
+                }
+              />
+            )}
+            {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Inventory /></Box>} />}
+            {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting /></Box>} />}
+            {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Refund /></Box>} />}
+            {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><Dashboard shopName={shopName} userRole={currentUser.role} /></Box>} />}
+          </Routes>
+        </Box>
 
         <Menu
           anchorEl={settingsAnchorEl}
@@ -597,13 +675,17 @@ function App() {
             </ListItemIcon>
             <ListItemText>Exit full screen</ListItemText>
           </MenuItem>
-          <Divider />
-          <MenuItem onClick={handleOpenBillSettings}>
-            <ListItemIcon>
-              <ReceiptIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Customize bill</ListItemText>
-          </MenuItem>
+          {isAdmin && (
+            <>
+              <Divider />
+              <MenuItem onClick={handleOpenBillSettings}>
+                <ListItemIcon>
+                  <ReceiptIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Customize bill</ListItemText>
+              </MenuItem>
+            </>
+          )}
           <MenuItem>
             <ListItemIcon>
               <LockIcon fontSize="small" />
@@ -625,13 +707,17 @@ function App() {
               <ListItemText>Manage Users</ListItemText>
             </MenuItem>
           )}
-          <Divider />
-          <MenuItem onClick={handleOpenAccountSettings}>
-            <ListItemIcon>
-              <StoreIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Settings</ListItemText>
-          </MenuItem>
+          {isAdmin && (
+            <>
+              <Divider />
+              <MenuItem onClick={handleOpenAccountSettings}>
+                <ListItemIcon>
+                  <StoreIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Settings</ListItemText>
+              </MenuItem>
+            </>
+          )}
           <MenuItem onClick={handleLogout}>
             <ListItemIcon>
               <LogoutIcon fontSize="small" />
@@ -693,6 +779,7 @@ function App() {
           onSettingChange={handleSettingChange}
           onTextSettingChange={handleTextSettingChange}
           onSave={handleSaveBillSettings}
+          isAdmin={isAdmin}
           showPrint={false}
           showShopNameField={false}
           saveLabel="Save settings"

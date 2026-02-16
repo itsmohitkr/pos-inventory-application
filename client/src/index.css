@@ -13,6 +13,12 @@
     box-sizing: border-box;
 }
 
+html,
+body {
+    height: 100vh;
+    overflow: hidden;
+}
+
 body {
     margin: 0;
     font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -28,7 +34,8 @@ body {
 }
 
 #root {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     animation: bb-fade 420ms ease-out;
 }
 
@@ -37,8 +44,33 @@ body {
         opacity: 0;
         transform: translateY(8px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+.monochrome *:not(.pos-action-btn):not(.pos-action-btn *) {
+    filter: grayscale(1) !important;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #thermal-receipt-print,
+    #thermal-receipt-print * {
+        visibility: visible;
+    }
+
+    #thermal-receipt-print {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
     }
 }

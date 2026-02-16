@@ -221,200 +221,201 @@ const Dashboard = () => {
     }, [metrics.categoryMix]);
 
     return (
-        <Container maxWidth="xl" sx={{ mt: { xs: 3, md: 5 }, mb: 6 }}>
-            <Paper
-                elevation={0}
-                sx={{
-                    m: -3,
-                    mb: 4,
-                    px: 4,
-                    py: 2.5,
-                    background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
-                    borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
-                }}
-            >
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-                    <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
-                        Dashboard
-                    </Typography>
-                    <Box sx={{ minWidth: 280, display: "flex", justifyContent: "flex-end" }}>
-                        <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtonsDisplay="auto">
-                            {timeframes.map((tf, idx) => (
-                                <Tab key={idx} label={tf.label} />
-                            ))}
-                        </Tabs>
-                    </Box>
-                </Box>
-
-                {tabValue === 4 && (
-                    <Box sx={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "flex-end", mt: 2, pt: 2, borderTop: "1px solid #eee", flexWrap: "wrap" }}>
-                        <TextField
-                            type="date"
-                            label="From"
-                            size="small"
-                            InputLabelProps={{ shrink: true }}
-                            value={dateRange.startDate}
-                            onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-                        />
-                        <TextField
-                            type="date"
-                            label="To"
-                            size="small"
-                            InputLabelProps={{ shrink: true }}
-                            value={dateRange.endDate}
-                            onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-                        />
-                        <Button variant="contained" onClick={handleApplyCustomRange} startIcon={<CalendarIcon />} sx={{ bgcolor: "#0b1d39", "&:hover": { bgcolor: "#1b3e6f" } }}>
-                            Apply
-                        </Button>
-                    </Box>
-                )}
-            </Paper>
-
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12} md={3}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #1f8a5b 0%, #3ccf9a 100%)' }}>
-                        <Typography variant="overline" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Daily report</Typography>
-                        <Typography variant="h5" fontWeight="bold">₹{metrics.totalSales.toFixed(2)}</Typography>
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Total sales</Typography>
-                    </Paper>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #0b1d39 0%, #1b3e6f 100%)' }}>
-                        <Typography variant="overline" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Daily status</Typography>
-                        <Typography variant="h5" fontWeight="bold">{metrics.totalOrders}</Typography>
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Orders in range</Typography>
-                    </Paper>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #f2b544 0%, #f8d27b 100%)' }}>
-                        <Typography variant="overline" sx={{ color: 'rgba(32, 18, 6, 0.75)' }}>Sales</Typography>
-                        <Typography variant="h5" fontWeight="bold" sx={{ color: '#2d1c05' }}>₹{metrics.avgOrderValue.toFixed(2)}</Typography>
-                        <Typography variant="body2" sx={{ color: 'rgba(32, 18, 6, 0.75)' }}>Average order value</Typography>
-                    </Paper>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)' }}>
-                        <Typography variant="overline" sx={{ color: 'rgba(255, 255, 255, 0.85)' }}>Profit margin</Typography>
-                        <Typography variant="h5" fontWeight="bold">{metrics.profitMargin.toFixed(1)}%</Typography>
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)' }}>Overall</Typography>
-                    </Paper>
-                </Grid>
-            </Grid>
-
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12} md={4}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, height: '100%', background: 'linear-gradient(135deg, rgba(11, 29, 57, 0.06), rgba(27, 62, 111, 0.08))' }}>
-                        <Typography variant="subtitle1" fontWeight="bold">Highest profit margin</Typography>
-                        <Typography variant="h6" sx={{ mt: 1 }}>{metrics.highestMargin[0]}</Typography>
-                        <Typography variant="body2" color="text.secondary">Margin: {metrics.highestMargin[1].toFixed(1)}%</Typography>
-                        <Divider sx={{ my: 2 }} />
-                        <Typography variant="subtitle2" color="text.secondary">Top selling product</Typography>
-                        <Typography variant="body1" fontWeight="bold">{metrics.topSellingProduct[0]}</Typography>
-                        <Typography variant="caption" color="text.secondary">Qty sold: {metrics.topSellingProduct[1]}</Typography>
-                    </Paper>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, height: '100%', background: 'linear-gradient(135deg, rgba(242, 181, 68, 0.15), rgba(255, 215, 128, 0.18))' }}>
-                        <Typography variant="subtitle1" fontWeight="bold">Peak sales time</Typography>
-                        <Typography variant="h6" sx={{ mt: 1 }}>{metrics.peakHourLabel}</Typography>
-                        <Typography variant="body2" color="text.secondary">Based on order volume</Typography>
-                        <Divider sx={{ my: 2 }} />
-                        <Typography variant="subtitle2" color="text.secondary">Total items sold</Typography>
-                        <Typography variant="body1" fontWeight="bold">{metrics.totalItemsSold}</Typography>
-                    </Paper>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, height: '100%', background: 'linear-gradient(135deg, rgba(31, 138, 91, 0.12), rgba(60, 207, 154, 0.16))' }}>
-                        <Typography variant="subtitle1" fontWeight="bold">Top selling product graph</Typography>
-                        <Box sx={{ mt: 2, display: 'grid', gap: 1 }}>
-                            {topSellingGraph.map(([name, qty]) => (
-                                <Box key={name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography variant="caption" sx={{ width: 120 }} noWrap>{name}</Typography>
-                                    <Box sx={{ flex: 1, height: 8, bgcolor: 'rgba(11, 29, 57, 0.1)', borderRadius: 99 }}>
-                                        <Box sx={{ width: `${(qty / maxTopQty) * 100}%`, height: '100%', bgcolor: 'primary.main', borderRadius: 99 }} />
-                                    </Box>
-                                    <Typography variant="caption" sx={{ width: 36, textAlign: 'right' }}>{qty}</Typography>
-                                </Box>
-                            ))}
+        <Box sx={{ height: '100%', overflow: 'auto', pb: 4 }}>
+            <Container maxWidth="xl">
+                <Paper
+                    elevation={0}
+                    sx={{
+                        mb: 3,
+                        px: 4,
+                        py: 2.5,
+                        background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
+                        borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
+                    }}
+                >
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+                        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
+                            Dashboard
+                        </Typography>
+                        <Box sx={{ minWidth: 280, display: "flex", justifyContent: "flex-end" }}>
+                            <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtonsDisplay="auto">
+                                {timeframes.map((tf, idx) => (
+                                    <Tab key={idx} label={tf.label} />
+                                ))}
+                            </Tabs>
                         </Box>
-                    </Paper>
-                </Grid>
-            </Grid>
+                    </Box>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12} md={7}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
-                        <Typography variant="subtitle1" fontWeight="bold">Sales by hour (items sold)</Typography>
-                        <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: 'repeat(24, minmax(0, 1fr))', gap: 0.5, alignItems: 'end', height: 160 }}>
-                            {metrics.hourlyQty.map((qty, hour) => (
-                                <Box key={hour} sx={{ textAlign: 'center' }}>
-                                    <Box
-                                        sx={{
-                                            height: `${metrics.maxHourlyQty ? (qty / metrics.maxHourlyQty) * 120 : 0}px`,
-                                            bgcolor: qty > 0 ? 'primary.main' : 'rgba(11, 29, 57, 0.1)',
-                                            borderRadius: 1,
-                                            transition: 'height 0.2s ease'
-                                        }}
-                                    />
-                                    {(hour % 6 === 0) && <Typography variant="caption" color="text.secondary">{hour}</Typography>}
-                                </Box>
-                            ))}
+                    {tabValue === 4 && (
+                        <Box sx={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "flex-end", mt: 2, pt: 2, borderTop: "1px solid #eee", flexWrap: "wrap" }}>
+                            <TextField
+                                type="date"
+                                label="From"
+                                size="small"
+                                InputLabelProps={{ shrink: true }}
+                                value={dateRange.startDate}
+                                onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                            />
+                            <TextField
+                                type="date"
+                                label="To"
+                                size="small"
+                                InputLabelProps={{ shrink: true }}
+                                value={dateRange.endDate}
+                                onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                            />
+                            <Button variant="contained" onClick={handleApplyCustomRange} startIcon={<CalendarIcon />} sx={{ bgcolor: "#0b1d39", "&:hover": { bgcolor: "#1b3e6f" } }}>
+                                Apply
+                            </Button>
                         </Box>
-                        <Typography variant="caption" color="text.secondary">Bars show item quantity sold per hour.</Typography>
-                    </Paper>
+                    )}
+                </Paper>
+
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #1f8a5b 0%, #3ccf9a 100%)' }}>
+                            <Typography variant="overline" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Daily report</Typography>
+                            <Typography variant="h5" fontWeight="bold">₹{metrics.totalSales.toFixed(2)}</Typography>
+                            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Total sales</Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #0b1d39 0%, #1b3e6f 100%)' }}>
+                            <Typography variant="overline" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Daily status</Typography>
+                            <Typography variant="h5" fontWeight="bold">{metrics.totalOrders}</Typography>
+                            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Orders in range</Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #f2b544 0%, #f8d27b 100%)' }}>
+                            <Typography variant="overline" sx={{ color: 'rgba(32, 18, 6, 0.75)' }}>Sales</Typography>
+                            <Typography variant="h5" fontWeight="bold" sx={{ color: '#2d1c05' }}>₹{metrics.avgOrderValue.toFixed(2)}</Typography>
+                            <Typography variant="body2" sx={{ color: 'rgba(32, 18, 6, 0.75)' }}>Average order value</Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)' }}>
+                            <Typography variant="overline" sx={{ color: 'rgba(255, 255, 255, 0.85)' }}>Profit margin</Typography>
+                            <Typography variant="h5" fontWeight="bold">{metrics.profitMargin.toFixed(1)}%</Typography>
+                            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)' }}>Overall</Typography>
+                        </Paper>
+                    </Grid>
                 </Grid>
-                <Grid item xs={12} md={5}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
-                        <Typography variant="subtitle1" fontWeight="bold">Category mix</Typography>
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
-                            <Box sx={{ width: 160, height: 160, borderRadius: '50%', background: categoryMix.gradient, boxShadow: '0 12px 30px rgba(11, 29, 57, 0.15)' }} />
-                            <Box sx={{ display: 'grid', gap: 1, flex: 1 }}>
-                                {categoryMix.segments.map(([name, qty], index) => (
+
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, height: '100%', background: 'linear-gradient(135deg, rgba(11, 29, 57, 0.06), rgba(27, 62, 111, 0.08))' }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Highest profit margin</Typography>
+                            <Typography variant="h6" sx={{ mt: 1 }}>{metrics.highestMargin[0]}</Typography>
+                            <Typography variant="body2" color="text.secondary">Margin: {metrics.highestMargin[1].toFixed(1)}%</Typography>
+                            <Divider sx={{ my: 2 }} />
+                            <Typography variant="subtitle2" color="text.secondary">Top selling product</Typography>
+                            <Typography variant="body1" fontWeight="bold">{metrics.topSellingProduct[0]}</Typography>
+                            <Typography variant="caption" color="text.secondary">Qty sold: {metrics.topSellingProduct[1]}</Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, height: '100%', background: 'linear-gradient(135deg, rgba(242, 181, 68, 0.15), rgba(255, 215, 128, 0.18))' }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Peak sales time</Typography>
+                            <Typography variant="h6" sx={{ mt: 1 }}>{metrics.peakHourLabel}</Typography>
+                            <Typography variant="body2" color="text.secondary">Based on order volume</Typography>
+                            <Divider sx={{ my: 2 }} />
+                            <Typography variant="subtitle2" color="text.secondary">Total items sold</Typography>
+                            <Typography variant="body1" fontWeight="bold">{metrics.totalItemsSold}</Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12} sm={12} md={4}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, height: '100%', background: 'linear-gradient(135deg, rgba(31, 138, 91, 0.12), rgba(60, 207, 154, 0.16))' }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Top selling product graph</Typography>
+                            <Box sx={{ mt: 2, display: 'grid', gap: 1 }}>
+                                {topSellingGraph.map(([name, qty]) => (
                                     <Box key={name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }} />
-                                        <Typography variant="body2" sx={{ flex: 1 }} noWrap>{name}</Typography>
-                                        <Typography variant="caption" color="text.secondary">{Math.round((qty / categoryMix.total) * 100)}%</Typography>
+                                        <Typography variant="caption" sx={{ width: 120 }} noWrap>{name}</Typography>
+                                        <Box sx={{ flex: 1, height: 8, bgcolor: 'rgba(11, 29, 57, 0.1)', borderRadius: 99 }}>
+                                            <Box sx={{ width: `${(qty / maxTopQty) * 100}%`, height: '100%', bgcolor: 'primary.main', borderRadius: 99 }} />
+                                        </Box>
+                                        <Typography variant="caption" sx={{ width: 36, textAlign: 'right' }}>{qty}</Typography>
                                     </Box>
                                 ))}
-                                {!categoryMix.segments.length && <Typography variant="body2" color="text.secondary">No category data.</Typography>}
                             </Box>
-                        </Box>
-                    </Paper>
+                        </Paper>
+                    </Grid>
                 </Grid>
-            </Grid>
 
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
-                        <Typography variant="subtitle1" fontWeight="bold">Lower stock warning</Typography>
-                        <Typography variant="body2" color="text.secondary">Below {LOW_STOCK_THRESHOLD} units</Typography>
-                        <Divider sx={{ my: 1.5 }} />
-                        {stockWarnings.lowStock.slice(0, 6).map(item => (
-                            <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-                                <Typography variant="body2">{item.name}</Typography>
-                                <Typography variant="body2" fontWeight="bold">{item.total_stock}</Typography>
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid item xs={12} lg={7}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Sales by hour (items sold)</Typography>
+                            <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: 'repeat(24, minmax(0, 1fr))', gap: 0.5, alignItems: 'end', height: 160 }}>
+                                {metrics.hourlyQty.map((qty, hour) => (
+                                    <Box key={hour} sx={{ textAlign: 'center' }}>
+                                        <Box
+                                            sx={{
+                                                height: `${metrics.maxHourlyQty ? (qty / metrics.maxHourlyQty) * 120 : 0}px`,
+                                                bgcolor: qty > 0 ? 'primary.main' : 'rgba(11, 29, 57, 0.1)',
+                                                borderRadius: 1,
+                                                transition: 'height 0.2s ease'
+                                            }}
+                                        />
+                                        {(hour % 6 === 0) && <Typography variant="caption" color="text.secondary">{hour}</Typography>}
+                                    </Box>
+                                ))}
                             </Box>
-                        ))}
-                        {!stockWarnings.lowStock.length && <Typography variant="body2" color="text.secondary">No low stock items.</Typography>}
-                    </Paper>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
-                        <Typography variant="subtitle1" fontWeight="bold">Zero stock warning</Typography>
-                        <Typography variant="body2" color="text.secondary">Out of stock items</Typography>
-                        <Divider sx={{ my: 1.5 }} />
-                        {stockWarnings.zeroStock.slice(0, 6).map(item => (
-                            <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-                                <Typography variant="body2">{item.name}</Typography>
-                                <Typography variant="body2" fontWeight="bold">0</Typography>
+                            <Typography variant="caption" color="text.secondary">Bars show item quantity sold per hour.</Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12} lg={5}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Category mix</Typography>
+                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
+                                <Box sx={{ width: 160, height: 160, borderRadius: '50%', background: categoryMix.gradient, boxShadow: '0 12px 30px rgba(11, 29, 57, 0.15)' }} />
+                                <Box sx={{ display: 'grid', gap: 1, flex: 1 }}>
+                                    {categoryMix.segments.map(([name, qty], index) => (
+                                        <Box key={name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }} />
+                                            <Typography variant="body2" sx={{ flex: 1 }} noWrap>{name}</Typography>
+                                            <Typography variant="caption" color="text.secondary">{Math.round((qty / categoryMix.total) * 100)}%</Typography>
+                                        </Box>
+                                    ))}
+                                    {!categoryMix.segments.length && <Typography variant="body2" color="text.secondary">No category data.</Typography>}
+                                </Box>
                             </Box>
-                        ))}
-                        {!stockWarnings.zeroStock.length && <Typography variant="body2" color="text.secondary">No zero stock items.</Typography>}
-                    </Paper>
+                        </Paper>
+                    </Grid>
                 </Grid>
-            </Grid>
-        </Container>
+
+                <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Lower stock warning</Typography>
+                            <Typography variant="body2" color="text.secondary">Below {LOW_STOCK_THRESHOLD} units</Typography>
+                            <Divider sx={{ my: 1.5 }} />
+                            {stockWarnings.lowStock.slice(0, 6).map(item => (
+                                <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+                                    <Typography variant="body2">{item.name}</Typography>
+                                    <Typography variant="body2" fontWeight="bold">{item.total_stock}</Typography>
+                                </Box>
+                            ))}
+                            {!stockWarnings.lowStock.length && <Typography variant="body2" color="text.secondary">No low stock items.</Typography>}
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">Zero stock warning</Typography>
+                            <Typography variant="body2" color="text.secondary">Out of stock items</Typography>
+                            <Divider sx={{ my: 1.5 }} />
+                            {stockWarnings.zeroStock.slice(0, 6).map(item => (
+                                <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+                                    <Typography variant="body2">{item.name}</Typography>
+                                    <Typography variant="body2" fontWeight="bold">0</Typography>
+                                </Box>
+                            ))}
+                            {!stockWarnings.zeroStock.length && <Typography variant="body2" color="text.secondary">No zero stock items.</Typography>}
+                        </Paper>
+                    </Grid>
+                </Grid>
+            </Container>
+        </Box>
     );
 };
 
