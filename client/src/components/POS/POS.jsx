@@ -24,7 +24,6 @@ import TransactionPanel from './TransactionPanel';
 import BatchSelectionDialog from './BatchSelectionDialog';
 import ReceiptPreviewDialog from './ReceiptPreviewDialog';
 import POSTabs from './POSTabs';
-import PaymentMethodDialog from './PaymentMethodDialog';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
 import { getStoredPaymentSettings, getFullscreenEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
@@ -81,9 +80,9 @@ const POS = () => {
     const [lastSale, setLastSale] = useState(null);
     const [showReceipt, setShowReceipt] = useState(false);
     const [showPrintDialog, setShowPrintDialog] = useState(false);
-    const [showPaymentDialog, setShowPaymentDialog] = useState(false);
     const [receiptSettings, setReceiptSettings] = useState(getStoredReceiptSettings);
-    const [selectedPayment, setSelectedPayment] = useState(null);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+    const [paymentSettings, setPaymentSettings] = useState(() => getStoredPaymentSettings());
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled);
     const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
@@ -247,111 +246,71 @@ const POS = () => {
         }
     };
 
-    const handleSelectPaymentMethod = async () => {
-        const settings = getStoredPaymentSettings();
-        if (!settings.enabledMethods || settings.enabledMethods.length === 0) {
-            showError('No payment methods configured. Please enable at least one payment method in settings.');
-            return;
-        }
-        setShowPaymentDialog(true);
+    const handleSelectPaymentMethod = (method) => {
+        setSelectedPaymentMethod(method);
     };
 
-    const handlePaymentConfirm = async (paymentDetails) => {
-        setShowPaymentDialog(false);
-        setSelectedPayment(paymentDetails);
-        
+    const handlePay = async () => {
+        if (!selectedPaymentMethod) {
+            showError('Please select a payment method');
+            return;
+        }
+
         try {
             const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
             const res = await axios.post('/api/sale', {
                 items,
                 discount: 0,
                 extraDiscount: discount,
-                paymentMethod: paymentDetails.methods[0]?.label || 'Cash',
-                paymentDetails: JSON.stringify(paymentDetails)
+                paymentMethod: selectedPaymentMethod.label || 'Cash',
+                paymentDetails: JSON.stringify({ method: selectedPaymentMethod })
             });
             const detailedRes = await axios.get(`/api/sale/${res.data.saleId}`);
             setLastSale(detailedRes.data);
 
             handleCloseTab(activeTabId);
             fetchProducts();
+            setSelectedPaymentMethod(null);
             
-            // If user clicked "Accept Payment & Print Receipt", show receipt immediately
-            // Otherwise, show confirmation dialog
-            if (shouldPrintAfterPayment) {
-                setShowReceipt(true);
-                setShouldPrintAfterPayment(false);
-            } else {
-                setShowPrintDialog(true);
-            }
-        } catch (error) {
-            console.error(error);
-            const msg = error.response?.data?.error || error.message || 'Checkout failed';
-            showError(`Checkout failed: ${msg}`);
-        }
-    };
-
-    const handleCheckout = async () => {
-        if (!selectedPayment) {
-            showError('Please select a payment method first');
-            return;
-        }
-        setShouldPrintAfterPayment(false);
-        // Directly process payment without printing prompt
-        try {
-            const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
-            const res = await axios.post('/api/sale', {
-                items,
-                discount: 0,
-                extraDiscount: discount,
-                paymentMethod: selectedPayment.methods[0]?.label || 'Cash',
-                paymentDetails: JSON.stringify(selectedPayment)
-            });
-            const detailedRes = await axios.get(`/api/sale/${res.data.saleId}`);
-            setLastSale(detailedRes.data);
-
-            handleCloseTab(activeTabId);
-            fetchProducts();
-            setSelectedPayment(null);
-            
+            // Show confirmation message
             showConfirm('Payment completed successfully!').then(() => {
-                // Reset after confirmation
+                // Reset
             });
         } catch (error) {
             console.error(error);
-            const msg = error.response?.data?.error || error.message || 'Checkout failed';
-            showError(`Checkout failed: ${msg}`);
+            const msg = error.response?.data?.error || error.message || 'Payment failed';
+            showError(`Payment failed: ${msg}`);
         }
     };
 
-    const handleCheckoutAndPrint = async () => {
-        if (!selectedPayment) {
-            showError('Please select a payment method first');
+    const handlePayAndPrint = async () => {
+        if (!selectedPaymentMethod) {
+            showError('Please select a payment method');
             return;
         }
-        setShouldPrintAfterPayment(true);
-        // Process payment and then print
+
         try {
             const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
             const res = await axios.post('/api/sale', {
                 items,
                 discount: 0,
                 extraDiscount: discount,
-                paymentMethod: selectedPayment.methods[0]?.label || 'Cash',
-                paymentDetails: JSON.stringify(selectedPayment)
+                paymentMethod: selectedPaymentMethod.label || 'Cash',
+                paymentDetails: JSON.stringify({ method: selectedPaymentMethod })
             });
             const detailedRes = await axios.get(`/api/sale/${res.data.saleId}`);
             setLastSale(detailedRes.data);
 
             handleCloseTab(activeTabId);
             fetchProducts();
-            setSelectedPayment(null);
+            setSelectedPaymentMethod(null);
             
-            // Show receipt immediately for printing
+            // Show receipt for printing
             setShowReceipt(true);
         } catch (error) {
             console.error(error);
-            const msg = error.response?.data?.error || error.message || 'Checkout failed';
-            showError(`Checkout failed: ${msg}`);
+            const msg = error.response?.data?.error || error.message || 'Payment failed';
+            showError(`Payment failed: ${msg}`);
         }
     };
 
@@ -370,15 +329,6 @@ const POS = () => {
             } catch {
                 showError('Failed to exit fullscreen mode');
             }
-        }
-    };
-
-    const handlePrintDecision = (shouldPrint) => {
-        setShowPrintDialog(false);
-        if (shouldPrint) {
-            setShowReceipt(true);
-        } else {
-            setSelectedPayment(null);
         }
     };
 
@@ -403,6 +353,7 @@ const POS = () => {
         const handleSettingsUpdated = () => {
             setReceiptSettings(getStoredReceiptSettings());
             setFullscreenEnabled(getFullscreenEnabled());
+            setPaymentSettings(getStoredPaymentSettings());
         };
 
         window.addEventListener('pos-settings-updated', handleSettingsUpdated);
@@ -499,11 +450,12 @@ const POS = () => {
                     discount={discount}
                     onDiscountChange={setDiscount}
                     onVoid={handleVoidOrder}
-                    onCheckout={handleCheckout}
-                    onCheckoutAndPrint={handleCheckoutAndPrint}
+                    onPay={handlePay}
+                    onPayAndPrint={handlePayAndPrint}
                     onRefund={handleRefund}
                     onSelectPaymentMethod={handleSelectPaymentMethod}
-                    selectedPayment={selectedPayment}
+                    selectedPaymentMethod={selectedPaymentMethod}
+                    paymentSettings={paymentSettings}
                     subTotal={subTotal}
                     totalMrp={totalMrp}
                     totalQty={totalQty}
@@ -516,50 +468,6 @@ const POS = () => {
                     onSelectBatch={addToCart}
                     onClose={() => setScannedProduct(null)}
                 />
-
-                <PaymentMethodDialog
-                    open={showPaymentDialog}
-                    onClose={() => setShowPaymentDialog(false)}
-                    totalAmount={totalAmount}
-                    onConfirm={handlePaymentConfirm}
-                    allowMultiple={getStoredPaymentSettings().allowMultplePayment}
-                />
-
-                <Dialog
-                    open={showPrintDialog}
-                    onClose={() => handlePrintDecision(false)}
-                    onKeyDown={(event) => {
-                        if (event.defaultPrevented) return;
-                        if (event.key !== 'Enter') return;
-                        if (event.shiftKey) return;
-                        if (event.target?.tagName === 'TEXTAREA') return;
-                        event.preventDefault();
-                        handlePrintDecision(true);
-                    }}
-                >
-                    <DialogTitle>Payment Accepted ✓</DialogTitle>
-                    <DialogContent>
-                        <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.dark', mb: 1 }}>
-                            Payment of ₹{lastSale?.totalAmount?.toFixed(2) || '0.00'} has been successfully accepted.
-                        </Typography>
-                        {selectedPayment && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                Method: {selectedPayment.methods.map(m => m.label).join(', ')}
-                            </Typography>
-                        )}
-                        <Typography variant="body2" color="text.secondary">
-                            Would you like to print the receipt?
-                        </Typography>
-                    </DialogContent>
-                    <DialogActions sx={{ p: 2 }}>
-                        <Button onClick={() => handlePrintDecision(false)} variant="outlined">
-                            No, Thanks
-                        </Button>
-                        <Button onClick={() => handlePrintDecision(true)} variant="contained" color="success">
-                            Yes, Print Receipt
-                        </Button>
-                    </DialogActions>
-                </Dialog>
 
                 <ReceiptPreviewDialog
                     open={showReceipt}

@@ -1,32 +1,60 @@
 import React from 'react';
 import {
-    Box, Typography, Grid, Paper, Divider, TextField, InputAdornment, Button, Chip
+    Box, Typography, Grid, Paper, Divider, TextField, InputAdornment, Button, Chip, Stack
 } from '@mui/material';
 import {
     ReceiptLong as ReceiptIcon,
     CheckCircle as CheckCircleIcon,
     Replay as ReplayIcon,
     Print as PrintIcon,
-    Payment as PaymentIcon,
-    Edit as EditIcon
+    Payment as PaymentIcon
 } from '@mui/icons-material';
+
+const PAYMENT_METHOD_OPTIONS = {
+    cash: { label: 'Cash', icon: '💵', color: '#16a34a' },
+    upi: { label: 'UPI', icon: '📱', color: '#0369a1' },
+    card: { label: 'Card', icon: '💳', color: '#7c3aed' },
+    wallet: { label: 'Digital Wallet', icon: '💰', color: '#ea580c' },
+    bank_transfer: { label: 'Bank Transfer', icon: '🏦', color: '#0891b2' },
+    cheque: { label: 'Cheque', icon: '📄', color: '#64748b' }
+};
 
 const TransactionPanel = ({
     cart,
     discount,
     onDiscountChange,
     onVoid,
-    onCheckout,
-    onCheckoutAndPrint,
+    onPay,
+    onPayAndPrint,
     onRefund,
     onSelectPaymentMethod,
-    selectedPayment,
+    selectedPaymentMethod,
+    paymentSettings,
     subTotal,
     totalMrp,
     totalQty,
     totalAmount,
     totalSavings
 }) => {
+    const getAvailablePaymentMethods = () => {
+        const enabled = paymentSettings?.enabledMethods || [];
+        const custom = paymentSettings?.customMethods || [];
+        
+        const methods = Object.entries(PAYMENT_METHOD_OPTIONS)
+            .filter(([id]) => enabled.includes(id))
+            .map(([id, config]) => ({ id, ...config }));
+        
+        custom.forEach(m => {
+            methods.push({
+                id: m.id,
+                label: m.label,
+                icon: '💳',
+                color: '#64748b'
+            });
+        });
+        
+        return methods;
+    };
     return (
         <Paper
             elevation={0}
@@ -111,52 +139,37 @@ const TransactionPanel = ({
             </Box>
 
             {/* Actions Footer - Fixed at bottom */}
-            <Box sx={{ p: 2, bgcolor: 'background.paper', borderTop: '1px solid rgba(16, 24, 40, 0.08)' }}>
-                {/* Payment Method Selection */}
-                <Box sx={{ mb: 2, p: 1.5, bgcolor: 'rgba(59, 130, 246, 0.05)', borderRadius: 1, border: '1px solid rgba(59, 130, 246, 0.1)' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography variant="caption" color="text.secondary" fontWeight="bold">PAYMENT METHOD</Typography>
-                        {selectedPayment && (
-                            <Button
-                                size="small"
-                                startIcon={<EditIcon />}
-                                onClick={onSelectPaymentMethod}
-                                variant="text"
-                                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-                            >
-                                Change
-                            </Button>
-                        )}
-                    </Box>
-                    {selectedPayment ? (
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                            {selectedPayment.methods.map((method, idx) => (
-                                <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <Chip
-                                        label={`${method.label} ${selectedPayment.methods.length > 1 ? `(₹${method.amount?.toFixed(2) || totalAmount.toFixed(2)})` : ''}`}
-                                        size="small"
-                                        variant="filled"
-                                        color="primary"
-                                        sx={{ fontWeight: 600 }}
-                                    />
-                                    {selectedPayment.methods.length > 1 && idx < selectedPayment.methods.length - 1 && (
-                                        <Typography variant="caption" color="text.secondary" sx={{ px: 0.5 }}>+</Typography>
-                                    )}
-                                </Box>
-                            ))}
-                        </Box>
-                    ) : (
-                        <Button
-                            fullWidth
-                            variant="outlined"
-                            color="primary"
-                            size="small"
-                            startIcon={<PaymentIcon />}
-                            onClick={onSelectPaymentMethod}
-                            sx={{ textTransform: 'none', fontWeight: 600 }}
-                        >
-                            Select Payment Method
-                        </Button>
+            <Box sx={{ p: 2, bgcolor: 'background.paper', borderTop: '1px solid rgba(16, 24, 40, 0.08)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Payment Methods Section */}
+                <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ display: 'block', mb: 1 }}>
+                        SELECT PAYMENT METHOD
+                    </Typography>
+                    <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+                        {getAvailablePaymentMethods().map((method) => (
+                            <Chip
+                                key={method.id}
+                                icon={<span>{method.icon}</span>}
+                                label={method.label}
+                                onClick={() => onSelectPaymentMethod(method)}
+                                variant={selectedPaymentMethod?.id === method.id ? 'filled' : 'outlined'}
+                                color={selectedPaymentMethod?.id === method.id ? 'primary' : 'default'}
+                                sx={{
+                                    cursor: 'pointer',
+                                    fontWeight: selectedPaymentMethod?.id === method.id ? 600 : 500,
+                                    borderColor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'rgba(16, 24, 40, 0.12)',
+                                    '&:hover': {
+                                        borderColor: 'primary.main',
+                                        bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'action.hover'
+                                    }
+                                }}
+                            />
+                        ))}
+                    </Stack>
+                    {!selectedPaymentMethod && (
+                        <Typography variant="caption" color="error.main" sx={{ display: 'block' }}>
+                            Please select a payment method
+                        </Typography>
                     )}
                 </Box>
 
@@ -187,32 +200,32 @@ const TransactionPanel = ({
                             Void
                         </Button>
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid item xs={6}>
                         <Button
                             fullWidth
                             variant="contained"
                             color="success"
                             size="large"
-                            onClick={onCheckout}
-                            disabled={cart.length === 0 || !selectedPayment}
+                            onClick={onPay}
+                            disabled={cart.length === 0 || !selectedPaymentMethod}
                             startIcon={<CheckCircleIcon />}
-                            sx={{ height: 50, fontSize: '1rem', fontWeight: 'bold' }}
+                            sx={{ height: 50, fontWeight: 'bold' }}
                         >
-                            Accept Payment
+                            Pay
                         </Button>
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid item xs={6}>
                         <Button
                             fullWidth
                             variant="contained"
                             color="info"
                             size="large"
-                            onClick={onCheckoutAndPrint}
-                            disabled={cart.length === 0 || !selectedPayment}
+                            onClick={onPayAndPrint}
+                            disabled={cart.length === 0 || !selectedPaymentMethod}
                             startIcon={<PrintIcon />}
-                            sx={{ height: 50, fontSize: '1rem', fontWeight: 'bold' }}
+                            sx={{ height: 50, fontWeight: 'bold' }}
                         >
-                            Accept Payment & Print Receipt
+                            Pay & Print
                         </Button>
                     </Grid>
                 </Grid>
