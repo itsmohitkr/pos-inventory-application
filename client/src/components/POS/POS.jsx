@@ -86,6 +86,7 @@ const POS = () => {
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled);
+    const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
 
     const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
     const cart = activeTab.cart;
@@ -246,7 +247,7 @@ const POS = () => {
         }
     };
 
-    const handleAcceptPayment = async () => {
+    const handleSelectPaymentMethod = async () => {
         const settings = getStoredPaymentSettings();
         if (!settings.enabledMethods || settings.enabledMethods.length === 0) {
             showError('No payment methods configured. Please enable at least one payment method in settings.');
@@ -274,8 +275,14 @@ const POS = () => {
             handleCloseTab(activeTabId);
             fetchProducts();
             
-            // Show print dialog asking if user wants to print receipt
-            setShowPrintDialog(true);
+            // If user clicked "Accept Payment & Print Receipt", show receipt immediately
+            // Otherwise, show confirmation dialog
+            if (shouldPrintAfterPayment) {
+                setShowReceipt(true);
+                setShouldPrintAfterPayment(false);
+            } else {
+                setShowPrintDialog(true);
+            }
         } catch (error) {
             console.error(error);
             const msg = error.response?.data?.error || error.message || 'Checkout failed';
@@ -284,7 +291,68 @@ const POS = () => {
     };
 
     const handleCheckout = async () => {
-        handleAcceptPayment();
+        if (!selectedPayment) {
+            showError('Please select a payment method first');
+            return;
+        }
+        setShouldPrintAfterPayment(false);
+        // Directly process payment without printing prompt
+        try {
+            const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
+            const res = await axios.post('/api/sale', {
+                items,
+                discount: 0,
+                extraDiscount: discount,
+                paymentMethod: selectedPayment.methods[0]?.label || 'Cash',
+                paymentDetails: JSON.stringify(selectedPayment)
+            });
+            const detailedRes = await axios.get(`/api/sale/${res.data.saleId}`);
+            setLastSale(detailedRes.data);
+
+            handleCloseTab(activeTabId);
+            fetchProducts();
+            setSelectedPayment(null);
+            
+            showConfirm('Payment completed successfully!').then(() => {
+                // Reset after confirmation
+            });
+        } catch (error) {
+            console.error(error);
+            const msg = error.response?.data?.error || error.message || 'Checkout failed';
+            showError(`Checkout failed: ${msg}`);
+        }
+    };
+
+    const handleCheckoutAndPrint = async () => {
+        if (!selectedPayment) {
+            showError('Please select a payment method first');
+            return;
+        }
+        setShouldPrintAfterPayment(true);
+        // Process payment and then print
+        try {
+            const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
+            const res = await axios.post('/api/sale', {
+                items,
+                discount: 0,
+                extraDiscount: discount,
+                paymentMethod: selectedPayment.methods[0]?.label || 'Cash',
+                paymentDetails: JSON.stringify(selectedPayment)
+            });
+            const detailedRes = await axios.get(`/api/sale/${res.data.saleId}`);
+            setLastSale(detailedRes.data);
+
+            handleCloseTab(activeTabId);
+            fetchProducts();
+            setSelectedPayment(null);
+            
+            // Show receipt immediately for printing
+            setShowReceipt(true);
+        } catch (error) {
+            console.error(error);
+            const msg = error.response?.data?.error || error.message || 'Checkout failed';
+            showError(`Checkout failed: ${msg}`);
+        }
     };
 
     const handleFullscreenToggle = async () => {
@@ -432,7 +500,10 @@ const POS = () => {
                     onDiscountChange={setDiscount}
                     onVoid={handleVoidOrder}
                     onCheckout={handleCheckout}
+                    onCheckoutAndPrint={handleCheckoutAndPrint}
                     onRefund={handleRefund}
+                    onSelectPaymentMethod={handleSelectPaymentMethod}
+                    selectedPayment={selectedPayment}
                     subTotal={subTotal}
                     totalMrp={totalMrp}
                     totalQty={totalQty}
