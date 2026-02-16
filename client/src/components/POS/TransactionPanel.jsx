@@ -5,7 +5,9 @@ import {
 import {
     ReceiptLong as ReceiptIcon,
     CheckCircle as CheckCircleIcon,
-    Replay as ReplayIcon
+    Replay as ReplayIcon,
+    Print as PrintIcon,
+    Payment as PaymentIcon
 } from '@mui/icons-material';
 
 const TransactionPanel = ({
@@ -141,7 +143,7 @@ const TransactionPanel = ({
                             size="large"
                             onClick={onCheckout}
                             disabled={cart.length === 0}
-                            startIcon={<CheckCircleIcon />}
+                            startIcon={<PaymentIcon />}
                             sx={{ height: 52, fontSize: '1.05rem', fontWeight: 'bold' }}
                         >
                             Accept Payment

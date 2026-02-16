@@ -13,17 +13,21 @@ import {
   Alert,
   Paper,
   Avatar,
-  Stack
+  Stack,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Store as StoreIcon,
   DeleteForever as DeleteForeverIcon,
   Warning as WarningIcon,
-  PhotoCamera as PhotoCameraIcon
+  PhotoCamera as PhotoCameraIcon,
+  Payment as PaymentIcon
 } from '@mui/icons-material';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
+import PaymentSettingsPanel from './PaymentSettingsPanel';
 
 const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, currentUser }) => {
   const { dialogState, showSuccess, showError, closeDialog } = useCustomDialog();
@@ -37,6 +41,7 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipePassword, setWipePassword] = useState('');
   const [wipeLoading, setWipeLoading] = useState(false);
+  const [tabValue, setTabValue] = useState(0);
 
   const handleSave = () => {
     onShopNameChange(editedShopName);
@@ -129,17 +134,37 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <StoreIcon color="primary" />
-          <Typography variant="h6">Account Details & Settings</Typography>
+          <Typography variant="h6">Settings</Typography>
         </Box>
         <IconButton onClick={handleClose} size="small">
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={(e, newValue) => setTabValue(newValue)}
+          aria-label="settings tabs"
+        >
+          <Tab 
+            icon={<StoreIcon />} 
+            label="Account Details" 
+            sx={{ gap: 1 }}
+          />
+          <Tab 
+            icon={<PaymentIcon />} 
+            label="Payment Settings" 
+            sx={{ gap: 1 }}
+          />
+        </Tabs>
+      </Box>
+
       <DialogContent dividers>
-        {!showWipeConfirm ? (
+        {/* Tab 0: Account Details */}
+        {tabValue === 0 && !showWipeConfirm && (
           <Box>
-            {/* Shop Information Section */}
             <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <StoreIcon fontSize="small" color="primary" />
@@ -255,8 +280,15 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
               </Paper>
             )}
           </Box>
-        ) : (
-          // Wipe Confirmation Screen
+        )}
+
+        {/* Tab 1: Payment Settings */}
+        {tabValue === 1 && (
+          <PaymentSettingsPanel />
+        )}
+
+        {/* Wipe Database Confirmation */}
+        {tabValue === 0 && showWipeConfirm && (
           <Box>
             <Alert severity="error" icon={<WarningIcon />} sx={{ mb: 3 }}>
               <Typography variant="h6" gutterBottom>
@@ -304,9 +336,11 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
             <Button onClick={handleClose} variant="outlined">
               Cancel
             </Button>
-            <Button onClick={handleSave} variant="contained">
-              Save Changes
-            </Button>
+            {tabValue === 0 && (
+              <Button onClick={handleSave} variant="contained">
+                Save Changes
+              </Button>
+            )}
           </>
         ) : (
           <>

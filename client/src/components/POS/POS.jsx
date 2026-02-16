@@ -9,8 +9,14 @@ import {
     DialogContent,
     DialogActions,
     Button,
-    Typography
+    Typography,
+    IconButton,
+    Tooltip
 } from '@mui/material';
+import {
+    Fullscreen as FullscreenIcon,
+    FullscreenExit as FullscreenExitIcon
+} from '@mui/icons-material';
 
 import POSSearchBar from './POSSearchBar';
 import CartTable from './CartTable';
@@ -18,8 +24,10 @@ import TransactionPanel from './TransactionPanel';
 import BatchSelectionDialog from './BatchSelectionDialog';
 import ReceiptPreviewDialog from './ReceiptPreviewDialog';
 import POSTabs from './POSTabs';
+import PaymentMethodDialog from './PaymentMethodDialog';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
+import { getStoredPaymentSettings, getFullscreenEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
 
 const STORAGE_KEYS = {
     receipt: 'posReceiptSettings',
@@ -50,10 +58,9 @@ const getStoredReceiptSettings = () => {
         return {
             ...DEFAULT_RECEIPT_SETTINGS,
             customShopName: shopName,
-            ...stored,
-            customShopName: stored?.customShopName || shopName
+            ...stored
         };
-    } catch (error) {
+    } catch {
         return { ...DEFAULT_RECEIPT_SETTINGS };
     }
 };
@@ -74,31 +81,17 @@ const POS = () => {
     const [lastSale, setLastSale] = useState(null);
     const [showReceipt, setShowReceipt] = useState(false);
     const [showPrintDialog, setShowPrintDialog] = useState(false);
+    const [showPaymentDialog, setShowPaymentDialog] = useState(false);
     const [receiptSettings, setReceiptSettings] = useState(getStoredReceiptSettings);
+    const [selectedPayment, setSelectedPayment] = useState(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled);
 
     const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
     const cart = activeTab.cart;
     const discount = activeTab.discount;
 
-    useEffect(() => {
-        fetchProducts();
-        
-        // Auto-refresh products every 30 seconds to get updated stock levels
-        const interval = setInterval(() => {
-            fetchProducts();
-        }, 30000);
-        
-        return () => clearInterval(interval);
-    }, []);
-
-    useEffect(() => {
-        const handleSettingsUpdated = () => {
-            setReceiptSettings(getStoredReceiptSettings());
-        };
-
-        window.addEventListener('pos-settings-updated', handleSettingsUpdated);
-        return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
-    }, []);
+    // ===== All Functions Declared BEFORE useEffect =====
 
     const fetchProducts = async () => {
         try {
@@ -106,8 +99,8 @@ const POS = () => {
                 params: { includeBatches: true }
             });
             setProducts(res.data.data);
-        } catch (error) {
-            console.error("Error fetching products:", error);
+        } catch {
+            console.error("Error fetching products");
         }
     };
 
@@ -115,8 +108,8 @@ const POS = () => {
         try {
             localStorage.setItem(STORAGE_KEYS.receipt, JSON.stringify(nextSettings));
             window.dispatchEvent(new Event('pos-settings-updated'));
-        } catch (error) {
-            console.error('Failed to persist receipt settings:', error);
+        } catch {
+            console.error('Failed to persist receipt settings');
         }
     };
 
@@ -137,6 +130,12 @@ const POS = () => {
     };
 
     // Tab Management
+    const updateTab = (tabId, updates) => {
+        setTabs(prev => prev.map(tab =>
+            tab.id === tabId ? { ...tab, ...updates } : tab
+        ));
+    };
+
     const handleAddTab = () => {
         const newId = Math.max(...tabs.map(t => t.id), 0) + 1;
         const newTab = { id: newId, name: `Order ${newId}`, cart: [], discount: 0 };
@@ -158,12 +157,6 @@ const POS = () => {
         }
     };
 
-    const updateTab = (tabId, updates) => {
-        setTabs(prev => prev.map(tab =>
-            tab.id === tabId ? { ...tab, ...updates } : tab
-        ));
-    };
-
     // Cart Actions (Wrapper to update active tab)
     const setCart = (newCartOrFn) => {
         const newCart = typeof newCartOrFn === 'function' ? newCartOrFn(cart) : newCartOrFn;
@@ -172,34 +165,6 @@ const POS = () => {
 
     const setDiscount = (newDiscount) => {
         updateTab(activeTabId, { discount: newDiscount });
-    };
-
-    const handleProductInteraction = (product) => {
-        const batches = product.batches?.filter(b => b.quantity > 0) || [];
-        const isBatchTracked = product.batchTrackingEnabled !== false;
-
-        if (batches.length === 0) {
-            showError('Out of stock!');
-            setSearchQuery('');
-            return;
-        }
-
-        if (!isBatchTracked) {
-            if (batches.length === 1) {
-                addToCart(product, batches[0]);
-            } else {
-                setScannedProduct({ product, batches, mode: 'price' });
-                setSearchQuery('');
-            }
-            return;
-        }
-
-        if (batches.length === 1) {
-            addToCart(product, batches[0]);
-        } else {
-            setScannedProduct({ product, batches, mode: 'batch' });
-            setSearchQuery('');
-        }
     };
 
     const addToCart = (product, batch) => {
@@ -246,6 +211,34 @@ const POS = () => {
         }));
     };
 
+    const handleProductInteraction = (product) => {
+        const batches = product.batches?.filter(b => b.quantity > 0) || [];
+        const isBatchTracked = product.batchTrackingEnabled !== false;
+
+        if (batches.length === 0) {
+            showError('Out of stock!');
+            setSearchQuery('');
+            return;
+        }
+
+        if (!isBatchTracked) {
+            if (batches.length === 1) {
+                addToCart(product, batches[0]);
+            } else {
+                setScannedProduct({ product, batches, mode: 'price' });
+                setSearchQuery('');
+            }
+            return;
+        }
+
+        if (batches.length === 1) {
+            addToCart(product, batches[0]);
+        } else {
+            setScannedProduct({ product, batches, mode: 'batch' });
+            setSearchQuery('');
+        }
+    };
+
     const handleVoidOrder = async () => {
         const confirmed = await showConfirm('Are you sure you want to VOID this entire order?');
         if (confirmed) {
@@ -253,22 +246,35 @@ const POS = () => {
         }
     };
 
-    const handleCheckout = async () => {
+    const handleAcceptPayment = async () => {
+        const settings = getStoredPaymentSettings();
+        if (!settings.enabledMethods || settings.enabledMethods.length === 0) {
+            showError('No payment methods configured. Please enable at least one payment method in settings.');
+            return;
+        }
+        setShowPaymentDialog(true);
+    };
+
+    const handlePaymentConfirm = async (paymentDetails) => {
+        setShowPaymentDialog(false);
+        setSelectedPayment(paymentDetails);
+        
         try {
             const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
             const res = await axios.post('/api/sale', {
                 items,
                 discount: 0,
-                extraDiscount: discount
+                extraDiscount: discount,
+                paymentMethod: paymentDetails.methods[0]?.label || 'Cash',
+                paymentDetails: JSON.stringify(paymentDetails)
             });
             const detailedRes = await axios.get(`/api/sale/${res.data.saleId}`);
             setLastSale(detailedRes.data);
 
-            // Clear current order (or close  tab if logic dictates, here we clear for simplicity or replace)
-            // Option: Close tab automatically after sale
             handleCloseTab(activeTabId);
-
             fetchProducts();
+            
+            // Show print dialog asking if user wants to print receipt
             setShowPrintDialog(true);
         } catch (error) {
             console.error(error);
@@ -277,16 +283,63 @@ const POS = () => {
         }
     };
 
+    const handleCheckout = async () => {
+        handleAcceptPayment();
+    };
+
+    const handleFullscreenToggle = async () => {
+        if (!document.fullscreenElement) {
+            try {
+                await document.documentElement.requestFullscreen();
+                setIsFullscreen(true);
+            } catch {
+                showError('Failed to enter fullscreen mode');
+            }
+        } else {
+            try {
+                await document.exitFullscreen();
+                setIsFullscreen(false);
+            } catch {
+                showError('Failed to exit fullscreen mode');
+            }
+        }
+    };
+
     const handlePrintDecision = (shouldPrint) => {
         setShowPrintDialog(false);
         if (shouldPrint) {
             setShowReceipt(true);
+        } else {
+            setSelectedPayment(null);
         }
     };
 
     const handleRefund = () => {
         navigate('/refund');
     };
+
+    // ===== useEffect hooks come AFTER function declarations =====
+
+    useEffect(() => {
+        fetchProducts();
+        
+        // Auto-refresh products every 30 seconds to get updated stock levels
+        const interval = setInterval(() => {
+            fetchProducts();
+        }, 30000);
+        
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        const handleSettingsUpdated = () => {
+            setReceiptSettings(getStoredReceiptSettings());
+            setFullscreenEnabled(getFullscreenEnabled());
+        };
+
+        window.addEventListener('pos-settings-updated', handleSettingsUpdated);
+        return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
+    }, []);
 
     const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const totalMrp = cart.reduce((sum, item) => sum + (item.mrp * item.quantity), 0);
@@ -319,9 +372,37 @@ const POS = () => {
                     gap: 2,
                     px: { xs: 2, md: 3 },
                     py: { xs: 2, md: 3 },
-                    minHeight: 'calc(100vh - 72px)'
+                    minHeight: 'calc(100vh - 72px)',
+                    position: 'relative'
                 }}
             >
+                {/* Fullscreen Toggle Button - Bottom Left */}
+                {fullscreenEnabled && (
+                    <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}>
+                        <IconButton
+                            onClick={handleFullscreenToggle}
+                            size="small"
+                            sx={{
+                                position: 'fixed',
+                                bottom: 24,
+                                left: 24,
+                                zIndex: 999,
+                                bgcolor: 'background.paper',
+                                border: '1px solid rgba(16, 24, 40, 0.08)',
+                                '&:hover': {
+                                    bgcolor: 'action.hover',
+                                    borderColor: 'primary.main'
+                                }
+                            }}
+                        >
+                            {isFullscreen ? (
+                                <FullscreenExitIcon fontSize="small" />
+                            ) : (
+                                <FullscreenIcon fontSize="small" />
+                            )}
+                        </IconButton>
+                    </Tooltip>
+                )}
                 <Paper elevation={0} sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                     <POSTabs
                         tabs={tabs}
@@ -365,6 +446,14 @@ const POS = () => {
                     onClose={() => setScannedProduct(null)}
                 />
 
+                <PaymentMethodDialog
+                    open={showPaymentDialog}
+                    onClose={() => setShowPaymentDialog(false)}
+                    totalAmount={totalAmount}
+                    onConfirm={handlePaymentConfirm}
+                    allowMultiple={getStoredPaymentSettings().allowMultplePayment}
+                />
+
                 <Dialog
                     open={showPrintDialog}
                     onClose={() => handlePrintDecision(false)}
@@ -377,12 +466,17 @@ const POS = () => {
                         handlePrintDecision(true);
                     }}
                 >
-                    <DialogTitle>Payment Accepted</DialogTitle>
+                    <DialogTitle>Payment Accepted ✓</DialogTitle>
                     <DialogContent>
-                        <Typography variant="body1">
+                        <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.dark', mb: 1 }}>
                             Payment of ₹{lastSale?.totalAmount?.toFixed(2) || '0.00'} has been successfully accepted.
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                        {selectedPayment && (
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                Method: {selectedPayment.methods.map(m => m.label).join(', ')}
+                            </Typography>
+                        )}
+                        <Typography variant="body2" color="text.secondary">
                             Would you like to print the receipt?
                         </Typography>
                     </DialogContent>
@@ -390,7 +484,7 @@ const POS = () => {
                         <Button onClick={() => handlePrintDecision(false)} variant="outlined">
                             No, Thanks
                         </Button>
-                        <Button onClick={() => handlePrintDecision(true)} variant="contained" color="primary">
+                        <Button onClick={() => handlePrintDecision(true)} variant="contained" color="success">
                             Yes, Print Receipt
                         </Button>
                     </DialogActions>
