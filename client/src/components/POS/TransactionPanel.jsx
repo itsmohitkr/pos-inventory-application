@@ -138,13 +138,13 @@ const TransactionPanel = ({
             </Box>
 
             {/* Actions Footer - Fixed at bottom */}
-            <Box sx={{ p: 2, bgcolor: 'background.paper', borderTop: '1px solid rgba(16, 24, 40, 0.08)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ p: 2, pt: 0.5, bgcolor: 'background.paper', borderTop: '1px solid rgba(16, 24, 40, 0.08)', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {/* Payment Methods Section */}
-                <Box>
-                    <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ display: 'block', mb: 1 }}>
+                <Box sx={{ mb: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ display: 'block', mb: 0.5 }}>
                         SELECT PAYMENT METHOD
                     </Typography>
-                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mb: 1 }}>
                         {getAvailablePaymentMethods().map((method) => (
                             <Button
                                 key={method.id}
