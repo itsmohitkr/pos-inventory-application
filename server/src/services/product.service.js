@@ -30,11 +30,11 @@ const parseCSVLine = (line) => {
     const result = [];
     let current = '';
     let inQuotes = false;
-    
+
     for (let i = 0; i < line.length; i++) {
         const char = line[i];
         const nextChar = line[i + 1];
-        
+
         if (char === '"') {
             if (inQuotes && nextChar === '"') {
                 // Escaped quote ("")
@@ -52,7 +52,7 @@ const parseCSVLine = (line) => {
             current += char;
         }
     }
-    
+
     // Add last column
     result.push(current.trim());
     return result;
@@ -151,6 +151,8 @@ const getAllProducts = async ({ page = 1, pageSize = 25, search = '', category =
             p.barcode,
             NULLIF(TRIM(p.category), '') as category,
             p.batchTrackingEnabled,
+            p.lowStockWarningEnabled,
+            p.lowStockThreshold,
             p.createdAt,
             CAST(COALESCE(SUM(b.quantity), 0) AS INTEGER) as total_stock,
             CAST(COALESCE(SUM(b.quantity * b.costPrice), 0) AS REAL) as total_cost,
@@ -303,12 +305,12 @@ const getProductByBarcode = async (barcode) => {
     return { product: { ...productData, category: normalizeCategory(productData.category) }, batches };
 };
 
-const createOrUpdateProduct = async ({ name, barcode, category, initialBatch, enableBatchTracking }) => {
+const createOrUpdateProduct = async ({ name, barcode, category, initialBatch, enableBatchTracking, lowStockWarningEnabled, lowStockThreshold }) => {
     return await prisma.$transaction(async (tx) => {
         // Support multi-barcode: validate each barcode in pipe-separated list (only if barcode provided)
         if (barcode && barcode.trim()) {
             const barcodes = barcode.split('|').map(b => b.trim()).filter(Boolean);
-            
+
             for (const singleBarcode of barcodes) {
                 const existing = await tx.product.findFirst({
                     where: {
@@ -332,7 +334,9 @@ const createOrUpdateProduct = async ({ name, barcode, category, initialBatch, en
                 name,
                 barcode: barcode && barcode.trim() ? barcode : null,
                 category: normalizeCategory(category),
-                batchTrackingEnabled: enableBatchTracking === true
+                batchTrackingEnabled: enableBatchTracking === true,
+                lowStockWarningEnabled: lowStockWarningEnabled === true,
+                lowStockThreshold: lowStockWarningEnabled ? parseInt(lowStockThreshold) || 0 : 0
             },
             include: {
                 batches: { orderBy: { createdAt: 'asc' } }
@@ -341,15 +345,15 @@ const createOrUpdateProduct = async ({ name, barcode, category, initialBatch, en
 
         if (initialBatch) {
             const { quantity, mrp, cost_price, selling_price, batch_code, expiryDate } = initialBatch;
-            const qtyToAdd = parseInt(quantity);
-            const mrpValue = parseFloat(mrp);
-            const costValue = parseFloat(cost_price);
-            const sellingValue = parseFloat(selling_price);
+            const qtyToAdd = parseInt(quantity) || 0;
+            const mrpValue = parseFloat(mrp) || 0;
+            const costValue = parseFloat(cost_price) || 0;
+            const sellingValue = parseFloat(selling_price) || 0;
             validatePricing({ mrp: mrpValue, costPrice: costValue, sellingPrice: sellingValue });
 
             // Auto-generate batch code if empty (only for batch tracking enabled products)
-            const finalBatchCode = (product.batchTrackingEnabled && (!batch_code || !batch_code.trim())) 
-                ? generateBatchCode() 
+            const finalBatchCode = (product.batchTrackingEnabled && (!batch_code || !batch_code.trim()))
+                ? generateBatchCode()
                 : (batch_code || null);
 
             if (product.batchTrackingEnabled) {
@@ -440,8 +444,8 @@ const addBatch = async (batchData) => {
     validatePricing({ mrp: mrpValue, costPrice: costValue, sellingPrice: sellingValue });
 
     // Auto-generate batch code if empty (only for batch tracking enabled products)
-    const finalBatchCode = (product.batchTrackingEnabled && (!batch_code || !batch_code.trim())) 
-        ? generateBatchCode() 
+    const finalBatchCode = (product.batchTrackingEnabled && (!batch_code || !batch_code.trim()))
+        ? generateBatchCode()
         : (batch_code || null);
 
     if (product.batchTrackingEnabled) {
@@ -512,11 +516,13 @@ const addBatch = async (batchData) => {
 };
 
 const updateProduct = async (id, productData) => {
-    const { name, category, barcode, batchTrackingEnabled } = productData;
+    const { name, category, barcode, batchTrackingEnabled, lowStockWarningEnabled, lowStockThreshold } = productData;
     const updateData = {
         name,
         barcode,
-        ...(batchTrackingEnabled !== undefined ? { batchTrackingEnabled } : {})
+        ...(batchTrackingEnabled !== undefined ? { batchTrackingEnabled } : {}),
+        ...(lowStockWarningEnabled !== undefined ? { lowStockWarningEnabled } : {}),
+        ...(lowStockThreshold !== undefined ? { lowStockThreshold: parseInt(lowStockThreshold) || 0 } : {})
     };
     if (category !== undefined) {
         updateData.category = normalizeCategory(category);
@@ -601,14 +607,14 @@ const deleteBatch = async (id) => {
 // Helper function to escape CSV values according to RFC 4180
 const escapeCSVValue = (value) => {
     if (value === null || value === undefined) return '';
-    
+
     const stringValue = String(value);
-    
+
     // If value contains comma, quote, or newline, wrap in quotes and escape internal quotes
     if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n') || stringValue.includes('\r')) {
         return `"${stringValue.replace(/"/g, '""')}"`;
     }
-    
+
     return stringValue;
 };
 
@@ -657,12 +663,11 @@ const exportProducts = async () => {
 
 const importProducts = async (csvData) => {
     const lines = csvData.split('\n').filter(line => line.trim());
-    
-    // Parse header using proper CSV parser
     const headerValues = parseCSVLine(lines[0]);
     const headers = headerValues.map(h => h.trim().toLowerCase());
-    
+
     const results = {
+        success: false,
         imported: 0,
         failed: 0,
         errors: []
@@ -685,10 +690,14 @@ const importProducts = async (csvData) => {
     // Track barcodes within this CSV import to catch duplicates
     const csvBarcodes = new Set();
 
+    // Prepare all product and batch data in memory first
+    const productsToCreate = [];
+    const batchesToCreate = [];
+    const stockMovementsToCreate = [];
+
     for (let i = 1; i < lines.length; i++) {
         const lineNumber = i + 1;
         try {
-            // Parse line using proper CSV parser
             const values = parseCSVLine(lines[i]);
             const row = {};
             headers.forEach((header, index) => {
@@ -696,12 +705,11 @@ const importProducts = async (csvData) => {
             });
 
             const name = row.name;
-            let barcode = row.barcode ? row.barcode.trim() : null;            
-            // If barcode looks like a number with decimals (e.g., "7622202346385.00"), remove the .00
+            let barcode = row.barcode ? row.barcode.trim() : null;
             if (barcode && /^\d+\.00$/.test(barcode)) {
                 barcode = barcode.replace('.00', '');
             }
-            
+
             const { category, quantity, mrp, cost_price, selling_price, batch_code, expiry_date } = row;
 
             if (!name || !name.trim()) {
@@ -714,40 +722,28 @@ const importProducts = async (csvData) => {
             const mrpVal = parseFloat(mrp) || 0;
             const costVal = parseFloat(cost_price) || 0;
             const sellingVal = parseFloat(selling_price) || 0;
-            
-            // Auto-detect batch tracking: if batch_code is provided, enable batch tracking
             const enableBatchTracking = !!(batch_code && batch_code.trim());
 
-            // Pricing validation removed - users can set their own pricing strategy
-
-            // Check barcode validity
             if (barcode && barcode.trim()) {
                 const trimmedBarcode = barcode.trim();
                 const lowerBarcode = trimmedBarcode.toLowerCase();
-                
-                // Check if barcode already exists in database (case-insensitive)
                 if (existingBarcodeMap.has(lowerBarcode)) {
                     results.errors.push({ line: lineNumber, message: 'Barcode already exists in database' });
                     results.failed++;
                     continue;
                 }
-                
-                // Check if barcode already exists as part of multi-barcode in database
                 const hasMultiMatch = existingProducts.some(p => {
                     if (!p.barcode) return false;
                     const pBarcode = p.barcode.toLowerCase();
                     return pBarcode.startsWith(`${lowerBarcode}|`) ||
-                           pBarcode.endsWith(`|${lowerBarcode}`) ||
-                           pBarcode.includes(`|${lowerBarcode}|`);
+                        pBarcode.endsWith(`|${lowerBarcode}`) ||
+                        pBarcode.includes(`|${lowerBarcode}|`);
                 });
-                
                 if (hasMultiMatch) {
                     results.errors.push({ line: lineNumber, message: 'Barcode already exists in database as part of multi-barcode' });
                     results.failed++;
                     continue;
                 }
-                
-                // Check for duplicates within THIS CSV import
                 if (csvBarcodes.has(lowerBarcode)) {
                     results.errors.push({ line: lineNumber, message: 'Duplicate barcode in CSV' });
                     results.failed++;
@@ -755,40 +751,20 @@ const importProducts = async (csvData) => {
                 }
                 csvBarcodes.add(lowerBarcode);
             }
-            
-            // Create new product
-            const product = await prisma.product.create({
-                data: {
-                    name: name.trim(),
-                    barcode: barcode && barcode.trim() ? barcode.trim() : null,
-                    category: normalizeCategory(category),
-                    batchTrackingEnabled: enableBatchTracking
-                }
+
+            // Prepare product and batch creation
+            productsToCreate.push({
+                name: name.trim(),
+                barcode: barcode && barcode.trim() ? barcode.trim() : null,
+                category: normalizeCategory(category),
+                batchTrackingEnabled: enableBatchTracking,
+                qty,
+                mrpVal,
+                costVal,
+                sellingVal,
+                batch_code,
+                expiry_date
             });
-
-            if (qty > 0 && mrpVal > 0) {
-                const createdBatch = await prisma.batch.create({
-                    data: {
-                        productId: product.id,
-                        batchCode: batch_code || null,
-                        quantity: qty,
-                        mrp: mrpVal,
-                        costPrice: costVal,
-                        sellingPrice: sellingVal,
-                        expiryDate: expiry_date ? new Date(expiry_date) : null
-                    }
-                });
-                await prisma.stockMovement.create({
-                    data: {
-                        productId: product.id,
-                        batchId: createdBatch.id,
-                        type: 'added',
-                        quantity: qty,
-                        note: 'Imported stock'
-                    }
-                });
-            }
-
             results.imported++;
         } catch (error) {
             results.errors.push({ line: lineNumber, message: error.message });
@@ -796,13 +772,62 @@ const importProducts = async (csvData) => {
         }
     }
 
-    results.success = results.imported > 0;
+    // If no products to create and no errors (e.g. empty file or just header), treat as error
+    if (productsToCreate.length === 0 && results.failed === 0) {
+        results.success = false;
+        results.errors.push({ line: 0, message: "No valid products found in file" });
+        return results;
+    }
+
+    // If any errors, discard all
+    if (results.failed > 0) {
+        results.success = false;
+        results.imported = 0;
+        return results;
+    }
+
+    // All rows valid, perform atomic import
+    await prisma.$transaction(async (tx) => {
+        for (const prod of productsToCreate) {
+            const product = await tx.product.create({
+                data: {
+                    name: prod.name,
+                    barcode: prod.barcode,
+                    category: prod.category,
+                    batchTrackingEnabled: prod.batchTrackingEnabled
+                }
+            });
+            if (prod.qty > 0 && prod.mrpVal > 0) {
+                const createdBatch = await tx.batch.create({
+                    data: {
+                        productId: product.id,
+                        batchCode: prod.batch_code || null,
+                        quantity: prod.qty,
+                        mrp: prod.mrpVal,
+                        costPrice: prod.costVal,
+                        sellingPrice: prod.sellingVal,
+                        expiryDate: prod.expiry_date ? new Date(prod.expiry_date) : null
+                    }
+                });
+                await tx.stockMovement.create({
+                    data: {
+                        productId: product.id,
+                        batchId: createdBatch.id,
+                        type: 'added',
+                        quantity: prod.qty,
+                        note: 'Imported stock'
+                    }
+                });
+            }
+        }
+    });
+    results.success = true;
     return results;
 };
 
 const validateBarcodes = async (barcodes) => {
     const existingBarcodes = [];
-    
+
     // Get all products with barcodes
     const allProducts = await prisma.product.findMany({
         where: {
@@ -810,37 +835,37 @@ const validateBarcodes = async (barcodes) => {
         },
         select: { barcode: true }
     });
-    
+
     for (const barcode of barcodes) {
         if (!barcode || !barcode.trim()) continue;
-        
+
         const trimmedBarcode = barcode.trim();
         const lowerBarcode = trimmedBarcode.toLowerCase();
-        
+
         // Check exact match (case-insensitive)
-        const hasExactMatch = allProducts.some(p => 
+        const hasExactMatch = allProducts.some(p =>
             p.barcode && p.barcode.toLowerCase() === lowerBarcode
         );
-        
+
         if (hasExactMatch) {
             existingBarcodes.push(trimmedBarcode);
             continue;
         }
-        
+
         // Check if barcode exists as part of multi-barcode (case-insensitive)
         const hasMultiMatch = allProducts.some(p => {
             if (!p.barcode) return false;
             const pBarcode = p.barcode.toLowerCase();
             return pBarcode.startsWith(`${lowerBarcode}|`) ||
-                   pBarcode.endsWith(`|${lowerBarcode}`) ||
-                   pBarcode.includes(`|${lowerBarcode}|`);
+                pBarcode.endsWith(`|${lowerBarcode}`) ||
+                pBarcode.includes(`|${lowerBarcode}|`);
         });
-        
+
         if (hasMultiMatch) {
             existingBarcodes.push(trimmedBarcode);
         }
     }
-    
+
     return existingBarcodes;
 };
 

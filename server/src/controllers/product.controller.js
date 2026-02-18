@@ -122,6 +122,10 @@ const deleteProduct = async (req, res) => {
         res.json({ message: "Product deleted successfully" });
     } catch (error) {
         console.error("Error deleting product:", error);
+        // Prisma foreign key error code: P2003
+        if (error.code === 'P2003' || /foreign key/i.test(error.message)) {
+            return res.status(409).json({ error: 'Cannot delete product because it is referenced by other records (e.g., sales, batches, or stock movements). Please remove related records first.' });
+        }
         res.status(400).json({ error: error.message });
     }
 };

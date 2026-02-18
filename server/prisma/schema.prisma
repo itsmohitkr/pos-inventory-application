@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url = env("DATABASE_URL")
 }
 
 model User {
@@ -36,8 +36,10 @@ model Product {
   barcode   String?   @unique
   category  String?
   batchTrackingEnabled Boolean @default(false)
-  batches   Batch[]
-  movements StockMovement[]
+  lowStockThreshold     Int @default(0)
+  lowStockWarningEnabled Boolean @default(false)
+  batches               Batch[]
+  movements             StockMovement[]
   createdAt DateTime @default(now())
 }
 

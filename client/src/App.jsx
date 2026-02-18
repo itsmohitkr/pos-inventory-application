@@ -76,7 +76,8 @@ const DEFAULT_RECEIPT_SETTINGS = {
   customHeader: '123 Business Street, City',
   customFooter: 'Thank You! Visit Again',
   directPrint: false,
-  printerType: 'Thermal'
+  printerType: 'Thermal Printer',
+  paperSize: '80mm'
 };
 
 const SAMPLE_SALE = {
@@ -203,7 +204,7 @@ const DashboardCard = ({ to, title, description, icon, tone }) => (
   </Paper>
 );
 
-const Dashboard = ({ shopName, userRole }) => (
+const Overview = ({ shopName, userRole }) => (
   <Container maxWidth="lg" sx={{ mt: { xs: 4, md: 7 }, mb: 8 }}>
     <Paper
       elevation={0}
@@ -286,7 +287,7 @@ const Dashboard = ({ shopName, userRole }) => (
       {userRole === 'admin' && (
         <DashboardCard
           to="/dashboard"
-          title="Dashboard & Analytics"
+          title="Live Analytics"
           description="Deep insights into daily sales, revenue, and trends."
           icon={<AssessmentIcon fontSize="medium" />}
           tone={{ bg: 'rgba(31, 138, 91, 0.18)', color: '#1f8a5b' }}
@@ -600,7 +601,7 @@ function App() {
           <Toolbar sx={{ gap: 2 }}>
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
-                <RouterLink to="/pos" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <RouterLink to="/" style={{ color: 'inherit', textDecoration: 'none' }}>
                   {shopName}
                 </RouterLink>
               </Typography>
@@ -621,8 +622,15 @@ function App() {
                 aria-label="Settings"
                 sx={{
                   ml: 1,
-                  bgcolor: 'rgba(255, 255, 255, 0.05)',
-                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.15)' }
+                  width: 40,
+                  height: 40,
+                  alignSelf: 'center',
+                  bgcolor: 'rgba(255, 255, 255, 0.08)',
+                  borderRadius: '50%',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.18)',
+                  },
+                  transition: 'all 0.2s ease'
                 }}
               >
                 <SettingsIcon />
@@ -633,7 +641,7 @@ function App() {
 
         <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
           <Routes>
-            <Route path="/" element={<Navigate to="/pos" replace />} />
+            <Route path="/" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><Overview shopName={shopName} userRole={currentUser.role} /></Box>} />
             <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><POS /></Box>} />
             {canAccessSaleHistory && (
               <Route
@@ -654,7 +662,7 @@ function App() {
             {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Inventory /></Box>} />}
             {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting /></Box>} />}
             {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Refund /></Box>} />}
-            {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><Dashboard shopName={shopName} userRole={currentUser.role} /></Box>} />}
+            {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><DashboardPage shopName={shopName} userRole={currentUser.role} /></Box>} />}
           </Routes>
         </Box>
 

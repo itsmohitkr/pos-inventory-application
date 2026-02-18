@@ -173,9 +173,13 @@ const TransactionPanel = ({
                                     wordBreak: 'break-word',
                                     border: '1px solid rgba(16, 24, 40, 0.12)',
                                     borderColor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'rgba(16, 24, 40, 0.12)',
+                                    bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.light' : 'action.hover',
+                                    color: selectedPaymentMethod?.id === method.id ? 'primary.contrastText' : 'text.primary',
+                                    transition: 'background 0.2s, color 0.2s, border-color 0.2s',
                                     '&:hover': {
-                                        borderColor: 'primary.main',
-                                        bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'action.hover'
+                                        bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'primary.light',
+                                        color: 'primary.contrastText',
+                                        borderColor: 'primary.main'
                                     }
                                 }}
                             >
@@ -203,7 +207,20 @@ const TransactionPanel = ({
                         onClick={onPay}
                         disabled={cart.length === 0 || !selectedPaymentMethod}
                         startIcon={<CheckCircleIcon />}
-                        sx={{ height: 64, fontWeight: 'bold', fontSize: '1.1rem', whiteSpace: 'normal', lineHeight: 1.2 }}
+                        sx={{
+                            height: 64,
+                            fontWeight: 'bold',
+                            fontSize: '1.1rem',
+                            whiteSpace: 'normal',
+                            lineHeight: 1.2,
+                            bgcolor: 'success.light',
+                            color: 'success.contrastText',
+                            transition: 'background 0.2s, color 0.2s',
+                            '&:hover': {
+                                bgcolor: 'success.main',
+                                color: 'success.contrastText'
+                            }
+                        }}
                     >
                         Pay
                     </Button>
@@ -216,7 +233,20 @@ const TransactionPanel = ({
                         onClick={onPayAndPrint}
                         disabled={cart.length === 0 || !selectedPaymentMethod}
                         startIcon={<PrintIcon />}
-                        sx={{ height: 64, fontWeight: 'bold', fontSize: '1.1rem', whiteSpace: 'normal', lineHeight: 1.2 }}
+                        sx={{
+                            height: 64,
+                            fontWeight: 'bold',
+                            fontSize: '1.1rem',
+                            whiteSpace: 'normal',
+                            lineHeight: 1.2,
+                            bgcolor: 'info.light',
+                            color: 'info.contrastText',
+                            transition: 'background 0.2s, color 0.2s',
+                            '&:hover': {
+                                bgcolor: 'info.main',
+                                color: 'info.contrastText'
+                            }
+                        }}
                     >
                         Pay & Print
                     </Button>
@@ -230,7 +260,20 @@ const TransactionPanel = ({
                         className="pos-action-btn"
                         onClick={onRefund}
                         startIcon={<ReplayIcon />}
-                        sx={{ height: 64, fontWeight: 'bold', fontSize: '1rem', whiteSpace: 'normal', lineHeight: 1.2 }}
+                        sx={{
+                            height: 64,
+                            fontWeight: 'bold',
+                            fontSize: '1rem',
+                            whiteSpace: 'normal',
+                            lineHeight: 1.2,
+                            bgcolor: 'warning.light',
+                            color: 'warning.contrastText',
+                            transition: 'background 0.2s, color 0.2s',
+                            '&:hover': {
+                                bgcolor: 'warning.main',
+                                color: 'warning.contrastText'
+                            }
+                        }}
                     >
                         Refund
                     </Button>
@@ -242,7 +285,20 @@ const TransactionPanel = ({
                         className="pos-action-btn"
                         onClick={onVoid}
                         disabled={cart.length === 0}
-                        sx={{ height: 64, fontWeight: 'bold', fontSize: '1rem', whiteSpace: 'normal', lineHeight: 1.2 }}
+                        sx={{
+                            height: 64,
+                            fontWeight: 'bold',
+                            fontSize: '1rem',
+                            whiteSpace: 'normal',
+                            lineHeight: 1.2,
+                            bgcolor: 'error.light',
+                            color: 'error.contrastText',
+                            transition: 'background 0.2s, color 0.2s',
+                            '&:hover': {
+                                bgcolor: 'error.main',
+                                color: 'error.contrastText'
+                            }
+                        }}
                     >
                         Void Order
                     </Button>

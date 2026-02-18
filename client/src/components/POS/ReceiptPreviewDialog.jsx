@@ -1,6 +1,7 @@
 import React from 'react';
 import {
-    Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, IconButton, Grid, TextField, Divider, Checkbox, Paper, Button
+    Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, IconButton, Grid, TextField, Divider, Checkbox, Paper, Button,
+    FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { Cancel as CancelIcon, Print as PrintIcon } from '@mui/icons-material';
 import Receipt from './Receipt';
@@ -88,6 +89,19 @@ const ReceiptPreviewDialog = ({
                                     value={receiptSettings.printerType || ''}
                                     onChange={(e) => onTextSettingChange('printerType', e.target.value)}
                                 />
+
+                                <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+                                    <InputLabel>Paper Size</InputLabel>
+                                    <Select
+                                        value={receiptSettings.paperSize || '80mm'}
+                                        label="Paper Size"
+                                        onChange={(e) => onTextSettingChange('paperSize', e.target.value)}
+                                    >
+                                        <MenuItem value="80mm">80mm (3-inch)</MenuItem>
+                                        <MenuItem value="58mm">58mm (2-inch)</MenuItem>
+                                        <MenuItem value="72mm">72mm (Standard)</MenuItem>
+                                    </Select>
+                                </FormControl>
 
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'primary.main', p: 1, borderRadius: 1, color: 'white', mt: 1 }}>
                                     <Box>

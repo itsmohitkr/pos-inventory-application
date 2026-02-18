@@ -23,6 +23,8 @@ const AddProductForm = ({ onProductAdded }) => {
         barcodes: [],
         category: '',
         enableBatchTracking: false,
+        lowStockWarningEnabled: false,
+        lowStockThreshold: 10,
         initialBatch: {
             batch_code: '',
             quantity: '',
@@ -100,8 +102,17 @@ const AddProductForm = ({ onProductAdded }) => {
                 setBarcodeChecking(false);
                 return;
             } catch (error) {
-                if (error.response?.status !== 404) {
-                    setBarcodeError('Unable to verify barcode');
+                if (error.response && error.response.status === 404) {
+                    // 404 means barcode does not exist in DB, which is what we want for a new product
+                } else {
+                    console.error("Barcode verification failed:", error);
+                    let errorMessage = 'Unable to verify barcode';
+                    if (!error.response) {
+                        errorMessage = 'Network Error: Cannot reach server';
+                    } else if (error.response.data && error.response.data.error) {
+                        errorMessage = error.response.data.error;
+                    }
+                    setBarcodeError(errorMessage);
                     setBarcodeChecking(false);
                     return;
                 }
@@ -156,7 +167,15 @@ const AddProductForm = ({ onProductAdded }) => {
                 barcode: formData.barcodes.length > 0 ? formData.barcodes.join('|') : null,
                 category: formData.category,
                 enableBatchTracking: formData.enableBatchTracking,
-                initialBatch: formData.initialBatch
+                lowStockWarningEnabled: formData.lowStockWarningEnabled,
+                lowStockThreshold: formData.lowStockWarningEnabled ? Number(formData.lowStockThreshold) : 0,
+                initialBatch: {
+                    ...formData.initialBatch,
+                    quantity: Number(formData.initialBatch.quantity) || 0,
+                    mrp: Number(formData.initialBatch.mrp) || 0,
+                    cost_price: Number(formData.initialBatch.cost_price) || 0,
+                    selling_price: Number(formData.initialBatch.selling_price) || 0
+                }
             };
             await axios.post('/api/products', payload);
             await showSuccess('Product added successfully!');
@@ -165,6 +184,8 @@ const AddProductForm = ({ onProductAdded }) => {
                 barcodes: [],
                 category: '',
                 enableBatchTracking: false,
+                lowStockWarningEnabled: false,
+                lowStockThreshold: 10,
                 initialBatch: {
                     batch_code: '',
                     quantity: '',
@@ -201,285 +222,316 @@ const AddProductForm = ({ onProductAdded }) => {
 
     return (
         <>
-        <Paper
-            elevation={0}
-            sx={{
-                mb: 4,
-                p: 3,
-                borderRadius: 2.5,
-                border: '1px solid rgba(15, 23, 42, 0.08)'
-            }}
-        >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                <AddCircleIcon color="primary" />
-                <Box>
-                    <Typography variant="subtitle1" fontWeight={600}>
-                        Add New Product
-                    </Typography>
-                    <Typography variant="subtitle1" color="text.secondary">
-                        Capture product details, then set the opening stock and prices.
-                    </Typography>
+            <Paper
+                elevation={0}
+                sx={{
+                    mb: 4,
+                    p: 3,
+                    borderRadius: 2.5,
+                    border: '1px solid rgba(15, 23, 42, 0.08)'
+                }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                    <AddCircleIcon color="primary" />
+                    <Box>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                            Add New Product
+                        </Typography>
+                        <Typography variant="subtitle1" color="text.secondary">
+                            Capture product details, then set the opening stock and prices.
+                        </Typography>
+                    </Box>
                 </Box>
-            </Box>
-            <Divider sx={{ mb: 3 }} />
-            <form onSubmit={handleSubmit}>
-                <Grid container spacing={3}>
-                    <Grid item xs={12} lg={6}>
-                        <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid rgba(148, 163, 184, 0.25)' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                <InventoryIcon color="primary" />
-                                <Typography variant="subtitle1" fontWeight={600}>
-                                    Product Essentials
-                                </Typography>
-                            </Box>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Product Name"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        required
-                                        InputProps={{
-                                            startAdornment: <InputAdornment position="start"><InventoryIcon color="action" /></InputAdornment>,
-                                        }}
-                                    />
-                                </Grid>
+                <Divider sx={{ mb: 3 }} />
+                <form onSubmit={handleSubmit}>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} lg={6}>
+                            <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid rgba(148, 163, 184, 0.25)' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                    <InventoryIcon color="primary" />
+                                    <Typography variant="subtitle1" fontWeight={600}>
+                                        Product Essentials
+                                    </Typography>
+                                </Box>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} md={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Product Name"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            required
+                                            InputProps={{
+                                                startAdornment: <InputAdornment position="start"><InventoryIcon color="action" /></InputAdornment>,
+                                            }}
+                                        />
+                                    </Grid>
 
-                                <Grid item xs={12} md={6}>
-                                    <Autocomplete
-                                        freeSolo
-                                        options={existingCategories}
-                                        value={formData.category}
-                                        onChange={(event, newValue) => {
-                                            setFormData(prev => ({ ...prev, category: newValue || '' }));
-                                        }}
-                                        onInputChange={(event, newInputValue) => {
-                                            setFormData(prev => ({ ...prev, category: newInputValue }));
-                                        }}
-                                        renderInput={(params) => (
-                                            <TextField
-                                                {...params}
-                                                label="Category"
-                                                placeholder="Select or type new"
-                                                InputProps={{
-                                                    ...params.InputProps,
-                                                    startAdornment: (
-                                                        <>
-                                                            <InputAdornment position="start">
-                                                                <CategoryIcon color="action" />
-                                                            </InputAdornment>
-                                                            {params.InputProps.startAdornment}
-                                                        </>
-                                                    ),
-                                                }}
-                                            />
-                                        )}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Barcodes</Typography>
-                                        <Grid container spacing={1} alignItems="center">
-                                            <Grid item xs>
+                                    <Grid item xs={12} md={6}>
+                                        <Autocomplete
+                                            freeSolo
+                                            options={existingCategories}
+                                            value={formData.category}
+                                            onChange={(event, newValue) => {
+                                                setFormData(prev => ({ ...prev, category: newValue || '' }));
+                                            }}
+                                            onInputChange={(event, newInputValue) => {
+                                                setFormData(prev => ({ ...prev, category: newInputValue }));
+                                            }}
+                                            renderInput={(params) => (
                                                 <TextField
-                                                    fullWidth
-                                                    label="Add Barcode"
-                                                    size="small"
-                                                    value={manualBarcodeInput}
-                                                    onChange={(e) => setManualBarcodeInput(e.target.value)}
-                                                    onKeyPress={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            e.preventDefault();
-                                                            addBarcode(manualBarcodeInput);
-                                                        }
-                                                    }}
-                                                    error={Boolean(barcodeError)}
-                                                    helperText={barcodeError}
-                                                    disabled={barcodeChecking}
+                                                    {...params}
+                                                    label="Category"
+                                                    placeholder="Select or type new"
                                                     InputProps={{
-                                                        startAdornment: <InputAdornment position="start"><QrCodeIcon color="action" /></InputAdornment>,
+                                                        ...params.InputProps,
+                                                        startAdornment: (
+                                                            <>
+                                                                <InputAdornment position="start">
+                                                                    <CategoryIcon color="action" />
+                                                                </InputAdornment>
+                                                                {params.InputProps.startAdornment}
+                                                            </>
+                                                        ),
                                                     }}
                                                 />
-                                            </Grid>
-                                            <Grid item>
-                                                <Button
-                                                    variant="contained"
-                                                    startIcon={<RefreshIcon />}
-                                                    onClick={generateBarcode}
-                                                    disabled={barcodeChecking}
-                                                    sx={{ height: 40 }}
-                                                >
-                                                    Generate
-                                                </Button>
-                                            </Grid>
-                                        </Grid>
-                                        {formData.barcodes.length > 0 && (
-                                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-                                                {formData.barcodes.map((barcode, index) => (
-                                                    <Chip
-                                                        key={index}
-                                                        label={barcode}
-                                                        sx={{
-                                                            backgroundColor: '#2196F3',
-                                                            color: 'white',
-                                                            fontFamily: 'monospace',
-                                                            fontSize: '0.875rem',
-                                                            fontWeight: 600
+                                            )}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Box sx={{ mb: 2 }}>
+                                            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Barcodes</Typography>
+                                            <Grid container spacing={1} alignItems="center">
+                                                <Grid item xs>
+                                                    <TextField
+                                                        fullWidth
+                                                        label="Add Barcode"
+                                                        size="small"
+                                                        value={manualBarcodeInput}
+                                                        onChange={(e) => setManualBarcodeInput(e.target.value)}
+                                                        onKeyPress={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                addBarcode(manualBarcodeInput);
+                                                            }
                                                         }}
-                                                        onDelete={() => removeBarcode(index)}
-                                                        deleteIcon={<CloseIcon />}
+                                                        error={Boolean(barcodeError)}
+                                                        helperText={barcodeError}
+                                                        disabled={barcodeChecking}
+                                                        InputProps={{
+                                                            startAdornment: <InputAdornment position="start"><QrCodeIcon color="action" /></InputAdornment>,
+                                                        }}
                                                     />
-                                                ))}
-                                            </Box>
-                                        )}
-                                    </Box>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Divider sx={{ my: 1.5 }} />
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={formData.enableBatchTracking}
-                                                onChange={(event) =>
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        enableBatchTracking: event.target.checked
-                                                    }))}
-                                            />
-                                        }
-                                        label="Enable batch tracking"
-                                    />
-                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                        Turn this on only if you want batch-level stock tracking for this product.
-                                    </Typography>
-                                </Grid>
-                            </Grid>
-                        </Box>
-                    </Grid>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Button
+                                                        variant="contained"
+                                                        startIcon={<RefreshIcon />}
+                                                        onClick={generateBarcode}
+                                                        disabled={barcodeChecking}
+                                                        sx={{ height: 40 }}
+                                                    >
+                                                        Generate
+                                                    </Button>
+                                                </Grid>
+                                            </Grid>
+                                            {formData.barcodes.length > 0 && (
+                                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                                                    {formData.barcodes.map((barcode, index) => (
+                                                        <Chip
+                                                            key={index}
+                                                            label={barcode}
+                                                            sx={{
+                                                                backgroundColor: '#2196F3',
+                                                                color: 'white',
+                                                                fontFamily: 'monospace',
+                                                                fontSize: '0.875rem',
+                                                                fontWeight: 600
+                                                            }}
+                                                            onDelete={() => removeBarcode(index)}
+                                                            deleteIcon={<CloseIcon />}
+                                                        />
+                                                    ))}
+                                                </Box>
+                                            )}
+                                        </Box>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Divider sx={{ my: 1.5 }} />
+                                        <FormControlLabel
+                                            control={
+                                                <Switch
+                                                    checked={formData.enableBatchTracking}
+                                                    onChange={(event) =>
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            enableBatchTracking: event.target.checked
+                                                        }))}
+                                                />
+                                            }
+                                            label="Enable batch tracking"
+                                        />
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                            Turn this on only if you want batch-level stock tracking for this product.
+                                        </Typography>
 
-                    <Grid item xs={12} lg={6}>
-                        <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid rgba(148, 163, 184, 0.25)' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                <NumbersIcon color="secondary" />
-                                <Typography variant="subtitle1" fontWeight={600}>
-                                    Initial Stock & Pricing
-                                </Typography>
-                            </Box>
-                            <Grid container spacing={2}>
-                                {formData.enableBatchTracking && (
-                                    <>
-                                        <Grid item xs={12} md={6}>
-                                            <TextField 
-                                                fullWidth 
-                                                label="Batch Code" 
-                                                name="initialBatch.batch_code" 
-                                                value={formData.initialBatch.batch_code} 
-                                                onChange={handleChange} 
-                                                placeholder="e.g. B001 (leave empty to auto-generate)" 
-                                            />
-                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                                Leave empty to auto-generate a unique batch code
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
+                                        <Divider sx={{ my: 1.5 }} />
+                                        <FormControlLabel
+                                            control={
+                                                <Switch
+                                                    checked={formData.lowStockWarningEnabled}
+                                                    onChange={(event) =>
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            lowStockWarningEnabled: event.target.checked
+                                                        }))}
+                                                />
+                                            }
+                                            label="Enable low stock warning"
+                                        />
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                            Get notified when stock falls below the threshold.
+                                        </Typography>
+                                        {formData.lowStockWarningEnabled && (
                                             <TextField
                                                 fullWidth
-                                                type="date"
-                                                label="Expiry Date"
-                                                name="initialBatch.expiryDate"
-                                                value={formData.initialBatch.expiryDate}
-                                                onChange={handleChange}
-                                                InputLabelProps={{ shrink: true }}
+                                                type="number"
+                                                label="Low Stock Threshold"
+                                                value={formData.lowStockThreshold}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, lowStockThreshold: e.target.value }))}
+                                                placeholder="10"
+                                                sx={{ mt: 2 }}
+                                                InputProps={{ inputProps: { min: 0, step: 1 } }}
+                                                helperText="Alert when stock quantity falls below this number"
                                             />
-                                        </Grid>
-                                    </>
-                                )}
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        type="number"
-                                        label="Quantity"
-                                        name="initialBatch.quantity"
-                                        value={formData.initialBatch.quantity}
-                                        onChange={handleChange}
-                                        placeholder="0"
-                                        InputProps={{ inputProps: { min: 0, step: 1 } }}
-                                    />
+                                        )}
+                                    </Grid>
                                 </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        type="number"
-                                        label="MRP"
-                                        name="initialBatch.mrp"
-                                        value={formData.initialBatch.mrp}
-                                        onChange={handleChange}
-                                        placeholder="0.00"
-                                        InputProps={{
-                                            startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                            inputProps: { min: 0, step: '0.01' }
-                                        }}
-                                    />
+                            </Box>
+                        </Grid>
+
+                        <Grid item xs={12} lg={6}>
+                            <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid rgba(148, 163, 184, 0.25)' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                    <NumbersIcon color="secondary" />
+                                    <Typography variant="subtitle1" fontWeight={600}>
+                                        Initial Stock & Pricing
+                                    </Typography>
+                                </Box>
+                                <Grid container spacing={2}>
+                                    {formData.enableBatchTracking && (
+                                        <>
+                                            <Grid item xs={12} md={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Batch Code"
+                                                    name="initialBatch.batch_code"
+                                                    value={formData.initialBatch.batch_code}
+                                                    onChange={handleChange}
+                                                    placeholder="e.g. B001 (leave empty to auto-generate)"
+                                                />
+                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                                    Leave empty to auto-generate a unique batch code
+                                                </Typography>
+                                            </Grid>
+                                            <Grid item xs={12} md={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    type="date"
+                                                    label="Expiry Date"
+                                                    name="initialBatch.expiryDate"
+                                                    value={formData.initialBatch.expiryDate}
+                                                    onChange={handleChange}
+                                                    InputLabelProps={{ shrink: true }}
+                                                />
+                                            </Grid>
+                                        </>
+                                    )}
+                                    <Grid item xs={12} md={6}>
+                                        <TextField
+                                            fullWidth
+                                            type="number"
+                                            label="Quantity"
+                                            name="initialBatch.quantity"
+                                            value={formData.initialBatch.quantity}
+                                            onChange={handleChange}
+                                            placeholder="0"
+                                            InputProps={{ inputProps: { min: 0, step: 1 } }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        <TextField
+                                            fullWidth
+                                            type="number"
+                                            label="MRP"
+                                            name="initialBatch.mrp"
+                                            value={formData.initialBatch.mrp}
+                                            onChange={handleChange}
+                                            placeholder="0.00"
+                                            InputProps={{
+                                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                                inputProps: { min: 0, step: '0.01' }
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        <TextField
+                                            fullWidth
+                                            type="number"
+                                            label="Cost Price"
+                                            name="initialBatch.cost_price"
+                                            value={formData.initialBatch.cost_price}
+                                            onChange={handleChange}
+                                            placeholder="0.00"
+                                            InputProps={{
+                                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                                inputProps: { min: 0, step: '0.01' }
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        <TextField
+                                            fullWidth
+                                            type="number"
+                                            label="Selling Price"
+                                            name="initialBatch.selling_price"
+                                            value={formData.initialBatch.selling_price}
+                                            onChange={handleChange}
+                                            error={sellingInvalid}
+                                            helperText={sellingInvalid ? 'Selling price must be between cost and MRP' : ' '}
+                                            placeholder="0.00"
+                                            InputProps={{
+                                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                                inputProps: { min: 0, step: '0.01' }
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                                            <Typography variant="caption" color="text.secondary">Discount: ₹{discountValue.toFixed(2)} ({discountPercent.toFixed(1)}%)</Typography>
+                                            <Typography variant="caption" color="text.secondary">Margin: ₹{marginValue.toFixed(2)} ({marginPercent.toFixed(1)}%)</Typography>
+                                        </Box>
+                                    </Grid>
                                 </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        type="number"
-                                        label="Cost Price"
-                                        name="initialBatch.cost_price"
-                                        value={formData.initialBatch.cost_price}
-                                        onChange={handleChange}
-                                        placeholder="0.00"
-                                        InputProps={{
-                                            startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                            inputProps: { min: 0, step: '0.01' }
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField
-                                        fullWidth
-                                        type="number"
-                                        label="Selling Price"
-                                        name="initialBatch.selling_price"
-                                        value={formData.initialBatch.selling_price}
-                                        onChange={handleChange}
-                                        error={sellingInvalid}
-                                        helperText={sellingInvalid ? 'Selling price must be between cost and MRP' : ' '}
-                                        placeholder="0.00"
-                                        InputProps={{
-                                            startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                            inputProps: { min: 0, step: '0.01' }
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                                        <Typography variant="caption" color="text.secondary">Discount: ₹{discountValue.toFixed(2)} ({discountPercent.toFixed(1)}%)</Typography>
-                                        <Typography variant="caption" color="text.secondary">Margin: ₹{marginValue.toFixed(2)} ({marginPercent.toFixed(1)}%)</Typography>
-                                    </Box>
-                                </Grid>
-                            </Grid>
-                        </Box>
+                            </Box>
+                        </Grid>
                     </Grid>
-                </Grid>
-                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        type="submit"
-                        size="large"
-                        disabled={barcodeChecking || Boolean(barcodeError)}
-                        sx={{ px: 5, py: 1.5, fontWeight: 600 }}
-                    >
-                        Add Product
-                    </Button>
-                </Box>
-            </form>
-        </Paper>
-        <CustomDialog {...dialogState} onClose={closeDialog} />
+                    <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            type="submit"
+                            size="large"
+                            disabled={barcodeChecking || Boolean(barcodeError)}
+                            sx={{ px: 5, py: 1.5, fontWeight: 600 }}
+                        >
+                            Add Product
+                        </Button>
+                    </Box>
+                </form>
+            </Paper>
+            <CustomDialog {...dialogState} onClose={closeDialog} />
         </>
     );
 };

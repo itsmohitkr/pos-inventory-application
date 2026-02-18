@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -51,7 +51,8 @@ const DEFAULT_RECEIPT_SETTINGS = {
     customHeader: '123 Business Street, City',
     customFooter: 'Thank You! Visit Again',
     directPrint: false,
-    printerType: 'Thermal Printer'
+    printerType: 'Thermal Printer',
+    paperSize: '80mm'
 };
 
 const getStoredReceiptSettings = () => {
@@ -100,6 +101,49 @@ const POS = () => {
     const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
     const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+
+    // Resizable Layout State
+    const [transactionPanelWidth, setTransactionPanelWidth] = useState(() => {
+        return Number(localStorage.getItem('posTransactionPanelWidth')) || 450;
+    });
+    const [isResizing, setIsResizing] = useState(false);
+
+    const startResizing = useCallback((e) => {
+        e.preventDefault();
+        setIsResizing(true);
+    }, []);
+
+    const stopResizing = useCallback(() => {
+        setIsResizing(false);
+    }, []);
+
+    const resize = useCallback((e) => {
+        if (isResizing) {
+            // Calculate width from the right side
+            const newWidth = window.innerWidth - e.clientX - 24; // 24px is for the standard padding
+            if (newWidth > 320 && newWidth < window.innerWidth * 0.6) {
+                setTransactionPanelWidth(newWidth);
+                localStorage.setItem('posTransactionPanelWidth', newWidth.toString());
+            }
+        }
+    }, [isResizing]);
+
+    useEffect(() => {
+        if (isResizing) {
+            window.addEventListener('mousemove', resize);
+            window.addEventListener('mouseup', stopResizing);
+            document.body.style.cursor = 'col-resize';
+        } else {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+            document.body.style.cursor = 'default';
+        }
+        return () => {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+            document.body.style.cursor = 'default';
+        };
+    }, [isResizing, resize, stopResizing]);
 
     useEffect(() => {
         const handleBarcodeNotFound = (e) => {
@@ -427,9 +471,9 @@ const POS = () => {
             />
             <Box
                 sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 2fr) minmax(320px, 1fr)' },
-                    gap: 2,
+                    display: 'flex',
+                    flexDirection: { xs: 'column', lg: 'row' },
+                    gap: 0,
                     px: { xs: 2, md: 3 },
                     py: { xs: 2, md: 3 },
                     height: 'calc(100vh - 72px)',
@@ -449,6 +493,8 @@ const POS = () => {
                                 bottom: 20,
                                 left: 20,
                                 zIndex: 999,
+                                width: 56,
+                                height: 56,
                                 bgcolor: '#1976d2',
                                 color: 'white',
                                 boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
@@ -457,7 +503,7 @@ const POS = () => {
                                     bgcolor: '#1565c0',
                                     boxShadow: '0 6px 16px rgba(25, 118, 210, 0.5)'
                                 },
-                                transition: 'all 0.3s ease'
+                                transition: 'all 0.2s ease'
                             }}
                         >
                             {isFullscreen ? (
@@ -468,7 +514,7 @@ const POS = () => {
                         </IconButton>
                     </Tooltip>
                 )}
-                <Paper elevation={0} sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+                <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', mr: { lg: 2 } }}>
                     <POSTabs
                         tabs={tabs}
                         activeTabId={activeTabId}
@@ -491,24 +537,63 @@ const POS = () => {
                     />
                 </Paper>
 
-                <TransactionPanel
-                    cart={cart}
-                    discount={discount}
-                    onDiscountChange={setDiscount}
-                    onVoid={handleVoidOrder}
-                    onPay={handlePay}
-                    onPayAndPrint={handlePayAndPrint}
-                    onRefund={handleRefund}
-                    onSelectPaymentMethod={handleSelectPaymentMethod}
-                    selectedPaymentMethod={selectedPaymentMethod}
-                    paymentSettings={paymentSettings}
-                    extraDiscountEnabled={extraDiscountEnabled}
-                    subTotal={subTotal}
-                    totalMrp={totalMrp}
-                    totalQty={totalQty}
-                    totalAmount={totalAmount}
-                    totalSavings={totalSavings}
-                />
+                {/* Vertical Resizer Slider */}
+                <Box
+                    onMouseDown={startResizing}
+                    sx={{
+                        display: { xs: 'none', lg: 'flex' },
+                        width: '8px',
+                        cursor: 'col-resize',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mr: 1,
+                        '&:hover .handle': {
+                            bgcolor: 'primary.main',
+                            width: '4px'
+                        },
+                        zIndex: 10
+                    }}
+                >
+                    <Box
+                        className="handle"
+                        sx={{
+                            width: '2px',
+                            height: '60px',
+                            bgcolor: isResizing ? 'primary.main' : 'divider',
+                            borderRadius: '4px',
+                            transition: 'all 0.2s',
+                            ...(isResizing && { width: '4px' })
+                        }}
+                    />
+                </Box>
+
+                <Box
+                    sx={{
+                        width: { xs: '100%', lg: transactionPanelWidth },
+                        minWidth: { lg: 320 },
+                        height: '100%',
+                        flexShrink: 0
+                    }}
+                >
+                    <TransactionPanel
+                        cart={cart}
+                        discount={discount}
+                        onDiscountChange={setDiscount}
+                        onVoid={handleVoidOrder}
+                        onPay={handlePay}
+                        onPayAndPrint={handlePayAndPrint}
+                        onRefund={handleRefund}
+                        onSelectPaymentMethod={handleSelectPaymentMethod}
+                        selectedPaymentMethod={selectedPaymentMethod}
+                        paymentSettings={paymentSettings}
+                        extraDiscountEnabled={extraDiscountEnabled}
+                        subTotal={subTotal}
+                        totalMrp={totalMrp}
+                        totalQty={totalQty}
+                        totalAmount={totalAmount}
+                        totalSavings={totalSavings}
+                    />
+                </Box>
 
                 <BatchSelectionDialog
                     scannedProduct={scannedProduct}
