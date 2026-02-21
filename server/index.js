@@ -11,6 +11,7 @@ const reportRoutes = require('./src/routes/report.routes');
 const authRoutes = require('./src/routes/auth.routes');
 const categoryRoutes = require('./src/routes/category.routes');
 const looseSaleRoutes = require('./src/routes/loose-sale.routes');
+const promotionRoutes = require('./src/routes/promotion.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -26,6 +27,7 @@ apiRouter.use(categoryRoutes);
 apiRouter.use(saleRoutes);
 apiRouter.use(reportRoutes);
 apiRouter.use(looseSaleRoutes);
+apiRouter.use(promotionRoutes);
 
 app.use('/api', apiRouter);
 

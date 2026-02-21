@@ -288,15 +288,20 @@ const POS = () => {
             if (existing) {
                 return prev.map(item => item.batch_id === batch.id ? { ...item, quantity: item.quantity + 1 } : item);
             }
+            const effectivePrice = (product.isOnSale && product.promoPrice < batch.sellingPrice)
+                ? product.promoPrice
+                : batch.sellingPrice;
+
             return [...prev, {
                 product_id: product.id,
                 batch_id: batch.id,
                 name: product.name,
-                price: batch.sellingPrice,
+                price: effectivePrice,
                 quantity: 1,
                 batch_code: batch.batchCode,
                 mrp: batch.mrp,
-                max_quantity: batch.quantity
+                max_quantity: batch.quantity,
+                isOnSale: product.isOnSale && product.promoPrice < batch.sellingPrice
             }];
         });
 

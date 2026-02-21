@@ -209,15 +209,43 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
         include: {
             batches: {
                 orderBy: { createdAt: 'asc' }
+            },
+            promotions: {
+                where: {
+                    promotion: {
+                        isActive: true,
+                        startDate: { lte: new Date() },
+                        endDate: { gte: new Date() }
+                    }
+                },
+                include: {
+                    promotion: true
+                }
             }
         }
     });
 
-    const normalized = products.map((product) => ({
-        ...product,
-        category: normalizeCategory(product.category),
-        total_stock: product.batches.reduce((sum, batch) => sum + batch.quantity, 0)
-    }));
+    const normalized = products.map((product) => {
+        // Find the best active promo price
+        let promoPrice = null;
+        if (product.promotions && product.promotions.length > 0) {
+            let lowest = Infinity;
+            product.promotions.forEach(pItem => {
+                if (pItem.promoPrice < lowest) {
+                    lowest = pItem.promoPrice;
+                }
+            });
+            if (lowest !== Infinity) promoPrice = lowest;
+        }
+
+        return {
+            ...product,
+            category: normalizeCategory(product.category),
+            total_stock: product.batches.reduce((sum, batch) => sum + batch.quantity, 0),
+            promoPrice,
+            isOnSale: promoPrice !== null
+        };
+    });
 
     if (category === 'uncategorized') {
         return normalized.filter((product) => !normalizeCategory(product.category));

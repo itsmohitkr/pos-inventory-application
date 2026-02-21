@@ -1,5 +1,32 @@
 const prisma = require('../config/prisma');
 
+const getEffectivePromoPrice = async (tx, productId, date = new Date()) => {
+    const activePromos = await tx.promotion.findMany({
+        where: {
+            isActive: true,
+            startDate: { lte: date },
+            endDate: { gte: date },
+            items: { some: { productId: parseInt(productId) } }
+        },
+        include: {
+            items: { where: { productId: parseInt(productId) } }
+        }
+    });
+
+    if (activePromos.length === 0) return null;
+
+    let lowestPrice = Infinity;
+    activePromos.forEach(promo => {
+        promo.items.forEach(item => {
+            if (item.promoPrice < lowestPrice) {
+                lowestPrice = item.promoPrice;
+            }
+        });
+    });
+
+    return lowestPrice === Infinity ? null : lowestPrice;
+};
+
 const processSale = async ({ items, discount = 0, extraDiscount = 0 }) => {
     return await prisma.$transaction(async (tx) => {
         let totalAmount = 0;
@@ -26,12 +53,18 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0 }) => {
                 data: { quantity: batch.quantity - item.quantity }
             });
 
-            totalAmount += batch.sellingPrice * item.quantity;
+            // Promotion Lookup
+            const promoPrice = await getEffectivePromoPrice(tx, batch.productId);
+            const effectivePrice = (promoPrice !== null && promoPrice < batch.sellingPrice)
+                ? promoPrice
+                : batch.sellingPrice;
+
+            totalAmount += effectivePrice * item.quantity;
 
             saleItemsData.push({
                 batchId: item.batch_id,
                 quantity: item.quantity,
-                sellingPrice: batch.sellingPrice,
+                sellingPrice: effectivePrice, // Record the actual price sold at
                 costPrice: batch.costPrice,
                 mrp: batch.mrp
             });

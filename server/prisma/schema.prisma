@@ -41,6 +41,7 @@ model Product {
   lowStockWarningEnabled Boolean @default(false)
   batches               Batch[]
   movements             StockMovement[]
+  promotions            PromotionItem[]
   createdAt DateTime @default(now())
 }
 
@@ -98,4 +99,26 @@ model LooseSale {
   itemName  String?
   price     Float
   createdAt DateTime @default(now())
+}
+
+model Promotion {
+  id          Int             @id @default(autoincrement())
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean         @default(true)
+  items       PromotionItem[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model PromotionItem {
+  id                 Int       @id @default(autoincrement())
+  promotionId        Int
+  promotion          Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  productId          Int
+  product            Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  promoPrice         Float
+  discountPercentage Float?
+  createdAt          DateTime  @default(now())
 }

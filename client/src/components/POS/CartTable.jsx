@@ -80,7 +80,10 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, lastAddedItemId }
                                     }}
                                 >
                                     <TableCell>
-                                        <Typography variant="subtitle2" fontWeight="600">{item.name}</Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Typography variant="subtitle2" fontWeight="600">{item.name}</Typography>
+                                            {item.isOnSale && <Chip label="SALE" size="small" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#7c3aed', color: 'white' }} />}
+                                        </Box>
                                         <ShortBatchCode batchCode={item.batch_code} />
                                     </TableCell>
                                     <TableCell align="center">

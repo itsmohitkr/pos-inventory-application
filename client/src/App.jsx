@@ -38,7 +38,8 @@ import {
   Lock as LockIcon,
   Add as AddIcon,
   Warning as WarningIcon,
-  DeleteForever as DeleteForeverIcon
+  DeleteForever as DeleteForeverIcon,
+  LocalOffer as PromoIcon
 } from '@mui/icons-material';
 import AddProductForm from './components/Inventory/AddProductForm';
 import ProductList from './components/Inventory/ProductList';
@@ -50,6 +51,7 @@ import Refund from './components/Refund/Refund';
 import ReceiptPreviewDialog from './components/POS/ReceiptPreviewDialog';
 import DashboardPage from './components/Dashboard/Dashboard';
 import SaleHistory from './components/SaleHistory/SaleHistory';
+import PromotionManagement from './components/Promotions/PromotionManagement';
 import LoginPage from './components/Auth/LoginPage';
 import UserManagementDialog from './components/Auth/UserManagementDialog';
 import AccountDetailsDialog from './components/Settings/AccountDetailsDialog';
@@ -233,7 +235,7 @@ const Overview = ({ shopName, userRole }) => (
         <Stack direction="row" spacing={1.5} flexWrap="wrap">
           {userRole === 'admin' && (
             <>
-              <Chip label="Inventory management" sx={{ bgcolor: 'rgba(242, 181, 68, 0.18)', color: '#f2b544' }} />
+              <Chip label="Inventory & Sales" sx={{ bgcolor: 'rgba(242, 181, 68, 0.18)', color: '#f2b544' }} />
               <Chip label="Full analytics" sx={{ bgcolor: 'rgba(255, 255, 255, 0.15)', color: '#f8f5f0' }} />
             </>
           )}
@@ -272,6 +274,13 @@ const Overview = ({ shopName, userRole }) => (
             description="Track sales performance with rich, digestible analytics."
             icon={<AssessmentIcon fontSize="medium" />}
             tone={{ bg: 'rgba(31, 138, 91, 0.18)', color: '#1f8a5b' }}
+          />
+          <DashboardCard
+            to="/promotions"
+            title="Sales & Promotions"
+            description="Manage temporary discounts and holiday sale events."
+            icon={<PromoIcon fontSize="medium" />}
+            tone={{ bg: 'rgba(124, 58, 237, 0.15)', color: '#7c3aed' }}
           />
         </>
       )}
@@ -573,6 +582,7 @@ function App() {
   const canAccessDashboard = isAdmin;
   const canAccessRefund = isAdmin || currentUser?.role === 'salesman';
   const canAccessSaleHistory = isAdmin || currentUser?.role === 'salesman';
+  const canAccessPromotions = isAdmin;
 
   if (loading) return <Box>Loading...</Box>;
 
@@ -611,6 +621,7 @@ function App() {
               {canAccessInventory && <NavButton to="/inventory">Inventory</NavButton>}
               {canAccessReports && <NavButton to="/reports">Reports</NavButton>}
               {canAccessRefund && <NavButton to="/refund">Refund</NavButton>}
+              {canAccessPromotions && <NavButton to="/promotions">Promotions</NavButton>}
               {canAccessDashboard && <NavButton to="/dashboard">Dashboard</NavButton>}
               <IconButton
                 color="inherit"
@@ -658,6 +669,7 @@ function App() {
             {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Inventory /></Box>} />}
             {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting /></Box>} />}
             {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Refund /></Box>} />}
+            {canAccessPromotions && <Route path="/promotions" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><PromotionManagement /></Box>} />}
             {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><DashboardPage shopName={shopName} userRole={currentUser.role} /></Box>} />}
           </Routes>
         </Box>
