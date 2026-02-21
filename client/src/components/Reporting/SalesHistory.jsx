@@ -16,10 +16,60 @@ import {
   Visibility as ViewIcon,
 } from "@mui/icons-material";
 import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import ExportOptions from './ExportOptions';
 
 const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportPDF = () => {
+    if (!sales || sales.length === 0) return;
+
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Sales History', 14, 20);
+
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Timeframe: ${timeframeLabel}`, 14, 28);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34);
+
+    const tableColumn = ["Date & Time", "Order ID", "Amount", "Profit", "Status"];
+    const tableRows = [];
+
+    sales.forEach(sale => {
+      const refundStatus = getRefundStatus(sale.items);
+      const display = getStatusDisplay(refundStatus);
+
+      const rowData = [
+        sale.createdAt ? new Date(sale.createdAt).toLocaleString() : 'N/A',
+        `#${sale.id}`,
+        `Rs ${(sale.netTotalAmount || 0).toFixed(2)}`,
+        `Rs ${(sale.profit || 0).toFixed(2)}`,
+        display.label
+      ];
+      tableRows.push(rowData);
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      theme: 'striped',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [25, 118, 210] }
+    });
+
+    doc.save(`sales_history_${timeframeLabel.replace(/\s+/g, '_').toLowerCase()}.pdf`);
+  };
+
   return (
     <Box
+      className="report-print-area"
       sx={{
         bgcolor: "#ffffff",
         p: 4,
@@ -44,11 +94,17 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
         <Typography variant="h6" sx={{ fontWeight: 700, color: "#333" }}>
           Sales History - {timeframeLabel}
         </Typography>
-        <Chip
-          label={`${sales?.length || 0} Transactions`}
-          size="small"
-          sx={{ bgcolor: "#f0f4f8", color: "#1a73e8", fontWeight: 700 }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }} className="no-print">
+          <Chip
+            label={`${sales?.length || 0} Transactions`}
+            size="small"
+            sx={{ bgcolor: "#f0f4f8", color: "#1a73e8", fontWeight: 700 }}
+          />
+          <ExportOptions
+            onPrint={handlePrint}
+            onExportPDF={handleExportPDF}
+          />
+        </Box>
       </Box>
 
       <TableContainer
@@ -123,6 +179,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                 STATUS
               </TableCell>
               <TableCell
+                className="no-print"
                 align="center"
                 sx={{
                   fontWeight: 800,
@@ -182,7 +239,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                     );
                   })()}
                 </TableCell>
-                <TableCell align="center">
+                <TableCell align="center" className="no-print">
                   <IconButton
                     size="small"
                     onClick={() => onSelectSale(sale)}

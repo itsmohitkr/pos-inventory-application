@@ -1,7 +1,16 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const url = require('url');
+
+// -------------------------------------------------------------------------
+// CRITICAL: INITIALIZATION ORDER
+// -------------------------------------------------------------------------
+// On Windows, we MUST set the app name and ID BEFORE resolving any paths (like 'userData')
+// to ensure we look in the correct AppData folder.
+app.setName('Bachat Bazaar');
+app.setAppUserModelId('com.bachatbazaar.pos');
 
 // Check if running in development mode
 const isDev = !app.isPackaged;
@@ -10,24 +19,76 @@ let mainWindow;
 let serverProcess;
 const SERVER_PORT = 5001;
 
-// Get app data path for SQLite database storage
-const getAppDataPath = () => {
-  if (process.platform === 'darwin') {
-    return path.join(os.homedir(), 'Library', 'Application Support', 'BachatBazaar');
-  } else if (process.platform === 'win32') {
-    return path.join(process.env.APPDATA, 'BachatBazaar');
-  }
-  return path.join(os.homedir(), '.BachatBazaar');
-};
+// -------------------------------------------------------------------------
+// APP PATHS & DIRECTORIES
+// -------------------------------------------------------------------------
+// Using standard Electron userData path for platform consistency
+const appDataPath = app.getPath('userData');
 
-// Ensure app data directory exists
-const appDataPath = getAppDataPath();
+// -------------------------------------------------------------------------
+// DATABASE BOOTSTRAPPING
+// -------------------------------------------------------------------------
+// On fresh installs, we need to copy our bundled schema-ready pos.db 
+// from the application resources to the user's data directory.
+const dbFile = path.join(appDataPath, 'pos.db');
+
+// Ensure the directory exists before any file operations
 if (!fs.existsSync(appDataPath)) {
   fs.mkdirSync(appDataPath, { recursive: true });
 }
 
-// Set environment variable for Prisma DB path
-process.env.DATABASE_URL = `file:${path.join(appDataPath, 'pos.db')}`;
+if (!fs.existsSync(dbFile)) {
+  try {
+    const bundledDbPath = isDev
+      ? path.join(__dirname, '../server/prisma/pos.db')
+      : path.join(process.resourcesPath, 'app.asar.unpacked/server/prisma/pos.db');
+
+    if (fs.existsSync(bundledDbPath)) {
+      console.log(`Bootstrapping database: Copying ${bundledDbPath} to ${dbFile}`);
+      fs.copyFileSync(bundledDbPath, dbFile);
+
+      // Verification check: ensure we can actually read/write to the file
+      fs.accessSync(dbFile, fs.constants.R_OK | fs.constants.W_OK);
+      console.log('Database file access verified.');
+    } else {
+      console.error('Warning: Bundled database template not found at:', bundledDbPath);
+    }
+  } catch (error) {
+    console.error('Failed to bootstrap database:', error);
+  }
+}
+
+// Set environment variable for Prisma DB path using a robust literal format.
+// URL encoding (pathToFileURL) can turn spaces into %20, which Prisma/SQLite 
+// sometimes fails to decode correctly on Windows.
+// Standardizing on 'file:C:/path' for Windows and 'file:///path' for Unix.
+const formattedDbPath = dbFile.replace(/\\/g, '/');
+process.env.DATABASE_URL = process.platform === 'win32'
+  ? `file:${formattedDbPath}`
+  : `file://${formattedDbPath}`;
+
+// Ensure Prisma uses the engine library
+process.env.PRISMA_CLIENT_ENGINE_TYPE = 'library';
+
+// Explicitly set the path to the Prisma Query Engine binary for the packaged environment
+const engineDir = isDev
+  ? path.join(__dirname, '../node_modules/.prisma/client')
+  : path.join(process.resourcesPath, 'app.asar.unpacked/node_modules/.prisma/client');
+
+const engineFileName = process.platform === 'win32'
+  ? 'query_engine-windows.dll.node'
+  : 'libquery_engine-darwin-arm64.dylib.node'; // Adjust for your testing platform if needed
+
+const enginePath = path.join(engineDir, engineFileName);
+
+if (fs.existsSync(enginePath)) {
+  process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
+}
+
+console.log('---------------------------------------------------');
+console.log('DATABASE_URL:', process.env.DATABASE_URL);
+console.log('Prisma Engine Path set to:', process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default');
+console.log('---------------------------------------------------');
 
 const createWindow = () => {
   const iconPath = path.join(__dirname, '../assets/icon.png');
@@ -50,13 +111,13 @@ const createWindow = () => {
   }
 
   mainWindow = new BrowserWindow(windowConfig);
-  
+
   const startUrl = isDev
     ? 'http://localhost:5173'
     : `file://${path.join(__dirname, '../client/dist/index.html')}`;
 
   mainWindow.loadURL(startUrl);
-  
+
   // Set window title
   mainWindow.setTitle('Bachat Bazaar - POS Application');
 
@@ -98,11 +159,11 @@ const startServer = () => {
       // Load and start the server
       try {
         require(wrapperPath);
-        
-        // Wait a bit for server to start
+
+        // Wait a tiny bit for server to start listening
         setTimeout(() => {
           resolve();
-        }, 2000);
+        }, 500);
       } catch (error) {
         console.error('Failed to start server:', error);
         reject(error);
@@ -118,19 +179,125 @@ const stopServer = () => {
   console.log('Server will be stopped when app closes');
 };
 
-// Set app name
-app.setName('Bachat Bazaar');
-app.setAppUserModelId('com.bachatbazaar.pos');
+// App metadata moved to top for correct directory resolution
 
 app.on('ready', async () => {
   try {
+    // Create Application Menu
+    const template = [
+      {
+        label: 'File',
+        submenu: [
+          { role: 'quit' }
+        ]
+      },
+      {
+        label: 'View',
+        submenu: [
+          { role: 'reload' },
+          { role: 'forceReload' },
+          { role: 'toggleDevTools' },
+          { type: 'separator' },
+          { role: 'resetZoom' },
+          { role: 'zoomIn' },
+          { role: 'zoomOut' },
+          { type: 'separator' },
+          { role: 'togglefullscreen' }
+        ]
+      },
+      {
+        label: 'Window',
+        submenu: [
+          { role: 'minimize' },
+          { role: 'zoom' },
+          ...(process.platform === 'darwin' ? [
+            { type: 'separator' },
+            { role: 'front' },
+            { type: 'separator' },
+            { role: 'window' }
+          ] : [
+            { role: 'close' }
+          ])
+        ]
+      },
+      {
+        label: 'Debug',
+        submenu: [
+          {
+            label: 'Wipe App Data (Restart Required)',
+            click: () => {
+              const choice = dialog.showMessageBoxSync(mainWindow, {
+                type: 'warning',
+                buttons: ['Cancel', 'Wipe Data'],
+                defaultId: 0,
+                title: 'Confirm Wipe',
+                message: 'This will delete ALL local data and products. You will need to restart the application. Continue?',
+                cancelId: 0
+              });
+
+              if (choice === 1) {
+                try {
+                  const files = fs.readdirSync(appDataPath);
+                  for (const file of files) {
+                    fs.unlinkSync(path.join(appDataPath, file));
+                  }
+                  app.relaunch();
+                  app.exit(0);
+                } catch (err) {
+                  dialog.showErrorBox('Wipe Failed', err.message);
+                }
+              }
+            }
+          },
+          { type: 'separator' },
+          { role: 'toggleDevTools' }
+        ]
+      },
+      {
+        label: 'Help',
+        submenu: [
+          {
+            label: 'System Diagnostic',
+            click: () => {
+              const info = `
+User Data Path: ${appDataPath}
+Database URL: ${process.env.DATABASE_URL}
+Prisma Engine: ${process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default'}
+Platform: ${process.platform}
+Architecture: ${process.arch}
+Version: ${app.getVersion()}
+              `.trim();
+              dialog.showMessageBoxSync(mainWindow, {
+                type: 'info',
+                title: 'System Diagnostic',
+                message: 'Bachat Bazaar Diagnostics',
+                detail: info,
+                buttons: ['OK']
+              });
+            }
+          },
+          { type: 'separator' },
+          {
+            label: 'Toggle Developer Tools',
+            accelerator: 'F12',
+            click: () => {
+              if (mainWindow) mainWindow.webContents.toggleDevTools();
+            }
+          }
+        ]
+      }
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+
     await startServer();
     createWindow();
   } catch (error) {
     console.error('Failed to start application:', error);
     const message = error.message || error.toString();
     dialog.showErrorBox(
-      'Server Error', 
+      'Server Error',
       `Failed to start the application server.\n\nDetails: ${message}\n\nPlease check the console logs for more information.`
     );
     app.quit();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from '../../api';
 import {
   Container,
   Typography,
@@ -31,11 +31,18 @@ import {
   DonutLarge as ProfitIcon,
   Category as CategoryIcon,
   TrendingUp as SalesChartIcon,
+  Assignment as ItemSalesIcon,
+  Inventory as StockIcon,
+  LocalPrintshop as LooseIcon
 } from "@mui/icons-material";
 
 // Sub-components
 import SalesHistory from "./SalesHistory";
 import AnalyticsPanel from "./AnalyticsPanel";
+import ExpiryReportPanel from "./ExpiryReportPanel";
+import ItemSalesReportPanel from "./ItemSalesReportPanel";
+import LowStockReportPanel from "./LowStockReportPanel";
+import LooseSalesReportPanel from "./LooseSalesReportPanel";
 import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
 import {
   Tabs,
@@ -51,10 +58,13 @@ import {
 
 const Reporting = () => {
   const [reportData, setReportData] = useState(null);
+  const [expiryData, setExpiryData] = useState(null);
+  const [lowStockData, setLowStockData] = useState(null);
+  const [looseSalesData, setLooseSalesData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [selectedSale, setSelectedSale] = useState(null);
-  const [reportType, setReportType] = useState("profit_margin"); // profit_margin, category_sales
+  const [reportType, setReportType] = useState("profit_margin"); // profit_margin, category_sales, expiry_report, item_sales, low_stock
   const [dateRange, setDateRange] = useState({
     startDate: "",
     endDate: "",
@@ -65,13 +75,14 @@ const Reporting = () => {
     { label: "Yesterday", getValue: () => getRange("yesterday") },
     { label: "This Week", getValue: () => getRange("week") },
     { label: "This Month", getValue: () => getRange("month") },
+    { label: "Next 30 Days", getValue: () => getRange("next_month") },
     { label: "Custom", getValue: () => null },
   ];
 
   const getRange = (type) => {
     const now = new Date();
-    let start = new Date();
-    let end = new Date();
+    let start = new Date(now);
+    let end = new Date(now);
 
     switch (type) {
       case "day":
@@ -89,12 +100,24 @@ const Reporting = () => {
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         start.setDate(now.getDate() - diffToMonday);
         start.setHours(0, 0, 0, 0);
+
+        // End of week (Sunday)
+        end.setDate(start.getDate() + 6);
         end.setHours(23, 59, 59, 999);
         break;
       }
       case "month":
         start.setDate(1);
         start.setHours(0, 0, 0, 0);
+
+        // Last day of month
+        end.setMonth(now.getMonth() + 1);
+        end.setDate(0);
+        end.setHours(23, 59, 59, 999);
+        break;
+      case "next_month":
+        start.setHours(0, 0, 0, 0);
+        end.setDate(now.getDate() + 30);
         end.setHours(23, 59, 59, 999);
         break;
       default:
@@ -106,10 +129,25 @@ const Reporting = () => {
   const fetchReports = async (start, end) => {
     setLoading(true);
     try {
-      const res = await axios.get("/api/reports", {
-        params: { startDate: start, endDate: end },
-      });
-      setReportData(res.data);
+      if (reportType === 'expiry_report') {
+        const res = await api.get("/api/reports/expiry", {
+          params: { startDate: start, endDate: end },
+        });
+        setExpiryData(res.data);
+      } else if (reportType === 'low_stock') {
+        const res = await api.get("/api/reports/low-stock");
+        setLowStockData(res.data);
+      } else if (reportType === 'loose_sales') {
+        const res = await api.get("/api/reports/loose-sales", {
+          params: { startDate: start, endDate: end },
+        });
+        setLooseSalesData(res.data);
+      } else {
+        const res = await api.get("/api/reports", {
+          params: { startDate: start, endDate: end },
+        });
+        setReportData(res.data);
+      }
     } catch (error) {
       console.error("Error fetching reports:", error);
     } finally {
@@ -117,15 +155,28 @@ const Reporting = () => {
     }
   };
 
-  // Initial fetch
+  // Initial fetch and fetch on reportType change
   useEffect(() => {
-    const range = getRange("day");
-    fetchReports(range.start, range.end);
-  }, []);
+    if (reportType === 'low_stock') {
+      fetchReports();
+      return;
+    }
+
+    let range;
+    if (tabValue < 5) {
+      range = timeframes[tabValue].getValue();
+    } else {
+      range = { start: dateRange.startDate, end: dateRange.endDate };
+    }
+
+    if (range && range.start && range.end) {
+      fetchReports(range.start, range.end);
+    }
+  }, [reportType]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
-    if (newValue < 4) {
+    if (newValue < 5) {
       const range = timeframes[newValue].getValue();
       fetchReports(range.start, range.end);
     }
@@ -174,19 +225,21 @@ const Reporting = () => {
             Reports & Analytics
           </Typography>
           <Box sx={{ minWidth: 280, display: "flex", justifyContent: "flex-end" }}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              variant="scrollable"
-              scrollButtonsDisplay="auto"
-            >
-              {timeframes.map((tf, idx) => (
-                <Tab key={idx} label={tf.label} />
-              ))}
-            </Tabs>
+            {reportType !== 'low_stock' && (
+              <Tabs
+                value={tabValue}
+                onChange={handleTabChange}
+                variant="scrollable"
+                scrollButtonsDisplay="auto"
+              >
+                {timeframes.map((tf, idx) => (
+                  <Tab key={idx} label={tf.label} />
+                ))}
+              </Tabs>
+            )}
           </Box>
         </Box>
-        {tabValue === 4 && (
+        {tabValue === 5 && reportType !== 'low_stock' && (
           <Box
             sx={{
               display: "flex",
@@ -241,7 +294,7 @@ const Reporting = () => {
         maxWidth={false}
         sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, px: 3, pb: 3 }}
       >
-        {loading && !reportData ? (
+        {loading && !reportData && !expiryData ? (
           <Box
             sx={{
               display: "flex",
@@ -320,6 +373,86 @@ const Reporting = () => {
                     <ListItemText primary="Sales by Category" primaryTypographyProps={{ fontWeight: 600 }} />
                   </ListItemButton>
                 </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    selected={reportType === 'expiry_report'}
+                    onClick={() => setReportType('expiry_report')}
+                    sx={{
+                      borderRadius: 1,
+                      '&.Mui-selected': {
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'primary.dark' },
+                        '& .MuiListItemIcon-root': { color: 'white' }
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'expiry_report' ? 'inherit' : 'error.main' }}>
+                      <CalendarIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Expiring Products" primaryTypographyProps={{ fontWeight: 600 }} />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    selected={reportType === 'item_sales'}
+                    onClick={() => setReportType('item_sales')}
+                    sx={{
+                      borderRadius: 1,
+                      '&.Mui-selected': {
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'primary.dark' },
+                        '& .MuiListItemIcon-root': { color: 'white' }
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'item_sales' ? 'inherit' : 'success.main' }}>
+                      <ItemSalesIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Item-Wise Sales" primaryTypographyProps={{ fontWeight: 600 }} />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    selected={reportType === 'low_stock'}
+                    onClick={() => setReportType('low_stock')}
+                    sx={{
+                      borderRadius: 1,
+                      '&.Mui-selected': {
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'primary.dark' },
+                        '& .MuiListItemIcon-root': { color: 'white' }
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'low_stock' ? 'inherit' : 'warning.main' }}>
+                      <StockIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Low Stock" primaryTypographyProps={{ fontWeight: 600 }} />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    selected={reportType === 'loose_sales'}
+                    onClick={() => setReportType('loose_sales')}
+                    sx={{
+                      borderRadius: 1,
+                      '&.Mui-selected': {
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'primary.dark' },
+                        '& .MuiListItemIcon-root': { color: 'white' }
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'loose_sales' ? 'inherit' : 'secondary.main' }}>
+                      <LooseIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Loose Sales" primaryTypographyProps={{ fontWeight: 600 }} />
+                  </ListItemButton>
+                </ListItem>
               </List>
             </Paper>
 
@@ -360,12 +493,36 @@ const Reporting = () => {
                     />
                   </Box>
                 </Box>
-              ) : (
+              ) : reportType === 'category_sales' ? (
                 <CategorySalesPanel sales={reportData?.sales || []} />
+              ) : reportType === 'expiry_report' ? (
+                <ExpiryReportPanel
+                  data={expiryData}
+                  loading={loading}
+                  timeframeLabel={tabValue === 5 ? 'Custom' : timeframes[tabValue].label}
+                />
+              ) : reportType === 'item_sales' ? (
+                <ItemSalesReportPanel
+                  sales={reportData?.sales}
+                  loading={loading}
+                  timeframeLabel={tabValue === 5 ? 'Custom' : timeframes[tabValue].label}
+                />
+              ) : reportType === 'low_stock' ? (
+                <LowStockReportPanel
+                  data={lowStockData}
+                  loading={loading}
+                />
+              ) : (
+                <LooseSalesReportPanel
+                  data={looseSalesData}
+                  loading={loading}
+                  timeframeLabel={tabValue === 5 ? 'Custom' : timeframes[tabValue].label}
+                />
               )}
             </Box>
           </Box>
-        )}
+        )
+        }
 
         {/* Sale Detail Dialog */}
         <Dialog
@@ -661,8 +818,8 @@ const Reporting = () => {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
-    </Box>
+      </Container >
+    </Box >
   );
 };
 

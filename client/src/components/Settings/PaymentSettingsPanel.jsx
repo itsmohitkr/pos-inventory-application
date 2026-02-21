@@ -29,7 +29,7 @@ const PAYMENT_METHOD_OPTIONS = [
     { id: 'cheque', label: 'Cheque', icon: '📄' }
 ];
 
-const PaymentSettingsPanel = () => {
+const PaymentSettingsPanel = ({ showSuccess }) => {
     const [paymentSettings, setPaymentSettings] = useState(getStoredPaymentSettings);
     const [enableFullscreen, setEnableFullscreen] = useState(getFullscreenEnabled);
     const [enableExtraDiscount, setEnableExtraDiscountState] = useState(getExtraDiscountEnabled);
@@ -39,13 +39,19 @@ const PaymentSettingsPanel = () => {
 
     const handlePaymentMethodToggle = (methodId) => {
         setPaymentSettings(prev => {
+            const isEnabling = !prev.enabledMethods.includes(methodId);
+            const methodName = PAYMENT_METHOD_OPTIONS.find(m => m.id === methodId)?.label || methodId;
+
             const updated = {
                 ...prev,
-                enabledMethods: prev.enabledMethods.includes(methodId)
-                    ? prev.enabledMethods.filter(m => m !== methodId)
-                    : [...prev.enabledMethods, methodId]
+                enabledMethods: isEnabling
+                    ? [...prev.enabledMethods, methodId]
+                    : prev.enabledMethods.filter(m => m !== methodId)
             };
             saveSettings(updated);
+            if (showSuccess) {
+                showSuccess(`${methodName} payment method ${isEnabling ? 'enabled' : 'disabled'}`);
+            }
             return updated;
         });
     };
@@ -58,6 +64,9 @@ const PaymentSettingsPanel = () => {
                     customMethods: [...prev.customMethods, { id: `custom_${Date.now()}`, label: customMethod }]
                 };
                 saveSettings(updated);
+                if (showSuccess) {
+                    showSuccess(`Custom payment method '${customMethod}' added`);
+                }
                 return updated;
             });
             setCustomMethod('');
@@ -67,11 +76,15 @@ const PaymentSettingsPanel = () => {
 
     const handleRemoveCustomMethod = (methodId) => {
         setPaymentSettings(prev => {
+            const removedMethod = prev.customMethods.find(m => m.id === methodId);
             const updated = {
                 ...prev,
                 customMethods: prev.customMethods.filter(m => m.id !== methodId)
             };
             saveSettings(updated);
+            if (showSuccess && removedMethod) {
+                showSuccess(`Custom payment method '${removedMethod.label}' removed`);
+            }
             return updated;
         });
     };
@@ -80,11 +93,17 @@ const PaymentSettingsPanel = () => {
         setEnableFullscreen(enabled);
         localStorage.setItem(STORAGE_KEYS.enableFullscreen, JSON.stringify(enabled));
         window.dispatchEvent(new Event('pos-settings-updated'));
+        if (showSuccess) {
+            showSuccess(`Fullscreen button ${enabled ? 'enabled' : 'disabled'}`);
+        }
     };
 
     const handleEnableExtraDiscount = (enabled) => {
         setEnableExtraDiscountState(enabled);
         setExtraDiscountEnabled(enabled);
+        if (showSuccess) {
+            showSuccess(`Extra discount field ${enabled ? 'enabled' : 'disabled'}`);
+        }
     };
 
     const handleNotificationDurationChange = (value) => {
@@ -92,6 +111,9 @@ const PaymentSettingsPanel = () => {
         if (!isNaN(seconds) && seconds > 0) {
             setNotificationDurationState(seconds);
             setNotificationDuration(seconds * 1000); // Convert to milliseconds for storage
+            if (showSuccess) {
+                showSuccess(`Notification duration set to ${seconds}s`);
+            }
         }
     };
 
@@ -102,6 +124,9 @@ const PaymentSettingsPanel = () => {
                 allowMultplePayment: !prev.allowMultplePayment
             };
             saveSettings(updated);
+            if (showSuccess) {
+                showSuccess(`Multi-payment mode ${updated.allowMultplePayment ? 'enabled' : 'disabled'}`);
+            }
             return updated;
         });
     };
@@ -127,9 +152,9 @@ const PaymentSettingsPanel = () => {
                 <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         Payment Methods
-                        <Chip 
-                            label={`${enabledCount} enabled`} 
-                            size="small" 
+                        <Chip
+                            label={`${enabledCount} enabled`}
+                            size="small"
                             color={enabledCount > 0 ? 'success' : 'error'}
                             variant="outlined"
                         />

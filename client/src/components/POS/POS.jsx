@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../api';
 import {
     Box,
     Paper,
@@ -23,6 +23,7 @@ import CartTable from './CartTable';
 import TransactionPanel from './TransactionPanel';
 import BatchSelectionDialog from './BatchSelectionDialog';
 import ReceiptPreviewDialog from './ReceiptPreviewDialog';
+import LooseSaleDialog from './LooseSaleDialog';
 import POSTabs from './POSTabs';
 import Receipt from './Receipt';
 import CustomDialog from '../common/CustomDialog';
@@ -49,10 +50,26 @@ const DEFAULT_RECEIPT_SETTINGS = {
     totalSavings: true,
     customShopName: 'Bachat Bazaar',
     customHeader: '123 Business Street, City',
+    customHeader2: '',
+    customHeader3: '',
     customFooter: 'Thank You! Visit Again',
+    customFooter2: '',
     directPrint: false,
     printerType: 'Thermal Printer',
-    paperSize: '80mm'
+    paperSize: '80mm',
+    marginTop: 0,
+    marginBottom: 0,
+    marginSide: 4,
+    roundOff: true,
+    billFormat: 'Standard',
+    fontSize: 0.8,
+    itemFontSize: 0.8,
+    lineHeight: 1.1,
+    invoiceLabel: 'Tax Invoice',
+    showBranding: false,
+    titleAlign: 'center',
+    headerAlign: 'center',
+    footerAlign: 'center'
 };
 
 const getStoredReceiptSettings = () => {
@@ -82,10 +99,29 @@ const POS = () => {
     });
 
     // Multi-tab state
-    const [tabs, setTabs] = useState([
-        { id: 1, name: 'Order 1', cart: [], discount: 0 }
-    ]);
-    const [activeTabId, setActiveTabId] = useState(1);
+    const [tabs, setTabs] = useState(() => {
+        try {
+            const savedTabs = sessionStorage.getItem('posOrderTabs');
+            if (savedTabs) {
+                return JSON.parse(savedTabs);
+            }
+        } catch (e) {
+            console.error('Failed to parse saved tabs from session storage');
+        }
+        return [{ id: 1, name: 'Order 1', cart: [], discount: 0 }];
+    });
+
+    const [activeTabId, setActiveTabId] = useState(() => {
+        try {
+            const savedActiveTab = sessionStorage.getItem('posActiveTabId');
+            if (savedActiveTab) {
+                return parseInt(savedActiveTab, 10);
+            }
+        } catch (e) {
+            console.error('Failed to parse saved active tab from session storage');
+        }
+        return 1;
+    });
 
     const [scannedProduct, setScannedProduct] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -101,6 +137,19 @@ const POS = () => {
     const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
     const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+    const [lastAddedItemId, setLastAddedItemId] = useState(null);
+    const [showLooseSaleDialog, setShowLooseSaleDialog] = useState(false);
+    const [looseSaleEnabled, setLooseSaleEnabled] = useState(() => localStorage.getItem('posLooseSaleEnabled') !== 'false');
+
+    // Save tabs state to sessionStorage whenever it changes
+    useEffect(() => {
+        sessionStorage.setItem('posOrderTabs', JSON.stringify(tabs));
+    }, [tabs]);
+
+    // Save activeTabId to sessionStorage whenever it changes
+    useEffect(() => {
+        sessionStorage.setItem('posActiveTabId', activeTabId.toString());
+    }, [activeTabId]);
 
     // Resizable Layout State
     const [transactionPanelWidth, setTransactionPanelWidth] = useState(() => {
@@ -161,7 +210,7 @@ const POS = () => {
 
     const fetchProducts = async () => {
         try {
-            const res = await axios.get('/api/products', {
+            const res = await api.get('/api/products', {
                 params: { includeBatches: true }
             });
             setProducts(res.data.data);
@@ -251,6 +300,8 @@ const POS = () => {
             }];
         });
 
+        setLastAddedItemId(batch.id);
+
         // Clear search and close dialog immediately
         setSearchQuery('');
         setScannedProduct(null);
@@ -328,14 +379,14 @@ const POS = () => {
 
         try {
             const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
-            const res = await axios.post('/api/sale', {
+            const res = await api.post('/api/sale', {
                 items,
                 discount: 0,
                 extraDiscount: discount,
                 paymentMethod: selectedPaymentMethod.label || 'Cash',
                 paymentDetails: JSON.stringify({ method: selectedPaymentMethod })
             });
-            const detailedRes = await axios.get(`/api/sale/${res.data.saleId}`);
+            const detailedRes = await api.get(`/api/sale/${res.data.saleId}`);
             setLastSale(detailedRes.data);
 
             handleCloseTab(activeTabId);
@@ -359,14 +410,14 @@ const POS = () => {
 
         try {
             const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
-            const res = await axios.post('/api/sale', {
+            const res = await api.post('/api/sale', {
                 items,
                 discount: 0,
                 extraDiscount: discount,
                 paymentMethod: selectedPaymentMethod.label || 'Cash',
                 paymentDetails: JSON.stringify({ method: selectedPaymentMethod })
             });
-            const detailedRes = await axios.get(`/api/sale/${res.data.saleId}`);
+            const detailedRes = await api.get(`/api/sale/${res.data.saleId}`);
             setLastSale(detailedRes.data);
 
             handleCloseTab(activeTabId);
@@ -431,6 +482,7 @@ const POS = () => {
             setPaymentSettings(getStoredPaymentSettings());
             setNotificationDuration(getNotificationDuration());
             setExtraDiscountEnabled(getExtraDiscountEnabled());
+            setLooseSaleEnabled(localStorage.getItem('posLooseSaleEnabled') !== 'false');
         };
 
         window.addEventListener('pos-settings-updated', handleSettingsUpdated);
@@ -529,11 +581,14 @@ const POS = () => {
                         onSearchInputChange={setSearchQuery}
                         onSelectProduct={handleProductInteraction}
                         filterOptions={filterOptions}
+                        onLooseSale={() => setShowLooseSaleDialog(true)}
+                        looseSaleEnabled={looseSaleEnabled}
                     />
                     <CartTable
                         cart={cart}
                         onUpdateQuantity={updateQuantity}
                         onRemoveFromCart={removeFromCart}
+                        lastAddedItemId={lastAddedItemId}
                     />
                 </Paper>
 
@@ -609,6 +664,14 @@ const POS = () => {
                     onSettingChange={handleSettingChange}
                     onTextSettingChange={handleTextSettingChange}
                     isAdmin={currentUser?.role === 'admin'}
+                />
+
+                <LooseSaleDialog
+                    open={showLooseSaleDialog}
+                    onClose={() => setShowLooseSaleDialog(false)}
+                    onComplete={() => {
+                        setNotification({ open: true, message: 'Loose Sale Recorded Successfully!', severity: 'success' });
+                    }}
                 />
             </Box>
             <CustomDialog {...dialogState} onClose={closeDialog} />

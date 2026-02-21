@@ -14,12 +14,12 @@ console.log('Server directory:', process.cwd());
 
 // Override module resolution to always use unpacked node_modules
 const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function(request, parent, isMain, options) {
-  // Skip relative and absolute paths
-  if (request.startsWith('.') || request.startsWith('/')) {
+Module._resolveFilename = function (request, parent, isMain, options) {
+  // Skip relative and absolute paths (handles both / and C:\ styles)
+  if (request.startsWith('.') || path.isAbsolute(request)) {
     return originalResolve(request, parent, isMain, options);
   }
-  
+
   // Try unpacked node_modules for all module requests
   try {
     const unpackedPath = require.resolve(request, { paths: [unpackedNodeModules] });
@@ -27,7 +27,7 @@ Module._resolveFilename = function(request, parent, isMain, options) {
   } catch (e) {
     // Fall back to default resolution
   }
-  
+
   return originalResolve(request, parent, isMain, options);
 };
 

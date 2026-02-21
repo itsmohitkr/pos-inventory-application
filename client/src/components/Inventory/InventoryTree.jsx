@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import {
     Box, Paper, TextField, Chip, Stack, Grid, Card, CardContent, CardActions, Button,
     IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Typography,
@@ -77,7 +77,7 @@ const InventoryTree = forwardRef((props, ref) => {
 
     const fetchProducts = async () => {
         try {
-            const response = await axios.get('/api/products', {
+            const response = await api.get('/api/products', {
                 params: { page: 1, pageSize: 1000, includeBatches: true }
             });
             const allProducts = response.data.data || [];
@@ -110,6 +110,29 @@ const InventoryTree = forwardRef((props, ref) => {
     };
 
     const normalizedSearch = debouncedSearch.toLowerCase();
+
+    const fetchProductByBarcode = async (barcode) => {
+        try {
+            const res = await api.get(`/api/products/${barcode}`);
+            if (res.data && res.data.product) {
+                const product = res.data.product;
+                if (res.data.batches) {
+                    product.batches = res.data.batches;
+                }
+                // Add to general list if missing, though typically we'd just select it
+                setProducts(prev => {
+                    if (prev.find(p => p.id === product.id)) return prev;
+                    return [...prev, product];
+                });
+                setCurrentProduct(product);
+                // Switch to category if it exists
+                if (product.category) setSelectedCategory(product.category);
+                else setSelectedCategory('Uncategorized');
+            }
+        } catch (error) {
+            console.error('Barcode scan error:', error);
+        }
+    };
 
     const filteredProducts = useMemo(() => {
         if (!normalizedSearch) return products;
@@ -152,7 +175,7 @@ const InventoryTree = forwardRef((props, ref) => {
     const confirmDelete = async () => {
         if (productToDelete) {
             try {
-                await axios.delete(`/api/products/${productToDelete.id}`);
+                await api.delete(`/api/products/${productToDelete.id}`);
                 fetchProducts();
                 setDeleteConfirmOpen(false);
                 setProductToDelete(null);
@@ -206,7 +229,6 @@ const InventoryTree = forwardRef((props, ref) => {
                                     selected={isSelected}
                                     onClick={() => setSelectedCategory(category)}
                                     sx={{
-                                        pl: 2,
                                         py: 1.5,
                                         borderRadius: 1.5,
                                         mb: 0.5,
@@ -261,9 +283,25 @@ const InventoryTree = forwardRef((props, ref) => {
                             </Typography>
                         </Box>
                         <TextField
-                            placeholder="Search products..."
+                            placeholder="Search barcode or name..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && searchTerm.trim()) {
+                                    const barcode = searchTerm.trim();
+                                    // Search locals first
+                                    const foundLocal = products.find(p =>
+                                        p.barcode && p.barcode.split('|').some(b => b.trim() === barcode)
+                                    );
+                                    if (foundLocal) {
+                                        if (foundLocal.category) setSelectedCategory(foundLocal.category);
+                                        else setSelectedCategory('Uncategorized');
+                                        // Scroll and focus might be complex, but at least we select category
+                                    } else {
+                                        fetchProductByBarcode(barcode);
+                                    }
+                                }
+                            }}
                             size="small"
                             sx={{ width: { xs: '100%', sm: 280 } }}
                             InputProps={{

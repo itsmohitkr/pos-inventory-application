@@ -12,6 +12,29 @@ const normalizeSearch = (value) => {
     return String(value).trim();
 };
 
+const _validateBarcodesUniqueness = async (tx, barcodeStr, excludeProductId = null) => {
+    if (!barcodeStr || !barcodeStr.trim()) return;
+
+    const barcodes = barcodeStr.split('|').map(b => b.trim()).filter(Boolean);
+    for (const singleBarcode of barcodes) {
+        const existing = await tx.product.findFirst({
+            where: {
+                ...(excludeProductId ? { id: { not: excludeProductId } } : {}),
+                OR: [
+                    { barcode: singleBarcode },
+                    { barcode: { startsWith: `${singleBarcode}|` } },
+                    { barcode: { endsWith: `|${singleBarcode}` } },
+                    { barcode: { contains: `|${singleBarcode}|` } }
+                ]
+            }
+        });
+
+        if (existing) {
+            throw new Error(`BARCODE_CONFLICT: Barcode '${singleBarcode}' is already associated with product '${existing.name}'`);
+        }
+    }
+};
+
 const generateBatchCode = () => {
     // Generate timestamp-based batch code: B-YYYYMMDDHHMMSSmmm
     const now = new Date();
@@ -307,26 +330,9 @@ const getProductByBarcode = async (barcode) => {
 
 const createOrUpdateProduct = async ({ name, barcode, category, initialBatch, enableBatchTracking, lowStockWarningEnabled, lowStockThreshold }) => {
     return await prisma.$transaction(async (tx) => {
-        // Support multi-barcode: validate each barcode in pipe-separated list (only if barcode provided)
+        // Support multi-barcode: validate each barcode uniqueness
         if (barcode && barcode.trim()) {
-            const barcodes = barcode.split('|').map(b => b.trim()).filter(Boolean);
-
-            for (const singleBarcode of barcodes) {
-                const existing = await tx.product.findFirst({
-                    where: {
-                        OR: [
-                            { barcode: singleBarcode },
-                            { barcode: { startsWith: `${singleBarcode}|` } },
-                            { barcode: { endsWith: `|${singleBarcode}` } },
-                            { barcode: { contains: `|${singleBarcode}|` } }
-                        ]
-                    }
-                });
-
-                if (existing) {
-                    throw new Error(`Barcode '${singleBarcode}' already exists`);
-                }
-            }
+            await _validateBarcodesUniqueness(tx, barcode);
         }
 
         const product = await tx.product.create({
@@ -527,8 +533,15 @@ const updateProduct = async (id, productData) => {
     if (category !== undefined) {
         updateData.category = normalizeCategory(category);
     }
+    const productId = parseInt(id);
+
+    // Check barcode uniqueness for update
+    if (barcode && barcode.trim()) {
+        await _validateBarcodesUniqueness(prisma, barcode, productId);
+    }
+
     return await prisma.product.update({
-        where: { id: parseInt(id) },
+        where: { id: productId },
         data: updateData
     });
 };
@@ -727,23 +740,19 @@ const importProducts = async (csvData) => {
             if (barcode && barcode.trim()) {
                 const trimmedBarcode = barcode.trim();
                 const lowerBarcode = trimmedBarcode.toLowerCase();
-                if (existingBarcodeMap.has(lowerBarcode)) {
-                    results.errors.push({ line: lineNumber, message: 'Barcode already exists in database' });
-                    results.failed++;
-                    continue;
+
+                // Detailed database check for uniqueness including multi-barcode support
+                try {
+                    await _validateBarcodesUniqueness(prisma, trimmedBarcode);
+                } catch (error) {
+                    if (error.message.startsWith('BARCODE_CONFLICT:')) {
+                        results.errors.push({ line: lineNumber, message: error.message.replace('BARCODE_CONFLICT: ', '') });
+                        results.failed++;
+                        continue;
+                    }
+                    throw error;
                 }
-                const hasMultiMatch = existingProducts.some(p => {
-                    if (!p.barcode) return false;
-                    const pBarcode = p.barcode.toLowerCase();
-                    return pBarcode.startsWith(`${lowerBarcode}|`) ||
-                        pBarcode.endsWith(`|${lowerBarcode}`) ||
-                        pBarcode.includes(`|${lowerBarcode}|`);
-                });
-                if (hasMultiMatch) {
-                    results.errors.push({ line: lineNumber, message: 'Barcode already exists in database as part of multi-barcode' });
-                    results.failed++;
-                    continue;
-                }
+
                 if (csvBarcodes.has(lowerBarcode)) {
                     results.errors.push({ line: lineNumber, message: 'Duplicate barcode in CSV' });
                     results.failed++;

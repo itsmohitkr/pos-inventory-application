@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import {
     Box,
     Button,
@@ -74,13 +74,13 @@ const Dashboard = () => {
         setLoading(true);
         try {
             const [reportRes, productRes] = await Promise.all([
-                axios.get('/api/reports', {
+                api.get('/api/reports', {
                     params: {
                         startDate: start,
                         endDate: end
                     }
                 }),
-                axios.get('/api/products', {
+                api.get('/api/products', {
                     params: { page: 1, pageSize: 1000 }
                 })
             ]);

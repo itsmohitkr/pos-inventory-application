@@ -344,7 +344,7 @@ const generateProducts = (count, startBarcode) => {
     return products;
 };
 
-async function main() {
+async function seedSampleData() {
     const targetCount = 500;
     const generated = generateProducts(
         Math.max(0, targetCount - baseProducts.length),
@@ -380,10 +380,13 @@ async function main() {
         });
         console.log(`Created ${p.name} with batch ${batchCode}`);
     }
+    console.log('Sample data seeding finished.');
+}
 
+async function seedEssential() {
     // Create default users
-    console.log('Creating default users...');
-    
+    console.log('Creating essential default users...');
+
     // Check if admin already exists
     const adminExists = await prisma.user.findUnique({
         where: { username: 'admin' }
@@ -433,14 +436,27 @@ async function main() {
         console.log('Created salesman user: salesman / salesman123');
     }
 
-    console.log(`Seeding finished.`);
+    console.log('Essential seeding finished.');
 }
 
-main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+async function main() {
+    await seedEssential();
+    await seedSampleData();
+}
+
+module.exports = {
+    seed: main,
+    seedEssential,
+    seedSampleData
+};
+
+if (require.main === module) {
+    main()
+        .catch((e) => {
+            console.error(e);
+            process.exit(1);
+        })
+        .finally(async () => {
+            await prisma.$disconnect();
+        });
+}

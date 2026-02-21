@@ -93,6 +93,67 @@ const getReports = async ({ startDate, endDate }) => {
     };
 };
 
+const getExpiryReport = async ({ startDate, endDate }) => {
+    const where = {};
+    if (startDate && endDate) {
+        where.expiryDate = {
+            gte: new Date(startDate),
+            lte: new Date(endDate)
+        };
+    }
+
+    const batches = await prisma.batch.findMany({
+        where: {
+            ...where,
+            quantity: { gt: 0 } // Only show batches that still have stock
+        },
+        include: {
+            product: {
+                select: {
+                    id: true,
+                    name: true,
+                    barcode: true,
+                    category: true
+                }
+            }
+        },
+        orderBy: {
+            expiryDate: 'asc'
+        }
+    });
+
+    return batches.map(batch => ({
+        ...batch,
+        productName: batch.product?.name || 'Unknown',
+        category: batch.product?.category || 'Uncategorized',
+        barcode: batch.product?.barcode
+    }));
+};
+
+const getLowStockReport = async () => {
+    const products = await prisma.product.findMany({
+        include: {
+            batches: {
+                select: {
+                    quantity: true
+                }
+            }
+        }
+    });
+
+    return products
+        .map(product => {
+            const totalQuantity = product.batches.reduce((sum, batch) => sum + batch.quantity, 0);
+            return {
+                ...product,
+                totalQuantity
+            };
+        })
+        .filter(product => product.totalQuantity <= product.lowStockThreshold);
+};
+
 module.exports = {
-    getReports
+    getReports,
+    getExpiryReport,
+    getLowStockReport
 };

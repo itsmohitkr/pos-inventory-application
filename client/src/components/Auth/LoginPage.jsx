@@ -10,7 +10,7 @@ import {
     CircularProgress
 } from '@mui/material';
 import { Store as StoreIcon } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../../api';
 
 const LoginPage = ({ onLogin }) => {
     const [username, setUsername] = useState('');
@@ -24,7 +24,7 @@ const LoginPage = ({ onLogin }) => {
         setLoading(true);
 
         try {
-            const response = await axios.post('/api/auth/login', {
+            const response = await api.post('/api/auth/login', {
                 username,
                 password
             });
@@ -49,7 +49,7 @@ const LoginPage = ({ onLogin }) => {
             };
 
             const account = demoAccounts[role];
-            const response = await axios.post('/api/auth/login', account);
+            const response = await api.post('/api/auth/login', account);
             onLogin(response.data);
         } catch (err) {
             setError(err.response?.data?.error || 'Login failed');

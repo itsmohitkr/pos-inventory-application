@@ -50,7 +50,7 @@ const ShortBatchCode = ({ batchCode }) => {
     );
 };
 
-const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart }) => {
+const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, lastAddedItemId }) => {
     return (
         <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
             <TableContainer sx={{ borderTop: '1px solid rgba(16, 24, 40, 0.06)' }}>
@@ -71,7 +71,14 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart }) => {
                             const discountPerUnit = item.mrp - item.price;
                             const totalDiscount = discountPerUnit * item.quantity;
                             return (
-                                <TableRow key={item.batch_id} hover>
+                                <TableRow
+                                    key={item.batch_id}
+                                    hover
+                                    sx={{
+                                        backgroundColor: item.batch_id === lastAddedItemId ? 'rgba(76, 175, 80, 0.15)' : 'inherit',
+                                        transition: 'background-color 0.5s ease'
+                                    }}
+                                >
                                     <TableCell>
                                         <Typography variant="subtitle2" fontWeight="600">{item.name}</Typography>
                                         <ShortBatchCode batchCode={item.batch_code} />

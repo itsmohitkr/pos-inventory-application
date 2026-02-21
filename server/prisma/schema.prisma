@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../../node_modules/.prisma/client"
+  provider      = "prisma-client-js"
+  output        = "../../node_modules/.prisma/client"
+  binaryTargets = ["native", "windows"]
 }
 
 datasource db {
@@ -89,5 +90,12 @@ model StockMovement {
   type      String
   quantity  Int
   note      String?
+  createdAt DateTime @default(now())
+}
+
+model LooseSale {
+  id        Int      @id @default(autoincrement())
+  itemName  String?
+  price     Float
   createdAt DateTime @default(now())
 }

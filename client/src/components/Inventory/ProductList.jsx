@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Paper, Typography, TextField, Box, InputAdornment, IconButton,
@@ -21,7 +21,8 @@ import {
     Inventory2 as InventoryIcon,
     Print as PrintIcon,
     Circle as CircleIcon,
-    FilterList as FilterListIcon
+    FilterList as FilterListIcon,
+    Clear as ClearIcon
 } from '@mui/icons-material';
 
 import EditProductDialog from './EditProductDialog';
@@ -112,54 +113,47 @@ const ProductList = () => {
     const [stockFilter, setStockFilter] = useState('all'); // 'all', 'low', 'zero'
     const productsRequestId = useRef(0);
     const summaryRequestId = useRef(0);
+    const searchInputRef = useRef(null);
+    const searchTimerRef = useRef(null);
 
     const fetchProducts = React.useCallback(async () => {
         const requestId = ++productsRequestId.current;
-        // Loader removed
         try {
-            // Always fetch all products when categoryFilter is 'all' to ensure full list
-            const fetchAll = categoryFilter === 'all';
-            const resProd = await axios.get('/api/products', {
+            // Fetch everything for the current category once, then filter locally
+            // This matches the high-performance behavior of the POS screen
+            const resProd = await api.get('/api/products', {
                 params: {
-                    search: debouncedSearch,
                     category: categoryFilter,
                     sortBy,
                     sortOrder,
-                    page: 1,
-                    pageSize: fetchAll ? 10000 : undefined // Large number to get all products if 'all'
+                    pageSize: 10000 // Ensure we get the full list for local filtering
                 }
             });
             const data = resProd.data.data || [];
             if (productsRequestId.current !== requestId) return;
-            let filtered = data;
-            if (stockFilter === 'low') {
-                filtered = data.filter(p => p.total_stock > 0 && p.total_stock <= 10); // Example threshold
-            } else if (stockFilter === 'zero') {
-                filtered = data.filter(p => p.total_stock === 0);
-            }
-            setProducts(filtered);
+            setProducts(data);
+
+            // Sync selected product if it exists
             if (selectedProduct) {
-                const updatedSelected = filtered.find(item => String(item.id) === String(selectedProduct.id));
-                setSelectedProduct(updatedSelected || null);
+                const refreshed = data.find(p => String(p.id) === String(selectedProduct.id));
+                if (refreshed) setSelectedProduct(refreshed);
             }
         } catch (error) {
             console.error(error);
-        } finally {
-            // Loader removed
         }
-    }, [stockFilter, debouncedSearch, categoryFilter, sortBy, sortOrder, selectedProduct]);
+    }, [categoryFilter, sortBy, sortOrder]);
 
     const fetchSummary = React.useCallback(async () => {
         const requestId = ++summaryRequestId.current;
         try {
             const [totalsRes, sidebarRes] = await Promise.all([
-                axios.get('/api/products/summary', {
+                api.get('/api/products/summary', {
                     params: {
                         search: debouncedSearch,
                         category: categoryFilter
                     }
                 }),
-                axios.get('/api/products/summary', {
+                api.get('/api/products/summary', {
                     params: {
                         search: debouncedSearch,
                         category: 'all'
@@ -182,7 +176,7 @@ const ProductList = () => {
 
     const fetchCategories = async () => {
         try {
-            const res = await axios.get('/api/categories');
+            const res = await api.get('/api/categories');
             setCategories(res.data.data || []);
         } catch (error) {
             console.error(error);
@@ -193,18 +187,14 @@ const ProductList = () => {
         fetchCategories();
     }, []);
 
-    useEffect(() => {
-        const handle = setTimeout(() => {
-            setDebouncedSearch(searchTerm.trim());
-        }, 300);
-        return () => clearTimeout(handle);
-    }, [searchTerm]);
+    // Live search debouncing is handled directly in the TextField's onChange 
+    // to avoid full component re-renders while typing.
 
     // Pagination removed
 
     useEffect(() => {
         fetchProducts();
-    }, [debouncedSearch, categoryFilter, sortBy, sortOrder, stockFilter, fetchProducts]);
+    }, [categoryFilter, sortBy, sortOrder, fetchProducts]);
 
     useEffect(() => {
         fetchSummary();
@@ -242,7 +232,7 @@ const ProductList = () => {
         const fetchSelectedDetails = async () => {
             setIsLoadingBatches(true);
             try {
-                const res = await axios.get(`/api/products/id/${selectedProduct.id}`);
+                const res = await api.get(`/api/products/id/${selectedProduct.id}`);
                 setSelectedProductDetails(res.data.data || null);
             } catch (error) {
                 console.error(error);
@@ -260,7 +250,7 @@ const ProductList = () => {
         const fetchHistory = async () => {
             setIsHistoryLoading(true);
             try {
-                const res = await axios.get(`/api/products/${selectedProduct.id}/history`, {
+                const res = await api.get(`/api/products/${selectedProduct.id}/history`, {
                     params: { range: historyRange }
                 });
                 setHistoryData(res.data.data || null);
@@ -275,8 +265,19 @@ const ProductList = () => {
     }, [historyOpen, historyRange, selectedProduct?.id]);
 
     // Filter products based on stock status
+    // Filter products based on search term and stock status locally for instant reflection
     const displayedProducts = useMemo(() => {
-        let filtered = filteredProducts || products;
+        let filtered = products;
+
+        // Local Search filtering
+        if (debouncedSearch) {
+            const query = debouncedSearch.toLowerCase();
+            filtered = filtered.filter(p =>
+                p.name.toLowerCase().includes(query) ||
+                (p.barcode && p.barcode.split('|').some(b => b.trim().includes(query)))
+            );
+        }
+
         if (stockFilter === 'low') {
             filtered = filtered.filter(p =>
                 p.lowStockWarningEnabled &&
@@ -286,10 +287,18 @@ const ProductList = () => {
         } else if (stockFilter === 'zero') {
             filtered = filtered.filter(p => p.total_stock === 0);
         }
-        return filtered;
-    }, [products, filteredProducts, stockFilter]);
 
-    // Helper function to get stock status
+        // Limit to 250 for performance during active search/filtering
+        return filtered.slice(0, 250);
+    }, [products, debouncedSearch, stockFilter]);
+
+    const clearSearch = React.useCallback(() => {
+        if (searchInputRef.current) searchInputRef.current.value = '';
+        setSearchTerm('');
+        setDebouncedSearch('');
+        setFilteredProducts(null);
+    }, []);
+
     const getStockStatus = (product) => {
         if (product.total_stock === 0) return 'zero';
         if (product.lowStockWarningEnabled && product.total_stock <= product.lowStockThreshold) return 'low';
@@ -300,7 +309,7 @@ const ProductList = () => {
         const confirmed = await showConfirm('Deleting this product will also delete all associated batches and related data. This action cannot be undone. Are you sure you want to continue?');
         if (confirmed) {
             try {
-                await axios.delete(`/api/products/${id}`);
+                await api.delete(`/api/products/${id}`);
                 fetchProducts();
                 fetchSummary();
             } catch (error) {
@@ -354,7 +363,7 @@ const ProductList = () => {
             return;
         }
         try {
-            await axios.delete(`/api/batches/${batchId}`);
+            await api.delete(`/api/batches/${batchId}`);
             fetchProducts();
             fetchSummary();
             setSelectedProductRefresh((value) => value + 1);
@@ -454,12 +463,12 @@ const ProductList = () => {
         }
         try {
             if (categoryDialogMode === 'add') {
-                await axios.post('/api/categories', {
+                await api.post('/api/categories', {
                     name: trimmed,
                     parentId: categoryDialogParent?.id || null
                 });
             } else if (categoryDialogTarget) {
-                await axios.put(`/api/categories/${categoryDialogTarget.id}`, {
+                await api.put(`/api/categories/${categoryDialogTarget.id}`, {
                     name: trimmed
                 });
             }
@@ -476,7 +485,7 @@ const ProductList = () => {
         const confirmed = await showConfirm(`Delete category "${category.name}" and all subcategories?`);
         if (!confirmed) return;
         try {
-            await axios.delete(`/api/categories/${category.id}`);
+            await api.delete(`/api/categories/${category.id}`);
             if (categoryFilter === category.path || categoryFilter.startsWith(`${category.path}/`)) {
                 setCategoryFilter('all');
                 setSelectedProduct(null);
@@ -499,7 +508,7 @@ const ProductList = () => {
         const nextCategory = targetCategory === 'uncategorized' ? null : targetCategory;
         if ((product.category || null) === nextCategory) return;
         try {
-            await axios.put(`/api/products/${product.id}`, {
+            await api.put(`/api/products/${product.id}`, {
                 name: toTitleCase(product.name),
                 barcode: product.barcode,
                 category: nextCategory,
@@ -755,7 +764,7 @@ const ProductList = () => {
                             {searchTerm && (
                                 <Chip
                                     label={`Search: "${searchTerm}"`}
-                                    onDelete={() => setSearchTerm('')}
+                                    onDelete={clearSearch}
                                     size="small"
                                     sx={{
                                         bgcolor: 'rgba(31, 41, 55, 0.15)',
@@ -776,15 +785,30 @@ const ProductList = () => {
                                 variant="outlined"
                                 size="small"
                                 placeholder="Search name or barcode..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                inputRef={searchInputRef}
+                                defaultValue={searchTerm}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+                                    searchTimerRef.current = setTimeout(() => {
+                                        setDebouncedSearch(val.trim());
+                                    }, 400);
+                                }}
                                 onKeyDown={async e => {
-                                    if (e.key === 'Enter' && searchTerm.trim()) {
-                                        const barcode = searchTerm.trim();
-                                        let found = products.find(p => p.barcode && p.barcode.split('|').map(b => b.trim()).includes(barcode));
+                                    if (e.key === 'Enter') {
+                                        const val = e.target.value.trim();
+                                        setSearchTerm(val);
+                                        if (!val) return;
+                                        const barcode = val;
+                                        // Priority 1: Check existing products in memory (fastest)
+                                        let found = products.find(p =>
+                                            p.barcode && p.barcode.split('|').some(b => b.trim() === barcode)
+                                        );
+
                                         if (!found) {
                                             try {
-                                                const res = await axios.get(`/api/products/${barcode}`);
+                                                // Priority 2: Fetch from server if not in current page memory
+                                                const res = await api.get(`/api/products/${barcode}`);
                                                 if (res.data && res.data.product) {
                                                     found = res.data.product;
                                                     if (res.data.batches) {
@@ -795,13 +819,11 @@ const ProductList = () => {
                                                 console.error('Barcode fetch error:', error);
                                             }
                                         }
+
                                         if (found) {
                                             setSelectedProduct(found);
                                             setFilteredProducts([found]);
-                                            setSearchTerm('');
-                                            setDebouncedSearch('');
                                         } else {
-                                            setSearchTerm('');
                                             setFilteredProducts(null);
                                             showError(`No product found for barcode: ${barcode}`);
                                         }
@@ -813,6 +835,17 @@ const ProductList = () => {
                                             <SearchIcon sx={{ color: 'rgba(31, 41, 55, 0.6)', fontSize: '1.1rem' }} />
                                         </InputAdornment>
                                     ),
+                                    endAdornment: (debouncedSearch || searchTerm) && (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                size="small"
+                                                onClick={clearSearch}
+                                                edge="end"
+                                            >
+                                                <ClearIcon sx={{ fontSize: '1rem' }} />
+                                            </IconButton>
+                                        </InputAdornment>
+                                    )
                                 }}
                                 sx={{
                                     width: { xs: '100%', sm: 220, md: 260, lg: 280 },

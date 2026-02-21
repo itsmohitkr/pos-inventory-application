@@ -65,19 +65,104 @@ const ReceiptPreviewDialog = ({
                                     />
                                 )}
                                 <TextField
-                                    label="Header Info"
+                                    label="Invoice Title"
+                                    size="small"
+                                    fullWidth
+                                    value={receiptSettings.invoiceLabel || 'Tax Invoice'}
+                                    onChange={(e) => onTextSettingChange('invoiceLabel', e.target.value)}
+                                    sx={{ mt: 1 }}
+                                />
+                                <TextField
+                                    label="Header Line 1"
                                     size="small"
                                     fullWidth
                                     value={receiptSettings.customHeader}
                                     onChange={(e) => onTextSettingChange('customHeader', e.target.value)}
                                 />
                                 <TextField
-                                    label="Footer Message"
+                                    label="Header Line 2 (Optional)"
+                                    size="small"
+                                    fullWidth
+                                    value={receiptSettings.customHeader2 || ''}
+                                    onChange={(e) => onTextSettingChange('customHeader2', e.target.value)}
+                                />
+                                <TextField
+                                    label="Header Line 3 (Optional)"
+                                    size="small"
+                                    fullWidth
+                                    value={receiptSettings.customHeader3 || ''}
+                                    onChange={(e) => onTextSettingChange('customHeader3', e.target.value)}
+                                />
+                                <TextField
+                                    label="Footer Message 1"
                                     size="small"
                                     fullWidth
                                     value={receiptSettings.customFooter}
                                     onChange={(e) => onTextSettingChange('customFooter', e.target.value)}
                                 />
+                                <TextField
+                                    label="Footer Message 2 (Optional)"
+                                    size="small"
+                                    fullWidth
+                                    value={receiptSettings.customFooter2 || ''}
+                                    onChange={(e) => onTextSettingChange('customFooter2', e.target.value)}
+                                />
+
+                                <Divider sx={{ my: 1 }} />
+
+                                <Typography variant="caption" fontWeight="bold" color="primary">LAYOUT & STYLING</Typography>
+
+                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                    <TextField
+                                        label="Global Font Size"
+                                        size="small"
+                                        type="number"
+                                        fullWidth
+                                        value={receiptSettings.fontSize || 0.8}
+                                        onChange={(e) => onTextSettingChange('fontSize', parseFloat(e.target.value) || 0.8)}
+                                        InputProps={{ inputProps: { min: 0.5, max: 2, step: 0.05 } }}
+                                    />
+                                    <TextField
+                                        label="Item Font Size"
+                                        size="small"
+                                        type="number"
+                                        fullWidth
+                                        value={receiptSettings.itemFontSize || 0.8}
+                                        onChange={(e) => onTextSettingChange('itemFontSize', parseFloat(e.target.value) || 0.8)}
+                                        InputProps={{ inputProps: { min: 0.5, max: 2, step: 0.05 } }}
+                                    />
+                                </Box>
+
+                                <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                                    {['Title', 'Header', 'Footer'].map(alignField => (
+                                        <Grid item xs={4} key={alignField}>
+                                            <FormControl fullWidth size="small">
+                                                <InputLabel>{alignField}</InputLabel>
+                                                <Select
+                                                    value={receiptSettings[`${alignField.toLowerCase()}Align`] || 'center'}
+                                                    label={alignField}
+                                                    onChange={(e) => onTextSettingChange(`${alignField.toLowerCase()}Align`, e.target.value)}
+                                                >
+                                                    <MenuItem value="left">Left</MenuItem>
+                                                    <MenuItem value="center">Center</MenuItem>
+                                                    <MenuItem value="right">Right</MenuItem>
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+
+                                <Box sx={{ mt: 1 }}>
+                                    <TextField
+                                        label="Line Height"
+                                        size="small"
+                                        type="number"
+                                        fullWidth
+                                        value={receiptSettings.lineHeight || 1.1}
+                                        onChange={(e) => onTextSettingChange('lineHeight', parseFloat(e.target.value) || 1.1)}
+                                        InputProps={{ inputProps: { min: 0.8, max: 2.0, step: 0.1 } }}
+                                    />
+                                </Box>
 
                                 <Divider sx={{ my: 1 }} />
 
@@ -103,15 +188,90 @@ const ReceiptPreviewDialog = ({
                                     </Select>
                                 </FormControl>
 
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'primary.main', p: 1, borderRadius: 1, color: 'white', mt: 1 }}>
+                                <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+                                    <InputLabel>Bill Format</InputLabel>
+                                    <Select
+                                        value={receiptSettings.billFormat || 'Standard'}
+                                        label="Bill Format"
+                                        onChange={(e) => onTextSettingChange('billFormat', e.target.value)}
+                                    >
+                                        <MenuItem value="Standard">Standard</MenuItem>
+                                        <MenuItem value="Modern">Modern (Sans-Serif)</MenuItem>
+                                        <MenuItem value="Classic">Classic (Courier)</MenuItem>
+                                        <MenuItem value="Minimal">Minimalist</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                <Box sx={{ mt: 2 }}>
+                                    <Typography variant="caption" fontWeight="bold">MARGINS (mm)</Typography>
+                                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                                        <TextField
+                                            label="Top"
+                                            size="small"
+                                            type="number"
+                                            value={receiptSettings.marginTop ?? 0}
+                                            onChange={(e) => onTextSettingChange('marginTop', parseInt(e.target.value) || 0)}
+                                            InputProps={{ inputProps: { min: 0, max: 20 } }}
+                                        />
+                                        <TextField
+                                            label="Bottom"
+                                            size="small"
+                                            type="number"
+                                            value={receiptSettings.marginBottom ?? 0}
+                                            onChange={(e) => onTextSettingChange('marginBottom', parseInt(e.target.value) || 0)}
+                                            InputProps={{ inputProps: { min: 0, max: 20 } }}
+                                        />
+                                        <TextField
+                                            label="Sides"
+                                            size="small"
+                                            type="number"
+                                            value={receiptSettings.marginSide ?? 4}
+                                            onChange={(e) => onTextSettingChange('marginSide', parseInt(e.target.value) || 0)}
+                                            InputProps={{ inputProps: { min: 0, max: 20 } }}
+                                        />
+                                    </Box>
+                                </Box>
+
+                                <Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    bgcolor: 'primary.main',
+                                    p: 1.5,
+                                    borderRadius: 1,
+                                    color: 'white',
+                                    mt: 1,
+                                    cursor: 'pointer'
+                                }} onClick={() => onSettingChange('directPrint')}>
                                     <Box>
-                                        <Typography variant="body2" fontWeight="bold">Direct Print Mode</Typography>
-                                        <Typography variant="caption" sx={{ opacity: 0.9, display: 'block' }}>Skip this preview dialog</Typography>
+                                        <Typography variant="body2" fontWeight="bold">🚀 Direct Print</Typography>
+                                        <Typography variant="caption" sx={{ opacity: 0.9, display: 'block' }}>Skip this dialog on Pay</Typography>
                                     </Box>
                                     <Checkbox
                                         size="small"
                                         checked={receiptSettings.directPrint}
-                                        onChange={() => onSettingChange('directPrint')}
+                                        sx={{ color: 'white', '&.Mui-checked': { color: '#f2b544' } }}
+                                    />
+                                </Box>
+
+                                <Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    bgcolor: '#444',
+                                    p: 1.5,
+                                    borderRadius: 1,
+                                    color: 'white',
+                                    mt: 1,
+                                    cursor: 'pointer'
+                                }} onClick={() => onSettingChange('roundOff')}>
+                                    <Box>
+                                        <Typography variant="body2" fontWeight="bold">Automatic Round Off</Typography>
+                                        <Typography variant="caption" sx={{ opacity: 0.9, display: 'block' }}>Round total to nearest ₹</Typography>
+                                    </Box>
+                                    <Checkbox
+                                        size="small"
+                                        checked={receiptSettings.roundOff}
                                         sx={{ color: 'white', '&.Mui-checked': { color: '#f2b544' } }}
                                     />
                                 </Box>

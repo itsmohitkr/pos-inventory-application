@@ -23,7 +23,7 @@ import {
     Alert
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../../api';
 import useCustomDialog from '../../hooks/useCustomDialog';
 import CustomDialog from '../common/CustomDialog';
 
@@ -51,7 +51,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
         setLoading(true);
         setError('');
         try {
-            const response = await axios.get('/api/auth/users');
+            const response = await api.get('/api/auth/users');
             setUsers(response.data);
         } catch (err) {
             setError('Failed to fetch users');
@@ -68,7 +68,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
         }
 
         try {
-            await axios.post('/api/auth/users', {
+            await api.post('/api/auth/users', {
                 username: formData.username,
                 password: formData.password,
                 role: formData.role
@@ -83,7 +83,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
 
     const handleUpdateUser = async () => {
         try {
-            await axios.put(`/api/auth/users/${selectedUser.id}`, {
+            await api.put(`/api/auth/users/${selectedUser.id}`, {
                 role: formData.role,
                 status: formData.status
             });
@@ -104,7 +104,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
         const confirmed = await showConfirm(`Are you sure you want to delete user "${username}"?`);
         if (confirmed) {
             try {
-                await axios.delete(`/api/auth/users/${userId}`);
+                await api.delete(`/api/auth/users/${userId}`);
                 fetchUsers();
             } catch (err) {
                 setError(err.response?.data?.error || 'Failed to delete user');
@@ -130,186 +130,186 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
 
     return (
         <>
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle>User Management</DialogTitle>
-            <DialogContent>
-                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+                <DialogTitle>User Management</DialogTitle>
+                <DialogContent>
+                    {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-                <Box sx={{ mt: 2, mb: 2 }}>
-                    <Button
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                        onClick={handleOpenAddDialog}
-                    >
-                        Add User
-                    </Button>
-                </Box>
+                    <Box sx={{ mt: 2, mb: 2 }}>
+                        <Button
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={handleOpenAddDialog}
+                        >
+                            Add User
+                        </Button>
+                    </Box>
 
-                <TableContainer component={Paper}>
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                                <TableCell><strong>Username</strong></TableCell>
-                                <TableCell><strong>Role</strong></TableCell>
-                                <TableCell><strong>Status</strong></TableCell>
-                                <TableCell align="right"><strong>Actions</strong></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {users.map((user) => (
-                                <TableRow key={user.id} sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}>
-                                    <TableCell>{user.username}</TableCell>
-                                    <TableCell>
-                                        <span style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            backgroundColor: user.role === 'admin' ? '#fce4ec' : user.role === 'salesman' ? '#e3f2fd' : '#f3e5f5',
-                                            color: user.role === 'admin' ? '#c2185b' : user.role === 'salesman' ? '#1976d2' : '#7b1fa2',
-                                            fontSize: '12px',
-                                            fontWeight: '500'
-                                        }}>
-                                            {user.role}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            backgroundColor: user.status === 'active' ? '#e8f5e9' : '#ffebee',
-                                            color: user.status === 'active' ? '#2e7d32' : '#c62828',
-                                            fontSize: '12px',
-                                            fontWeight: '500'
-                                        }}>
-                                            {user.status}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleEditUser(user)}
-                                            title="Edit user"
-                                        >
-                                            <EditIcon fontSize="small" />
-                                        </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleDeleteUser(user.id, user.username)}
-                                            title="Delete user"
-                                            disabled={currentUser.id === user.id}
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                    </TableCell>
+                    <TableContainer component={Paper}>
+                        <Table>
+                            <TableHead>
+                                <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                                    <TableCell><strong>Username</strong></TableCell>
+                                    <TableCell><strong>Role</strong></TableCell>
+                                    <TableCell><strong>Status</strong></TableCell>
+                                    <TableCell align="right"><strong>Actions</strong></TableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Close</Button>
-            </DialogActions>
+                            </TableHead>
+                            <TableBody>
+                                {users.map((user) => (
+                                    <TableRow key={user.id} sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}>
+                                        <TableCell>{user.username}</TableCell>
+                                        <TableCell>
+                                            <span style={{
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                backgroundColor: user.role === 'admin' ? '#fce4ec' : user.role === 'salesman' ? '#e3f2fd' : '#f3e5f5',
+                                                color: user.role === 'admin' ? '#c2185b' : user.role === 'salesman' ? '#1976d2' : '#7b1fa2',
+                                                fontSize: '12px',
+                                                fontWeight: '500'
+                                            }}>
+                                                {user.role}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span style={{
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                backgroundColor: user.status === 'active' ? '#e8f5e9' : '#ffebee',
+                                                color: user.status === 'active' ? '#2e7d32' : '#c62828',
+                                                fontSize: '12px',
+                                                fontWeight: '500'
+                                            }}>
+                                                {user.status}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleEditUser(user)}
+                                                title="Edit user"
+                                            >
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleDeleteUser(user.id, user.username)}
+                                                title="Delete user"
+                                                disabled={currentUser.id === user.id}
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={onClose}>Close</Button>
+                </DialogActions>
 
-            {/* Add User Dialog */}
-            <AddUserDialog
-                open={showAddDialog}
-                onClose={() => setShowAddDialog(false)}
-                onKeyDown={(event) => {
-                    if (event.defaultPrevented) return;
-                    if (event.key !== 'Enter') return;
-                    if (event.shiftKey) return;
-                    if (event.target?.tagName === 'TEXTAREA') return;
-                    event.preventDefault();
-                    handleAddUser();
-                }}
-            >
-                <AddUserTitle>Add New User</AddUserTitle>
-                <AddUserContent sx={{ minWidth: 400 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                        <TextField
-                            label="Username"
-                            value={formData.username}
-                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                            fullWidth
-                        />
-                        <TextField
-                            label="Password"
-                            type="password"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            fullWidth
-                        />
-                        <TextField
-                            select
-                            label="Role"
-                            value={formData.role}
-                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                            fullWidth
-                        >
-                            <MenuItem value="cashier">Cashier</MenuItem>
-                            <MenuItem value="salesman">Salesman</MenuItem>
-                            <MenuItem value="admin">Admin</MenuItem>
-                        </TextField>
-                    </Box>
-                </AddUserContent>
-                <AddUserActions>
-                    <Button onClick={() => setShowAddDialog(false)}>Cancel</Button>
-                    <Button onClick={handleAddUser} variant="contained">Add User</Button>
-                </AddUserActions>
-            </AddUserDialog>
+                {/* Add User Dialog */}
+                <AddUserDialog
+                    open={showAddDialog}
+                    onClose={() => setShowAddDialog(false)}
+                    onKeyDown={(event) => {
+                        if (event.defaultPrevented) return;
+                        if (event.key !== 'Enter') return;
+                        if (event.shiftKey) return;
+                        if (event.target?.tagName === 'TEXTAREA') return;
+                        event.preventDefault();
+                        handleAddUser();
+                    }}
+                >
+                    <AddUserTitle>Add New User</AddUserTitle>
+                    <AddUserContent sx={{ minWidth: 400 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                            <TextField
+                                label="Username"
+                                value={formData.username}
+                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                fullWidth
+                            />
+                            <TextField
+                                label="Password"
+                                type="password"
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                fullWidth
+                            />
+                            <TextField
+                                select
+                                label="Role"
+                                value={formData.role}
+                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                fullWidth
+                            >
+                                <MenuItem value="cashier">Cashier</MenuItem>
+                                <MenuItem value="salesman">Salesman</MenuItem>
+                                <MenuItem value="admin">Admin</MenuItem>
+                            </TextField>
+                        </Box>
+                    </AddUserContent>
+                    <AddUserActions>
+                        <Button onClick={() => setShowAddDialog(false)}>Cancel</Button>
+                        <Button onClick={handleAddUser} variant="contained">Add User</Button>
+                    </AddUserActions>
+                </AddUserDialog>
 
-            {/* Edit User Dialog */}
-            <AddUserDialog
-                open={showEditDialog}
-                onClose={() => setShowEditDialog(false)}
-                onKeyDown={(event) => {
-                    if (event.defaultPrevented) return;
-                    if (event.key !== 'Enter') return;
-                    if (event.shiftKey) return;
-                    if (event.target?.tagName === 'TEXTAREA') return;
-                    event.preventDefault();
-                    handleUpdateUser();
-                }}
-            >
-                <AddUserTitle>Edit User: {selectedUser?.username}</AddUserTitle>
-                <AddUserContent sx={{ minWidth: 400 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                        <TextField
-                            label="Username"
-                            value={formData.username}
-                            disabled
-                            fullWidth
-                        />
-                        <TextField
-                            select
-                            label="Role"
-                            value={formData.role}
-                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                            fullWidth
-                        >
-                            <MenuItem value="cashier">Cashier</MenuItem>
-                            <MenuItem value="salesman">Salesman</MenuItem>
-                            <MenuItem value="admin">Admin</MenuItem>
-                        </TextField>
-                        <TextField
-                            select
-                            label="Status"
-                            value={formData.status}
-                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                            fullWidth
-                        >
-                            <MenuItem value="active">Active</MenuItem>
-                            <MenuItem value="inactive">Inactive</MenuItem>
-                        </TextField>
-                    </Box>
-                </AddUserContent>
-                <AddUserActions>
-                    <Button onClick={() => setShowEditDialog(false)}>Cancel</Button>
-                    <Button onClick={handleUpdateUser} variant="contained">Save Changes</Button>
-                </AddUserActions>
-            </AddUserDialog>
-        </Dialog>
-        <CustomDialog {...dialogState} onClose={closeDialog} />
+                {/* Edit User Dialog */}
+                <AddUserDialog
+                    open={showEditDialog}
+                    onClose={() => setShowEditDialog(false)}
+                    onKeyDown={(event) => {
+                        if (event.defaultPrevented) return;
+                        if (event.key !== 'Enter') return;
+                        if (event.shiftKey) return;
+                        if (event.target?.tagName === 'TEXTAREA') return;
+                        event.preventDefault();
+                        handleUpdateUser();
+                    }}
+                >
+                    <AddUserTitle>Edit User: {selectedUser?.username}</AddUserTitle>
+                    <AddUserContent sx={{ minWidth: 400 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                            <TextField
+                                label="Username"
+                                value={formData.username}
+                                disabled
+                                fullWidth
+                            />
+                            <TextField
+                                select
+                                label="Role"
+                                value={formData.role}
+                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                fullWidth
+                            >
+                                <MenuItem value="cashier">Cashier</MenuItem>
+                                <MenuItem value="salesman">Salesman</MenuItem>
+                                <MenuItem value="admin">Admin</MenuItem>
+                            </TextField>
+                            <TextField
+                                select
+                                label="Status"
+                                value={formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                fullWidth
+                            >
+                                <MenuItem value="active">Active</MenuItem>
+                                <MenuItem value="inactive">Inactive</MenuItem>
+                            </TextField>
+                        </Box>
+                    </AddUserContent>
+                    <AddUserActions>
+                        <Button onClick={() => setShowEditDialog(false)}>Cancel</Button>
+                        <Button onClick={handleUpdateUser} variant="contained">Save Changes</Button>
+                    </AddUserActions>
+                </AddUserDialog>
+            </Dialog>
+            <CustomDialog {...dialogState} onClose={closeDialog} />
         </>
     );
 };

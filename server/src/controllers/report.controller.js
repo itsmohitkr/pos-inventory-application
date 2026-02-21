@@ -10,6 +10,27 @@ const getReports = async (req, res) => {
     }
 };
 
+const getExpiryReport = async (req, res) => {
+    const { startDate, endDate } = req.query;
+    try {
+        const expiringBatches = await reportService.getExpiryReport({ startDate, endDate });
+        res.json(expiringBatches);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const getLowStockReport = async (req, res) => {
+    try {
+        const lowStockProducts = await reportService.getLowStockReport();
+        res.json(lowStockProducts);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
-    getReports
+    getReports,
+    getExpiryReport,
+    getLowStockReport
 };

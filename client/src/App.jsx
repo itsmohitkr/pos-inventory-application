@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link as RouterLink, useLocation, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Link as RouterLink, useLocation, Navigate } from 'react-router-dom';
+import api from './api';
 import {
   AppBar,
   Toolbar,
@@ -120,7 +121,6 @@ const getStoredReceiptSettings = (fallbackShopName) => {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.receipt));
     return {
       ...DEFAULT_RECEIPT_SETTINGS,
-      customShopName: fallbackShopName,
       ...stored,
       customShopName: stored?.customShopName || fallbackShopName
     };
@@ -324,8 +324,8 @@ const Inventory = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const response = await fetch('/api/products/export');
-      const blob = await response.blob();
+      const response = await api.get('/api/products/export', { responseType: 'blob' });
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -518,13 +518,9 @@ function App() {
       return;
     }
     try {
-      await fetch(`/api/auth/users/${currentUser.id}/change-password`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          oldPassword: passwordData.oldPassword,
-          newPassword: passwordData.newPassword
-        })
+      await api.put(`/api/auth/users/${currentUser.id}/change-password`, {
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword
       });
       setShowChangePasswordDialog(false);
       setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });

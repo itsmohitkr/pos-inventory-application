@@ -88,8 +88,8 @@ const createProduct = async (req, res) => {
         res.json({ message: "Product/Batch processed successfully", id: result.id });
     } catch (error) {
         console.error("Error creating product:", error);
-        if (error.message === 'Barcode already exists') {
-            return res.status(409).json({ error: error.message });
+        if (error.message.startsWith('BARCODE_CONFLICT:')) {
+            return res.status(409).json({ error: error.message.replace('BARCODE_CONFLICT: ', '') });
         }
         res.status(400).json({ error: error.message });
     }
@@ -111,6 +111,9 @@ const updateProduct = async (req, res) => {
         res.json(product);
     } catch (error) {
         console.error("Error updating product:", error);
+        if (error.message.startsWith('BARCODE_CONFLICT:')) {
+            return res.status(409).json({ error: error.message.replace('BARCODE_CONFLICT: ', '') });
+        }
         res.status(400).json({ error: error.message });
     }
 };

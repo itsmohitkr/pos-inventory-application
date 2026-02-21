@@ -12,7 +12,7 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
     const title = isPriceMode
         ? `Select MRP for ${scannedProduct?.product.name}`
         : `Select Batch for ${scannedProduct?.product.name}`;
-    
+
     const batches = scannedProduct?.batches || [];
 
     // Reset focus when dialog opens or batches change
@@ -88,8 +88,8 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
                     {batches.map((batch, index) => {
                         const isFocused = index === focusedIndex;
                         return (
-                            <ListItemButton 
-                                key={batch.id} 
+                            <ListItemButton
+                                key={batch.id}
                                 onClick={() => onSelectBatch(scannedProduct.product, batch)}
                                 selected={isFocused}
                                 sx={{
@@ -113,36 +113,37 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
                             >
                                 <ListItemText
                                     primary={
-                                        <Typography 
-                                            variant="subtitle1" 
-                                            fontWeight="bold"
+                                        <Typography
+                                            variant="subtitle1"
+                                            fontWeight="normal" // Changed from bold to normal
                                             sx={{ color: isFocused ? '#1976d2' : 'inherit' }}
                                         >
-                                            {isPriceMode ? `MRP: ₹${batch.mrp}` : `Batch: ${batch.batchCode || 'N/A'}`}
+                                            {isPriceMode ? `MRP: ₹${batch.mrp}` : `Batch: ${batch.batchCode ? (batch.batchCode.length > 8 ? batch.batchCode.substring(0, 6) + '...' : batch.batchCode) : 'N/A'}`}
                                         </Typography>
                                     }
                                     secondary={
                                         <Box component="span" sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
                                             {!isPriceMode && (
-                                                <Typography 
+                                                <Typography
                                                     variant="body2"
+                                                    fontWeight="bold" // Added bold
                                                     sx={{ color: 'text.secondary' }}
                                                 >
                                                     MRP: ₹{batch.mrp}
                                                 </Typography>
                                             )}
-                                            <Typography 
-                                                variant="body2" 
-                                                fontWeight="bold"
+                                            <Typography
+                                                variant="body2"
+                                                fontWeight="bold" // Already bold
                                                 sx={{ color: 'success.main' }}
                                             >
                                                 SP: ₹{batch.sellingPrice}
                                             </Typography>
-                                            <Typography 
+                                            <Typography
                                                 variant="body2"
                                                 sx={{ color: 'text.secondary' }}
                                             >
-                                                Qty: {batch.quantity}
+                                                {batch.expiryDate ? `Exp: ${new Date(batch.expiryDate).toLocaleDateString()}` : `Qty: ${batch.quantity}`}
                                             </Typography>
                                         </Box>
                                     }

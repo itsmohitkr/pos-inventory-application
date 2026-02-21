@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import {
     Dialog,
     DialogTitle,
@@ -34,7 +34,7 @@ const QuickInventoryDialog = ({ open, onClose, batch, productName, onUpdated }) 
 
         try {
             const nextQuantity = Number(batch.quantity || 0) + qtyToAdd;
-            await axios.put(`/api/batches/${batch.id}`, {
+            await api.put(`/api/batches/${batch.id}`, {
                 quantity: nextQuantity
             });
             await showSuccess('Stock updated');

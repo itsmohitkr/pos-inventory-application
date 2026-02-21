@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import api from '../../api';
 import {
   Dialog,
   DialogTitle,
@@ -47,6 +48,7 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
   const [tabValue, setTabValue] = useState(0);
   const [uiZoom, setUiZoom] = useState(() => Number(localStorage.getItem('posUiZoom')) || 100);
   const [monochrome, setMonochrome] = useState(() => localStorage.getItem('posMonochromeMode') === 'true');
+  const [looseSaleEnabled, setLooseSaleEnabled] = useState(() => localStorage.getItem('posLooseSaleEnabled') !== 'false');
 
   const handleSave = () => {
     onShopNameChange(editedShopName);
@@ -57,10 +59,15 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
     localStorage.setItem('posShopLogo', logoUrl);
     localStorage.setItem('posUiZoom', uiZoom.toString());
     localStorage.setItem('posMonochromeMode', monochrome.toString());
+    localStorage.setItem('posLooseSaleEnabled', looseSaleEnabled.toString());
     window.dispatchEvent(new Event('pos-ui-zoom-updated'));
     window.dispatchEvent(new Event('pos-settings-updated'));
 
-    showSuccess('Shop details saved successfully!');
+    let message = 'Settings saved successfully!';
+    if (tabValue === 0) message = 'Shop information updated successfully!';
+    if (tabValue === 2) message = 'Display settings updated successfully!';
+
+    showSuccess(message);
     if (!showWipeConfirm) {
       onClose();
     }
@@ -75,28 +82,16 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
     setWipeLoading(true);
 
     try {
-      const response = await fetch('/api/auth/wipe-database', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: currentUser.username,
-          password: wipePassword
-        })
+      const response = await api.post('/api/auth/wipe-database', {
+        username: currentUser.username,
+        password: wipePassword
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        showError(data.error || 'Failed to wipe database');
-        setWipeLoading(false);
-        return;
-      }
 
       showSuccess('Database wiped successfully! The application will reload.');
       window.location.reload();
     } catch (error) {
       console.error('Wipe error:', error);
-      showError('Failed to wipe database');
+      showError(error.response?.data?.error || 'Failed to wipe database');
       setWipeLoading(false);
     }
   };
@@ -298,7 +293,7 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
 
           {/* Tab 1: Payment Settings */}
           {tabValue === 1 && (
-            <PaymentSettingsPanel />
+            <PaymentSettingsPanel showSuccess={showSuccess} />
           )}
 
           {/* Tab 2: UI Settings */}
@@ -380,6 +375,37 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
                       }
                     />
                   </Box>
+
+                  <Divider />
+
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                      POS Features
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Enable or disable specific features on the POS terminal.
+                    </Typography>
+
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={looseSaleEnabled}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setLooseSaleEnabled(val);
+                            // Apply immediately for live preview and persistence
+                            localStorage.setItem('posLooseSaleEnabled', val.toString());
+                            window.dispatchEvent(new Event('pos-settings-updated'));
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body1" fontWeight={600}>
+                          Enable Loose Sale Button
+                        </Typography>
+                      }
+                    />
+                  </Box>
                 </Stack>
               </Paper>
             </Box>
@@ -434,7 +460,7 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
               <Button onClick={handleClose} variant="outlined">
                 Cancel
               </Button>
-              {tabValue === 0 && (
+              {(tabValue === 0 || tabValue === 2) && (
                 <Button onClick={handleSave} variant="contained">
                   Save Changes
                 </Button>

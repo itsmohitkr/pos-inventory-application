@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../config/prisma');
 
 const login = async (req, res) => {
     try {
@@ -31,7 +30,12 @@ const login = async (req, res) => {
         res.json(userWithoutPassword);
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Login failed' });
+        res.status(500).json({
+            error: 'Login failed',
+            details: error.message,
+            stack: error.stack,
+            dbUrl: process.env.DATABASE_URL
+        });
     }
 };
 
@@ -219,15 +223,15 @@ const wipeDatabase = async (req, res) => {
 
             // Delete stock movements before inventory records
             await tx.stockMovement.deleteMany({});
-            
+
             // Delete inventory data
             await tx.batch.deleteMany({});
             await tx.product.deleteMany({});
-            
+
             // Delete categories (children first to satisfy self-relation)
             await tx.category.deleteMany({ where: { parentId: { not: null } } });
             await tx.category.deleteMany({});
-            
+
             // Delete all users except the admin who initiated
             await tx.user.deleteMany({
                 where: {
@@ -236,7 +240,7 @@ const wipeDatabase = async (req, res) => {
             });
         });
 
-        res.json({ 
+        res.json({
             message: 'Database wiped successfully. All data deleted except your admin account.',
             remainingUser: user.username
         });

@@ -2,11 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { PrismaClient } = require('@prisma/client');
-const { spawn } = require('child_process');
-const path = require('path');
-
-const prisma = new PrismaClient();
+const prisma = require('./src/config/prisma');
 
 // Import modular routes
 const productRoutes = require('./src/routes/product.routes');
@@ -14,6 +10,7 @@ const saleRoutes = require('./src/routes/sale.routes');
 const reportRoutes = require('./src/routes/report.routes');
 const authRoutes = require('./src/routes/auth.routes');
 const categoryRoutes = require('./src/routes/category.routes');
+const looseSaleRoutes = require('./src/routes/loose-sale.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -28,6 +25,7 @@ apiRouter.use(productRoutes);
 apiRouter.use(categoryRoutes);
 apiRouter.use(saleRoutes);
 apiRouter.use(reportRoutes);
+apiRouter.use(looseSaleRoutes);
 
 app.use('/api', apiRouter);
 
@@ -40,24 +38,10 @@ async function checkAndSeed() {
         if (userCount === 0) {
             console.log('Database is empty. Running seed script...');
 
-            // Run seed script
-            const seedPath = path.join(__dirname, 'seed.js');
-            const seedProcess = spawn('node', [seedPath], {
-                stdio: 'inherit',
-                env: process.env
-            });
-
-            await new Promise((resolve, reject) => {
-                seedProcess.on('close', (code) => {
-                    if (code === 0) {
-                        console.log('Database seeded successfully!');
-                        resolve();
-                    } else {
-                        reject(new Error(`Seed process exited with code ${code}`));
-                    }
-                });
-                seedProcess.on('error', reject);
-            });
+            // Run essential seed script only (admin user etc)
+            const { seedEssential } = require('./seed');
+            await seedEssential();
+            console.log('Database initialized successfully!');
         } else {
             console.log('Database already seeded.');
         }

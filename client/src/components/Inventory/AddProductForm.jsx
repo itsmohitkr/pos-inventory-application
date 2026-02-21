@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import {
     Paper, Typography, TextField, Button, Grid, Box, InputAdornment,
     Divider, Switch, FormControlLabel, Autocomplete, Chip
@@ -42,7 +42,7 @@ const AddProductForm = ({ onProductAdded }) => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await axios.get('/api/products/summary');
+                const response = await api.get('/api/products/summary');
                 const categoryCounts = response.data.data?.categoryCounts || {};
                 const categories = Object.keys(categoryCounts).filter(Boolean).sort();
                 setExistingCategories(categories);
@@ -85,22 +85,24 @@ const AddProductForm = ({ onProductAdded }) => {
 
     const addBarcode = async (barcode) => {
         const trimmed = barcode.trim();
-        if (!trimmed) return;
+        if (!trimmed) return true;
 
         // Check if barcode already exists in local list
         if (formData.barcodes.some(b => b.toLowerCase() === trimmed.toLowerCase())) {
             setBarcodeError('Barcode already added');
-            return;
+            return false;
         }
 
         setBarcodeChecking(true);
         try {
             // Check if barcode exists in database
             try {
-                await axios.get(`/api/products/${encodeURIComponent(trimmed)}`);
-                setBarcodeError(`Barcode '${trimmed}' already exists in database`);
+                const res = await api.get(`/api/products/${encodeURIComponent(trimmed)}`);
+                const existingProduct = res.data?.product || res.data;
+                const existingName = existingProduct?.name || 'another product';
+                setBarcodeError(`Barcode '${trimmed}' is already associated with product '${existingName}'`);
                 setBarcodeChecking(false);
-                return;
+                return false;
             } catch (error) {
                 if (error.response && error.response.status === 404) {
                     // 404 means barcode does not exist in DB, which is what we want for a new product
@@ -114,7 +116,7 @@ const AddProductForm = ({ onProductAdded }) => {
                     }
                     setBarcodeError(errorMessage);
                     setBarcodeChecking(false);
-                    return;
+                    return false;
                 }
             }
 
@@ -124,8 +126,10 @@ const AddProductForm = ({ onProductAdded }) => {
             }));
             setManualBarcodeInput('');
             setBarcodeError('');
+            return true;
         } catch (error) {
             setBarcodeError('Unable to verify barcode');
+            return false;
         } finally {
             setBarcodeChecking(false);
         }
@@ -147,10 +151,17 @@ const AddProductForm = ({ onProductAdded }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // If there's pending manual input, try to add it first
+        if (manualBarcodeInput.trim()) {
+            const success = await addBarcode(manualBarcodeInput);
+            if (!success) return;
+        }
+
+        if (barcodeChecking || barcodeError) {
+            return;
+        }
         try {
-            if (barcodeChecking || barcodeError) {
-                return;
-            }
             const mrp = Number(formData.initialBatch.mrp) || 0;
             const costPrice = Number(formData.initialBatch.cost_price) || 0;
             const sellingPrice = Number(formData.initialBatch.selling_price) || 0;
@@ -177,7 +188,7 @@ const AddProductForm = ({ onProductAdded }) => {
                     selling_price: Number(formData.initialBatch.selling_price) || 0
                 }
             };
-            await axios.post('/api/products', payload);
+            await api.post('/api/products', payload);
             await showSuccess('Product added successfully!');
             setFormData({
                 name: '',
@@ -202,10 +213,12 @@ const AddProductForm = ({ onProductAdded }) => {
         } catch (error) {
             console.error(error);
             if (error.response?.status === 409) {
-                setBarcodeError(error.response?.data?.error || 'Barcode already exists');
+                const errorMessage = error.response?.data?.error || 'Barcode already exists';
+                setBarcodeError(errorMessage);
+                await showError(errorMessage);
                 return;
             }
-            await showError('Failed to add product');
+            await showError('Failed to add product: ' + (error.response?.data?.error || error.message));
         }
     };
 

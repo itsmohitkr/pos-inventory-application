@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import api from '../../api';
 import {
   Dialog,
   DialogTitle,
@@ -164,30 +165,26 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
           .filter(row => row.barcode && row.barcode.trim())
           .map(row => row.barcode.trim());
 
-        const response = await fetch('/api/products/validate-barcodes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ barcodes: originalBarcodes })
+        const response = await api.post('/api/products/validate-barcodes', {
+          barcodes: originalBarcodes
         });
 
-        if (response.ok) {
-          const { existingBarcodes } = await response.json();
+        const { existingBarcodes } = response.data;
 
-          // Mark rows with existing barcodes as errors (case-insensitive comparison)
-          for (const row of allData) {
-            if (row.barcode && row.barcode.trim()) {
-              const rowBarcode = row.barcode.trim().toLowerCase();
-              const exists = existingBarcodes.some(eb => eb.toLowerCase() === rowBarcode);
-              if (exists) {
-                const error = 'Barcode already exists in database';
-                row.errors.push(error);
+        // Mark rows with existing barcodes as errors (case-insensitive comparison)
+        for (const row of allData) {
+          if (row.barcode && row.barcode.trim()) {
+            const rowBarcode = row.barcode.trim().toLowerCase();
+            const exists = existingBarcodes.some(eb => eb.toLowerCase() === rowBarcode);
+            if (exists) {
+              const error = 'Barcode already exists in database';
+              row.errors.push(error);
 
-                const existingError = errors.find(e => e.line === row.lineNumber);
-                if (existingError) {
-                  existingError.messages.push(error);
-                } else {
-                  errors.push({ line: row.lineNumber, messages: [error] });
-                }
+              const existingError = errors.find(e => e.line === row.lineNumber);
+              if (existingError) {
+                existingError.messages.push(error);
+              } else {
+                errors.push({ line: row.lineNumber, messages: [error] });
               }
             }
           }
@@ -212,12 +209,11 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/products/import', {
-        method: 'POST',
-        body: formData
+      const response = await api.post('/api/products/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      const data = await response.json();
+      const data = response.data;
       setResult(data);
 
       if (data.success && onImportComplete) {

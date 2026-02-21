@@ -1,18 +1,24 @@
 const { PrismaClient } = require('@prisma/client');
-require('dotenv').config();
+if (!process.env.DATABASE_URL) {
+    require('dotenv').config();
+}
 
-// Use absolute path for SQLite database to avoid relative path issues
-const dbPath = process.env.DATABASE_URL || 'file:/Users/mokumar/Downloads/POS Application/server/pos.db';
+// Use DATABASE_URL from environment (set by Electron main process in production)
+// or fallback to a local development default.
+const DATABASE_URL = process.env.DATABASE_URL;
 
 console.log('---------------------------------------------------');
 console.log('PRISMA CONFIG LOADED');
-console.log('Current Working Directory:', process.cwd());
-console.log('DATABASE_URL from env:', process.env.DATABASE_URL);
-console.log('Resolved dbPath:', dbPath);
+console.log('DATABASE_URL:', DATABASE_URL);
+console.log('Prisma Engine Path:', process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default');
 console.log('---------------------------------------------------');
 
 const prisma = new PrismaClient({
-    log: ['query', 'info', 'warn', 'error'],
+    datasources: {
+        db: {
+            url: DATABASE_URL,
+        },
+    },
 });
 
 module.exports = prisma;

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Box, Autocomplete, TextField, InputAdornment, Typography, Chip, IconButton } from '@mui/material';
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
+import { Button } from '@mui/material';
 
 import { keyframes } from '@mui/system';
 
@@ -11,7 +12,7 @@ const barcodeAnim = keyframes`
     100% { opacity: 0; transform: translateX(120px); }
 `;
 
-const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProduct, filterOptions }) => {
+const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProduct, filterOptions, onLooseSale, looseSaleEnabled }) => {
     const inputRef = useRef(null);
     const timerRef = useRef(null);
     const [animating, setAnimating] = React.useState(false);
@@ -91,9 +92,17 @@ const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProd
     };
 
     return (
-        <Box sx={{ p: 2, borderBottom: '1px solid rgba(16, 24, 40, 0.08)', bgcolor: 'rgba(255, 255, 255, 0.9)', position: 'relative' }}>
+        <Box sx={{
+            p: 2,
+            borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
+            bgcolor: 'rgba(255, 255, 255, 0.9)',
+            display: 'flex',
+            gap: 2,
+            alignItems: 'center'
+        }}>
             <Autocomplete
                 id="pos-search"
+                sx={{ flex: 1 }}
                 options={products}
                 getOptionLabel={(option) => `${option.name}${option.barcode ? ` (${option.barcode})` : ''}`}
                 filterOptions={filterOptions}
@@ -162,6 +171,24 @@ const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProd
                     </li>
                 )}
             />
+            {looseSaleEnabled && (
+                <Button
+                    variant="outlined"
+                    color="warning"
+                    onClick={onLooseSale}
+                    sx={{
+                        height: 56,
+                        px: 3,
+                        fontWeight: 800,
+                        borderRadius: 2,
+                        border: '2px solid',
+                        whiteSpace: 'nowrap',
+                        '&:hover': { border: '2px solid', bgcolor: '#fff7ed' }
+                    }}
+                >
+                    + LOOSE SALE
+                </Button>
+            )}
         </Box>
     );
 };

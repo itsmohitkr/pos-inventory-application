@@ -8,11 +8,17 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0 }) => {
 
         for (const item of items) {
             const batch = await tx.batch.findUnique({
-                where: { id: item.batch_id }
+                where: { id: item.batch_id },
+                include: { product: true }
             });
 
-            if (!batch || batch.quantity < item.quantity) {
-                throw new Error(`Insufficient stock for batch ID ${item.batch_id}`);
+            if (!batch) {
+                throw new Error(`Batch ID ${item.batch_id} not found.`);
+            }
+
+            if (batch.quantity < item.quantity) {
+                const productName = batch.product?.name || 'Unknown Product';
+                throw new Error(`Insufficient stock for ${productName} (Batch ID ${item.batch_id}). Available: ${batch.quantity}, Required: ${item.quantity}.`);
             }
 
             await tx.batch.update({

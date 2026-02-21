@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, Grid, TextField, InputAdornment, Box, Typography, DialogActions, Button } from '@mui/material';
-import axios from 'axios';
+import api from '../../api';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
 
@@ -56,7 +56,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
 
         setIsSaving(true);
         try {
-            await axios.put(`/api/batches/${batch.id}`, {
+            await api.put(`/api/batches/${batch.id}`, {
                 ...formData,
                 quantity: Number(formData.quantity),
                 mrp,
@@ -99,112 +99,112 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                 <DialogTitle>Edit Batch Details</DialogTitle>
                 <DialogContent component="form" onSubmit={handleSave} sx={{ pt: 2 }}>
                     <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                    <Grid item xs={6}>
-                        <TextField
-                            label="Batch Code"
-                            fullWidth
-                            value={formData.batchCode}
-                            onChange={(e) => handleChange('batchCode', e.target.value)}
-                        />
+                        <Grid item xs={6}>
+                            <TextField
+                                label="Batch Code"
+                                fullWidth
+                                value={formData.batchCode}
+                                onChange={(e) => handleChange('batchCode', e.target.value)}
+                            />
+                        </Grid>
+                        <Grid item xs={6}>
+                            <TextField
+                                label="Quantity"
+                                type="number"
+                                fullWidth
+                                value={formData.quantity}
+                                onChange={(e) => handleChange('quantity', e.target.value)}
+                                placeholder="0"
+                                InputProps={{ inputProps: { min: 0, step: 1 } }}
+                            />
+                        </Grid>
+                        <Grid item xs={4}>
+                            <TextField
+                                label="Cost Price (CP)"
+                                type="number"
+                                fullWidth
+                                value={formData.costPrice}
+                                onChange={(e) => handleChange('costPrice', e.target.value)}
+                                error={sellingBelowCost}
+                                helperText={sellingBelowCost ? 'Cost must be <= selling price' : ''}
+                                placeholder="0.00"
+                                InputProps={{
+                                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                    inputProps: { min: 0, step: '0.01' }
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={4}>
+                            <TextField
+                                label="Selling Price (SP)"
+                                type="number"
+                                fullWidth
+                                value={formData.sellingPrice}
+                                onChange={(e) => handleChange('sellingPrice', e.target.value)}
+                                error={sellingInvalid}
+                                helperText={sellingInvalid ? 'Between CP and MRP' : ''}
+                                placeholder="0.00"
+                                InputProps={{
+                                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                    inputProps: { min: 0, step: '0.01' }
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={4}>
+                            <TextField
+                                label="MRP"
+                                type="number"
+                                fullWidth
+                                value={formData.mrp}
+                                onChange={(e) => handleChange('mrp', e.target.value)}
+                                error={sellingAboveMrp}
+                                helperText={sellingAboveMrp ? 'MRP must be >= selling price' : ''}
+                                placeholder="0.00"
+                                InputProps={{
+                                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                    inputProps: { min: 0, step: '0.01' }
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                label="Expiry Date"
+                                type="date"
+                                fullWidth
+                                InputLabelProps={{ shrink: true }}
+                                value={formData.expiryDate}
+                                onChange={(e) => handleChange('expiryDate', e.target.value)}
+                            />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Box sx={{
+                                p: 2,
+                                bgcolor: '#f0f7ff',
+                                borderRadius: 1,
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                border: '1px solid #cce3ff'
+                            }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#0059b2' }}>Calculated Margin:</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: '800', color: '#0059b2' }}>
+                                    {sellingPrice > 0
+                                        ? (((sellingPrice - costPrice) / sellingPrice) * 100).toFixed(1)
+                                        : 0}%
+                                </Typography>
+                            </Box>
+                        </Grid>
                     </Grid>
-                    <Grid item xs={6}>
-                        <TextField
-                            label="Quantity"
-                            type="number"
-                            fullWidth
-                            value={formData.quantity}
-                            onChange={(e) => handleChange('quantity', e.target.value)}
-                            placeholder="0"
-                            InputProps={{ inputProps: { min: 0, step: 1 } }}
-                        />
-                    </Grid>
-                    <Grid item xs={4}>
-                        <TextField
-                            label="Cost Price (CP)"
-                            type="number"
-                            fullWidth
-                            value={formData.costPrice}
-                            onChange={(e) => handleChange('costPrice', e.target.value)}
-                            error={sellingBelowCost}
-                            helperText={sellingBelowCost ? 'Cost must be <= selling price' : ''}
-                            placeholder="0.00"
-                            InputProps={{
-                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                inputProps: { min: 0, step: '0.01' }
-                            }}
-                        />
-                    </Grid>
-                    <Grid item xs={4}>
-                        <TextField
-                            label="Selling Price (SP)"
-                            type="number"
-                            fullWidth
-                            value={formData.sellingPrice}
-                            onChange={(e) => handleChange('sellingPrice', e.target.value)}
-                            error={sellingInvalid}
-                            helperText={sellingInvalid ? 'Between CP and MRP' : ''}
-                            placeholder="0.00"
-                            InputProps={{
-                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                inputProps: { min: 0, step: '0.01' }
-                            }}
-                        />
-                    </Grid>
-                    <Grid item xs={4}>
-                        <TextField
-                            label="MRP"
-                            type="number"
-                            fullWidth
-                            value={formData.mrp}
-                            onChange={(e) => handleChange('mrp', e.target.value)}
-                            error={sellingAboveMrp}
-                            helperText={sellingAboveMrp ? 'MRP must be >= selling price' : ''}
-                            placeholder="0.00"
-                            InputProps={{
-                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                inputProps: { min: 0, step: '0.01' }
-                            }}
-                        />
-                    </Grid>
-                    <Grid item xs={12}>
-                        <TextField
-                            label="Expiry Date"
-                            type="date"
-                            fullWidth
-                            InputLabelProps={{ shrink: true }}
-                            value={formData.expiryDate}
-                            onChange={(e) => handleChange('expiryDate', e.target.value)}
-                        />
-                    </Grid>
-                    <Grid item xs={12}>
-                        <Box sx={{
-                            p: 2,
-                            bgcolor: '#f0f7ff',
-                            borderRadius: 1,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            border: '1px solid #cce3ff'
-                        }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#0059b2' }}>Calculated Margin:</Typography>
-                            <Typography variant="h6" sx={{ fontWeight: '800', color: '#0059b2' }}>
-                                {sellingPrice > 0
-                                    ? (((sellingPrice - costPrice) / sellingPrice) * 100).toFixed(1)
-                                    : 0}%
-                            </Typography>
-                        </Box>
-                    </Grid>
-                </Grid>
-            </DialogContent>
-            <DialogActions sx={{ p: 2, pt: 0 }}>
-                <Button onClick={onClose} disabled={isSaving}>Cancel</Button>
-                <Button onClick={handleSave} variant="contained" disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
-            </DialogActions>
-        </Dialog>
-        <CustomDialog {...dialogState} onClose={closeDialog} />
-    </>
+                </DialogContent>
+                <DialogActions sx={{ p: 2, pt: 0 }}>
+                    <Button onClick={onClose} disabled={isSaving}>Cancel</Button>
+                    <Button onClick={handleSave} variant="contained" disabled={isSaving}>
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            <CustomDialog {...dialogState} onClose={closeDialog} />
+        </>
     );
 };
 

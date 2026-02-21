@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from '../../api';
 import {
   Container,
   Typography,
@@ -34,6 +34,7 @@ import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
 
 const SaleHistory = () => {
   const [sales, setSales] = useState([]);
+  const [looseSales, setLooseSales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [tabValue, setTabValue] = useState(0);
@@ -91,12 +92,19 @@ const SaleHistory = () => {
   const fetchSales = async (start, end) => {
     setLoading(true);
     try {
-      const res = await axios.get("/api/reports", {
-        params: { startDate: start, endDate: end },
-      });
-      setSales(res.data.sales || []);
-      if (res.data.sales && res.data.sales.length > 0) {
-        setSelectedSale(res.data.sales[0]);
+      const [salesRes, looseSalesRes] = await Promise.all([
+        api.get("/api/reports", { params: { startDate: start, endDate: end } }),
+        api.get("/api/reports/loose-sales", { params: { startDate: start, endDate: end } })
+      ]);
+
+      const salesData = salesRes.data.sales || [];
+      const looseSalesData = looseSalesRes.data || [];
+
+      setSales(salesData);
+      setLooseSales(looseSalesData);
+
+      if (salesData.length > 0) {
+        setSelectedSale(salesData[0]);
       } else {
         setSelectedSale(null);
       }
@@ -395,9 +403,43 @@ const SaleHistory = () => {
                     Sales ({sales.length})
                   </Typography>
                   <Chip
-                    label={`Total Sales: ₹${sales.reduce((sum, s) => sum + (s.netTotalAmount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-                    color="success"
-                    sx={{ fontWeight: 700 }}
+                    label={(() => {
+                      const posTotal = sales.reduce((sum, s) => sum + (s.netTotalAmount || 0), 0);
+                      const looseTotal = looseSales.reduce((sum, ls) => sum + (ls.price || 0), 0);
+                      const combinedTotal = posTotal + looseTotal;
+
+                      return (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
+                          <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#1b5e20' }}>
+                            Total Sales: ₹{combinedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#64748b' }}>=</Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1565c0' }}>
+                            {posTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#64748b' }}>+</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#ef6c00' }}>
+                              {looseTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </Typography>
+                            <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#f57c00', ml: 0.5, opacity: 0.9 }}>
+                              (Loose sale)
+                            </Typography>
+                          </Box>
+                        </Box>
+                      );
+                    })()}
+                    sx={{
+                      height: 'auto',
+                      py: 1.5,
+                      px: 2,
+                      bgcolor: '#f1f8e9',
+                      border: '2px solid #a5d6a7',
+                      borderRadius: 3,
+                      '& .MuiChip-label': {
+                        p: 0
+                      }
+                    }}
                   />
                 </Box>
                 <TableContainer sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>

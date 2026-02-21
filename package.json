@@ -37,7 +37,10 @@
             "client/dist/**/*",
             "server/**/*",
             "node_modules/**/*",
-            "!node_modules/.cache"
+            "!node_modules/.cache",
+            "!.env",
+            "!client/.env",
+            "!server/.env"
         ],
         "asarUnpack": [
             "server/**/*",

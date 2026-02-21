@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { Dialog, DialogTitle, DialogContent, TextField, DialogActions, Button, Autocomplete, FormControlLabel, Switch, Box, Chip, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from '@mui/material';
 import { Refresh as RefreshIcon, Close as CloseIcon, Edit as EditIcon } from '@mui/icons-material';
 import { InputAdornment } from '@mui/material';
@@ -23,6 +23,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
     const [barcodes, setBarcodes] = useState([]);
     const [manualBarcodeInput, setManualBarcodeInput] = useState('');
     const [barcodeError, setBarcodeError] = useState('');
+    const [barcodeChecking, setBarcodeChecking] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     const [editBatchOpen, setEditBatchOpen] = useState(false);
@@ -31,7 +32,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
     const fetchProductDetails = async () => {
         if (!product?.id) return;
         try {
-            const response = await axios.get(`/api/products/id/${product.id}`);
+            const response = await api.get(`/api/products/id/${product.id}`);
             const fullProduct = response.data.data;
             if (fullProduct) {
                 setFormData({
@@ -57,7 +58,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await axios.get('/api/products/summary');
+                const response = await api.get('/api/products/summary');
                 const categoryCounts = response.data.data?.categoryCounts || {};
                 const categories = Object.keys(categoryCounts).filter(Boolean).sort();
                 setExistingCategories(categories);
@@ -74,20 +75,49 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
         }
     }, [open, product]);
 
-    const addBarcode = (barcode) => {
+    const addBarcode = async (barcode) => {
         const trimmed = barcode.trim();
-        if (!trimmed) return;
+        if (!trimmed) return true;
 
         if (barcodes.some(b => b.toLowerCase() === trimmed.toLowerCase())) {
             setBarcodeError('Barcode already added');
-            return;
+            return false;
         }
 
-        const updatedBarcodes = [...barcodes, trimmed];
-        setBarcodes(updatedBarcodes);
-        setManualBarcodeInput('');
-        setBarcodeError('');
-        setFormData(prev => ({ ...prev, barcode: updatedBarcodes.join('|') }));
+        setBarcodeChecking(true);
+        try {
+            // Check if barcode exists in database and belongs to ANOTHER product
+            try {
+                const res = await api.get(`/api/products/${encodeURIComponent(trimmed)}`);
+                const existingProduct = res.data?.product;
+                if (existingProduct && String(existingProduct.id) !== String(product.id)) {
+                    setBarcodeError(`Barcode '${trimmed}' is already associated with product '${existingProduct.name}'`);
+                    setBarcodeChecking(false);
+                    return false;
+                }
+            } catch (error) {
+                if (error.response && error.response.status === 401) {
+                    console.error("Authentication failed during barcode check");
+                    setBarcodeError("Session expired. Please re-login.");
+                    setBarcodeChecking(false);
+                    return false;
+                }
+                if (error.response && error.response.status === 404) {
+                    // Not found, safe to add
+                } else {
+                    console.error("Barcode verification failed:", error);
+                }
+            }
+
+            const updatedBarcodes = [...barcodes, trimmed];
+            setBarcodes(updatedBarcodes);
+            setManualBarcodeInput('');
+            setBarcodeError('');
+            setFormData(prev => ({ ...prev, barcode: updatedBarcodes.join('|') }));
+            return true;
+        } finally {
+            setBarcodeChecking(false);
+        }
     };
 
     const removeBarcode = (index) => {
@@ -106,16 +136,32 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
     const handleSave = async () => {
         if (!product?.id) return;
 
+        // If there's pending manual input, try to add it first
+        if (manualBarcodeInput.trim()) {
+            const success = await addBarcode(manualBarcodeInput);
+            if (!success) return;
+        }
+
+        if (barcodeChecking || barcodeError) {
+            return;
+        }
+
         setIsSaving(true);
         try {
-            await axios.put(`/api/products/${product.id}`, formData);
+            await api.put(`/api/products/${product.id}`, formData);
             if (onProductUpdated) {
                 onProductUpdated();
             }
             onClose();
         } catch (error) {
             console.error("Error updating product:", error);
-            showError("Failed to update product: " + (error.response?.data?.error || error.message));
+            const errorMessage = error.response?.data?.error || error.message;
+            if (error.response?.status === 409) {
+                setBarcodeError(errorMessage);
+                showError("Conflict: " + errorMessage);
+            } else {
+                showError("Failed to update product: " + errorMessage);
+            }
         } finally {
             setIsSaving(false);
         }
@@ -166,6 +212,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
                                 }}
                                 error={Boolean(barcodeError)}
                                 helperText={barcodeError || 'Enter barcode and press Enter or click Generate'}
+                                disabled={barcodeChecking}
                                 sx={{ flex: 1, minWidth: 200 }}
                                 InputProps={{
                                     startAdornment: <InputAdornment position="start"><QrCodeIcon color="action" /></InputAdornment>,
@@ -175,6 +222,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
                                 variant="contained"
                                 startIcon={<RefreshIcon />}
                                 onClick={generateBarcode}
+                                disabled={barcodeChecking}
                                 sx={{ mt: 0.5, whiteSpace: 'nowrap', height: 'fit-content' }}
                             >
                                 Generate
@@ -297,8 +345,8 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={onClose} disabled={isSaving}>Cancel</Button>
-                    <Button onClick={handleSave} variant="contained" disabled={isSaving}>
+                    <Button onClick={onClose} disabled={isSaving || barcodeChecking}>Cancel</Button>
+                    <Button onClick={handleSave} variant="contained" disabled={isSaving || barcodeChecking || Boolean(barcodeError)}>
                         {isSaving ? 'Saving...' : 'Save Product'}
                     </Button>
                 </DialogActions>
