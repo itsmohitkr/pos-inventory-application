@@ -217,6 +217,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                                             whiteSpace: 'normal'
                                         }}>
                                             {item.productName || item.batch?.product?.name}
+                                            {item.isWholesale && <span style={{ fontSize: '0.8em', marginLeft: '4px', color: '#000' }}>(WS)</span>}
                                         </div>
                                         <div style={{ display: 'flex', gap: '8px', fontSize: '0.85em', marginTop: '3px', fontWeight: theme.textWeight }}>
                                             {config.barcode && <span>BC: {item.batch?.product?.barcode}</span>}

@@ -83,6 +83,7 @@ model SaleItem {
   sellingPrice     Float
   costPrice        Float
   mrp              Float
+  isWholesale      Boolean    @default(false)
 }
 
 model StockMovement {

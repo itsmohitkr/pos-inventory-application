@@ -59,8 +59,10 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0 }) => {
             // Determine effective price
             let effectivePrice = batch.sellingPrice;
 
+            const isWholesaleItem = batch.wholesaleEnabled && batch.wholesaleMinQty && item.quantity >= batch.wholesaleMinQty;
+
             // 1. Check Wholesale (highest priority if applicable)
-            if (batch.wholesaleEnabled && batch.wholesaleMinQty && item.quantity >= batch.wholesaleMinQty) {
+            if (isWholesaleItem) {
                 effectivePrice = batch.wholesalePrice;
             }
             // 2. Check Promotion
@@ -75,7 +77,8 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0 }) => {
                 quantity: item.quantity,
                 sellingPrice: effectivePrice, // Record the actual price sold at
                 costPrice: batch.costPrice,
-                mrp: batch.mrp
+                mrp: batch.mrp,
+                isWholesale: isWholesaleItem
             });
 
             movementData.push({
