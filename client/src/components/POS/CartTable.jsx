@@ -80,11 +80,36 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, lastAddedItemId }
                                     }}
                                 >
                                     <TableCell>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
                                             <Typography variant="subtitle2" fontWeight="600">{item.name}</Typography>
                                             {item.isOnSale && <Chip label="SALE" size="small" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#7c3aed', color: 'white' }} />}
+                                            {item.wholesaleEnabled && (
+                                                <Tooltip title={`Wholesale: ₹${item.wholesalePrice} for ${item.wholesaleMinQty}+ units`} arrow>
+                                                    <Chip
+                                                        label="WHOLESALE"
+                                                        size="small"
+                                                        variant={item.quantity >= item.wholesaleMinQty ? "filled" : "outlined"}
+                                                        color="primary"
+                                                        sx={{
+                                                            height: 16,
+                                                            fontSize: '0.6rem',
+                                                            fontWeight: 800,
+                                                            bgcolor: item.quantity >= item.wholesaleMinQty ? 'primary.main' : 'transparent',
+                                                            color: item.quantity >= item.wholesaleMinQty ? 'white' : 'primary.main',
+                                                            borderColor: 'primary.main'
+                                                        }}
+                                                    />
+                                                </Tooltip>
+                                            )}
                                         </Box>
-                                        <ShortBatchCode batchCode={item.batch_code} />
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <ShortBatchCode batchCode={item.batch_code} />
+                                            {item.wholesaleEnabled && (
+                                                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500, fontSize: '0.65rem' }}>
+                                                    {item.wholesaleMinQty}+ units @ ₹{item.wholesalePrice}
+                                                </Typography>
+                                            )}
+                                        </Box>
                                     </TableCell>
                                     <TableCell align="center">
                                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 1, width: 'fit-content', mx: 'auto' }}>
