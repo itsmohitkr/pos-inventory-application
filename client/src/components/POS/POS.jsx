@@ -446,8 +446,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         const confirmed = await showConfirm('Are you sure you want to VOID this entire order?');
         if (confirmed) {
             updateTab(activeTabId, { cart: [], discount: 0 });
-            searchBarRef.current?.focus();
         }
+        searchBarRef.current?.focus();
     };
 
     const handleSelectPaymentMethod = (method) => {
@@ -747,7 +747,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 <BatchSelectionDialog
                     scannedProduct={scannedProduct}
                     onSelectBatch={addToCart}
-                    onClose={() => setScannedProduct(null)}
+                    onClose={() => {
+                        setScannedProduct(null);
+                        searchBarRef.current?.focus();
+                    }}
                 />
 
                 <ReceiptPreviewDialog
