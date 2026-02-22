@@ -15,6 +15,7 @@ import {
 } from '@mui/icons-material';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
+import WholesaleConfiguration from './WholesaleConfiguration';
 
 const AddProductForm = ({ onProductAdded }) => {
     const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
@@ -31,6 +32,9 @@ const AddProductForm = ({ onProductAdded }) => {
             mrp: '',
             cost_price: '',
             selling_price: '',
+            wholesaleEnabled: false,
+            wholesalePrice: '',
+            wholesaleMinQty: '',
             expiryDate: ''
         }
     });
@@ -185,7 +189,10 @@ const AddProductForm = ({ onProductAdded }) => {
                     quantity: Number(formData.initialBatch.quantity) || 0,
                     mrp: Number(formData.initialBatch.mrp) || 0,
                     cost_price: Number(formData.initialBatch.cost_price) || 0,
-                    selling_price: Number(formData.initialBatch.selling_price) || 0
+                    selling_price: Number(formData.initialBatch.selling_price) || 0,
+                    wholesaleEnabled: formData.initialBatch.wholesaleEnabled,
+                    wholesalePrice: formData.initialBatch.wholesaleEnabled ? (Number(formData.initialBatch.wholesalePrice) || 0) : null,
+                    wholesaleMinQty: formData.initialBatch.wholesaleEnabled ? (Number(formData.initialBatch.wholesaleMinQty) || 0) : null
                 }
             };
             await api.post('/api/products', payload);
@@ -203,6 +210,9 @@ const AddProductForm = ({ onProductAdded }) => {
                     mrp: '',
                     cost_price: '',
                     selling_price: '',
+                    wholesaleEnabled: false,
+                    wholesalePrice: '',
+                    wholesaleMinQty: '',
                     expiryDate: ''
                 }
             });
@@ -232,6 +242,11 @@ const AddProductForm = ({ onProductAdded }) => {
     const discountPercent = mrp > 0 ? (discountValue / mrp) * 100 : 0;
     const marginValue = sellingPrice - costPrice;
     const marginPercent = sellingPrice > 0 ? (marginValue / sellingPrice) * 100 : 0;
+    const wholesalePrice = Number(formData.initialBatch.wholesalePrice) || 0;
+    const wholesaleSavings = sellingPrice > 0 ? sellingPrice - wholesalePrice : 0;
+    const wholesalePricePercent = sellingPrice > 0 ? (wholesaleSavings / sellingPrice) * 100 : 0;
+    const wholesaleMarginValue = wholesalePrice - costPrice;
+    const wholesaleMarginPercent = wholesalePrice > 0 ? (wholesaleMarginValue / wholesalePrice) * 100 : 0;
 
     return (
         <>
@@ -526,6 +541,26 @@ const AddProductForm = ({ onProductAdded }) => {
                                             <Typography variant="caption" color="text.secondary">Margin: ₹{marginValue.toFixed(2)} ({marginPercent.toFixed(1)}%)</Typography>
                                         </Box>
                                     </Grid>
+
+                                    <WholesaleConfiguration
+                                        wholesaleEnabled={formData.initialBatch.wholesaleEnabled}
+                                        onToggleChange={(checked) => setFormData(prev => ({
+                                            ...prev,
+                                            initialBatch: { ...prev.initialBatch, wholesaleEnabled: checked }
+                                        }))}
+                                        wholesalePrice={formData.initialBatch.wholesalePrice}
+                                        onPriceChange={(value) => setFormData(prev => ({
+                                            ...prev,
+                                            initialBatch: { ...prev.initialBatch, wholesalePrice: value }
+                                        }))}
+                                        wholesaleMinQty={formData.initialBatch.wholesaleMinQty}
+                                        onMinQtyChange={(value) => setFormData(prev => ({
+                                            ...prev,
+                                            initialBatch: { ...prev.initialBatch, wholesaleMinQty: value }
+                                        }))}
+                                        sellingPrice={formData.initialBatch.selling_price}
+                                        costPrice={formData.initialBatch.cost_price}
+                                    />
                                 </Grid>
                             </Box>
                         </Grid>

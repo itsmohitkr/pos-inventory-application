@@ -134,11 +134,20 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
                                             )}
                                             <Typography
                                                 variant="body2"
-                                                fontWeight="bold" // Already bold
+                                                fontWeight="bold"
                                                 sx={{ color: 'success.main' }}
                                             >
                                                 SP: ₹{batch.sellingPrice}
                                             </Typography>
+                                            {batch.wholesaleEnabled && (
+                                                <Typography
+                                                    variant="body2"
+                                                    fontWeight="bold"
+                                                    sx={{ color: 'primary.main' }}
+                                                >
+                                                    WS: ₹{batch.wholesalePrice} ({batch.wholesaleMinQty}+)
+                                                </Typography>
+                                            )}
                                             <Typography
                                                 variant="body2"
                                                 sx={{ color: 'text.secondary' }}

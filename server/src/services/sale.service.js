@@ -55,9 +55,18 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0 }) => {
 
             // Promotion Lookup
             const promoPrice = await getEffectivePromoPrice(tx, batch.productId);
-            const effectivePrice = (promoPrice !== null && promoPrice < batch.sellingPrice)
-                ? promoPrice
-                : batch.sellingPrice;
+
+            // Determine effective price
+            let effectivePrice = batch.sellingPrice;
+
+            // 1. Check Wholesale (highest priority if applicable)
+            if (batch.wholesaleEnabled && batch.wholesaleMinQty && item.quantity >= batch.wholesaleMinQty) {
+                effectivePrice = batch.wholesalePrice;
+            }
+            // 2. Check Promotion
+            else if (promoPrice !== null && promoPrice < batch.sellingPrice) {
+                effectivePrice = promoPrice;
+            }
 
             totalAmount += effectivePrice * item.quantity;
 

@@ -333,12 +333,27 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const addToCart = (product, batch) => {
         setCart(prev => {
             const existing = prev.find(item => item.batch_id === batch.id);
+            const newQuantity = existing ? existing.quantity + 1 : 1;
+
+            // Helper to get effective price based on quantity
+            const getPrice = (qty) => {
+                if (batch.wholesaleEnabled && batch.wholesaleMinQty && qty >= batch.wholesaleMinQty) {
+                    return batch.wholesalePrice;
+                }
+                if (product.isOnSale && product.promoPrice < batch.sellingPrice) {
+                    return product.promoPrice;
+                }
+                return batch.sellingPrice;
+            };
+
+            const effectivePrice = getPrice(newQuantity);
+
             if (existing) {
-                return prev.map(item => item.batch_id === batch.id ? { ...item, quantity: item.quantity + 1 } : item);
+                return prev.map(item => item.batch_id === batch.id
+                    ? { ...item, quantity: newQuantity, price: effectivePrice }
+                    : item
+                );
             }
-            const effectivePrice = (product.isOnSale && product.promoPrice < batch.sellingPrice)
-                ? product.promoPrice
-                : batch.sellingPrice;
 
             return [...prev, {
                 product_id: product.id,
@@ -349,7 +364,13 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 batch_code: batch.batchCode,
                 mrp: batch.mrp,
                 max_quantity: batch.quantity,
-                isOnSale: product.isOnSale && product.promoPrice < batch.sellingPrice
+                // Store metadata for recalculation
+                sellingPrice: batch.sellingPrice,
+                wholesaleEnabled: batch.wholesaleEnabled,
+                wholesalePrice: batch.wholesalePrice,
+                wholesaleMinQty: batch.wholesaleMinQty,
+                isOnSale: product.isOnSale && product.promoPrice < batch.sellingPrice,
+                promoPrice: product.promoPrice
             }];
         });
 
@@ -369,7 +390,16 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             if (item.batch_id === batchId) {
                 const newQty = item.quantity + change;
                 if (newQty < 1) return item;
-                return { ...item, quantity: newQty };
+
+                // Recalculate price based on new quantity
+                let newPrice = item.sellingPrice;
+                if (item.wholesaleEnabled && item.wholesaleMinQty && newQty >= item.wholesaleMinQty) {
+                    newPrice = item.wholesalePrice;
+                } else if (item.isOnSale) {
+                    newPrice = item.promoPrice;
+                }
+
+                return { ...item, quantity: newQty, price: newPrice };
             }
             return item;
         }));

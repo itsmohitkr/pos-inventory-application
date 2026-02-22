@@ -54,6 +54,9 @@ model Batch {
   mrp          Float
   costPrice    Float
   sellingPrice Float
+  wholesaleEnabled Boolean  @default(false)
+  wholesalePrice   Float?
+  wholesaleMinQty  Int?
   expiryDate   DateTime?
   saleItems    SaleItem[]
   movements    StockMovement[]

@@ -81,13 +81,22 @@ const parseCSVLine = (line) => {
     return result;
 };
 
-const validatePricing = ({ mrp, costPrice, sellingPrice }) => {
+const validatePricing = ({ mrp, costPrice, sellingPrice, wholesalePrice, wholesaleEnabled }) => {
     if (mrp === undefined || costPrice === undefined || sellingPrice === undefined) return;
     if (Number.isNaN(mrp) || Number.isNaN(costPrice) || Number.isNaN(sellingPrice)) {
         throw new Error('Invalid pricing values');
     }
     if (sellingPrice < costPrice || sellingPrice > mrp) {
         throw new Error('Selling price must be between cost price and MRP');
+    }
+
+    if (wholesaleEnabled && wholesalePrice !== undefined) {
+        if (Number.isNaN(wholesalePrice)) {
+            throw new Error('Invalid wholesale price');
+        }
+        if (wholesalePrice < costPrice || wholesalePrice > sellingPrice) {
+            throw new Error('Wholesale price must be between cost price and regular selling price');
+        }
     }
 };
 
@@ -399,6 +408,9 @@ const createOrUpdateProduct = async ({ name, barcode, category, initialBatch, en
                         mrp: mrpValue,
                         costPrice: costValue,
                         sellingPrice: sellingValue,
+                        wholesaleEnabled: initialBatch.wholesaleEnabled === true,
+                        wholesalePrice: initialBatch.wholesalePrice ? parseFloat(initialBatch.wholesalePrice) : null,
+                        wholesaleMinQty: initialBatch.wholesaleMinQty ? parseInt(initialBatch.wholesaleMinQty) : null,
                         expiryDate: expiryDate ? new Date(expiryDate) : null
                     }
                 });
@@ -439,6 +451,9 @@ const createOrUpdateProduct = async ({ name, barcode, category, initialBatch, en
                             mrp: mrpValue,
                             costPrice: costValue,
                             sellingPrice: sellingValue,
+                            wholesaleEnabled: initialBatch.wholesaleEnabled === true,
+                            wholesalePrice: initialBatch.wholesalePrice ? parseFloat(initialBatch.wholesalePrice) : null,
+                            wholesaleMinQty: initialBatch.wholesaleMinQty ? parseInt(initialBatch.wholesaleMinQty) : null,
                             expiryDate: expiryDate ? new Date(expiryDate) : null
                         }
                     });
@@ -491,6 +506,9 @@ const addBatch = async (batchData) => {
                 mrp: mrpValue,
                 costPrice: costValue,
                 sellingPrice: sellingValue,
+                wholesaleEnabled: batchData.wholesaleEnabled === true,
+                wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
+                wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
                 expiryDate: expiryDate ? new Date(expiryDate) : null
             }
         });
@@ -534,6 +552,9 @@ const addBatch = async (batchData) => {
             mrp: mrpValue,
             costPrice: costValue,
             sellingPrice: sellingValue,
+            wholesaleEnabled: batchData.wholesaleEnabled === true,
+            wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
+            wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
             expiryDate: expiryDate ? new Date(expiryDate) : null
         }
     });
@@ -607,6 +628,9 @@ const updateBatch = async (id, batchData) => {
             mrp: mrp !== undefined ? parseFloat(mrp) : undefined,
             costPrice: costPrice !== undefined ? parseFloat(costPrice) : undefined,
             sellingPrice: sellingPrice !== undefined ? parseFloat(sellingPrice) : undefined,
+            wholesaleEnabled: batchData.wholesaleEnabled !== undefined ? batchData.wholesaleEnabled : undefined,
+            wholesalePrice: batchData.wholesalePrice !== undefined ? parseFloat(batchData.wholesalePrice) : undefined,
+            wholesaleMinQty: batchData.wholesaleMinQty !== undefined ? parseInt(batchData.wholesaleMinQty) : undefined,
             expiryDate: expiryDate ? new Date(expiryDate) : null
         }
     });
@@ -667,7 +691,7 @@ const exportProducts = async () => {
     });
 
     const csvRows = [];
-    csvRows.push('name,barcode,category,quantity,mrp,cost_price,selling_price,batch_code,expiry_date');
+    csvRows.push('name,barcode,category,quantity,mrp,cost_price,selling_price,wholesale_price,wholesale_min_qty,wholesale_enabled,batch_code,expiry_date');
 
     for (const product of products) {
         if (product.batches && product.batches.length > 0) {
@@ -679,7 +703,9 @@ const exportProducts = async () => {
                     batch.quantity,
                     batch.mrp,
                     batch.costPrice,
-                    batch.sellingPrice,
+                    batch.wholesalePrice || '',
+                    batch.wholesaleMinQty || '',
+                    batch.wholesaleEnabled ? 'TRUE' : 'FALSE',
                     escapeCSVValue(batch.batchCode),
                     batch.expiryDate ? batch.expiryDate.toISOString().split('T')[0] : ''
                 ].join(','));
@@ -751,7 +777,7 @@ const importProducts = async (csvData) => {
                 barcode = barcode.replace('.00', '');
             }
 
-            const { category, quantity, mrp, cost_price, selling_price, batch_code, expiry_date } = row;
+            const { category, quantity, mrp, cost_price, selling_price, wholesale_price, wholesale_min_qty, wholesale_enabled, batch_code, expiry_date } = row;
 
             if (!name || !name.trim()) {
                 results.errors.push({ line: lineNumber, message: 'Missing name' });
@@ -799,6 +825,9 @@ const importProducts = async (csvData) => {
                 mrpVal,
                 costVal,
                 sellingVal,
+                wholesaleEnabled: !!(wholesale_enabled && wholesale_enabled.toUpperCase() === 'TRUE'),
+                wholesalePrice: parseFloat(wholesale_price) || null,
+                wholesaleMinQty: parseInt(wholesale_min_qty) || null,
                 batch_code,
                 expiry_date
             });

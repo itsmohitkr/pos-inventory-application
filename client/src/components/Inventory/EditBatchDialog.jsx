@@ -3,6 +3,7 @@ import { Dialog, DialogTitle, DialogContent, Grid, TextField, InputAdornment, Bo
 import api from '../../api';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
+import WholesaleConfiguration from './WholesaleConfiguration';
 
 const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
     const { dialogState, showError, closeDialog } = useCustomDialog();
@@ -12,6 +13,9 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
         mrp: '',
         costPrice: '',
         sellingPrice: '',
+        wholesaleEnabled: false,
+        wholesalePrice: '',
+        wholesaleMinQty: '',
         expiryDate: ''
     });
     const [isSaving, setIsSaving] = useState(false);
@@ -24,6 +28,9 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                 mrp: batch.mrp || 0,
                 costPrice: batch.costPrice || 0,
                 sellingPrice: batch.sellingPrice || 0,
+                wholesaleEnabled: batch.wholesaleEnabled || false,
+                wholesalePrice: batch.wholesalePrice || '',
+                wholesaleMinQty: batch.wholesaleMinQty || '',
                 expiryDate: batch.expiryDate ? batch.expiryDate.split('T')[0] : ''
             });
             setIsSaving(false);
@@ -62,6 +69,9 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                 mrp,
                 costPrice,
                 sellingPrice,
+                wholesaleEnabled: formData.wholesaleEnabled,
+                wholesalePrice: formData.wholesaleEnabled ? (Number(formData.wholesalePrice) || 0) : null,
+                wholesaleMinQty: formData.wholesaleEnabled ? (Number(formData.wholesaleMinQty) || 0) : null,
                 expiryDate: formData.expiryDate ? new Date(formData.expiryDate) : null
             });
 
@@ -164,6 +174,18 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                                     startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                                     inputProps: { min: 0, step: '0.01' }
                                 }}
+                            />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <WholesaleConfiguration
+                                wholesaleEnabled={formData.wholesaleEnabled}
+                                onToggleChange={(checked) => handleChange('wholesaleEnabled', checked)}
+                                wholesalePrice={formData.wholesalePrice}
+                                onPriceChange={(val) => handleChange('wholesalePrice', val)}
+                                wholesaleMinQty={formData.wholesaleMinQty}
+                                onMinQtyChange={(val) => handleChange('wholesaleMinQty', val)}
+                                sellingPrice={formData.sellingPrice}
+                                costPrice={formData.costPrice}
                             />
                         </Grid>
                         <Grid item xs={12}>
