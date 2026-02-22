@@ -138,6 +138,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const [lastAddedItemId, setLastAddedItemId] = useState(null);
+    const searchBarRef = useRef(null);
     const [showLooseSaleDialog, setShowLooseSaleDialog] = useState(false);
     const [looseSaleEnabled, setLooseSaleEnabled] = useState(() => localStorage.getItem('posLooseSaleEnabled') !== 'false');
     const [shopMetadata, setShopMetadata] = useState(() => propShopMetadata || {
@@ -379,6 +380,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         // Clear search and close dialog immediately
         setSearchQuery('');
         setScannedProduct(null);
+        searchBarRef.current?.focus();
     };
 
     const removeFromCart = (batchId) => {
@@ -444,6 +446,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         const confirmed = await showConfirm('Are you sure you want to VOID this entire order?');
         if (confirmed) {
             updateTab(activeTabId, { cart: [], discount: 0 });
+            searchBarRef.current?.focus();
         }
     };
 
@@ -483,6 +486,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
             // Show success notification
             showNotification('Sale Completed Successfully!');
+            searchBarRef.current?.focus();
         } catch (error) {
             console.error(error);
             const msg = error.response?.data?.error || error.message || 'Payment failed';
@@ -521,6 +525,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             } else {
                 setShowReceipt(true);
             }
+            searchBarRef.current?.focus();
         } catch (error) {
             console.error(error);
             const msg = error.response?.data?.error || error.message || 'Payment failed';
@@ -664,6 +669,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                     />
 
                     <POSSearchBar
+                        ref={searchBarRef}
                         products={products}
                         searchQuery={searchQuery}
                         onSearchInputChange={setSearchQuery}
@@ -746,7 +752,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
                 <ReceiptPreviewDialog
                     open={showReceipt}
-                    onClose={() => setShowReceipt(false)}
+                    onClose={() => {
+                        setShowReceipt(false);
+                        searchBarRef.current?.focus();
+                    }}
                     lastSale={lastSale}
                     receiptSettings={receiptSettings}
                     onSettingChange={handleSettingChange}
@@ -757,9 +766,13 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
                 <LooseSaleDialog
                     open={showLooseSaleDialog}
-                    onClose={() => setShowLooseSaleDialog(false)}
+                    onClose={() => {
+                        setShowLooseSaleDialog(false);
+                        searchBarRef.current?.focus();
+                    }}
                     onComplete={() => {
                         setNotification({ open: true, message: 'Loose Sale Recorded Successfully!', severity: 'success' });
+                        searchBarRef.current?.focus();
                     }}
                 />
             </Box>

@@ -12,13 +12,21 @@ const barcodeAnim = keyframes`
     100% { opacity: 0; transform: translateX(120px); }
 `;
 
-const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProduct, filterOptions, onLooseSale, looseSaleEnabled }) => {
+const POSSearchBar = React.forwardRef(({ products, searchQuery, onSearchInputChange, onSelectProduct, filterOptions, onLooseSale, looseSaleEnabled }, ref) => {
     const inputRef = useRef(null);
     const timerRef = useRef(null);
     const [animating, setAnimating] = React.useState(false);
     const [typewriterBarcode, setTypewriterBarcode] = React.useState('');
     const [pendingBarcode, setPendingBarcode] = React.useState('');
     const filteredProductsRef = useRef([]);
+
+    React.useImperativeHandle(ref, () => ({
+        focus: () => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+            }
+        }
+    }));
 
     useEffect(() => {
         // Auto-focus on mount with slight delay for reliability
@@ -213,6 +221,6 @@ const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProd
             )}
         </Box>
     );
-};
+});
 
 export default POSSearchBar;
