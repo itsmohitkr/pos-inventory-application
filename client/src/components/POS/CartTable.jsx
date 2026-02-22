@@ -86,27 +86,41 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, lastAddedItemId }
                                             {item.wholesaleEnabled && (
                                                 <Tooltip title={`Wholesale: ₹${item.wholesalePrice} for ${item.wholesaleMinQty}+ units`} arrow>
                                                     <Chip
-                                                        label="WHOLESALE"
+                                                        label="WHOLESALE OFFER"
                                                         size="small"
                                                         variant={item.quantity >= item.wholesaleMinQty ? "filled" : "outlined"}
-                                                        color="primary"
                                                         sx={{
-                                                            height: 16,
-                                                            fontSize: '0.6rem',
-                                                            fontWeight: 800,
-                                                            bgcolor: item.quantity >= item.wholesaleMinQty ? 'primary.main' : 'transparent',
-                                                            color: item.quantity >= item.wholesaleMinQty ? 'white' : 'primary.main',
-                                                            borderColor: 'primary.main'
+                                                            height: 22,
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 900,
+                                                            bgcolor: item.quantity >= item.wholesaleMinQty ? '#f59e0b' : 'transparent',
+                                                            color: item.quantity >= item.wholesaleMinQty ? 'white' : '#f59e0b',
+                                                            borderColor: '#f59e0b',
+                                                            borderWidth: 1.5,
+                                                            '& .MuiChip-label': { px: 1 }
                                                         }}
                                                     />
                                                 </Tooltip>
                                             )}
                                         </Box>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
                                             <ShortBatchCode batchCode={item.batch_code} />
                                             {item.wholesaleEnabled && (
-                                                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500, fontSize: '0.65rem' }}>
-                                                    {item.wholesaleMinQty}+ units @ ₹{item.wholesalePrice}
+                                                <Typography
+                                                    variant="caption"
+                                                    sx={{
+                                                        color: item.quantity >= item.wholesaleMinQty ? '#f59e0b' : 'text.secondary',
+                                                        fontWeight: 700,
+                                                        fontSize: '0.75rem',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 0.5,
+                                                        bgcolor: item.quantity >= item.wholesaleMinQty ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                                                        px: 1,
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    {item.wholesaleMinQty}+ units at ₹{item.wholesalePrice}
                                                 </Typography>
                                             )}
                                         </Box>
