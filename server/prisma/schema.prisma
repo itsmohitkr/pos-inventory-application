@@ -122,3 +122,10 @@ model PromotionItem {
   discountPercentage Float?
   createdAt          DateTime  @default(now())
 }
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String   // Store as JSON string
+  updatedAt DateTime @updatedAt
+}

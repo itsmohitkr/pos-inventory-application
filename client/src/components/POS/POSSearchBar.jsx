@@ -21,13 +21,16 @@ const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProd
     const filteredProductsRef = useRef([]);
 
     useEffect(() => {
-        // Auto-focus on mount
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
+        // Auto-focus on mount with slight delay for reliability
+        const timer = setTimeout(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+            }
+        }, 150);
 
         // Cleanup timer on unmount
         return () => {
+            clearTimeout(timer);
             if (timerRef.current) {
                 clearTimeout(timerRef.current);
             }
@@ -39,13 +42,6 @@ const POSSearchBar = ({ products, searchQuery, onSearchInputChange, onSelectProd
         if (timerRef.current) {
             clearTimeout(timerRef.current);
         }
-
-        // Set timer to refocus after 7 seconds
-        timerRef.current = setTimeout(() => {
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
-        }, 7000); // 7 seconds (middle ground between 5-10)
     };
 
     const handleFocus = () => {

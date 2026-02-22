@@ -59,9 +59,17 @@ const InventoryTree = forwardRef((props, ref) => {
     const [currentBatch, setCurrentBatch] = useState(null);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
+    const searchInputRef = useRef(null);
 
     useEffect(() => {
         fetchProducts();
+        // Explicit focus on mount
+        const timer = setTimeout(() => {
+            if (searchInputRef.current) {
+                searchInputRef.current.focus();
+            }
+        }, 150);
+        return () => clearTimeout(timer);
     }, []);
 
     useImperativeHandle(ref, () => ({
@@ -283,6 +291,8 @@ const InventoryTree = forwardRef((props, ref) => {
                             </Typography>
                         </Box>
                         <TextField
+                            inputRef={searchInputRef}
+                            autoFocus
                             placeholder="Search barcode or name..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}

@@ -17,7 +17,8 @@ const ReceiptPreviewDialog = ({
     isAdmin = true,
     showPrint = true,
     showShopNameField = true,
-    saveLabel = 'Save'
+    saveLabel = 'Save',
+    shopMetadata
 }) => {
     const handleKeyDown = (event) => {
         if (event.defaultPrevented) return;
@@ -298,7 +299,7 @@ const ReceiptPreviewDialog = ({
                     {/* Receipt Preview Area */}
                     <Grid item xs={12} sm={isAdmin ? 8 : 12} sx={{ p: 2, display: 'flex', justifyContent: 'center', bgcolor: '#525659', overflowY: 'auto' }}>
                         <Paper elevation={10} sx={{ height: 'fit-content' }}>
-                            <Receipt sale={lastSale} settings={receiptSettings} />
+                            <Receipt sale={lastSale} settings={receiptSettings} shopMetadata={shopMetadata} />
                         </Paper>
                     </Grid>
                 </Grid>

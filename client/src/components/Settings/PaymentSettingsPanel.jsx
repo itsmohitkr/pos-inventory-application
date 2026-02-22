@@ -18,7 +18,9 @@ import {
     Add as AddIcon,
     Delete as DeleteIcon
 } from '@mui/icons-material';
-import { getStoredPaymentSettings, STORAGE_KEYS, getFullscreenEnabled, getNotificationDuration, setNotificationDuration, getExtraDiscountEnabled, setExtraDiscountEnabled } from '../../utils/paymentSettings';
+import { getStoredPaymentSettings, STORAGE_KEYS, getFullscreenEnabled, getNotificationDuration, setNotificationDuration, getExtraDiscountEnabled, setExtraDiscountEnabled, DEFAULT_PAYMENT_SETTINGS } from '../../utils/paymentSettings';
+import api from '../../api';
+import { useEffect } from 'react';
 
 const PAYMENT_METHOD_OPTIONS = [
     { id: 'cash', label: 'Cash', icon: '💵' },
@@ -30,12 +32,33 @@ const PAYMENT_METHOD_OPTIONS = [
 ];
 
 const PaymentSettingsPanel = ({ showSuccess }) => {
-    const [paymentSettings, setPaymentSettings] = useState(getStoredPaymentSettings);
+    const [paymentSettings, setPaymentSettings] = useState(DEFAULT_PAYMENT_SETTINGS);
     const [enableFullscreen, setEnableFullscreen] = useState(getFullscreenEnabled);
     const [enableExtraDiscount, setEnableExtraDiscountState] = useState(getExtraDiscountEnabled);
     const [notificationDuration, setNotificationDurationState] = useState(() => getNotificationDuration() / 1000); // Convert to seconds for display
     const [customMethod, setCustomMethod] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await api.get('/api/settings');
+                const settings = res.data.data;
+                if (settings.posPaymentSettings) {
+                    setPaymentSettings(settings.posPaymentSettings);
+                }
+                if (settings.posEnableExtraDiscount !== undefined) {
+                    setEnableExtraDiscountState(settings.posEnableExtraDiscount);
+                }
+                if (settings.posNotificationDuration !== undefined) {
+                    setNotificationDurationState(settings.posNotificationDuration / 1000);
+                }
+            } catch (error) {
+                console.error('Failed to fetch payment settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const handlePaymentMethodToggle = (methodId) => {
         setPaymentSettings(prev => {
@@ -98,21 +121,37 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
         }
     };
 
-    const handleEnableExtraDiscount = (enabled) => {
+    const handleEnableExtraDiscount = async (enabled) => {
         setEnableExtraDiscountState(enabled);
-        setExtraDiscountEnabled(enabled);
-        if (showSuccess) {
-            showSuccess(`Extra discount field ${enabled ? 'enabled' : 'disabled'}`);
+        try {
+            await api.post('/api/settings', {
+                key: 'posEnableExtraDiscount',
+                value: enabled
+            });
+            window.dispatchEvent(new Event('pos-settings-updated'));
+            if (showSuccess) {
+                showSuccess(`Extra discount field ${enabled ? 'enabled' : 'disabled'}`);
+            }
+        } catch (error) {
+            console.error('Failed to save extra discount setting:', error);
         }
     };
 
-    const handleNotificationDurationChange = (value) => {
+    const handleNotificationDurationChange = async (value) => {
         const seconds = parseFloat(value);
         if (!isNaN(seconds) && seconds > 0) {
             setNotificationDurationState(seconds);
-            setNotificationDuration(seconds * 1000); // Convert to milliseconds for storage
-            if (showSuccess) {
-                showSuccess(`Notification duration set to ${seconds}s`);
+            try {
+                await api.post('/api/settings', {
+                    key: 'posNotificationDuration',
+                    value: seconds * 1000
+                });
+                window.dispatchEvent(new Event('pos-settings-updated'));
+                if (showSuccess) {
+                    showSuccess(`Notification duration set to ${seconds}s`);
+                }
+            } catch (error) {
+                console.error('Failed to save notification duration:', error);
             }
         }
     };
@@ -131,9 +170,16 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
         });
     };
 
-    const saveSettings = (settings) => {
-        localStorage.setItem(STORAGE_KEYS.paymentSettings, JSON.stringify(settings));
-        window.dispatchEvent(new Event('pos-settings-updated'));
+    const saveSettings = async (settings) => {
+        try {
+            await api.post('/api/settings', {
+                key: 'posPaymentSettings',
+                value: settings
+            });
+            window.dispatchEvent(new Event('pos-settings-updated'));
+        } catch (error) {
+            console.error('Failed to save payment settings:', error);
+        }
     };
 
     const enabledCount = paymentSettings.enabledMethods.length;

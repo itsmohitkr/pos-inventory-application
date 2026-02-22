@@ -86,7 +86,7 @@ const getStoredReceiptSettings = () => {
     }
 };
 
-const POS = () => {
+const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetadata }) => {
     const navigate = useNavigate();
     const { dialogState, showError, showWarning, showConfirm, closeDialog } = useCustomDialog();
     const [products, setProducts] = useState([]);
@@ -128,7 +128,7 @@ const POS = () => {
     const [lastSale, setLastSale] = useState(null);
     const [showReceipt, setShowReceipt] = useState(false);
     const [showPrintDialog, setShowPrintDialog] = useState(false);
-    const [receiptSettings, setReceiptSettings] = useState(getStoredReceiptSettings);
+    const [receiptSettings, setReceiptSettings] = useState(() => propReceiptSettings || getStoredReceiptSettings());
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState({ label: 'Cash', color: '#16a34a' });
     const [paymentSettings, setPaymentSettings] = useState(() => getStoredPaymentSettings());
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -140,6 +140,44 @@ const POS = () => {
     const [lastAddedItemId, setLastAddedItemId] = useState(null);
     const [showLooseSaleDialog, setShowLooseSaleDialog] = useState(false);
     const [looseSaleEnabled, setLooseSaleEnabled] = useState(() => localStorage.getItem('posLooseSaleEnabled') !== 'false');
+    const [shopMetadata, setShopMetadata] = useState(() => propShopMetadata || {
+        shopMobile: '',
+        shopMobile2: '',
+        shopAddress: '',
+        shopEmail: '',
+        shopGST: '',
+        shopLogo: ''
+    });
+
+    // Update state when props change
+    useEffect(() => {
+        if (propReceiptSettings) setReceiptSettings(propReceiptSettings);
+    }, [propReceiptSettings]);
+
+    useEffect(() => {
+        if (propShopMetadata) setShopMetadata(propShopMetadata);
+    }, [propShopMetadata]);
+
+    const refreshSettings = useCallback(async () => {
+        try {
+            const res = await api.get('/api/settings');
+            const sett = res.data.data;
+            if (sett.posReceiptSettings) setReceiptSettings(sett.posReceiptSettings);
+            if (sett.posPaymentSettings) setPaymentSettings(sett.posPaymentSettings);
+            if (sett.posEnableExtraDiscount !== undefined) setExtraDiscountEnabled(sett.posEnableExtraDiscount);
+            if (sett.posNotificationDuration !== undefined) setNotificationDuration(sett.posNotificationDuration);
+            setShopMetadata({
+                shopMobile: sett.shopMobile || '',
+                shopMobile2: sett.shopMobile2 || '',
+                shopAddress: sett.shopAddress || '',
+                shopEmail: sett.shopEmail || '',
+                shopGST: sett.shopGST || '',
+                shopLogo: sett.shopLogo || ''
+            });
+        } catch (error) {
+            console.error('Failed to refresh POS settings:', error);
+        }
+    }, []);
 
     // Save tabs state to sessionStorage whenever it changes
     useEffect(() => {
@@ -150,6 +188,16 @@ const POS = () => {
     useEffect(() => {
         sessionStorage.setItem('posActiveTabId', activeTabId.toString());
     }, [activeTabId]);
+
+    useEffect(() => {
+        refreshSettings();
+        const handleSettingsUpdated = () => {
+            refreshSettings();
+            setFullscreenEnabled(getFullscreenEnabled());
+        };
+        window.addEventListener('pos-settings-updated', handleSettingsUpdated);
+        return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
+    }, [refreshSettings]);
 
     // Resizable Layout State
     const [transactionPanelWidth, setTransactionPanelWidth] = useState(() => {
@@ -331,10 +379,15 @@ const POS = () => {
         // Clear search query immediately for fast scanning
         setSearchQuery('');
 
-        const batches = product.batches || [];
-        const isBatchTracked = product.batchTrackingEnabled !== false;
+        const allBatches = product.batches || [];
+        const batches = allBatches.filter(b => b.quantity > 0);
 
-        if (batches.length === 0) return;
+        if (batches.length === 0) {
+            showNotification(`${product.name} is Out of Stock!`, 'error');
+            return;
+        }
+
+        const isBatchTracked = product.batchTrackingEnabled !== false;
 
         // Check if this was a barcode scan (exact match with barcode)
         const isBarcodeScanned = searchQuery.trim() && product.barcode && searchQuery.trim() === product.barcode.trim();
@@ -669,6 +722,7 @@ const POS = () => {
                     onSettingChange={handleSettingChange}
                     onTextSettingChange={handleTextSettingChange}
                     isAdmin={currentUser?.role === 'admin'}
+                    shopMetadata={shopMetadata}
                 />
 
                 <LooseSaleDialog

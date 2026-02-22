@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 
-const Receipt = ({ sale, settings }) => {
+const Receipt = ({ sale, settings, shopMetadata }) => {
     if (!sale) return null;
 
     // Default settings if none provided
@@ -149,9 +149,16 @@ const Receipt = ({ sale, settings }) => {
                                     {config.customHeader3}
                                 </Typography>
                             )}
-                            <Typography variant="body2" sx={{ fontSize: '0.85em', fontWeight: theme.textWeight, color: '#000' }}>
-                                Tel: +91 98765 43210
-                            </Typography>
+                            {shopMetadata?.shopMobile && (
+                                <Typography variant="body2" sx={{ fontSize: '0.85em', fontWeight: theme.textWeight, color: '#000' }}>
+                                    Tel: {shopMetadata.shopMobile}
+                                </Typography>
+                            )}
+                            {shopMetadata?.shopMobile2 && (
+                                <Typography variant="body2" sx={{ fontSize: '0.85em', fontWeight: theme.textWeight, color: '#000' }}>
+                                    Tel 2: {shopMetadata.shopMobile2}
+                                </Typography>
+                            )}
                         </Box>
                     )}
 

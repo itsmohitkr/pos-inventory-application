@@ -87,7 +87,7 @@ const SAMPLE_SALE = {
   id: 1001,
   createdAt: new Date().toISOString(),
   discount: 10,
-  totalAmount: 180,
+  totalAmount: 190,
   items: [
     {
       quantity: 2,
@@ -445,6 +445,37 @@ function App() {
   const [uiZoom, setUiZoom] = useState(() => Number(localStorage.getItem('posUiZoom')) || 100);
   const [monochromeMode, setMonochromeMode] = useState(() => localStorage.getItem('posMonochromeMode') === 'true');
 
+  const [shopMetadata, setShopMetadata] = useState({
+    shopMobile: '',
+    shopMobile2: '',
+    shopAddress: '',
+    shopEmail: '',
+    shopGST: '',
+    shopLogo: ''
+  });
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/api/settings');
+      const settings = res.data.data;
+      if (settings.posShopName) setShopName(settings.posShopName);
+      if (settings.posReceiptSettings) {
+        setReceiptSettings(settings.posReceiptSettings);
+        setDraftReceiptSettings(settings.posReceiptSettings);
+      }
+      setShopMetadata({
+        shopMobile: settings.shopMobile || '',
+        shopMobile2: settings.shopMobile2 || '',
+        shopAddress: settings.shopAddress || '',
+        shopEmail: settings.shopEmail || '',
+        shopGST: settings.shopGST || '',
+        shopLogo: settings.shopLogo || ''
+      });
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    }
+  };
+
   useEffect(() => {
     const handleSettingsUpdated = () => {
       setMonochromeMode(localStorage.getItem('posMonochromeMode') === 'true');
@@ -471,6 +502,7 @@ function App() {
     if (storedUser) {
       setCurrentUser(JSON.parse(storedUser));
     }
+    fetchSettings();
     setLoading(false);
   }, []);
 
@@ -483,14 +515,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.shopName, shopName);
-      localStorage.setItem(STORAGE_KEYS.receipt, JSON.stringify(receiptSettings));
-      window.dispatchEvent(new Event('pos-settings-updated'));
-    } catch (error) {
-      console.error('Failed to persist POS settings:', error);
-    }
-  }, [shopName, receiptSettings]);
+    // Local display settings only
+    localStorage.setItem('posUiZoom', uiZoom.toString());
+    localStorage.setItem('posMonochromeMode', monochromeMode.toString());
+  }, [uiZoom, monochromeMode]);
 
   const handleLogin = (user) => {
     setCurrentUser(user);
@@ -547,9 +575,40 @@ function App() {
     setDraftReceiptSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleShopNameChange = (value) => {
-    setShopName(value);
-    setReceiptSettings(prev => ({ ...prev, customShopName: value }));
+  const handleShopMetadataChange = async (newData) => {
+    // Update local state immediately
+    if (newData.shopName !== undefined) {
+      setShopName(newData.shopName);
+      setReceiptSettings(prev => ({ ...prev, customShopName: newData.shopName }));
+    }
+
+    setShopMetadata(prev => ({
+      ...prev,
+      ...newData
+    }));
+
+    try {
+      const settingsToUpdate = {};
+      if (newData.shopName !== undefined) {
+        settingsToUpdate.posShopName = newData.shopName;
+        settingsToUpdate['posReceiptSettings.customShopName'] = newData.shopName;
+      }
+
+      // Map local metadata keys to backend keys
+      const metadataKeys = ['shopMobile', 'shopMobile2', 'shopAddress', 'shopEmail', 'shopGST', 'shopLogo'];
+      metadataKeys.forEach(key => {
+        if (newData[key] !== undefined) {
+          settingsToUpdate[key] = newData[key];
+        }
+      });
+
+      if (Object.keys(settingsToUpdate).length > 0) {
+        await api.post('/api/settings', { settings: settingsToUpdate });
+      }
+    } catch (error) {
+      console.error('Failed to save shop metadata:', error);
+      showError('Failed to save some settings');
+    }
   };
 
   const handleOpenSettingsMenu = (event) => {
@@ -566,9 +625,19 @@ function App() {
     handleCloseSettingsMenu();
   };
 
-  const handleSaveBillSettings = () => {
+  const handleSaveBillSettings = async () => {
     setReceiptSettings(draftReceiptSettings);
     setShowBillDialog(false);
+    try {
+      await api.post('/api/settings', {
+        key: 'posReceiptSettings',
+        value: draftReceiptSettings
+      });
+      showSuccess('Bill settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save bill settings:', error);
+      showError('Failed to save bill settings');
+    }
   };
 
   const handleOpenAccountSettings = () => {
@@ -649,7 +718,7 @@ function App() {
         <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
           <Routes>
             <Route path="/" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><Overview shopName={shopName} userRole={currentUser.role} /></Box>} />
-            <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><POS /></Box>} />
+            <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><POS receiptSettings={receiptSettings} shopMetadata={shopMetadata} /></Box>} />
             {canAccessSaleHistory && (
               <Route
                 path="/sale-history"
@@ -661,13 +730,13 @@ function App() {
                       overflow: 'hidden'
                     }}
                   >
-                    <SaleHistory />
+                    <SaleHistory receiptSettings={receiptSettings} shopMetadata={shopMetadata} />
                   </Box>
                 }
               />
             )}
             {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Inventory /></Box>} />}
-            {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting /></Box>} />}
+            {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting receiptSettings={receiptSettings} shopMetadata={shopMetadata} /></Box>} />}
             {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Refund /></Box>} />}
             {canAccessPromotions && <Route path="/promotions" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><PromotionManagement /></Box>} />}
             {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><DashboardPage shopName={shopName} userRole={currentUser.role} /></Box>} />}
@@ -691,16 +760,14 @@ function App() {
             </ListItemIcon>
             <ListItemText>Exit full screen</ListItemText>
           </MenuItem>
+          {isAdmin && <Divider />}
           {isAdmin && (
-            <>
-              <Divider />
-              <MenuItem onClick={handleOpenBillSettings}>
-                <ListItemIcon>
-                  <ReceiptIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>Customize bill</ListItemText>
-              </MenuItem>
-            </>
+            <MenuItem onClick={handleOpenBillSettings}>
+              <ListItemIcon>
+                <ReceiptIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Customize bill</ListItemText>
+            </MenuItem>
           )}
           <MenuItem>
             <ListItemIcon>
@@ -723,16 +790,14 @@ function App() {
               <ListItemText>Manage Users</ListItemText>
             </MenuItem>
           )}
+          {isAdmin && <Divider />}
           {isAdmin && (
-            <>
-              <Divider />
-              <MenuItem onClick={handleOpenAccountSettings}>
-                <ListItemIcon>
-                  <StoreIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>Settings</ListItemText>
-              </MenuItem>
-            </>
+            <MenuItem onClick={handleOpenAccountSettings}>
+              <ListItemIcon>
+                <StoreIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Settings</ListItemText>
+            </MenuItem>
           )}
           <MenuItem onClick={handleLogout}>
             <ListItemIcon>
@@ -746,7 +811,8 @@ function App() {
           open={showAccountDialog}
           onClose={() => setShowAccountDialog(false)}
           shopName={shopName}
-          onShopNameChange={handleShopNameChange}
+          shopMetadata={shopMetadata}
+          onMetadataChange={handleShopMetadataChange}
           currentUser={currentUser}
         />
 
@@ -799,6 +865,7 @@ function App() {
           showPrint={false}
           showShopNameField={false}
           saveLabel="Save settings"
+          shopMetadata={shopMetadata}
         />
 
         <UserManagementDialog

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import {
   Dialog,
@@ -33,14 +33,26 @@ import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
 import PaymentSettingsPanel from './PaymentSettingsPanel';
 
-const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, currentUser }) => {
+const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadataChange, currentUser }) => {
   const { dialogState, showSuccess, showError, closeDialog } = useCustomDialog();
   const [editedShopName, setEditedShopName] = useState(shopName);
-  const [shopMobile, setShopMobile] = useState(localStorage.getItem('posShopMobile') || '');
-  const [shopAddress, setShopAddress] = useState(localStorage.getItem('posShopAddress') || '');
-  const [shopEmail, setShopEmail] = useState(localStorage.getItem('posShopEmail') || '');
-  const [shopGST, setShopGST] = useState(localStorage.getItem('posShopGST') || '');
-  const [logoUrl, setLogoUrl] = useState(localStorage.getItem('posShopLogo') || '');
+  const [shopMobile, setShopMobile] = useState(shopMetadata.shopMobile);
+  const [shopMobile2, setShopMobile2] = useState(shopMetadata.shopMobile2);
+  const [shopAddress, setShopAddress] = useState(shopMetadata.shopAddress);
+  const [shopEmail, setShopEmail] = useState(shopMetadata.shopEmail);
+  const [shopGST, setShopGST] = useState(shopMetadata.shopGST);
+  const [logoUrl, setLogoUrl] = useState(shopMetadata.shopLogo);
+
+  // Sync with metadata prop changes
+  useEffect(() => {
+    setEditedShopName(shopName);
+    setShopMobile(shopMetadata.shopMobile);
+    setShopMobile2(shopMetadata.shopMobile2);
+    setShopAddress(shopMetadata.shopAddress);
+    setShopEmail(shopMetadata.shopEmail);
+    setShopGST(shopMetadata.shopGST);
+    setLogoUrl(shopMetadata.shopLogo);
+  }, [shopName, shopMetadata]);
 
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipePassword, setWipePassword] = useState('');
@@ -51,12 +63,16 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
   const [looseSaleEnabled, setLooseSaleEnabled] = useState(() => localStorage.getItem('posLooseSaleEnabled') !== 'false');
 
   const handleSave = () => {
-    onShopNameChange(editedShopName);
-    localStorage.setItem('posShopMobile', shopMobile);
-    localStorage.setItem('posShopAddress', shopAddress);
-    localStorage.setItem('posShopEmail', shopEmail);
-    localStorage.setItem('posShopGST', shopGST);
-    localStorage.setItem('posShopLogo', logoUrl);
+    onMetadataChange({
+      shopName: editedShopName,
+      shopMobile,
+      shopMobile2,
+      shopAddress,
+      shopEmail,
+      shopGST,
+      shopLogo: logoUrl
+    });
+
     localStorage.setItem('posUiZoom', uiZoom.toString());
     localStorage.setItem('posMonochromeMode', monochrome.toString());
     localStorage.setItem('posLooseSaleEnabled', looseSaleEnabled.toString());
@@ -215,13 +231,22 @@ const AccountDetailsDialog = ({ open, onClose, shopName, onShopNameChange, curre
                     placeholder="My Shop"
                   />
 
-                  <TextField
-                    label="Mobile Number"
-                    fullWidth
-                    value={shopMobile}
-                    onChange={(e) => setShopMobile(e.target.value)}
-                    placeholder="+91 98765 43210"
-                  />
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField
+                      label="Mobile Number 1"
+                      fullWidth
+                      value={shopMobile}
+                      onChange={(e) => setShopMobile(e.target.value)}
+                      placeholder="+91 98765 43210"
+                    />
+                    <TextField
+                      label="Mobile Number 2 (Optional)"
+                      fullWidth
+                      value={shopMobile2}
+                      onChange={(e) => setShopMobile2(e.target.value)}
+                      placeholder="+91 88888 88888"
+                    />
+                  </Box>
 
                   <TextField
                     label="Email Address"

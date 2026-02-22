@@ -57,6 +57,7 @@ const Refund = () => {
             <Paper sx={{ p: 3, mb: 4 }}>
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     <TextField
+                        autoFocus
                         fullWidth
                         label="Enter Order ID"
                         placeholder="e.g. ORD-5 or 5"

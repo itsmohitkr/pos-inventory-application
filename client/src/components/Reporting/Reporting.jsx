@@ -56,7 +56,7 @@ import {
   Divider as MuiDivider
 } from "@mui/material";
 
-const Reporting = () => {
+const Reporting = ({ receiptSettings, shopMetadata }) => {
   const [reportData, setReportData] = useState(null);
   const [expiryData, setExpiryData] = useState(null);
   const [lowStockData, setLowStockData] = useState(null);

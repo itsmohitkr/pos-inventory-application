@@ -185,6 +185,12 @@ const ProductList = () => {
 
     useEffect(() => {
         fetchCategories();
+        // Explicit focus on mount
+        setTimeout(() => {
+            if (searchInputRef.current) {
+                searchInputRef.current.focus();
+            }
+        }, 100);
     }, []);
 
     // Live search debouncing is handled directly in the TextField's onChange 
@@ -782,6 +788,7 @@ const ProductList = () => {
                                 />
                             )}
                             <TextField
+                                autoFocus
                                 variant="outlined"
                                 size="small"
                                 placeholder="Search name or barcode..."

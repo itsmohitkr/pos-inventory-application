@@ -32,7 +32,7 @@ import Receipt from "../POS/Receipt";
 import RefundDialog from "../Refund/RefundDialog";
 import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
 
-const SaleHistory = () => {
+const SaleHistory = ({ receiptSettings, shopMetadata }) => {
   const [sales, setSales] = useState([]);
   const [looseSales, setLooseSales] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -911,7 +911,7 @@ const SaleHistory = () => {
           >
             <Receipt
               sale={selectedSale}
-              settings={{
+              settings={receiptSettings || {
                 shopName: true,
                 header: true,
                 footer: true,
@@ -923,11 +923,11 @@ const SaleHistory = () => {
                 exp: true,
                 barcode: true,
                 totalSavings: true,
-                customShopName:
-                  localStorage.getItem("posShopName") || "Bachat Bazaar",
+                customShopName: localStorage.getItem("posShopName") || "Bachat Bazaar",
                 customHeader: "123 Business Street, City",
                 customFooter: "Thank You! Visit Again",
               }}
+              shopMetadata={shopMetadata}
             />
           </Box>
         )}

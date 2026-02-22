@@ -12,6 +12,9 @@ const authRoutes = require('./src/routes/auth.routes');
 const categoryRoutes = require('./src/routes/category.routes');
 const looseSaleRoutes = require('./src/routes/loose-sale.routes');
 const promotionRoutes = require('./src/routes/promotion.routes');
+const settingRoutes = require('./src/routes/setting.routes');
+const settingService = require('./src/services/setting.service');
+const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/utils/constants');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -28,6 +31,7 @@ apiRouter.use(saleRoutes);
 apiRouter.use(reportRoutes);
 apiRouter.use(looseSaleRoutes);
 apiRouter.use(promotionRoutes);
+apiRouter.use('/settings', settingRoutes);
 
 app.use('/api', apiRouter);
 
@@ -46,6 +50,38 @@ async function checkAndSeed() {
             console.log('Database initialized successfully!');
         } else {
             console.log('Database already seeded.');
+        }
+
+        // Always ensure default settings exist
+        const shopName = await settingService.getSettingByKey('posShopName');
+        if (!shopName) {
+            console.log('Seeding default shop name...');
+            await settingService.updateSetting('posShopName', 'Bachat Bazaar');
+        }
+
+        const receiptSettings = await settingService.getSettingByKey('posReceiptSettings');
+        if (!receiptSettings) {
+            console.log('Seeding default receipt settings...');
+            await settingService.updateSetting('posReceiptSettings', DEFAULT_RECEIPT_SETTINGS);
+        }
+
+        const paymentSettings = await settingService.getSettingByKey('posPaymentSettings');
+        if (!paymentSettings) {
+            console.log('Seeding default payment settings...');
+            await settingService.updateSetting('posPaymentSettings', {
+                enabledMethods: ['cash'],
+                allowMultplePayment: false,
+                customMethods: []
+            });
+        }
+
+        // Seed shop metadata
+        for (const [key, defaultValue] of Object.entries(DEFAULT_SHOP_METADATA)) {
+            const existing = await settingService.getSettingByKey(key);
+            if (!existing) {
+                console.log(`Seeding default ${key}...`);
+                await settingService.updateSetting(key, defaultValue);
+            }
         }
     } catch (error) {
         console.error('Error checking/seeding database:', error);

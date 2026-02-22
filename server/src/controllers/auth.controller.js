@@ -220,6 +220,11 @@ const wipeDatabase = async (req, res) => {
             // Delete sales-related data
             await tx.saleItem.deleteMany({});
             await tx.sale.deleteMany({});
+            await tx.looseSale.deleteMany({});
+
+            // Delete promotions
+            await tx.promotionItem.deleteMany({});
+            await tx.promotion.deleteMany({});
 
             // Delete stock movements before inventory records
             await tx.stockMovement.deleteMany({});
