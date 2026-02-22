@@ -24,6 +24,27 @@ const SERVER_PORT = 5001;
 // -------------------------------------------------------------------------
 // Using standard Electron userData path for platform consistency
 const appDataPath = app.getPath('userData');
+const logFile = path.join(appDataPath, 'app.log');
+
+// Persistent logging to file
+const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+
+console.log = (...args) => {
+  const msg = `[${new Date().toISOString()}] [LOG] ` + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') + '\n';
+  logStream.write(msg);
+  originalConsoleLog.apply(console, args);
+};
+
+console.error = (...args) => {
+  const msg = `[${new Date().toISOString()}] [ERROR] ` + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') + '\n';
+  logStream.write(msg);
+  originalConsoleError.apply(console, args);
+};
+
+console.log('App initialization started');
+console.log('Log file:', logFile);
 
 // -------------------------------------------------------------------------
 // DATABASE BOOTSTRAPPING
@@ -75,14 +96,25 @@ const engineDir = isDev
   ? path.join(__dirname, '../node_modules/.prisma/client')
   : path.join(process.resourcesPath, 'app.asar.unpacked/node_modules/.prisma/client');
 
-const engineFileName = process.platform === 'win32'
-  ? 'query_engine-windows.dll.node'
-  : 'libquery_engine-darwin-arm64.dylib.node'; // Adjust for your testing platform if needed
+// Windows often uses .dll.node for the library engine, but we check both common names
+const possibleEngineNames = process.platform === 'win32'
+  ? ['query_engine-windows.dll.node', 'libquery_engine-windows.dll.node']
+  : ['libquery_engine-darwin-arm64.dylib.node', 'libquery_engine-darwin.dylib.node'];
 
-const enginePath = path.join(engineDir, engineFileName);
+let enginePath = null;
+for (const name of possibleEngineNames) {
+  const p = path.join(engineDir, name);
+  if (fs.existsSync(p)) {
+    enginePath = p;
+    break;
+  }
+}
 
-if (fs.existsSync(enginePath)) {
+if (enginePath) {
   process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
+  console.log('Prisma Engine Path detected:', enginePath);
+} else {
+  console.error('CRITICAL: Prisma Query Engine not found in:', engineDir);
 }
 
 console.log('---------------------------------------------------');
@@ -114,7 +146,11 @@ const createWindow = () => {
 
   const startUrl = isDev
     ? 'http://localhost:5173'
-    : `file://${path.join(__dirname, '../client/dist/index.html')}`;
+    : url.format({
+      pathname: path.resolve(__dirname, '../client/dist/index.html'),
+      protocol: 'file:',
+      slashes: true
+    });
 
   mainWindow.loadURL(startUrl);
 
@@ -138,12 +174,10 @@ const startServer = () => {
       process.env.NODE_ENV = isDev ? 'development' : 'production';
 
       const serverDir = isDev
-        ? path.join(__dirname, '../server')
-        : path.join(process.resourcesPath, 'app.asar.unpacked/server');
+        ? path.resolve(__dirname, '../server')
+        : path.resolve(process.resourcesPath, 'app.asar.unpacked/server');
 
-      const wrapperPath = isDev
-        ? path.join(__dirname, 'server-wrapper.js')
-        : path.join(__dirname, 'server-wrapper.js');
+      const wrapperPath = path.resolve(__dirname, 'server-wrapper.js');
 
       console.log(`Starting server from: ${serverDir}`);
       console.log(`Wrapper: ${wrapperPath}`);
@@ -266,6 +300,20 @@ Prisma Engine: ${process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default'}
 Platform: ${process.platform}
 Architecture: ${process.arch}
 Version: ${app.getVersion()}
+
+--- RECENT LOGS ---
+${(() => {
+                  try {
+                    if (fs.existsSync(logFile)) {
+                      const logs = fs.readFileSync(logFile, 'utf8');
+                      const lines = logs.split('\n').filter(Boolean);
+                      return lines.slice(-150).join('\n');
+                    }
+                    return 'No log file found.';
+                  } catch (e) {
+                    return 'Error reading logs: ' + e.message;
+                  }
+                })()}
               `.trim();
               dialog.showMessageBoxSync(mainWindow, {
                 type: 'info',

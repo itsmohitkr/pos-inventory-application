@@ -16,7 +16,7 @@ console.log('Server directory:', process.cwd());
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, isMain, options) {
   // Skip relative and absolute paths (handles both / and C:\ styles)
-  if (request.startsWith('.') || path.isAbsolute(request)) {
+  if (request.startsWith('.') || path.isAbsolute(request) || /^[a-zA-Z]:\\/.test(request)) {
     return originalResolve(request, parent, isMain, options);
   }
 

@@ -38,7 +38,12 @@ cd server
 npm install
 cd ..
 
-echo -e "${YELLOW}Step 4: Building client...${NC}"
+echo -e "${YELLOW}Step 4: Generating Prisma Client...${NC}"
+cd server
+npx prisma generate
+cd ..
+
+echo -e "${YELLOW}Step 5: Building React Client...${NC}"
 npm run client-build
 
 echo -e "${YELLOW}Step 5: Building Electron app...${NC}"
