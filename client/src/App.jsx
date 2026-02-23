@@ -710,7 +710,7 @@ function App() {
                 </RouterLink>
               </Typography>
               <Typography variant="caption" sx={{ color: 'rgba(248, 245, 240, 0.7)' }}>
-                {currentUser.username} • {currentUser.role} • <span style={{ color: '#f2b544', fontWeight: 'bold' }}>v1.0.1 (Update Patch)</span>
+                {currentUser.username} • {currentUser.role} • <span style={{ color: '#f2b544', fontWeight: 'bold' }}>v1.0.2 (Update Fix)</span>
               </Typography>
             </Box>
             <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
