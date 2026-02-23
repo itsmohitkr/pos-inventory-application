@@ -1,3 +1,26 @@
+// Auto-update setup
+const { autoUpdater } = require('electron-updater');
+
+app.on('ready', async () => {
+  try {
+    // Auto-update check
+    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.on('update-available', () => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-available');
+      }
+    });
+    autoUpdater.on('update-downloaded', () => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-downloaded');
+      }
+    });
+    autoUpdater.on('error', (err) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-error', err.message);
+      }
+    });
+    // ...existing code...
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -123,7 +146,8 @@ console.log('Prisma Engine Path set to:', process.env.PRISMA_QUERY_ENGINE_LIBRAR
 console.log('---------------------------------------------------');
 
 const createWindow = () => {
-  const iconPath = path.join(__dirname, '../assets/icon.png');
+  // Use shop_logo.jpeg for app icon
+  const iconPath = path.join(__dirname, '../assets/shop_logo.jpeg');
   const windowConfig = {
     width: 1400,
     height: 900,

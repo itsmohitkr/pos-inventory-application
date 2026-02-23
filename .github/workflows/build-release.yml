@@ -1,0 +1,76 @@
+name: Build and Release POS Application
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install
+      - name: Generate Prisma Client
+        run: npx prisma generate
+      - name: Build Electron app (mac)
+        run: npm run electron-build
+      - name: Package mac installer
+        run: npm run electron-pack -- --mac
+      - name: Upload mac installer
+        uses: actions/upload-artifact@v3
+        with:
+          name: mac-installer
+          path: dist/*.dmg
+
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install
+      - name: Generate Prisma Client
+        run: npx prisma generate
+      - name: Build Electron app (win)
+        run: npm run electron-build
+      - name: Package windows installer
+        run: npm run electron-pack -- --win
+      - name: Upload windows installer
+        uses: actions/upload-artifact@v3
+        with:
+          name: win-installer
+          path: dist/*.exe
+
+  release:
+    needs: [build-mac, build-win]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download mac installer
+        uses: actions/download-artifact@v3
+        with:
+          name: mac-installer
+          path: dist/
+      - name: Download windows installer
+        uses: actions/download-artifact@v3
+        with:
+          name: win-installer
+          path: dist/
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.dmg
+            dist/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

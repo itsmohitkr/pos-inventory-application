@@ -65,7 +65,8 @@
             ],
             "category": "public.app-category.business",
             "identity": null,
-            "gatekeeperAssess": false
+            "gatekeeperAssess": false,
+            "icon": "assets/shop_logo.jpeg"
         },
         "dmg": {
             "contents": [
