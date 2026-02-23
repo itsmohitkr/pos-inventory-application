@@ -96,7 +96,7 @@
                     ]
                 }
             ],
-            "icon": "assets/icon.ico"
+            "icon": "assets/shop_logo.jpeg"
         },
         "nsis": {
             "oneClick": false,
