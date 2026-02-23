@@ -8,7 +8,7 @@
     "license": "ISC",
     "scripts": {
         "electron-dev": "concurrently \"npm run client-dev\" \"wait-on http://localhost:5173 && electron .\"",
-        "electron-build": "npm run client-build && npm run electron-pack",
+        "electron-build": "node scripts/build-optimized.js",
         "electron-pack": "electron-builder --publish never",
         "electron-publish": "electron-builder --publish always",
         "client-dev": "cd client && npm run dev",
@@ -37,15 +37,14 @@
             "desktop/**/*",
             "client/dist/**/*",
             "server/**/*",
-            "node_modules/**/*",
-            "!node_modules/.cache",
             "!.env",
             "!client/.env",
             "!server/.env"
         ],
         "asarUnpack": [
             "server/**/*",
-            "node_modules/**/*"
+            "node_modules/.prisma/**/*",
+            "node_modules/@prisma/client/**/*"
         ],
         "extraFiles": [
             {

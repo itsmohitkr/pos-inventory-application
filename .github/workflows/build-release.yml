@@ -15,16 +15,18 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18"
-      - name: Clean node_modules
-        run: rm -rf node_modules
-      - name: Clean install dependencies
-        run: npm ci
-      - name: Set executable permissions for app-builder
-        run: chmod +x node_modules/app-builder-bin/mac/app-builder_arm64
+          cache: 'npm'
       - name: Install dependencies
-        run: npm install
-      - name: Remove Electron Builder cache
-        run: rm -rf ~/.cache/electron-builder
+        run: npm ci
+      - name: Cache electron-builder binaries
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/electron-builder
+          key: ${{ runner.os }}-electron-builder-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-builder-
+      - name: Set executable permissions for app-builder
+        run: chmod +x node_modules/app-builder-bin/mac/app-builder_arm64 || true
       - name: Install client dependencies
         working-directory: client
         run: npm install
@@ -54,15 +56,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18"
-      - name: Clean node_modules
-        run: |
-          if (Test-Path node_modules) {
-              Remove-Item node_modules -Recurse -Force
-          }
+          cache: 'npm'
       - name: Install dependencies
-        run: npm install
-      - name: Clean electron-builder cache
-        run: Remove-Item -Recurse -Force $env:USERPROFILE\.cache\electron-builder -ErrorAction SilentlyContinue
+        run: npm ci
+      - name: Cache electron-builder binaries
+        uses: actions/cache@v3
+        with:
+          path: ~\AppData\Local\electron-builder\Cache
+          key: ${{ runner.os }}-electron-builder-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-builder-
       - name: Install client dependencies
         working-directory: client
         run: npm install

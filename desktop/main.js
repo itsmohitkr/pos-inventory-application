@@ -294,26 +294,45 @@ app.on('ready', async () => {
         submenu: [
           {
             label: 'Wipe App Data (Restart Required)',
-            click: () => {
+            click: async () => {
               const choice = dialog.showMessageBoxSync(mainWindow, {
                 type: 'warning',
                 buttons: ['Cancel', 'Wipe Data'],
                 defaultId: 0,
                 title: 'Confirm Wipe',
-                message: 'This will delete ALL local data and products. You will need to restart the application. Continue?',
+                message: 'This will delete ALL local data, products, and logs. The application will restart automatically. Continue?',
                 cancelId: 0
               });
 
               if (choice === 1) {
                 try {
+                  console.log('Initiating full data wipe...');
+
+                  // 1. Attempt to stop server to release file locks
+                  stopServer();
+
+                  // 2. Small delay to ensure hooks are released
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+
+                  // 3. Recursive delete of everything in userData
+                  // We use rmSync with recursive: true to handle subdirectories
+                  // force: true ignores errors if file is missing
                   const files = fs.readdirSync(appDataPath);
                   for (const file of files) {
-                    fs.unlinkSync(path.join(appDataPath, file));
+                    const fullPath = path.join(appDataPath, file);
+                    try {
+                      fs.rmSync(fullPath, { recursive: true, force: true });
+                      console.log(`Deleted: ${fullPath}`);
+                    } catch (e) {
+                      console.error(`Could not delete ${file}:`, e.message);
+                    }
                   }
+
+                  // 4. Relaunch
                   app.relaunch();
                   app.exit(0);
                 } catch (err) {
-                  dialog.showErrorBox('Wipe Failed', err.message);
+                  dialog.showErrorBox('Wipe Failed', `A critical error occurred: ${err.message}\n\nPlease try manually deleting the folder: ${appDataPath}`);
                 }
               }
             }

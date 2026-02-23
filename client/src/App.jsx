@@ -497,13 +497,42 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const storedUser = localStorage.getItem('posCurrentUser');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
-    fetchSettings();
-    setLoading(false);
+    const checkAuth = async () => {
+      try {
+        // Check if user is already logged in
+        const storedUser = localStorage.getItem('posCurrentUser');
+        const firstRunDone = localStorage.getItem('posFirstRunDone') === 'true';
+
+        if (storedUser) {
+          setCurrentUser(JSON.parse(storedUser));
+        } else if (!firstRunDone) {
+          // First run: attempt silent auto-login as default admin
+          console.log('Detected first run. Attempting silent admin login...');
+          try {
+            const response = await api.post('/api/auth/login', {
+              username: 'admin',
+              password: 'admin123'
+            });
+            const user = response.data;
+            setCurrentUser(user);
+            localStorage.setItem('posCurrentUser', JSON.stringify(user));
+            localStorage.setItem('posFirstRunDone', 'true');
+            console.log('Silent login successful.');
+          } catch (error) {
+            console.error('Silent auto-login failed:', error);
+            // Even if it fails, mark first run as done so we don't keep trying
+            localStorage.setItem('posFirstRunDone', 'true');
+          }
+        }
+      } catch (error) {
+        console.error('Auth verification error:', error);
+      } finally {
+        await fetchSettings();
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   useEffect(() => {
