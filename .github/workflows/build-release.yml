@@ -17,6 +17,10 @@ jobs:
           node-version: '18'
       - name: Install dependencies
         run: npm install
+      - name: Install Vite
+        run: npm install --save-dev vite
+      - name: Build client
+        run: npx vite build
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
       - name: Build Electron app (mac)
@@ -39,6 +43,10 @@ jobs:
           node-version: '18'
       - name: Install dependencies
         run: npm install
+      - name: Install Vite
+        run: npm install --save-dev vite
+      - name: Build client
+        run: npx vite build
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
       - name: Build Electron app (win)
