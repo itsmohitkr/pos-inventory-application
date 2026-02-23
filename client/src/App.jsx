@@ -56,7 +56,6 @@ import LoginPage from './components/Auth/LoginPage';
 import UserManagementDialog from './components/Auth/UserManagementDialog';
 import AccountDetailsDialog from './components/Settings/AccountDetailsDialog';
 import CustomDialog from './components/common/CustomDialog';
-import UpdateNotifier from './components/common/UpdateNotifier';
 import useCustomDialog from './hooks/useCustomDialog';
 
 const STORAGE_KEYS = {
@@ -743,8 +742,6 @@ function App() {
             {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><DashboardPage shopName={shopName} userRole={currentUser.role} /></Box>} />}
           </Routes>
         </Box>
-
-        <UpdateNotifier />
 
         <Menu
           anchorEl={settingsAnchorEl}

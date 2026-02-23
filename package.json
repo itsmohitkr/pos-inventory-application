@@ -31,13 +31,6 @@
     "build": {
         "appId": "com.bachatbazaar.pos",
         "productName": "Bachat Bazaar",
-        "publish": [
-            {
-                "provider": "github",
-                "owner": "itsmohitkr",
-                "repo": "pos-inventory-application"
-            }
-        ],
         "asar": true,
         "afterPack": "./scripts/post-build.js",
         "files": [

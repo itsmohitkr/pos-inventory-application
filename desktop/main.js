@@ -20,8 +20,6 @@ app.on('ready', async () => {
       if (mainWindow) {
         mainWindow.webContents.send('update-downloaded');
       }
-      // Optional: Auto-install on quit
-      autoUpdater.autoInstallOnAppQuit = true;
     });
     autoUpdater.on('error', (err) => {
       if (mainWindow) {
@@ -38,9 +36,6 @@ ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('get-app-path', () => appDataPath);
 ipcMain.on('check-for-updates', () => {
   autoUpdater.checkForUpdates();
-});
-ipcMain.on('restart-app-to-update', () => {
-  autoUpdater.quitAndInstall();
 });
 
 // -------------------------------------------------------------------------

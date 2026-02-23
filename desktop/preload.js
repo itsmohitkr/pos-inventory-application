@@ -3,8 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electron', {
   app: {
     getVersion: () => ipcRenderer.invoke('get-app-version'),
-    getAppPath: () => ipcRenderer.invoke('get-app-path'),
-    restartAppToUpdate: () => ipcRenderer.send('restart-app-to-update')
+    getAppPath: () => ipcRenderer.invoke('get-app-path')
   },
   ipcRenderer: {
     send: (channel, ...args) => ipcRenderer.send(channel, ...args),
