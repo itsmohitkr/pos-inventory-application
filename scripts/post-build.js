@@ -13,7 +13,7 @@ module.exports = async function(context) {
   const prismaSrc = path.join(projectRoot, 'node_modules', '.prisma');
   
   if (!fs.existsSync(prismaSrc)) {
-    console.log('⚠️  .prisma folder not found, skipping copy');
+    // Folder not found, skipping copy
     return;
   }
   
@@ -28,7 +28,7 @@ module.exports = async function(context) {
   
   try {
     await fs.copy(prismaSrc, destDir, { overwrite: true });
-    console.log(`✓ Copied .prisma to ${platform}`);
+    // Copied .prisma to the specified platform
   } catch (err) {
     console.error(`✗ Failed to copy .prisma:`, err.message);
   }

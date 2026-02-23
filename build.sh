@@ -55,13 +55,10 @@ if [ "$1" == "mac" ]; then
 elif [ "$1" == "win" ]; then
     echo -e "${YELLOW}Building for Windows...${NC}"
     npm run electron-pack -- --win
-elif [ "$1" == "all" ]; then
-    echo -e "${YELLOW}Building for all platforms...${NC}"
-    npm run electron-pack -- --mac --win
 else
-    echo -e "${YELLOW}Usage: $0 [mac|win|all]${NC}"
+    echo -e "${YELLOW}Usage: $0 [mac|win]${NC}"
     echo -e "${YELLOW}Building for current platform (macOS)...${NC}"
-    npm run electron-pack
+    npm run electron-pack -- --mac
 fi
 
 echo -e "${GREEN}Build complete!${NC}"

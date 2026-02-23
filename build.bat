@@ -48,12 +48,9 @@ if "%1"=="mac" (
 ) else if "%1"=="win" (
     echo Building for Windows...
     call npm run electron-pack -- --win
-) else if "%1"=="all" (
-    echo Building for all platforms...
-    call npm run electron-pack -- --mac --win
 ) else (
-    echo Usage: build.bat [mac^|win^|all]
-    call npm run electron-pack
+    echo Usage: build.bat [mac^|win^]
+    call npm run electron-pack -- --mac
 )
 
 if errorlevel 1 goto error

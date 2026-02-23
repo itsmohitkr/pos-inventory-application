@@ -13,9 +13,9 @@ const getAllProducts = async (req, res) => {
         } = req.query;
 
         if (includeBatches === 'true') {
-            console.error(`[DEBUG-POS] Fetching with batches: search='${search}', category='${category}'`);
+            // ...existing code...
             const data = await productService.getAllProductsWithBatches({ search, category });
-            console.error(`[DEBUG-POS] Returned ${data?.length || 0} products to POS client`);
+            // ...existing code...
             return res.json({ data });
         }
 

@@ -104,14 +104,6 @@
             "createDesktopShortcut": true,
             "createStartMenuShortcut": true,
             "shortcutName": "Bachat Bazaar"
-        },
-        "linux": {
-            "target": [
-                "AppImage",
-                "deb"
-            ],
-            "icon": "assets/icon.png",
-            "category": "Utility"
         }
     },
     "dependencies": {

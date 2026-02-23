@@ -352,7 +352,7 @@ async function seedSampleData() {
     );
     const products = [...baseProducts, ...generated];
 
-    console.log(`Start seeding ${products.length} products...`);
+    // ...existing code...
 
     for (const p of products) {
         // Create Product
@@ -378,14 +378,14 @@ async function seedSampleData() {
                 sellingPrice: p.sp
             }
         });
-        console.log(`Created ${p.name} with batch ${batchCode}`);
+        // ...existing code...
     }
-    console.log('Sample data seeding finished.');
+    // ...existing code...
 }
 
 async function seedEssential() {
     // Create default users
-    console.log('Creating essential default users...');
+    // ...existing code...
 
     // Check if admin already exists
     const adminExists = await prisma.user.findUnique({
@@ -401,7 +401,7 @@ async function seedEssential() {
                 status: 'active'
             }
         });
-        console.log('Created admin user: admin / admin123');
+        // ...existing code...
     }
 
     const cashierExists = await prisma.user.findUnique({
@@ -417,7 +417,7 @@ async function seedEssential() {
                 status: 'active'
             }
         });
-        console.log('Created cashier user: cashier / cashier123');
+        // ...existing code...
     }
 
     const salesmanExists = await prisma.user.findUnique({
@@ -433,10 +433,10 @@ async function seedEssential() {
                 status: 'active'
             }
         });
-        console.log('Created salesman user: salesman / salesman123');
+        // ...existing code...
     }
 
-    console.log('Essential seeding finished.');
+    // ...existing code...
 }
 
 async function main() {

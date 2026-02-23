@@ -25,7 +25,7 @@ app.use(bodyParser.json());
 
 // Request logging middleware
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    // ...existing code...
     next();
 });
 
@@ -54,15 +54,15 @@ app.use((err, req, res, next) => {
 
 // Manual SQLite Schema Migration to handle updates in packaged Electron apps
 async function migrateSchema() {
-    console.log('Checking database schema compatibility...');
+    // ...existing code...
 
     const addColumnSafely = async (table, column, definition) => {
         try {
             await prisma.$executeRawUnsafe(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${definition}`);
-            console.log(`[MIGRATION] Added column ${column} to ${table}`);
+            // ...existing code...
         } catch (e) {
             if (e.message && e.message.includes('duplicate column name')) {
-                console.log(`[MIGRATION] Column ${column} already exists in ${table}, skipping.`);
+                // ...existing code...
             } else {
                 console.error(`[MIGRATION FATAL ERROR] Failed to add ${column} to ${table}. Message: ${e.message}`);
                 console.error(e);
@@ -96,7 +96,7 @@ async function migrateSchema() {
         await addColumnSafely('Batch', 'wholesaleMinQty', 'INTEGER');
         await addColumnSafely('SaleItem', 'isWholesale', 'BOOLEAN NOT NULL DEFAULT 0');
 
-        console.log('Schema migration check complete.');
+        // ...existing code...
     } catch (error) {
         console.error('Schema migration failed structurally:', error);
         throw error;
@@ -112,7 +112,7 @@ async function checkAndSeed() {
         const userCount = await prisma.user.count();
 
         if (userCount === 0) {
-            console.log('Database is empty. Running seed script...');
+            // ...existing code...
 
             // Run essential seed script only (admin user etc)
             const { seedEssential } = require('./seed');

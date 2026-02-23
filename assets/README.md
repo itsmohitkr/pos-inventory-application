@@ -14,9 +14,6 @@ This directory should contain icon files for building the Electron app.
   - Required for `.exe` installer
   - Format: ICO format
 
-### Linux
-- `icon.png` - Linux icon (512x512 or larger)
-  - Format: PNG format
 
 ## Creating Icon Files
 
@@ -69,11 +66,6 @@ convert icon.png -define icon:auto-resize=256,128,96,64,48,32,16 icon.ico
 - Format: ICO (Windows Icon)
 - Colors: RGB or RGBA
 
-### Linux (icon.png)
-- Minimum: 512x512 pixels
-- Recommended: 512x512 pixels
-- Format: PNG
-- Colors: RGBA (with transparency)
 
 ## Quick Setup
 

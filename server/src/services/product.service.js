@@ -235,9 +235,9 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
                 }
             }
         });
-        console.error(`[DEBUG-PRISMA] findMany succeeded, returned ${products.length} records`);
+        // ...existing code...
     } catch (err) {
-        console.error(`[DEBUG-PRISMA] FATAL findMany error:`, err);
+        // ...existing code...
         throw err;
     }
 

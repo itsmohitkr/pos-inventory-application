@@ -8,12 +8,12 @@ const options = {
 };
 
 const req = http.request(options, (res) => {
-    console.log(`STATUS: ${res.statusCode}`);
+    // ...existing code...
     res.setEncoding('utf8');
     let data = '';
     res.on('data', (chunk) => { data += chunk; });
     res.on('end', () => {
-        console.log('BODY:', data);
+        // ...existing code...
     });
 });
 

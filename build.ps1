@@ -2,7 +2,7 @@
 # This script builds the Electron app for Windows
 
 param(
-    [ValidateSet('mac', 'win', 'all')]
+    [ValidateSet('mac', 'win')]
     [string]$Platform
 )
 
@@ -56,11 +56,8 @@ try {
     } elseif ($Platform -eq 'win') {
         Write-Host "Building for Windows..." -ForegroundColor Cyan
         npm run electron-pack -- --win
-    } elseif ($Platform -eq 'all') {
-        Write-Host "Building for all platforms..." -ForegroundColor Cyan
-        npm run electron-pack -- --mac --win
     } else {
-        Write-Host "Usage: .\build.ps1 -Platform [mac|win|all]" -ForegroundColor Yellow
+        Write-Host "Usage: .\build.ps1 -Platform [mac|win]" -ForegroundColor Yellow
         Write-Host "Building for Windows (default)..." -ForegroundColor Cyan
         npm run electron-pack -- --win
     }
