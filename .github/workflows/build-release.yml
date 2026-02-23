@@ -93,31 +93,27 @@ jobs:
         with:
           name: win-installer
           path: dist/
-      - name: Create Git Tag (skip if exists)
+      - name: Create Git Tag (unique per run)
         env:
           GIT_AUTH_TOKEN: ${{ secrets.PAT_REPO }}
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          TAG_NAME="v1.0.0"
-          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
-            echo "Tag $TAG_NAME already exists. Skipping tag creation."
-          else
-            git tag $TAG_NAME
-            git push https://x-access-token:${GIT_AUTH_TOKEN}@github.com/itsmohitkr/pos-inventory-application.git $TAG_NAME
-          fi
+          TAG_NAME="v${{ github.run_number }}"
+          git tag $TAG_NAME
+          git push https://x-access-token:${GIT_AUTH_TOKEN}@github.com/itsmohitkr/pos-inventory-application.git $TAG_NAME
       - name: Create Release
         uses: actions/create-release@v1
         with:
-          tag_name: v1.0.0
-          release_name: Release v1.0.0
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v1.0.0
+          tag_name: v${{ github.run_number }}
           files: |
             dist/*.dmg
             dist/*.exe
