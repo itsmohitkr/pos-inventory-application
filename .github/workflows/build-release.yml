@@ -59,7 +59,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Remove Electron Builder cache
-        run: rm -rf ~/.cache/electron-builder
+        run: Remove-Item -Recurse -Force $env:USERPROFILE\.cache\electron-builder
       - name: Install client dependencies
         working-directory: client
         run: npm install
