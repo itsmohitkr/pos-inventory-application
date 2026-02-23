@@ -134,8 +134,8 @@ const buildWhereFilter = ({ search, category }) => {
         // Support multi-barcode search: search for exact match or as part of pipe-separated list
         andFilters.push({
             OR: [
-                { name: { contains: normalizedSearch, mode: 'insensitive' } },
-                { barcode: { contains: normalizedSearch, mode: 'insensitive' } }
+                { name: { contains: normalizedSearch } },
+                { barcode: { contains: normalizedSearch } }
             ]
         });
     }
