@@ -1,6 +1,6 @@
 {
     "name": "bachat-bazaar",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "POS Application for Bachat Bazaar",
     "main": "desktop/main.js",
     "homepage": "./",
