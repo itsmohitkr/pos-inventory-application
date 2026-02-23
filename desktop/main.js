@@ -20,7 +20,18 @@ app.on('ready', async () => {
         mainWindow.webContents.send('update-error', err.message);
       }
     });
-    // ...existing code...
+  } catch (error) {
+    console.error('Failed to start auto-update setup:', error);
+  }
+});
+
+// IPC handlers
+ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('get-app-path', () => appDataPath);
+ipcMain.on('check-for-updates', () => {
+  autoUpdater.checkForUpdates();
+});
+
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -392,9 +403,3 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   stopServer();
 });
-
-// IPC handlers
-ipcMain.handle('get-app-version', () => app.getVersion());
-ipcMain.handle('get-app-path', () => appDataPath);
-
-} 

@@ -32,6 +32,7 @@ import {
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
 import PaymentSettingsPanel from './PaymentSettingsPanel';
+import { Snackbar, Alert as MuiAlert } from '@mui/material';
 
 const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadataChange, currentUser }) => {
   const { dialogState, showSuccess, showError, closeDialog } = useCustomDialog();
@@ -42,6 +43,9 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
   const [shopEmail, setShopEmail] = useState(shopMetadata.shopEmail);
   const [shopGST, setShopGST] = useState(shopMetadata.shopGST);
   const [logoUrl, setLogoUrl] = useState(shopMetadata.shopLogo);
+  const [updateStatus, setUpdateStatus] = useState(null);
+  const [updateMessage, setUpdateMessage] = useState('');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   // Sync with metadata prop changes
   useEffect(() => {
@@ -54,13 +58,32 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
     setLogoUrl(shopMetadata.shopLogo);
   }, [shopName, shopMetadata]);
 
-  const [showWipeConfirm, setShowWipeConfirm] = useState(false);
-  const [wipePassword, setWipePassword] = useState('');
-  const [wipeLoading, setWipeLoading] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
-  const [uiZoom, setUiZoom] = useState(() => Number(localStorage.getItem('posUiZoom')) || 100);
-  const [monochrome, setMonochrome] = useState(() => localStorage.getItem('posMonochromeMode') === 'true');
-  const [looseSaleEnabled, setLooseSaleEnabled] = useState(() => localStorage.getItem('posLooseSaleEnabled') !== 'false');
+  useEffect(() => {
+    if (window.electron && window.electron.ipcRenderer) {
+      window.electron.ipcRenderer.on('update-available', () => {
+        setUpdateStatus('info');
+        setUpdateMessage('A new update is available. Downloading...');
+        setSnackbarOpen(true);
+      });
+      window.electron.ipcRenderer.on('update-downloaded', () => {
+        setUpdateStatus('success');
+        setUpdateMessage('Update downloaded! Restart the app to apply.');
+        setSnackbarOpen(true);
+      });
+      window.electron.ipcRenderer.on('update-error', (_event, msg) => {
+        setUpdateStatus('error');
+        setUpdateMessage('Update error: ' + msg);
+        setSnackbarOpen(true);
+      });
+    }
+    return () => {
+      if (window.electron && window.electron.ipcRenderer) {
+        window.electron.ipcRenderer.removeAllListeners('update-available');
+        window.electron.ipcRenderer.removeAllListeners('update-downloaded');
+        window.electron.ipcRenderer.removeAllListeners('update-error');
+      }
+    };
+  }, []);
 
   const handleSave = () => {
     onMetadataChange({
@@ -127,6 +150,15 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
       return;
     }
     handleClose();
+  };
+
+  const handleCheckForUpdates = () => {
+    if (window.electron && window.electron.ipcRenderer) {
+      window.electron.ipcRenderer.send('check-for-updates');
+      setUpdateStatus('info');
+      setUpdateMessage('Checking for updates...');
+      setSnackbarOpen(true);
+    }
   };
 
   return (
@@ -275,6 +307,10 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                     placeholder="22AAAAA0000A1Z5"
                   />
                 </Stack>
+
+                <Button variant="outlined" color="primary" onClick={handleCheckForUpdates} sx={{ mt: 2 }}>
+                  Check for Updates
+                </Button>
               </Paper>
 
               {/* Database Settings Section - Admin Only */}
@@ -517,6 +553,11 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
         </DialogActions>
       </Dialog>
       <CustomDialog {...dialogState} onClose={closeDialog} />
+      <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={() => setSnackbarOpen(false)}>
+        <MuiAlert onClose={() => setSnackbarOpen(false)} severity={updateStatus} sx={{ width: '100%' }}>
+          {updateMessage}
+        </MuiAlert>
+      </Snackbar>
     </>
   );
 };
