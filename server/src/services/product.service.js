@@ -213,26 +213,33 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
     const where = category === 'all' || category === 'uncategorized'
         ? baseWhere
         : buildWhereFilter({ search, category });
-    const products = await prisma.product.findMany({
-        where,
-        include: {
-            batches: {
-                orderBy: { createdAt: 'asc' }
-            },
-            promotions: {
-                where: {
-                    promotion: {
-                        isActive: true,
-                        startDate: { lte: new Date() },
-                        endDate: { gte: new Date() }
-                    }
+    let products = [];
+    try {
+        products = await prisma.product.findMany({
+            where,
+            include: {
+                batches: {
+                    orderBy: { createdAt: 'asc' }
                 },
-                include: {
-                    promotion: true
+                promotions: {
+                    where: {
+                        promotion: {
+                            isActive: true,
+                            startDate: { lte: new Date() },
+                            endDate: { gte: new Date() }
+                        }
+                    },
+                    include: {
+                        promotion: true
+                    }
                 }
             }
-        }
-    });
+        });
+        console.error(`[DEBUG-PRISMA] findMany succeeded, returned ${products.length} records`);
+    } catch (err) {
+        console.error(`[DEBUG-PRISMA] FATAL findMany error:`, err);
+        throw err;
+    }
 
     const normalized = products.map((product) => {
         // Find the best active promo price
