@@ -217,32 +217,42 @@ const wipeDatabase = async (req, res) => {
 
         // Delete all data in order (respecting foreign key constraints)
         await prisma.$transaction(async (tx) => {
-            // Delete sales-related data
-            await tx.saleItem.deleteMany({});
-            await tx.sale.deleteMany({});
-            await tx.looseSale.deleteMany({});
-
-            // Delete promotions
-            await tx.promotionItem.deleteMany({});
-            await tx.promotion.deleteMany({});
-
-            // Delete stock movements before inventory records
-            await tx.stockMovement.deleteMany({});
-
-            // Delete inventory data
-            await tx.batch.deleteMany({});
-            await tx.product.deleteMany({});
-
-            // Delete categories (children first to satisfy self-relation)
-            await tx.category.deleteMany({ where: { parentId: { not: null } } });
-            await tx.category.deleteMany({});
-
-            // Delete all users except the admin who initiated
-            await tx.user.deleteMany({
-                where: {
-                    id: { not: user.id }
+            const deleteTable = async (tableName) => {
+                try {
+                    await tx[tableName].deleteMany({});
+                } catch (e) {
+                    console.warn(`Could not wipe table ${tableName}: ${e.message}`);
                 }
-            });
+            };
+
+            // Order matters for foreign keys
+            await deleteTable('saleItem');
+            await deleteTable('sale');
+            await deleteTable('looseSale');
+            await deleteTable('promotionItem');
+            await deleteTable('promotion');
+            await deleteTable('stockMovement');
+            await deleteTable('batch');
+            await deleteTable('product');
+
+            // Categories (self-relation)
+            try {
+                await tx.category.deleteMany({ where: { parentId: { not: null } } });
+                await tx.category.deleteMany({});
+            } catch (e) {
+                console.warn(`Could not wipe table category: ${e.message}`);
+            }
+
+            // Users
+            try {
+                await tx.user.deleteMany({
+                    where: {
+                        id: { not: user.id }
+                    }
+                });
+            } catch (e) {
+                console.warn(`Could not wipe users: ${e.message}`);
+            }
         });
 
         res.json({
