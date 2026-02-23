@@ -18,9 +18,10 @@
     },
     "keywords": [],
     "devDependencies": {
+        "app-builder-bin": "^4.2.0",
         "concurrently": "^8.2.2",
         "electron": "latest",
-        "electron-builder": "^24.6.4",
+        "electron-builder": "^26.8.1",
         "electron-is-dev": "^3.0.1",
         "fs-extra": "^11.3.3",
         "prisma": "^5.22.0",
