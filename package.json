@@ -67,7 +67,7 @@
             "category": "public.app-category.business",
             "identity": null,
             "gatekeeperAssess": false,
-            "icon": "assets/shop_logo.jpeg"
+            "icon": "assets/shop_logo.icns"
         },
         "dmg": {
             "contents": [
@@ -98,7 +98,7 @@
                     ]
                 }
             ],
-            "icon": "assets/shop_logo.jpeg"
+            "icon": "assets/shop_logo.ico"
         },
         "nsis": {
             "oneClick": false,
