@@ -396,3 +396,5 @@ app.on('before-quit', () => {
 // IPC handlers
 ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('get-app-path', () => appDataPath);
+
+} 

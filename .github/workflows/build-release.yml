@@ -24,7 +24,7 @@ jobs:
       - name: Package mac installer
         run: npm run electron-pack -- --mac
       - name: Upload mac installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mac-installer
           path: dist/*.dmg
@@ -46,7 +46,7 @@ jobs:
       - name: Package windows installer
         run: npm run electron-pack -- --win
       - name: Upload windows installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: win-installer
           path: dist/*.exe
