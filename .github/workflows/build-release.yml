@@ -117,5 +117,7 @@ jobs:
           files: |
             dist/*.dmg
             dist/*.exe
+            dist/latest.yml
+            dist/latest-win.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
