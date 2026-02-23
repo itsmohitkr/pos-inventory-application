@@ -46,16 +46,25 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
   const [updateStatus, setUpdateStatus] = useState(null);
   const [updateMessage, setUpdateMessage] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  // Add missing state variables
+  const [showWipeConfirm, setShowWipeConfirm] = useState(false);
+  const [wipePassword, setWipePassword] = useState('');
+  const [wipeLoading, setWipeLoading] = useState(false);
+  const [uiZoom, setUiZoom] = useState(Number(localStorage.getItem('posUiZoom')) || 100);
+  const [monochrome, setMonochrome] = useState(localStorage.getItem('posMonochromeMode') === 'true');
+  const [looseSaleEnabled, setLooseSaleEnabled] = useState(localStorage.getItem('posLooseSaleEnabled') === 'true');
+  const [tabValue, setTabValue] = useState(0);
 
   // Sync with metadata prop changes
   useEffect(() => {
-    setEditedShopName(shopName);
-    setShopMobile(shopMetadata.shopMobile);
-    setShopMobile2(shopMetadata.shopMobile2);
-    setShopAddress(shopMetadata.shopAddress);
-    setShopEmail(shopMetadata.shopEmail);
-    setShopGST(shopMetadata.shopGST);
-    setLogoUrl(shopMetadata.shopLogo);
+    // Only update state if values actually changed to avoid unnecessary renders
+    if (editedShopName !== shopName) setEditedShopName(shopName);
+    if (shopMobile !== shopMetadata.shopMobile) setShopMobile(shopMetadata.shopMobile);
+    if (shopMobile2 !== shopMetadata.shopMobile2) setShopMobile2(shopMetadata.shopMobile2);
+    if (shopAddress !== shopMetadata.shopAddress) setShopAddress(shopMetadata.shopAddress);
+    if (shopEmail !== shopMetadata.shopEmail) setShopEmail(shopMetadata.shopEmail);
+    if (shopGST !== shopMetadata.shopGST) setShopGST(shopMetadata.shopGST);
+    if (logoUrl !== shopMetadata.shopLogo) setLogoUrl(shopMetadata.shopLogo);
   }, [shopName, shopMetadata]);
 
   useEffect(() => {
