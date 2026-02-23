@@ -263,8 +263,14 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 params: { includeBatches: true }
             });
             setProducts(res.data.data);
-        } catch {
-            console.error("Error fetching products");
+        } catch (err) {
+            console.error("Error fetching products:", err);
+            setNotification({
+                open: true,
+                message: `Unable to connect to POS server. ${err.message}`,
+                severity: 'error',
+                duration: 5000
+            });
         }
     };
 

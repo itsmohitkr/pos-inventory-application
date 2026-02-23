@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const prisma = require('./src/config/prisma');
+console.error('[BOOT] index.js loaded. Starting server initialization...');
 
 // Import modular routes
 const productRoutes = require('./src/routes/product.routes');
@@ -159,17 +160,34 @@ async function checkAndSeed() {
 
 async function startServer() {
     try {
-        await checkAndSeed();
+        console.error('[BOOT] Starting checkAndSeed with timeout...');
+        // Set a timeout for DB check to prevent boot hangs
+        const bootstrapPromise = checkAndSeed();
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Database initialization timed out')), 10000)
+        );
+
+        try {
+            await Promise.race([bootstrapPromise, timeoutPromise]);
+            console.error('[BOOT] Database initialization finished successfully.');
+        } catch (bootstrapError) {
+            console.error('[BOOT WARNING] Database initialization stalled or failed:', bootstrapError.message);
+            console.error('[BOOT] Proceeding to start server anyway...');
+        }
     } catch (e) {
-        console.error("Critical error during application startup:", e);
+        console.error("Critical error during application pre-startup:", e);
     }
 
     app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
+        console.error(`[BOOT SUCCESS] Server running on port ${PORT}`);
     });
 }
 
-startServer();
+try {
+    startServer();
+} catch (e) {
+    console.error('SERVER BOOT FATAL:', e);
+}
 
 // Keep process alive hack
 setInterval(() => { }, 10000);
