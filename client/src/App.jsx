@@ -427,6 +427,29 @@ const Inventory = () => {
 };
 
 function App() {
+    // --- Auto-update notification logic ---
+    useEffect(() => {
+      if (window.electron && window.electron.ipcRenderer) {
+        window.electron.ipcRenderer.on('update-available', () => {
+          showSuccess('A new update is available and is being downloaded.');
+        });
+        window.electron.ipcRenderer.on('update-downloaded', () => {
+          if (window.confirm('Update downloaded. Restart now to apply the update?')) {
+            window.electron.ipcRenderer.send('restart-app');
+          }
+        });
+        window.electron.ipcRenderer.on('update-error', (event, message) => {
+          showError('Update error: ' + message);
+        });
+      }
+      return () => {
+        if (window.electron && window.electron.ipcRenderer) {
+          window.electron.ipcRenderer.removeAllListeners('update-available');
+          window.electron.ipcRenderer.removeAllListeners('update-downloaded');
+          window.electron.ipcRenderer.removeAllListeners('update-error');
+        }
+      };
+    }, [showError, showSuccess]);
   const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
