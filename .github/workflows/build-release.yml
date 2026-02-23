@@ -19,7 +19,11 @@ jobs:
         run: npm install
       - name: Install Vite
         run: npm install --save-dev vite
+      - name: Install client dependencies
+        working-directory: client
+        run: npm install
       - name: Build client
+        working-directory: client
         run: npx vite build
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
@@ -45,7 +49,11 @@ jobs:
         run: npm install
       - name: Install Vite
         run: npm install --save-dev vite
+      - name: Install client dependencies
+        working-directory: client
+        run: npm install
       - name: Build client
+        working-directory: client
         run: npx vite build
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
