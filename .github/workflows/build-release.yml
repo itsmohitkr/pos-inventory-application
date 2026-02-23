@@ -15,10 +15,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+      - name: Clean node_modules
+        run: rm -rf node_modules
       - name: Install dependencies
         run: npm install
-      - name: Install Vite
-        run: npm install --save-dev vite
+      - name: Clear Electron Builder cache
+        run: npx electron-builder --clear-cache
       - name: Install client dependencies
         working-directory: client
         run: npm install
@@ -45,10 +47,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+      - name: Clean node_modules
+        run: rm -rf node_modules
       - name: Install dependencies
         run: npm install
-      - name: Install Vite
-        run: npm install --save-dev vite
+      - name: Clear Electron Builder cache
+        run: npx electron-builder --clear-cache
       - name: Install client dependencies
         working-directory: client
         run: npm install
