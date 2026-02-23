@@ -93,14 +93,19 @@ jobs:
         with:
           name: win-installer
           path: dist/
-      - name: Create Git Tag
+      - name: Create Git Tag (skip if exists)
         env:
           GIT_AUTH_TOKEN: ${{ secrets.PAT_REPO }}
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git tag v1.0.0
-          git push https://x-access-token:${GIT_AUTH_TOKEN}@github.com/itsmohitkr/pos-inventory-application.git v1.0.0
+          TAG_NAME="v1.0.0"
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
+            echo "Tag $TAG_NAME already exists. Skipping tag creation."
+          else
+            git tag $TAG_NAME
+            git push https://x-access-token:${GIT_AUTH_TOKEN}@github.com/itsmohitkr/pos-inventory-application.git $TAG_NAME
+          fi
       - name: Create Release
         uses: actions/create-release@v1
         with:
