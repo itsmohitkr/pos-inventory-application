@@ -19,8 +19,8 @@ jobs:
         run: rm -rf node_modules
       - name: Install dependencies
         run: npm install
-      - name: Clear Electron Builder cache
-        run: npx electron-builder --clear-cache
+      - name: Remove Electron Builder cache
+        run: rm -rf ~/.cache/electron-builder
       - name: Install client dependencies
         working-directory: client
         run: npm install
@@ -48,11 +48,11 @@ jobs:
         with:
           node-version: '18'
       - name: Clean node_modules
-        run: rm -rf node_modules
+        run: Remove-Item node_modules -Recurse -Force
       - name: Install dependencies
         run: npm install
-      - name: Clear Electron Builder cache
-        run: npx electron-builder --clear-cache
+      - name: Remove Electron Builder cache
+        run: rm -rf ~/.cache/electron-builder
       - name: Install client dependencies
         working-directory: client
         run: npm install
