@@ -36,12 +36,15 @@ jobs:
       - name: Build Electron app (mac)
         run: npm run electron-build
       - name: Package mac installer
-        run: npm run electron-pack -- --mac
+        run: npm run electron-publish -- --mac
       - name: Upload mac installer
         uses: actions/upload-artifact@v4
         with:
           name: mac-installer
-          path: dist/*.dmg
+          path: |
+            dist/*.dmg
+            dist/latest-mac.yml
+
 
   build-win:
     runs-on: windows-latest
@@ -71,12 +74,15 @@ jobs:
       - name: Build Electron app (win)
         run: npm run electron-build
       - name: Package windows installer
-        run: npm run electron-pack -- --win
+        run: npm run electron-publish -- --win
       - name: Upload windows installer
         uses: actions/upload-artifact@v4
         with:
           name: win-installer
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/latest.yml
+
 
   release:
     needs: [build-mac, build-win]
