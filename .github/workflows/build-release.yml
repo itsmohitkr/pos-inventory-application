@@ -94,7 +94,13 @@ jobs:
           name: win-installer
           path: dist/
       - name: Create Git Tag
-        run: git tag v1.0.0 && git push origin v1.0.0
+        env:
+          GIT_AUTH_TOKEN: ${{ secrets.PAT_REPO }}
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "github-actions"
+          git tag v1.0.0
+          git push https://x-access-token:${GIT_AUTH_TOKEN}@github.com/itsmohitkr/pos-inventory-application.git v1.0.0
       - name: Create Release
         uses: actions/create-release@v1
         with:
