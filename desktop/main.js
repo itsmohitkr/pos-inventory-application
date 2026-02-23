@@ -1,6 +1,12 @@
-// Auto-update setup
+// Electron and core imports FIRST
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const url = require('url');
 
+// Auto-update setup
 app.on('ready', async () => {
   try {
     // Auto-update check
@@ -31,12 +37,6 @@ ipcMain.handle('get-app-path', () => appDataPath);
 ipcMain.on('check-for-updates', () => {
   autoUpdater.checkForUpdates();
 });
-
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const url = require('url');
 
 // -------------------------------------------------------------------------
 // CRITICAL: INITIALIZATION ORDER
