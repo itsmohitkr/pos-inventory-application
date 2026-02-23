@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../api';
+import React, { useState, useEffect } from "react";
+import api from "../../api";
 import {
   Dialog,
   DialogTitle,
@@ -18,8 +18,8 @@ import {
   Tabs,
   Tab,
   Switch,
-  FormControlLabel
-} from '@mui/material';
+  FormControlLabel,
+} from "@mui/material";
 import {
   Close as CloseIcon,
   Store as StoreIcon,
@@ -27,15 +27,23 @@ import {
   Warning as WarningIcon,
   PhotoCamera as PhotoCameraIcon,
   Payment as PaymentIcon,
-  DisplaySettings as DisplayIcon
-} from '@mui/icons-material';
-import CustomDialog from '../common/CustomDialog';
-import useCustomDialog from '../../hooks/useCustomDialog';
-import PaymentSettingsPanel from './PaymentSettingsPanel';
-import { Snackbar, Alert as MuiAlert } from '@mui/material';
+  DisplaySettings as DisplayIcon,
+} from "@mui/icons-material";
+import CustomDialog from "../common/CustomDialog";
+import useCustomDialog from "../../hooks/useCustomDialog";
+import PaymentSettingsPanel from "./PaymentSettingsPanel";
+import { Snackbar, Alert as MuiAlert } from "@mui/material";
 
-const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadataChange, currentUser }) => {
-  const { dialogState, showSuccess, showError, closeDialog } = useCustomDialog();
+const AccountDetailsDialog = ({
+  open,
+  onClose,
+  shopName,
+  shopMetadata,
+  onMetadataChange,
+  currentUser,
+}) => {
+  const { dialogState, showSuccess, showError, closeDialog } =
+    useCustomDialog();
   const [editedShopName, setEditedShopName] = useState(shopName);
   const [shopMobile, setShopMobile] = useState(shopMetadata.shopMobile);
   const [shopMobile2, setShopMobile2] = useState(shopMetadata.shopMobile2);
@@ -44,52 +52,62 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
   const [shopGST, setShopGST] = useState(shopMetadata.shopGST);
   const [logoUrl, setLogoUrl] = useState(shopMetadata.shopLogo);
   const [updateStatus, setUpdateStatus] = useState(null);
-  const [updateMessage, setUpdateMessage] = useState('');
+  const [updateMessage, setUpdateMessage] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   // Add missing state variables
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
-  const [wipePassword, setWipePassword] = useState('');
+  const [wipePassword, setWipePassword] = useState("");
   const [wipeLoading, setWipeLoading] = useState(false);
-  const [uiZoom, setUiZoom] = useState(Number(localStorage.getItem('posUiZoom')) || 100);
-  const [monochrome, setMonochrome] = useState(localStorage.getItem('posMonochromeMode') === 'true');
-  const [looseSaleEnabled, setLooseSaleEnabled] = useState(localStorage.getItem('posLooseSaleEnabled') === 'true');
+  const [uiZoom, setUiZoom] = useState(
+    Number(localStorage.getItem("posUiZoom")) || 100,
+  );
+  const [monochrome, setMonochrome] = useState(
+    localStorage.getItem("posMonochromeMode") === "true",
+  );
+  const [looseSaleEnabled, setLooseSaleEnabled] = useState(
+    localStorage.getItem("posLooseSaleEnabled") === "true",
+  );
   const [tabValue, setTabValue] = useState(0);
 
   // Sync with metadata prop changes
   useEffect(() => {
     // Only update state if values actually changed to avoid unnecessary renders
     if (editedShopName !== shopName) setEditedShopName(shopName);
-    if (shopMobile !== shopMetadata.shopMobile) setShopMobile(shopMetadata.shopMobile);
-    if (shopMobile2 !== shopMetadata.shopMobile2) setShopMobile2(shopMetadata.shopMobile2);
-    if (shopAddress !== shopMetadata.shopAddress) setShopAddress(shopMetadata.shopAddress);
-    if (shopEmail !== shopMetadata.shopEmail) setShopEmail(shopMetadata.shopEmail);
+    if (shopMobile !== shopMetadata.shopMobile)
+      setShopMobile(shopMetadata.shopMobile);
+    if (shopMobile2 !== shopMetadata.shopMobile2)
+      setShopMobile2(shopMetadata.shopMobile2);
+    if (shopAddress !== shopMetadata.shopAddress)
+      setShopAddress(shopMetadata.shopAddress);
+    if (shopEmail !== shopMetadata.shopEmail)
+      setShopEmail(shopMetadata.shopEmail);
     if (shopGST !== shopMetadata.shopGST) setShopGST(shopMetadata.shopGST);
     if (logoUrl !== shopMetadata.shopLogo) setLogoUrl(shopMetadata.shopLogo);
   }, [shopName, shopMetadata]);
 
   useEffect(() => {
     if (window.electron && window.electron.ipcRenderer) {
-      window.electron.ipcRenderer.on('update-available', () => {
-        setUpdateStatus('info');
-        setUpdateMessage('A new update is available. Downloading...');
+      window.electron.ipcRenderer.on("update-available", () => {
+        setUpdateStatus("info");
+        setUpdateMessage("A new update is available. Downloading...");
         setSnackbarOpen(true);
       });
-      window.electron.ipcRenderer.on('update-downloaded', () => {
-        setUpdateStatus('success');
-        setUpdateMessage('Update downloaded! Restart the app to apply.');
+      window.electron.ipcRenderer.on("update-downloaded", () => {
+        setUpdateStatus("success");
+        setUpdateMessage("Update downloaded! Restart the app to apply.");
         setSnackbarOpen(true);
       });
-      window.electron.ipcRenderer.on('update-error', (_event, msg) => {
-        setUpdateStatus('error');
-        setUpdateMessage('Update error: ' + msg);
+      window.electron.ipcRenderer.on("update-error", (_event, msg) => {
+        setUpdateStatus("error");
+        setUpdateMessage("Update error: " + msg);
         setSnackbarOpen(true);
       });
     }
     return () => {
       if (window.electron && window.electron.ipcRenderer) {
-        window.electron.ipcRenderer.removeAllListeners('update-available');
-        window.electron.ipcRenderer.removeAllListeners('update-downloaded');
-        window.electron.ipcRenderer.removeAllListeners('update-error');
+        window.electron.ipcRenderer.removeAllListeners("update-available");
+        window.electron.ipcRenderer.removeAllListeners("update-downloaded");
+        window.electron.ipcRenderer.removeAllListeners("update-error");
       }
     };
   }, []);
@@ -102,18 +120,18 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
       shopAddress,
       shopEmail,
       shopGST,
-      shopLogo: logoUrl
+      shopLogo: logoUrl,
     });
 
-    localStorage.setItem('posUiZoom', uiZoom.toString());
-    localStorage.setItem('posMonochromeMode', monochrome.toString());
-    localStorage.setItem('posLooseSaleEnabled', looseSaleEnabled.toString());
-    window.dispatchEvent(new Event('pos-ui-zoom-updated'));
-    window.dispatchEvent(new Event('pos-settings-updated'));
+    localStorage.setItem("posUiZoom", uiZoom.toString());
+    localStorage.setItem("posMonochromeMode", monochrome.toString());
+    localStorage.setItem("posLooseSaleEnabled", looseSaleEnabled.toString());
+    window.dispatchEvent(new Event("pos-ui-zoom-updated"));
+    window.dispatchEvent(new Event("pos-settings-updated"));
 
-    let message = 'Settings saved successfully!';
-    if (tabValue === 0) message = 'Shop information updated successfully!';
-    if (tabValue === 2) message = 'Display settings updated successfully!';
+    let message = "Settings saved successfully!";
+    if (tabValue === 0) message = "Shop information updated successfully!";
+    if (tabValue === 2) message = "Display settings updated successfully!";
 
     showSuccess(message);
     if (!showWipeConfirm) {
@@ -123,23 +141,23 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
 
   const handleWipeDatabase = async () => {
     if (!wipePassword) {
-      showError('Please enter your admin password');
+      showError("Please enter your admin password");
       return;
     }
 
     setWipeLoading(true);
 
     try {
-      const response = await api.post('/api/auth/wipe-database', {
+      const response = await api.post("/api/auth/wipe-database", {
         username: currentUser.username,
-        password: wipePassword
+        password: wipePassword,
       });
 
-      showSuccess('Database wiped successfully! The application will reload.');
+      showSuccess("Database wiped successfully! The application will reload.");
       window.location.reload();
     } catch (error) {
-      console.error('Wipe error:', error);
-      showError(error.response?.data?.error || 'Failed to wipe database');
+      console.error("Wipe error:", error);
+      showError(error.response?.data?.error || "Failed to wipe database");
       setWipeLoading(false);
     }
   };
@@ -147,7 +165,7 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
   const handleClose = () => {
     if (showWipeConfirm) {
       setShowWipeConfirm(false);
-      setWipePassword('');
+      setWipePassword("");
     } else {
       setEditedShopName(shopName);
       onClose();
@@ -155,7 +173,10 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
   };
 
   const handleDialogClose = (_event, reason) => {
-    if (showWipeConfirm && (reason === 'backdropClick' || reason === 'escapeKeyDown')) {
+    if (
+      showWipeConfirm &&
+      (reason === "backdropClick" || reason === "escapeKeyDown")
+    ) {
       return;
     }
     handleClose();
@@ -163,9 +184,9 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
 
   const handleCheckForUpdates = () => {
     if (window.electron && window.electron.ipcRenderer) {
-      window.electron.ipcRenderer.send('check-for-updates');
-      setUpdateStatus('info');
-      setUpdateMessage('Checking for updates...');
+      window.electron.ipcRenderer.send("check-for-updates");
+      setUpdateStatus("info");
+      setUpdateMessage("Checking for updates...");
       setSnackbarOpen(true);
     }
   };
@@ -180,9 +201,9 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
         disableEscapeKeyDown={showWipeConfirm}
         onKeyDown={(event) => {
           if (event.defaultPrevented) return;
-          if (event.key !== 'Enter') return;
+          if (event.key !== "Enter") return;
           if (event.shiftKey) return;
-          if (event.target?.tagName === 'TEXTAREA') return;
+          if (event.target?.tagName === "TEXTAREA") return;
           event.preventDefault();
           if (showWipeConfirm) {
             if (!wipePassword || wipeLoading) return;
@@ -192,8 +213,14 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
           handleSave();
         }}
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <StoreIcon color="primary" />
             <Typography variant="h6">Settings</Typography>
           </Box>
@@ -203,17 +230,13 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
         </DialogTitle>
 
         {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Tabs
             value={tabValue}
             onChange={(e, newValue) => setTabValue(newValue)}
             aria-label="settings tabs"
           >
-            <Tab
-              icon={<StoreIcon />}
-              label="Account Details"
-              sx={{ gap: 1 }}
-            />
+            <Tab icon={<StoreIcon />} label="Account Details" sx={{ gap: 1 }} />
             <Tab
               icon={<PaymentIcon />}
               label="Payment Settings"
@@ -232,19 +255,30 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
           {tabValue === 0 && !showWipeConfirm && (
             <Box>
               <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                >
                   <StoreIcon fontSize="small" color="primary" />
                   Shop Information
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
 
                 <Stack spacing={2}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      mb: 2,
+                    }}
+                  >
                     <Avatar
                       src={logoUrl}
-                      sx={{ width: 80, height: 80, bgcolor: 'primary.light' }}
+                      sx={{ width: 80, height: 80, bgcolor: "primary.light" }}
                     >
-                      {editedShopName?.charAt(0) || 'S'}
+                      {editedShopName?.charAt(0) || "S"}
                     </Avatar>
                     <Box sx={{ flex: 1 }}>
                       <TextField
@@ -255,10 +289,14 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                         onChange={(e) => setLogoUrl(e.target.value)}
                         placeholder="https://example.com/logo.png"
                         InputProps={{
-                          endAdornment: <PhotoCameraIcon color="action" />
+                          endAdornment: <PhotoCameraIcon color="action" />,
                         }}
                       />
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mt: 0.5, display: "block" }}
+                      >
                         Enter a URL for your shop logo
                       </Typography>
                     </Box>
@@ -272,7 +310,7 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                     placeholder="My Shop"
                   />
 
-                  <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Box sx={{ display: "flex", gap: 2 }}>
                     <TextField
                       label="Mobile Number 1"
                       fullWidth
@@ -317,15 +355,32 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                   />
                 </Stack>
 
-                <Button variant="outlined" color="primary" onClick={handleCheckForUpdates} sx={{ mt: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleCheckForUpdates}
+                  sx={{ mt: 2 }}
+                >
                   Check for Updates
                 </Button>
               </Paper>
 
               {/* Database Settings Section - Admin Only */}
-              {currentUser?.role === 'admin' && (
-                <Paper variant="outlined" sx={{ p: 2, border: '2px solid', borderColor: 'error.light' }}>
-                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
+              {currentUser?.role === "admin" && (
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2, border: "2px solid", borderColor: "error.light" }}
+                >
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      color: "error.main",
+                    }}
+                  >
                     <WarningIcon />
                     Database Settings
                   </Typography>
@@ -340,12 +395,30 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                     </Typography>
                   </Alert>
 
-                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.300' }}>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: "grey.50",
+                      borderRadius: 1,
+                      border: "1px solid",
+                      borderColor: "grey.300",
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight="bold"
+                      gutterBottom
+                    >
                       Wipe All Data
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Permanently delete all products, sales records, categories, and user accounts (except yours). This action cannot be undone.
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 2 }}
+                    >
+                      Permanently delete all products, sales records,
+                      categories, and user accounts (except yours). This action
+                      cannot be undone.
                     </Typography>
                     <Button
                       variant="outlined"
@@ -362,15 +435,17 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
           )}
 
           {/* Tab 1: Payment Settings */}
-          {tabValue === 1 && (
-            <PaymentSettingsPanel showSuccess={showSuccess} />
-          )}
+          {tabValue === 1 && <PaymentSettingsPanel showSuccess={showSuccess} />}
 
           {/* Tab 2: UI Settings */}
           {tabValue === 2 && (
             <Box>
               <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                >
                   <DisplayIcon fontSize="small" color="primary" />
                   Display & Zoom Settings
                 </Typography>
@@ -378,29 +453,43 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
 
                 <Stack spacing={3}>
                   <Box>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight="bold"
+                      gutterBottom
+                    >
                       Application Zoom
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Increase the size of text and buttons across the entire application. This is particularly useful for touchscreens or high-resolution displays.
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 2 }}
+                    >
+                      Increase the size of text and buttons across the entire
+                      application. This is particularly useful for touchscreens
+                      or high-resolution displays.
                     </Typography>
 
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                      {[100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150].map((level) => (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+                      {[
+                        100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150,
+                      ].map((level) => (
                         <Button
                           key={level}
-                          variant={uiZoom === level ? 'contained' : 'outlined'}
+                          variant={uiZoom === level ? "contained" : "outlined"}
                           onClick={() => {
                             setUiZoom(level);
                             // Apply immediately for live preview
-                            localStorage.setItem('posUiZoom', level.toString());
-                            window.dispatchEvent(new Event('pos-ui-zoom-updated'));
+                            localStorage.setItem("posUiZoom", level.toString());
+                            window.dispatchEvent(
+                              new Event("pos-ui-zoom-updated"),
+                            );
                           }}
                           sx={{
                             minWidth: 80,
                             py: 1.5,
-                            fontWeight: 'bold',
-                            borderRadius: 2
+                            fontWeight: "bold",
+                            borderRadius: 2,
                           }}
                         >
                           {level}%
@@ -408,8 +497,22 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                       ))}
                     </Box>
 
-                    <Box sx={{ mt: 3, p: 2, bgcolor: 'primary.light', borderRadius: 2, opacity: 0.8 }}>
-                      <Typography variant="body2" sx={{ color: 'primary.contrastText', fontStyle: 'italic' }}>
+                    <Box
+                      sx={{
+                        mt: 3,
+                        p: 2,
+                        bgcolor: "primary.light",
+                        borderRadius: 2,
+                        opacity: 0.8,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "primary.contrastText",
+                          fontStyle: "italic",
+                        }}
+                      >
                         Preview: This is how your buttons and text will look.
                       </Typography>
                     </Box>
@@ -418,11 +521,20 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                   <Divider />
 
                   <Box>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight="bold"
+                      gutterBottom
+                    >
                       Visual Mode
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Switch to monochrome mode for a high-contrast, black-and-white interface.
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 2 }}
+                    >
+                      Switch to monochrome mode for a high-contrast,
+                      black-and-white interface.
                     </Typography>
 
                     <FormControlLabel
@@ -433,8 +545,13 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                             const val = e.target.checked;
                             setMonochrome(val);
                             // Apply immediately for live preview
-                            localStorage.setItem('posMonochromeMode', val.toString());
-                            window.dispatchEvent(new Event('pos-settings-updated'));
+                            localStorage.setItem(
+                              "posMonochromeMode",
+                              val.toString(),
+                            );
+                            window.dispatchEvent(
+                              new Event("pos-settings-updated"),
+                            );
                           }}
                         />
                       }
@@ -449,10 +566,18 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                   <Divider />
 
                   <Box>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight="bold"
+                      gutterBottom
+                    >
                       POS Features
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 2 }}
+                    >
                       Enable or disable specific features on the POS terminal.
                     </Typography>
 
@@ -464,8 +589,13 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                             const val = e.target.checked;
                             setLooseSaleEnabled(val);
                             // Apply immediately for live preview and persistence
-                            localStorage.setItem('posLooseSaleEnabled', val.toString());
-                            window.dispatchEvent(new Event('pos-settings-updated'));
+                            localStorage.setItem(
+                              "posLooseSaleEnabled",
+                              val.toString(),
+                            );
+                            window.dispatchEvent(
+                              new Event("pos-settings-updated"),
+                            );
                           }}
                         />
                       }
@@ -497,7 +627,7 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                   <li>All categories and subcategories</li>
                   <li>All user accounts (except yours)</li>
                 </Box>
-                <Typography variant="body2" sx={{ mt: 2, fontWeight: 'bold' }}>
+                <Typography variant="body2" sx={{ mt: 2, fontWeight: "bold" }}>
                   This action is IRREVERSIBLE and will take effect immediately!
                 </Typography>
               </Alert>
@@ -514,10 +644,18 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                 onChange={(e) => setWipePassword(e.target.value)}
                 autoFocus
                 error={wipePassword.length > 0 && wipePassword.length < 4}
-                helperText={wipePassword.length > 0 && wipePassword.length < 4 ? 'Password too short' : ''}
+                helperText={
+                  wipePassword.length > 0 && wipePassword.length < 4
+                    ? "Password too short"
+                    : ""
+                }
               />
 
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 2, display: "block" }}
+              >
                 Logged in as: <strong>{currentUser?.username}</strong> (Admin)
               </Typography>
             </Box>
@@ -541,7 +679,7 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
               <Button
                 onClick={() => {
                   setShowWipeConfirm(false);
-                  setWipePassword('');
+                  setWipePassword("");
                 }}
                 variant="outlined"
                 disabled={wipeLoading}
@@ -555,15 +693,23 @@ const AccountDetailsDialog = ({ open, onClose, shopName, shopMetadata, onMetadat
                 startIcon={<DeleteForeverIcon />}
                 disabled={!wipePassword || wipeLoading}
               >
-                {wipeLoading ? 'Wiping...' : 'Confirm & Wipe Database'}
+                {wipeLoading ? "Wiping..." : "Confirm & Wipe Database"}
               </Button>
             </>
           )}
         </DialogActions>
       </Dialog>
       <CustomDialog {...dialogState} onClose={closeDialog} />
-      <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={() => setSnackbarOpen(false)}>
-        <MuiAlert onClose={() => setSnackbarOpen(false)} severity={updateStatus} sx={{ width: '100%' }}>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+      >
+        <MuiAlert
+          onClose={() => setSnackbarOpen(false)}
+          severity={updateStatus}
+          sx={{ width: "100%" }}
+        >
           {updateMessage}
         </MuiAlert>
       </Snackbar>
