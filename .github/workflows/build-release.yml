@@ -93,11 +93,12 @@ jobs:
         with:
           name: win-installer
           path: dist/
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Create Git Tag
+        run: git tag v1.0.0 && git push origin v1.0.0
+      - name: Create Release
+        uses: actions/create-release@v1
         with:
-          files: |
-            dist/*.dmg
-            dist/*.exe
+          tag_name: v1.0.0
+          release_name: Release v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
