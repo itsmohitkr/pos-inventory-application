@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Generate Prisma Client
-        run: npx prisma generate
+        run: npx prisma generate --schema=server/prisma/schema.prisma
       - name: Build Electron app (mac)
         run: npm run electron-build
       - name: Package mac installer
@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Generate Prisma Client
-        run: npx prisma generate
+        run: npx prisma generate --schema=server/prisma/schema.prisma
       - name: Build Electron app (win)
         run: npm run electron-build
       - name: Package windows installer
