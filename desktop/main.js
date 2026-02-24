@@ -1,40 +1,6 @@
-// --- 1. GLOBAL MODULE RESOLUTION (CRITICAL FOR PACKAGED APPS) ---
-// This ensures the main process and all required modules (like the server)
-// can find dependencies even when running from temp/portable directories.
-const path = require('path');
-const Module = require('module');
-
-// Define our module search paths
-const appAsarPath = path.join(process.resourcesPath, 'app.asar');
-const appUnpackedPath = path.join(process.resourcesPath, 'app.asar.unpacked');
-
-const globalModulePaths = [
-  path.join(appAsarPath, 'node_modules'),
-  path.join(appUnpackedPath, 'node_modules'),
-  // Fallback for development
-  path.join(__dirname, '..', 'node_modules')
-];
-
-// Inject paths into the module globals
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, isMain, options) {
-  // Try standard resolution first
-  try {
-    return originalResolve(request, parent, isMain, options);
-  } catch (e) {
-    // If not found, search in our global paths
-    for (const searchPath of globalModulePaths) {
-      try {
-        return require.resolve(request, { paths: [searchPath] });
-      } catch (err) { }
-    }
-    throw e;
-  }
-};
-
-// --- 2. ELECTRON & CORE IMPORTS ---
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const url = require('url');
@@ -97,7 +63,11 @@ const logFile = path.join(appDataPath, 'app.log');
 
 // Persistent logging to file
 const logStream = fs.createWriteStream(logFile, { flags: 'a' });
-const originalConsoleLog = console.log;
+console.log('----------------------------------------------------');
+console.log(`Application starting: ${new Date().toISOString()}`);
+console.log(`Platform: ${process.platform}, Arch: ${process.arch}`);
+console.log(`App path: ${app.getAppPath()}`);
+console.log('----------------------------------------------------');
 const originalConsoleError = console.error;
 
 console.log = (...args) => {
