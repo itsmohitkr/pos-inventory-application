@@ -2,7 +2,8 @@
 ipcMain.on('restart-app', () => {
   autoUpdater.quitAndInstall();
 });
-// Electron and core imports FIRST
+
+// --- Electron and core imports MUST be first ---
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
@@ -10,9 +11,9 @@ const fs = require('fs');
 const os = require('os');
 const url = require('url');
 
-// IPC handlers (must be after Electron requires, before app event handlers)
+// --- IPC handlers: must be immediately after Electron requires ---
 ipcMain.handle('get-app-version', () => app.getVersion());
-ipcMain.handle('get-app-path', () => appDataPath);
+ipcMain.handle('get-app-path', () => app.getPath('userData'));
 ipcMain.on('check-for-updates', () => {
   autoUpdater.checkForUpdates();
 });
