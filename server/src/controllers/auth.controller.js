@@ -13,12 +13,19 @@ const login = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            const allUsers = await prisma.user.count();
+            return res.status(401).json({
+                error: 'Invalid credentials',
+                diagnostics: { userFound: false, totalUsers: allUsers }
+            });
         }
 
         // Simple password check (in production, use bcrypt)
         if (user.password !== password) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({
+                error: 'Invalid credentials',
+                diagnostics: { userFound: true, passwordMatch: false }
+            });
         }
 
         if (user.status === 'inactive') {

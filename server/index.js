@@ -90,6 +90,13 @@ async function migrateSchema() {
         `);
         await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");`);
 
+        // 0.a Failsafe admin seed (Direct SQL to bypass high-level failures)
+        console.error('[MIGRATION] Ensuring default admin exists...');
+        await prisma.$executeRawUnsafe(`
+            INSERT OR IGNORE INTO "User" (username, password, role, status, createdAt, updatedAt)
+            VALUES ('admin', 'admin123', 'admin', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+        `);
+
         // 1. Ensure 'Setting' table exists
         await prisma.$executeRawUnsafe(`
             CREATE TABLE IF NOT EXISTS "Setting" (
