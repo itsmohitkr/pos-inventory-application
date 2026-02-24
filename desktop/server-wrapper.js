@@ -31,5 +31,13 @@ Module._resolveFilename = function (request, parent, isMain, options) {
   return originalResolve(request, parent, isMain, options);
 };
 
+// Set DATABASE_URL to a writable location in production (userData)
+const { app } = require('electron');
+const userDataPath = app.getPath('userData');
+const dbPath = path.join(userDataPath, 'pos.db');
+process.env.DATABASE_URL = `file:${dbPath}`;
+
+console.log('DATABASE_URL set to:', process.env.DATABASE_URL);
+
 // Now load and run the actual server
 require(path.join(process.cwd(), 'index.js'));
