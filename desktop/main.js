@@ -181,15 +181,11 @@ const createWindow = () => {
 
   mainWindow = new BrowserWindow(windowConfig);
 
-  const startUrl = isDev
-    ? 'http://localhost:5173'
-    : url.format({
-      pathname: path.resolve(__dirname, '../client/dist/index.html'),
-      protocol: 'file:',
-      slashes: true
-    });
-
-  mainWindow.loadURL(startUrl);
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../client/dist/index.html'));
+  }
 
   // Set window title
   mainWindow.setTitle('Bachat Bazaar - POS Application');
