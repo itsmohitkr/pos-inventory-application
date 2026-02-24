@@ -98,7 +98,7 @@
                 }
             ],
             "icon": "assets/shop_logo.ico",
-            "artifactName": "${productName}-Setup-${version}.${ext}"
+            "artifactName": "Bachat-Bazaar-Setup-${version}.${ext}"
         },
         "nsis": {
             "oneClick": false,
