@@ -10,6 +10,16 @@ const fs = require('fs');
 const os = require('os');
 const url = require('url');
 
+// IPC handlers (must be after Electron requires, before app event handlers)
+ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('get-app-path', () => appDataPath);
+ipcMain.on('check-for-updates', () => {
+  autoUpdater.checkForUpdates();
+});
+ipcMain.on('restart-app', () => {
+  autoUpdater.quitAndInstall();
+});
+
 // Auto-update setup
 app.on('ready', async () => {
   try {
@@ -34,14 +44,6 @@ app.on('ready', async () => {
     console.error('Failed to start auto-update setup:', error);
   }
 });
-
-// IPC handlers
-ipcMain.handle('get-app-version', () => app.getVersion());
-ipcMain.handle('get-app-path', () => appDataPath);
-ipcMain.on('check-for-updates', () => {
-  autoUpdater.checkForUpdates();
-});
-
 // -------------------------------------------------------------------------
 // CRITICAL: INITIALIZATION ORDER
 // -------------------------------------------------------------------------
