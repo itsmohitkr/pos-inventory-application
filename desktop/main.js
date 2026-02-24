@@ -92,11 +92,25 @@ if (!fs.existsSync(appDataPath)) {
   fs.mkdirSync(appDataPath, { recursive: true });
 }
 
-if (!fs.existsSync(dbFile)) {
+// Get file size helper
+const getFileSize = (filePath) => {
+  try {
+    return fs.statSync(filePath).size;
+  } catch (e) {
+    return 0;
+  }
+};
+
+// CRITICAL FIX: Only skip bootstrap if file exists AND is non-empty (~200KB expected)
+const shouldBootstrap = !fs.existsSync(dbFile) || getFileSize(dbFile) === 0;
+
+if (shouldBootstrap) {
   try {
     const bundledDbPath = isDev
       ? path.join(__dirname, '../server/prisma/pos.db')
       : path.join(process.resourcesPath, 'app.asar.unpacked/server/prisma/pos.db');
+
+    console.log('Database status: ' + (!fs.existsSync(dbFile) ? 'Missing' : 'Empty/Corrupt'));
 
     if (fs.existsSync(bundledDbPath)) {
       console.log(`Bootstrapping database: Copying ${bundledDbPath} to ${dbFile}`);
@@ -104,13 +118,16 @@ if (!fs.existsSync(dbFile)) {
 
       // Verification check: ensure we can actually read/write to the file
       fs.accessSync(dbFile, fs.constants.R_OK | fs.constants.W_OK);
+      console.log('Database file size after bootstrap:', getFileSize(dbFile));
       console.log('Database file access verified.');
     } else {
-      console.error('Warning: Bundled database template not found at:', bundledDbPath);
+      console.error('CRITICAL: Bundled database template not found at:', bundledDbPath);
     }
   } catch (error) {
     console.error('Failed to bootstrap database:', error);
   }
+} else {
+  console.log('Database exists and is non-empty. Size:', getFileSize(dbFile));
 }
 
 // Set environment variable for Prisma DB path using a robust literal format.
@@ -294,26 +311,45 @@ app.on('ready', async () => {
         submenu: [
           {
             label: 'Wipe App Data (Restart Required)',
-            click: () => {
+            click: async () => {
               const choice = dialog.showMessageBoxSync(mainWindow, {
                 type: 'warning',
                 buttons: ['Cancel', 'Wipe Data'],
                 defaultId: 0,
                 title: 'Confirm Wipe',
-                message: 'This will delete ALL local data and products. You will need to restart the application. Continue?',
+                message: 'This will delete ALL local data, products, and logs. The application will restart automatically. Continue?',
                 cancelId: 0
               });
 
               if (choice === 1) {
                 try {
+                  console.log('Initiating full data wipe...');
+
+                  // 1. Attempt to stop server to release file locks
+                  stopServer();
+
+                  // 2. Small delay to ensure hooks are released
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+
+                  // 3. Recursive delete of everything in userData
+                  // We use rmSync with recursive: true to handle subdirectories
+                  // force: true ignores errors if file is missing
                   const files = fs.readdirSync(appDataPath);
                   for (const file of files) {
-                    fs.unlinkSync(path.join(appDataPath, file));
+                    const fullPath = path.join(appDataPath, file);
+                    try {
+                      fs.rmSync(fullPath, { recursive: true, force: true });
+                      console.log(`Deleted: ${fullPath}`);
+                    } catch (e) {
+                      console.error(`Could not delete ${file}:`, e.message);
+                    }
                   }
+
+                  // 4. Relaunch
                   app.relaunch();
                   app.exit(0);
                 } catch (err) {
-                  dialog.showErrorBox('Wipe Failed', err.message);
+                  dialog.showErrorBox('Wipe Failed', `A critical error occurred: ${err.message}\n\nPlease try manually deleting the folder: ${appDataPath}`);
                 }
               }
             }
