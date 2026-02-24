@@ -1,3 +1,4 @@
+// Electron and core imports FIRST
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
@@ -6,85 +7,54 @@ const os = require('os');
 const url = require('url');
 
 // -------------------------------------------------------------------------
-// 1. EMERGENCY ERROR HANDLING (MUST BE FIRST)
+// CRITICAL: INITIALIZATION ORDER
 // -------------------------------------------------------------------------
-const showFatalError = (error, type = 'Uncaught Exception') => {
-  const message = error instanceof Error ? error.stack : String(error);
-  console.error(`[FATAL] ${type}:`, message);
-  if (app.isReady()) {
-    try {
-      dialog.showErrorBox(`A ${type} occurred in the main process`, message);
-    } catch (e) { }
-  } else {
-    try {
-      // Some platforms support dialog before ready, some don't
-      dialog.showErrorBox(`A ${type} occurred`, message);
-    } catch (e) { }
-  }
-};
-
-process.on('uncaughtException', (error) => showFatalError(error, 'Uncaught Exception'));
-process.on('unhandledRejection', (reason) => showFatalError(reason, 'Unhandled Rejection'));
-
-// -------------------------------------------------------------------------
-// 2. INITIALIZATION & METADATA
-// -------------------------------------------------------------------------
+// On Windows, we MUST set the app name and ID BEFORE resolving any paths (like 'userData')
+// to ensure we look in the correct AppData folder.
 app.setName('Bachat Bazaar');
 app.setAppUserModelId('com.bachatbazaar.pos');
 
+// Check if running in development mode
 const isDev = !app.isPackaged;
-const SERVER_PORT = 5001;
 
 let mainWindow;
 let serverProcess;
+const SERVER_PORT = 5001;
 
 // -------------------------------------------------------------------------
-// 3. SAFE LOGGING SETUP
+// APP PATHS & DIRECTORIES
 // -------------------------------------------------------------------------
+// Using standard Electron userData path for platform consistency
 const appDataPath = app.getPath('userData');
 const logFile = path.join(appDataPath, 'app.log');
 
+// Persistent logging to file
 if (!fs.existsSync(appDataPath)) {
   fs.mkdirSync(appDataPath, { recursive: true });
 }
 
-let logStream;
-try {
-  logStream = fs.createWriteStream(logFile, { flags: 'a' });
-} catch (e) {
-  // Can't log to file if this fails, but should not crash the app
-}
-
+const logStream = fs.createWriteStream(logFile, { flags: 'a' });
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 
-const logToFile = (prefix, args) => {
-  const timestamp = new Date().toISOString();
-  const msg = `[${timestamp}] [${prefix}] ` + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') + '\n';
-  if (logStream) {
-    try { logStream.write(msg); } catch (e) { }
-  }
-};
-
 console.log = (...args) => {
-  logToFile('LOG', args);
+  const msg = `[${new Date().toISOString()}] [LOG] ` + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') + '\n';
+  logStream.write(msg);
   originalConsoleLog.apply(console, args);
 };
 
 console.error = (...args) => {
-  logToFile('ERROR', args);
+  const msg = `[${new Date().toISOString()}] [ERROR] ` + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') + '\n';
+  logStream.write(msg);
   originalConsoleError.apply(console, args);
 };
 
-console.log('----------------------------------------------------');
-console.log(`Application starting: ${new Date().toISOString()}`);
-console.log(`Platform: ${process.platform}, Arch: ${process.arch}`);
-console.log(`App path: ${app.getAppPath()}`);
-console.log('----------------------------------------------------');
+console.log('App initialization started');
+console.log('Log file:', logFile);
 
-// --- 4. IPC HANDLERS ---
+// --- IPC handlers: MUST be after appDataPath is defined ---
 ipcMain.handle('get-app-version', () => app.getVersion());
-ipcMain.handle('get-app-path', () => app.getPath('userData'));
+ipcMain.handle('get-app-path', () => appDataPath);
 ipcMain.on('check-for-updates', () => {
   autoUpdater.checkForUpdates();
 });
@@ -92,30 +62,45 @@ ipcMain.on('restart-app', () => {
   autoUpdater.quitAndInstall();
 });
 
+// Auto-update setup
+app.on('ready', async () => {
+  try {
+    // Auto-update check
+    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.on('update-available', () => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-available');
+      }
+    });
+    autoUpdater.on('update-downloaded', () => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-downloaded');
+      }
+    });
+    autoUpdater.on('error', (err) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-error', err.message);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to start auto-update setup:', error);
+  }
+});
+
 // -------------------------------------------------------------------------
 // DATABASE BOOTSTRAPPING
 // -------------------------------------------------------------------------
-// On fresh installs, we need to copy our bundled schema-ready pos.db 
-// from the application resources to the user's data directory.
 const dbFile = path.join(appDataPath, 'pos.db');
-
-// Ensure the directory exists before any file operations
-if (!fs.existsSync(appDataPath)) {
-  fs.mkdirSync(appDataPath, { recursive: true });
-}
 
 if (!fs.existsSync(dbFile)) {
   try {
-    const rootPath = app.getAppPath();
     const bundledDbPath = isDev
       ? path.join(__dirname, '../server/prisma/pos.db')
-      : path.join(rootPath, '..', 'app.asar.unpacked/server/prisma/pos.db');
+      : path.join(process.resourcesPath, 'app.asar.unpacked/server/prisma/pos.db');
 
     if (fs.existsSync(bundledDbPath)) {
       console.log(`Bootstrapping database: Copying ${bundledDbPath} to ${dbFile}`);
       fs.copyFileSync(bundledDbPath, dbFile);
-
-      // Verification check: ensure we can actually read/write to the file
       fs.accessSync(dbFile, fs.constants.R_OK | fs.constants.W_OK);
       console.log('Database file access verified.');
     } else {
@@ -126,24 +111,17 @@ if (!fs.existsSync(dbFile)) {
   }
 }
 
-// Set environment variable for Prisma DB path using a robust literal format.
-// URL encoding (pathToFileURL) can turn spaces into %20, which Prisma/SQLite 
-// sometimes fails to decode correctly on Windows.
-// Standardizing on 'file:C:/path' for Windows and 'file:///path' for Unix.
 const formattedDbPath = dbFile.replace(/\\/g, '/');
 process.env.DATABASE_URL = process.platform === 'win32'
   ? `file:${formattedDbPath}`
   : `file://${formattedDbPath}`;
 
-// Ensure Prisma uses the engine library
 process.env.PRISMA_CLIENT_ENGINE_TYPE = 'library';
 
-// Explicitly set the path to the Prisma Query Engine binary for the packaged environment
 const engineDir = isDev
   ? path.join(__dirname, '../node_modules/.prisma/client')
-  : path.join(app.getAppPath(), '..', 'app.asar.unpacked/node_modules/.prisma/client');
+  : path.join(process.resourcesPath, 'app.asar.unpacked/node_modules/.prisma/client');
 
-// Windows often uses .dll.node for the library engine, but we check both common names
 const possibleEngineNames = process.platform === 'win32'
   ? ['query_engine-windows.dll.node', 'libquery_engine-windows.dll.node']
   : ['libquery_engine-darwin-arm64.dylib.node', 'libquery_engine-darwin.dylib.node'];
@@ -160,17 +138,9 @@ for (const name of possibleEngineNames) {
 if (enginePath) {
   process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
   console.log('Prisma Engine Path detected:', enginePath);
-} else {
-  console.error('CRITICAL: Prisma Query Engine not found in:', engineDir);
 }
 
-console.log('---------------------------------------------------');
-console.log('DATABASE_URL:', process.env.DATABASE_URL);
-console.log('Prisma Engine Path set to:', process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default');
-console.log('---------------------------------------------------');
-
 const createWindow = () => {
-  // Use shop_logo.jpeg for app icon
   const iconPath = path.join(__dirname, '../assets/shop_logo.jpeg');
   const windowConfig = {
     width: 1400,
@@ -185,7 +155,6 @@ const createWindow = () => {
     }
   };
 
-  // Only add icon if it exists
   if (fs.existsSync(iconPath)) {
     windowConfig.icon = iconPath;
   }
@@ -198,7 +167,6 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, '../client/dist/index.html'));
   }
 
-  // Set window title
   mainWindow.setTitle('Bachat Bazaar - POS Application');
 
   if (isDev) {
@@ -213,37 +181,24 @@ const createWindow = () => {
 const startServer = () => {
   return new Promise((resolve, reject) => {
     try {
-      // Set server port and environment
       process.env.PORT = SERVER_PORT;
       process.env.NODE_ENV = isDev ? 'development' : 'production';
 
-      const rootPath = app.getAppPath();
       const serverDir = isDev
         ? path.resolve(__dirname, '../server')
-        : path.resolve(rootPath, '..', 'app.asar.unpacked/server');
+        : path.resolve(process.resourcesPath, 'app.asar.unpacked/server');
 
       const wrapperPath = path.resolve(__dirname, 'server-wrapper.js');
 
       console.log(`Starting server from: ${serverDir}`);
-      console.log(`Wrapper: ${wrapperPath}`);
 
-      // Ensure the directory exists before chdir
-      if (!fs.existsSync(serverDir)) {
-        throw new Error(`Server directory not found: ${serverDir}`);
-      }
-
-      // Change to server directory so relative paths work
       process.chdir(serverDir);
 
-      // Add search paths for module resolution
       module.paths.unshift(path.join(serverDir, 'node_modules'));
       module.paths.unshift(path.join(__dirname, '../node_modules'));
 
-      // Load and start the server
       try {
         require(wrapperPath);
-
-        // Wait a tiny bit for server to start listening
         setTimeout(() => {
           resolve();
         }, 500);
@@ -258,21 +213,15 @@ const startServer = () => {
 };
 
 const stopServer = () => {
-  // Server is running within the Electron process, no need to stop
   console.log('Server will be stopped when app closes');
 };
 
-// App metadata moved to top for correct directory resolution
-
 app.on('ready', async () => {
   try {
-    // Create Application Menu
     const template = [
       {
         label: 'File',
-        submenu: [
-          { role: 'quit' }
-        ]
+        submenu: [{ role: 'quit' }]
       },
       {
         label: 'View',
@@ -320,39 +269,25 @@ app.on('ready', async () => {
 
               if (choice === 1) {
                 try {
-                  console.log('Initiating full data wipe...');
-
-                  // 1. Attempt to stop server to release file locks
                   stopServer();
-
-                  // 2. Small delay to ensure hooks are released
                   await new Promise(resolve => setTimeout(resolve, 1000));
-
-                  // 3. Recursive delete of everything in userData
-                  // We use rmSync with recursive: true to handle subdirectories
-                  // force: true ignores errors if file is missing
                   const files = fs.readdirSync(appDataPath);
                   for (const file of files) {
                     const fullPath = path.join(appDataPath, file);
                     try {
                       fs.rmSync(fullPath, { recursive: true, force: true });
-                      console.log(`Deleted: ${fullPath}`);
                     } catch (e) {
                       console.error(`Could not delete ${file}:`, e.message);
                     }
                   }
-
-                  // 4. Relaunch
                   app.relaunch();
                   app.exit(0);
                 } catch (err) {
-                  dialog.showErrorBox('Wipe Failed', `A critical error occurred: ${err.message}\n\nPlease try manually deleting the folder: ${appDataPath}`);
+                  dialog.showErrorBox('Wipe Failed', `A critical error occurred: ${err.message}`);
                 }
               }
             }
-          },
-          { type: 'separator' },
-          { role: 'toggleDevTools' }
+          }
         ]
       },
       {
@@ -361,28 +296,7 @@ app.on('ready', async () => {
           {
             label: 'System Diagnostic',
             click: () => {
-              const info = `
-User Data Path: ${appDataPath}
-Database URL: ${process.env.DATABASE_URL}
-Prisma Engine: ${process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default'}
-Platform: ${process.platform}
-Architecture: ${process.arch}
-Version: ${app.getVersion()}
-
---- RECENT LOGS ---
-${(() => {
-                  try {
-                    if (fs.existsSync(logFile)) {
-                      const logs = fs.readFileSync(logFile, 'utf8');
-                      const lines = logs.split('\n').filter(Boolean);
-                      return lines.slice(-150).join('\n');
-                    }
-                    return 'No log file found.';
-                  } catch (e) {
-                    return 'Error reading logs: ' + e.message;
-                  }
-                })()}
-              `.trim();
+              const info = `User Data Path: ${appDataPath}\nDatabase URL: ${process.env.DATABASE_URL}\nPlatform: ${process.platform}\nVersion: ${app.getVersion()}`;
               dialog.showMessageBoxSync(mainWindow, {
                 type: 'info',
                 title: 'System Diagnostic',
@@ -390,14 +304,6 @@ ${(() => {
                 detail: info,
                 buttons: ['OK']
               });
-            }
-          },
-          { type: 'separator' },
-          {
-            label: 'Toggle Developer Tools',
-            accelerator: 'F12',
-            click: () => {
-              if (mainWindow) mainWindow.webContents.toggleDevTools();
             }
           }
         ]
@@ -407,27 +313,11 @@ ${(() => {
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
 
-    // Initialise Auto-updater
-    autoUpdater.checkForUpdatesAndNotify();
-    autoUpdater.on('update-available', () => {
-      if (mainWindow) mainWindow.webContents.send('update-available');
-    });
-    autoUpdater.on('update-downloaded', () => {
-      if (mainWindow) mainWindow.webContents.send('update-downloaded');
-    });
-    autoUpdater.on('error', (err) => {
-      if (mainWindow) mainWindow.webContents.send('update-error', err.message);
-    });
-
     await startServer();
     createWindow();
   } catch (error) {
     console.error('Failed to start application:', error);
-    const message = error.message || error.toString();
-    dialog.showErrorBox(
-      'Server Error',
-      `Failed to start the application server.\n\nDetails: ${message}\n\nPlease check the console logs for more information.`
-    );
+    dialog.showErrorBox('Server Error', `Failed to start: ${error.message}`);
     app.quit();
   }
 });
