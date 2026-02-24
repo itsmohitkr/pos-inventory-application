@@ -75,6 +75,21 @@ async function migrateSchema() {
     };
 
     try {
+        // 0. Ensure 'User' table exists (CRITICAL for login)
+        console.error('[MIGRATION] Ensuring User table exists...');
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "User" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "username" TEXT NOT NULL,
+                "password" TEXT NOT NULL,
+                "role" TEXT NOT NULL DEFAULT 'cashier',
+                "status" TEXT NOT NULL DEFAULT 'active',
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");`);
+
         // 1. Ensure 'Setting' table exists
         await prisma.$executeRawUnsafe(`
             CREATE TABLE IF NOT EXISTS "Setting" (
