@@ -91,13 +91,112 @@ async function migrateSchema() {
         await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");`);
 
         // 0.a Failsafe admin seed (Direct SQL to bypass high-level failures)
-        console.error('[MIGRATION] Ensuring default admin exists...');
         await prisma.$executeRawUnsafe(`
             INSERT OR IGNORE INTO "User" (username, password, role, status, createdAt, updatedAt)
             VALUES ('admin', 'admin123', 'admin', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         `);
 
-        // 1. Ensure 'Setting' table exists
+        // 1. Ensure 'Category' exists
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Category" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "name" TEXT NOT NULL,
+                "parentId" INTEGER,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT "Category_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Category" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+            );
+        `);
+        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Category_name_parentId_key" ON "Category"("name", "parentId");`);
+
+        // 2. Ensure 'Product' exists
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Product" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "name" TEXT NOT NULL,
+                "barcode" TEXT,
+                "category" TEXT,
+                "batchTrackingEnabled" BOOLEAN NOT NULL DEFAULT 0,
+                "lowStockThreshold" INTEGER NOT NULL DEFAULT 0,
+                "lowStockWarningEnabled" BOOLEAN NOT NULL DEFAULT 0,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Product_barcode_key" ON "Product"("barcode");`);
+
+        // 3. Ensure 'Batch' exists
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Batch" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "productId" INTEGER NOT NULL,
+                "batchCode" TEXT,
+                "quantity" INTEGER NOT NULL DEFAULT 0,
+                "mrp" REAL NOT NULL,
+                "costPrice" REAL NOT NULL,
+                "sellingPrice" REAL NOT NULL,
+                "wholesaleEnabled" BOOLEAN NOT NULL DEFAULT 0,
+                "wholesalePrice" REAL,
+                "wholesaleMinQty" INTEGER,
+                "expiryDate" DATETIME,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT "Batch_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+            );
+        `);
+
+        // 4. Ensure 'Sale' exists
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Sale" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "totalAmount" REAL NOT NULL,
+                "discount" REAL NOT NULL DEFAULT 0,
+                "extraDiscount" REAL NOT NULL DEFAULT 0,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // 5. Ensure 'SaleItem' exists
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "SaleItem" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "saleId" INTEGER NOT NULL,
+                "batchId" INTEGER NOT NULL,
+                "quantity" INTEGER NOT NULL,
+                "returnedQuantity" INTEGER NOT NULL DEFAULT 0,
+                "sellingPrice" REAL NOT NULL,
+                "costPrice" REAL NOT NULL,
+                "mrp" REAL NOT NULL,
+                "isWholesale" BOOLEAN NOT NULL DEFAULT 0,
+                CONSTRAINT "SaleItem_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+                CONSTRAINT "SaleItem_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "Batch" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+            );
+        `);
+
+        // 6. Ensure 'StockMovement' exists
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "StockMovement" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "productId" INTEGER NOT NULL,
+                "batchId" INTEGER,
+                "type" TEXT NOT NULL,
+                "quantity" INTEGER NOT NULL,
+                "note" TEXT,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT "StockMovement_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+                CONSTRAINT "StockMovement_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "Batch" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+            );
+        `);
+
+        // 7. Ensure 'LooseSale' exists
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "LooseSale" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "itemName" TEXT,
+                "price" REAL NOT NULL,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // 8. Ensure 'Setting' table exists
         await prisma.$executeRawUnsafe(`
             CREATE TABLE IF NOT EXISTS "Setting" (
                 "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -108,7 +207,7 @@ async function migrateSchema() {
         `);
         await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Setting_key_key" ON "Setting"("key");`);
 
-        // 2. Ensure 'Promotion' and 'PromotionItem' tables exist
+        // 9. Ensure 'Promotion' and 'PromotionItem' tables exist
         await prisma.$executeRawUnsafe(`
             CREATE TABLE IF NOT EXISTS "Promotion" (
                 "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
