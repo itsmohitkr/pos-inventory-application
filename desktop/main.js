@@ -1,8 +1,3 @@
-// Handle renderer request to restart and install update
-ipcMain.on('restart-app', () => {
-  autoUpdater.quitAndInstall();
-});
-
 // --- Electron and core imports MUST be first ---
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const { autoUpdater } = require('electron-updater');
