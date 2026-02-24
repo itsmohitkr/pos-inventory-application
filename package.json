@@ -97,7 +97,8 @@
                     ]
                 }
             ],
-            "icon": "assets/shop_logo.ico"
+            "icon": "assets/shop_logo.ico",
+            "artifactName": "${productName}-Setup-${version}.${ext}"
         },
         "nsis": {
             "oneClick": false,
