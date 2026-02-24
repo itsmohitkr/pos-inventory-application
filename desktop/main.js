@@ -1,17 +1,25 @@
+// Electron and core imports FIRST
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { autoUpdater } = require('electron-updater');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const url = require('url');
 
 // --- EMERGENCY ERROR HANDLING ---
+// Define variables we might need if imports failed, though here they are restored.
 const showFatalError = (error, type = 'Uncaught Exception') => {
   const message = error instanceof Error ? error.stack : String(error);
   console.error(`[FATAL] ${type}:`, message);
-  if (app.isReady()) {
-    try {
-      dialog.showErrorBox(`A ${type} occurred in the main process`, message);
-    } catch (e) { }
-  } else {
-    try {
-      dialog.showErrorBox(`A ${type} occurred`, message);
-    } catch (e) { }
+
+  // Try to use dialog if available, otherwise just log
+  try {
+    const dialogModule = require('electron').dialog;
+    if (dialogModule) {
+      dialogModule.showErrorBox(`A ${type} occurred in the main process`, message);
+    }
+  } catch (e) {
+    // If even require('electron') fails, we are in deep trouble
   }
 };
 
