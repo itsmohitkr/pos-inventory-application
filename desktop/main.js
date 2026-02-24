@@ -68,6 +68,7 @@ console.log(`Application starting: ${new Date().toISOString()}`);
 console.log(`Platform: ${process.platform}, Arch: ${process.arch}`);
 console.log(`App path: ${app.getAppPath()}`);
 console.log('----------------------------------------------------');
+const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 
 console.log = (...args) => {
