@@ -212,7 +212,7 @@ const startServer = () => {
 
       const serverDir = isDev
         ? path.resolve(__dirname, '../server')
-        : path.resolve(process.resourcesPath, 'app.asar/server');
+        : path.resolve(process.resourcesPath, 'app.asar.unpacked/server');
 
       const wrapperPath = path.resolve(__dirname, 'server-wrapper.js');
 
