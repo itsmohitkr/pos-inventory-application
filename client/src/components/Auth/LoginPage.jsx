@@ -7,7 +7,9 @@ import {
     Typography,
     Box,
     Alert,
-    CircularProgress
+    CircularProgress,
+    Stack,
+    Divider
 } from '@mui/material';
 import { Store as StoreIcon } from '@mui/icons-material';
 import api from '../../api';
@@ -44,8 +46,8 @@ const LoginPage = ({ onLogin }) => {
         try {
             const demoAccounts = {
                 admin: { username: 'admin', password: 'admin123' },
-                cashier: { username: 'cashier', password: 'cashier123' },
-                salesman: { username: 'salesman', password: 'salesman123' }
+                cashier: { username: 'niranjan', password: '2025' },
+                salesman: { username: 'sumant', password: '2025' }
             };
 
             const account = demoAccounts[role];
@@ -75,15 +77,58 @@ const LoginPage = ({ onLogin }) => {
 
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
+                    <Stack spacing={2} sx={{ mb: 4 }}>
+                        <Button
+                            variant="contained"
+                            size="large"
+                            fullWidth
+                            onClick={() => handleDemoLogin('salesman')}
+                            disabled={loading}
+                            sx={{
+                                py: 2,
+                                bgcolor: '#1976d2',
+                                '&:hover': { bgcolor: '#1565c0' },
+                                fontSize: '1.2rem',
+                                fontWeight: 700,
+                                textTransform: 'none',
+                                borderRadius: 2
+                            }}
+                        >
+                            Login as Salesman
+                        </Button>
+                        <Button
+                            variant="contained"
+                            size="large"
+                            fullWidth
+                            onClick={() => handleDemoLogin('cashier')}
+                            disabled={loading}
+                            sx={{
+                                py: 2,
+                                bgcolor: '#7b1fa2',
+                                '&:hover': { bgcolor: '#6a1b9a' },
+                                fontSize: '1.2rem',
+                                fontWeight: 700,
+                                textTransform: 'none',
+                                borderRadius: 2
+                            }}
+                        >
+                            Login as Cashier
+                        </Button>
+                    </Stack>
+
+                    <Divider sx={{ mb: 3 }}>
+                        <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 600 }}>
+                            OR LOG IN AS ADMIN
+                        </Typography>
+                    </Divider>
+
                     <Box component="form" onSubmit={handleLogin} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <TextField
-                            label="Username"
-                            type="text"
+                            label="Admin Username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             fullWidth
                             disabled={loading}
-                            variant="outlined"
                         />
                         <TextField
                             label="Password"
@@ -92,52 +137,16 @@ const LoginPage = ({ onLogin }) => {
                             onChange={(e) => setPassword(e.target.value)}
                             fullWidth
                             disabled={loading}
-                            variant="outlined"
                         />
                         <Button
                             type="submit"
-                            variant="contained"
+                            variant="outlined"
                             fullWidth
                             disabled={loading || !username || !password}
-                            sx={{ py: 1.5, textTransform: 'none', fontSize: '16px' }}
+                            sx={{ py: 1.5, fontWeight: 600, textTransform: 'none' }}
                         >
-                            {loading ? <CircularProgress size={24} /> : 'Login'}
+                            {loading ? <CircularProgress size={24} /> : 'Login as Admin'}
                         </Button>
-                    </Box>
-
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #e0e0e0' }}>
-                        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: '#666' }}>
-                            Demo Accounts
-                        </Typography>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => handleDemoLogin('admin')}
-                                disabled={loading}
-                            >
-                                Admin
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => handleDemoLogin('cashier')}
-                                disabled={loading}
-                            >
-                                Cashier
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => handleDemoLogin('salesman')}
-                                disabled={loading}
-                            >
-                                Salesman
-                            </Button>
-                        </Box>
-                        <Typography variant="caption" sx={{ display: 'block', mt: 2, color: '#999', textAlign: 'center' }}>
-                            Demo: admin123 / cashier123 / salesman123
-                        </Typography>
                     </Box>
                 </Paper>
             </Box>

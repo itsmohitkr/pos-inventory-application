@@ -764,8 +764,9 @@ function App() {
 
         <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
           <Routes>
-            <Route path="/" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><Overview shopName={shopName} userRole={currentUser.role} /></Box>} />
+            <Route path="/" element={<Navigate to="/pos" replace />} />
             <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><POS receiptSettings={receiptSettings} shopMetadata={shopMetadata} /></Box>} />
+            <Route path="/overview" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><Overview shopName={shopName} userRole={currentUser.role} /></Box>} />
             {canAccessSaleHistory && (
               <Route
                 path="/sale-history"

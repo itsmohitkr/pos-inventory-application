@@ -594,6 +594,32 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                           mb: 0.5,
                         }}
                       >
+                        PAYMENT
+                      </Typography>
+                      <Chip
+                        label={selectedSale.paymentMethod || 'Cash'}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          height: 'auto',
+                          py: 0.5,
+                          borderColor: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
+                          color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : 'inherit'
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "#64748b",
+                          fontWeight: 800,
+                          display: "block",
+                          mb: 0.5,
+                        }}
+                      >
                         STATUS
                       </Typography>
                       {(() => {

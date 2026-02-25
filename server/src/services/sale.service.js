@@ -27,7 +27,7 @@ const getEffectivePromoPrice = async (tx, productId, date = new Date()) => {
     return lowestPrice === Infinity ? null : lowestPrice;
 };
 
-const processSale = async ({ items, discount = 0, extraDiscount = 0 }) => {
+const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMethod = 'Cash' }) => {
     return await prisma.$transaction(async (tx) => {
         let totalAmount = 0;
         const saleItemsData = [];
@@ -95,6 +95,7 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0 }) => {
                 totalAmount: totalAmount - discount - extraDiscount,
                 discount: discount,
                 extraDiscount: extraDiscount,
+                paymentMethod: paymentMethod,
                 items: {
                     create: saleItemsData
                 }

@@ -20,9 +20,17 @@ import {
     DialogTitle as AddUserTitle,
     DialogContent as AddUserContent,
     DialogActions as AddUserActions,
-    Alert
+    Alert,
+    Typography
 } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon } from '@mui/icons-material';
+import {
+    Delete as DeleteIcon,
+    Edit as EditIcon,
+    Add as AddIcon,
+    Visibility as VisibilityIcon,
+    VisibilityOff as VisibilityOffIcon
+} from '@mui/icons-material';
+import { InputAdornment } from '@mui/material';
 import api from '../../api';
 import useCustomDialog from '../../hooks/useCustomDialog';
 import CustomDialog from '../common/CustomDialog';
@@ -40,6 +48,15 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
         password: '',
         role: 'cashier'
     });
+    const [visiblePasswords, setVisiblePasswords] = useState({});
+    const [showNewPassword, setShowNewPassword] = useState(false);
+
+    const togglePasswordVisibility = (userId) => {
+        setVisiblePasswords(prev => ({
+            ...prev,
+            [userId]: !prev[userId]
+        }));
+    };
 
     useEffect(() => {
         if (open) {
@@ -150,6 +167,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
                             <TableHead>
                                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                                     <TableCell><strong>Username</strong></TableCell>
+                                    <TableCell><strong>Password</strong></TableCell>
                                     <TableCell><strong>Role</strong></TableCell>
                                     <TableCell><strong>Status</strong></TableCell>
                                     <TableCell align="right"><strong>Actions</strong></TableCell>
@@ -159,6 +177,19 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
                                 {users.map((user) => (
                                     <TableRow key={user.id} sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}>
                                         <TableCell>{user.username}</TableCell>
+                                        <TableCell>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                                    {visiblePasswords[user.id] ? user.password : '••••••••'}
+                                                </Typography>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => togglePasswordVisibility(user.id)}
+                                                >
+                                                    {visiblePasswords[user.id] ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                                                </IconButton>
+                                            </Box>
+                                        </TableCell>
                                         <TableCell>
                                             <span style={{
                                                 padding: '4px 8px',
@@ -234,10 +265,22 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
                             />
                             <TextField
                                 label="Password"
-                                type="password"
+                                type={showNewPassword ? 'text' : 'password'}
                                 value={formData.password}
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 fullWidth
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                                edge="end"
+                                            >
+                                                {showNewPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                }}
                             />
                             <TextField
                                 select

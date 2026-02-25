@@ -33,9 +33,6 @@ const PAYMENT_METHOD_OPTIONS = [
 
 const PaymentSettingsPanel = ({ showSuccess }) => {
     const [paymentSettings, setPaymentSettings] = useState(DEFAULT_PAYMENT_SETTINGS);
-    const [enableFullscreen, setEnableFullscreen] = useState(getFullscreenEnabled);
-    const [enableExtraDiscount, setEnableExtraDiscountState] = useState(getExtraDiscountEnabled);
-    const [notificationDuration, setNotificationDurationState] = useState(() => getNotificationDuration() / 1000); // Convert to seconds for display
     const [customMethod, setCustomMethod] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
 
@@ -46,12 +43,6 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
                 const settings = res.data.data;
                 if (settings.posPaymentSettings) {
                     setPaymentSettings(settings.posPaymentSettings);
-                }
-                if (settings.posEnableExtraDiscount !== undefined) {
-                    setEnableExtraDiscountState(settings.posEnableExtraDiscount);
-                }
-                if (settings.posNotificationDuration !== undefined) {
-                    setNotificationDurationState(settings.posNotificationDuration / 1000);
                 }
             } catch (error) {
                 console.error('Failed to fetch payment settings:', error);
@@ -112,49 +103,6 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
         });
     };
 
-    const handleEnableFullscreen = (enabled) => {
-        setEnableFullscreen(enabled);
-        localStorage.setItem(STORAGE_KEYS.enableFullscreen, JSON.stringify(enabled));
-        window.dispatchEvent(new Event('pos-settings-updated'));
-        if (showSuccess) {
-            showSuccess(`Fullscreen button ${enabled ? 'enabled' : 'disabled'}`);
-        }
-    };
-
-    const handleEnableExtraDiscount = async (enabled) => {
-        setEnableExtraDiscountState(enabled);
-        try {
-            await api.post('/api/settings', {
-                key: 'posEnableExtraDiscount',
-                value: enabled
-            });
-            window.dispatchEvent(new Event('pos-settings-updated'));
-            if (showSuccess) {
-                showSuccess(`Extra discount field ${enabled ? 'enabled' : 'disabled'}`);
-            }
-        } catch (error) {
-            console.error('Failed to save extra discount setting:', error);
-        }
-    };
-
-    const handleNotificationDurationChange = async (value) => {
-        const seconds = parseFloat(value);
-        if (!isNaN(seconds) && seconds > 0) {
-            setNotificationDurationState(seconds);
-            try {
-                await api.post('/api/settings', {
-                    key: 'posNotificationDuration',
-                    value: seconds * 1000
-                });
-                window.dispatchEvent(new Event('pos-settings-updated'));
-                if (showSuccess) {
-                    showSuccess(`Notification duration set to ${seconds}s`);
-                }
-            } catch (error) {
-                console.error('Failed to save notification duration:', error);
-            }
-        }
-    };
 
     const handleMultiplePaymentToggle = () => {
         setPaymentSettings(prev => {
@@ -301,56 +249,6 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
                             label="Allow Multiple Payment Methods in Single Transaction"
                         />
                     </FormGroup>
-                </Box>
-
-                <Divider />
-
-                {/* Fullscreen Toggle */}
-                <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                        UI Settings
-                    </Typography>
-                    <FormGroup>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={enableFullscreen}
-                                    onChange={(e) => handleEnableFullscreen(e.target.checked)}
-                                />
-                            }
-                            label="Enable Fullscreen Toggle Button"
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={enableExtraDiscount}
-                                    onChange={(e) => handleEnableExtraDiscount(e.target.checked)}
-                                />
-                            }
-                            label="Enable Extra Discount Field"
-                        />
-                    </FormGroup>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
-                        Shows a fullscreen button in the bottom-left corner of the POS screen
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 3 }}>
-                        Shows an extra discount field in the POS transaction panel
-                    </Typography>
-
-                    {/* Notification Duration */}
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                        Notification Duration
-                    </Typography>
-                    <TextField
-                        type="number"
-                        size="small"
-                        value={notificationDuration}
-                        onChange={(e) => handleNotificationDurationChange(e.target.value)}
-                        inputProps={{ min: 1, max: 10, step: 0.5 }}
-                        label="Duration (seconds)"
-                        helperText="How long success notifications are displayed (1-10 seconds)"
-                        sx={{ maxWidth: 300 }}
-                    />
                 </Box>
 
                 <Alert severity="info" sx={{ mt: 2 }}>

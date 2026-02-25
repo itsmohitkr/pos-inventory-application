@@ -32,6 +32,19 @@ import {
 import CustomDialog from "../common/CustomDialog";
 import useCustomDialog from "../../hooks/useCustomDialog";
 import PaymentSettingsPanel from "./PaymentSettingsPanel";
+import {
+  getChangeCalculatorEnabled,
+  setChangeCalculatorEnabled,
+  getPaymentMethodsEnabled,
+  setPaymentMethodsEnabled,
+  getStoredPaymentSettings,
+  STORAGE_KEYS,
+  getFullscreenEnabled,
+  getNotificationDuration,
+  setNotificationDuration,
+  getExtraDiscountEnabled,
+  setExtraDiscountEnabled
+} from "../../utils/paymentSettings";
 import { Snackbar, Alert as MuiAlert } from "@mui/material";
 
 const AccountDetailsDialog = ({
@@ -67,6 +80,15 @@ const AccountDetailsDialog = ({
   const [looseSaleEnabled, setLooseSaleEnabled] = useState(
     localStorage.getItem("posLooseSaleEnabled") === "true",
   );
+  const [changeCalculatorEnabled, setChangeCalculatorEnabledState] = useState(
+    getChangeCalculatorEnabled(),
+  );
+  const [paymentMethodsEnabled, setPaymentMethodsEnabledState] = useState(
+    getPaymentMethodsEnabled(),
+  );
+  const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled());
+  const [extraDiscountEnabled, setExtraDiscountEnabledState] = useState(getExtraDiscountEnabled());
+  const [notificationDuration, setNotificationDurationState] = useState(() => getNotificationDuration() / 1000);
   const [tabValue, setTabValue] = useState(0);
 
   // Sync with metadata prop changes
@@ -112,6 +134,26 @@ const AccountDetailsDialog = ({
     };
   }, []);
 
+  useEffect(() => {
+    const fetchUISettings = async () => {
+      try {
+        const res = await api.get('/api/settings');
+        const settings = res.data.data;
+        if (settings.posEnableExtraDiscount !== undefined) {
+          setExtraDiscountEnabledState(settings.posEnableExtraDiscount);
+        }
+        if (settings.posNotificationDuration !== undefined) {
+          setNotificationDurationState(settings.posNotificationDuration / 1000);
+        }
+      } catch (error) {
+        console.error('Failed to fetch UI settings:', error);
+      }
+    };
+    if (open && tabValue === 2) {
+      fetchUISettings();
+    }
+  }, [open, tabValue]);
+
   const handleSave = () => {
     onMetadataChange({
       shopName: editedShopName,
@@ -126,6 +168,28 @@ const AccountDetailsDialog = ({
     localStorage.setItem("posUiZoom", uiZoom.toString());
     localStorage.setItem("posMonochromeMode", monochrome.toString());
     localStorage.setItem("posLooseSaleEnabled", looseSaleEnabled.toString());
+    localStorage.setItem(STORAGE_KEYS.enableFullscreen, JSON.stringify(fullscreenEnabled));
+
+    setChangeCalculatorEnabled(changeCalculatorEnabled);
+    setPaymentMethodsEnabled(paymentMethodsEnabled);
+
+    const saveSettingsToServer = async () => {
+      try {
+        await api.post('/api/settings', {
+          key: 'posEnableExtraDiscount',
+          value: extraDiscountEnabled
+        });
+        await api.post('/api/settings', {
+          key: 'posNotificationDuration',
+          value: notificationDuration * 1000
+        });
+        window.dispatchEvent(new Event("pos-settings-updated"));
+      } catch (error) {
+        console.error('Failed to save UI settings:', error);
+      }
+    };
+    saveSettingsToServer();
+
     window.dispatchEvent(new Event("pos-ui-zoom-updated"));
     window.dispatchEvent(new Event("pos-settings-updated"));
 
@@ -602,6 +666,107 @@ const AccountDetailsDialog = ({
                       label={
                         <Typography variant="body1" fontWeight={600}>
                           Enable Loose Sale Button
+                        </Typography>
+                      }
+                    />
+
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={fullscreenEnabled}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setFullscreenEnabled(val);
+                            localStorage.setItem(STORAGE_KEYS.enableFullscreen, JSON.stringify(val));
+                            window.dispatchEvent(new Event('pos-settings-updated'));
+                          }}
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body1" fontWeight={600}>
+                            Enable Fullscreen Toggle
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Shows a fullscreen button in the bottom-left corner of the POS screen
+                          </Typography>
+                        </Box>
+                      }
+                    />
+
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={extraDiscountEnabled}
+                          onChange={(e) => {
+                            setExtraDiscountEnabledState(e.target.checked);
+                          }}
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body1" fontWeight={600}>
+                            Enable Extra Discount Field
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Shows an extra discount field in the POS transaction panel
+                          </Typography>
+                        </Box>
+                      }
+                    />
+
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body1" fontWeight={600} gutterBottom>
+                        Notification Duration
+                      </Typography>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={notificationDuration}
+                        onChange={(e) => setNotificationDurationState(parseFloat(e.target.value))}
+                        inputProps={{ min: 1, max: 10, step: 0.5 }}
+                        label="Duration (seconds)"
+                        helperText="How long success notifications are displayed (1-10 seconds)"
+                        sx={{ maxWidth: 250, mt: 1 }}
+                      />
+                    </Box>
+
+                    <Divider sx={{ my: 2 }} />
+
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={changeCalculatorEnabled}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setChangeCalculatorEnabledState(val);
+                            // Apply immediately for live preview
+                            setChangeCalculatorEnabled(val);
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body1" fontWeight={600}>
+                          Enable Change Calculator
+                        </Typography>
+                      }
+                    />
+
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={paymentMethodsEnabled}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setPaymentMethodsEnabledState(val);
+                            // Apply immediately for live preview
+                            setPaymentMethodsEnabled(val);
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body1" fontWeight={600}>
+                          Enable Payment Methods
                         </Typography>
                       }
                     />

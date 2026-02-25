@@ -86,8 +86,12 @@ const ProductList = () => {
     // Pagination removed
     // Loader removed
     const [isLoadingBatches, setIsLoadingBatches] = useState(false);
-    const [leftPanelWidth, setLeftPanelWidth] = useState(280);
-    const [rightPanelWidth, setRightPanelWidth] = useState(360);
+    const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
+        return Number(localStorage.getItem('inventoryLeftPanelWidth')) || 280;
+    });
+    const [rightPanelWidth, setRightPanelWidth] = useState(() => {
+        return Number(localStorage.getItem('inventoryRightPanelWidth')) || 360;
+    });
     const [showCategories, setShowCategories] = useState(true);
     const [isResizingLeft, setIsResizingLeft] = useState(false);
     const [isResizingRight, setIsResizingRight] = useState(false);
@@ -209,23 +213,30 @@ const ProductList = () => {
     useEffect(() => {
         const handleMouseMove = (event) => {
             if (isResizingLeft) {
-                const nextWidth = Math.max(220, Math.min(420, event.clientX - 40));
+                const nextWidth = Math.max(80, Math.min(window.innerWidth * 0.4, event.clientX - 40));
                 setLeftPanelWidth(nextWidth);
+                localStorage.setItem('inventoryLeftPanelWidth', nextWidth.toString());
             }
             if (isResizingRight) {
-                const nextWidth = Math.max(280, Math.min(520, window.innerWidth - event.clientX - 40));
+                const nextWidth = Math.max(100, Math.min(window.innerWidth * 0.5, window.innerWidth - event.clientX - 40));
                 setRightPanelWidth(nextWidth);
+                localStorage.setItem('inventoryRightPanelWidth', nextWidth.toString());
             }
         };
         const handleMouseUp = () => {
             setIsResizingLeft(false);
             setIsResizingRight(false);
+            document.body.style.cursor = 'default';
         };
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
+        if (isResizingLeft || isResizingRight) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'col-resize';
+        }
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'default';
         };
     }, [isResizingLeft, isResizingRight]);
 
@@ -689,20 +700,39 @@ const ProductList = () => {
                         {sortedCategoryTree.map((category) => renderCategoryNode(category))}
                     </List>
                     <Box
-                        role="separator"
-                        aria-orientation="vertical"
-                        onMouseDown={() => setIsResizingLeft(true)}
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            setIsResizingLeft(true);
+                        }}
                         sx={{
-                            display: { xs: 'none', lg: 'block' },
+                            display: { xs: 'none', lg: 'flex' },
                             position: 'absolute',
                             top: 0,
-                            right: -6,
-                            width: 12,
+                            right: 0,
+                            width: '8px',
                             height: '100%',
                             cursor: 'col-resize',
-                            backgroundColor: 'transparent'
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            '&:hover .handle': {
+                                bgcolor: 'primary.main',
+                                width: '4px'
+                            },
+                            zIndex: 10
                         }}
-                    />
+                    >
+                        <Box
+                            className="handle"
+                            sx={{
+                                width: '2px',
+                                height: '60px',
+                                bgcolor: isResizingLeft ? 'primary.main' : 'divider',
+                                borderRadius: '4px',
+                                transition: 'all 0.2s',
+                                ...(isResizingLeft && { width: '4px' })
+                            }}
+                        />
+                    </Box>
                 </Paper>
             )}
 
@@ -1042,8 +1072,8 @@ const ProductList = () => {
                         </Box>
                     </Box>
                 </Box>
-                <TableContainer sx={{ flex: 1, overflow: 'auto', overflowX: 'auto' }}>
-                    <Table size="small" stickyHeader sx={{ minWidth: 650 }}>
+                <TableContainer sx={{ flex: 1, overflow: 'auto', overflowX: 'scroll' }}>
+                    <Table size="small" stickyHeader>
                         <TableHead>
                             <TableRow sx={{ bgcolor: 'background.default' }}>
                                 <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
@@ -1169,20 +1199,39 @@ const ProductList = () => {
             {displayProduct && (
                 <Paper elevation={0} sx={{ p: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                     <Box
-                        role="separator"
-                        aria-orientation="vertical"
-                        onMouseDown={() => setIsResizingRight(true)}
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            setIsResizingRight(true);
+                        }}
                         sx={{
-                            display: { xs: 'none', lg: 'block' },
+                            display: { xs: 'none', lg: 'flex' },
                             position: 'absolute',
                             top: 0,
-                            left: -6,
-                            width: 12,
+                            left: 0,
+                            width: '8px',
                             height: '100%',
                             cursor: 'col-resize',
-                            backgroundColor: 'transparent'
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            '&:hover .handle': {
+                                bgcolor: 'primary.main',
+                                width: '4px'
+                            },
+                            zIndex: 10
                         }}
-                    />
+                    >
+                        <Box
+                            className="handle"
+                            sx={{
+                                width: '2px',
+                                height: '60px',
+                                bgcolor: isResizingRight ? 'primary.main' : 'divider',
+                                borderRadius: '4px',
+                                transition: 'all 0.2s',
+                                ...(isResizingRight && { width: '4px' })
+                            }}
+                        />
+                    </Box>
                     {displayProduct ? (
                         <>
                             <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid rgba(16, 24, 40, 0.08)' }}>

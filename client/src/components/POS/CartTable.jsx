@@ -50,7 +50,7 @@ const ShortBatchCode = ({ batchCode }) => {
     );
 };
 
-const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, lastAddedItemId }) => {
+const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, lastAddedItemId }) => {
     return (
         <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
             <TableContainer sx={{ borderTop: '1px solid rgba(16, 24, 40, 0.06)' }}>
@@ -130,7 +130,28 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, lastAddedItemId }
                                             <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, -1)} color="primary">
                                                 <RemoveIcon fontSize="small" />
                                             </IconButton>
-                                            <Typography variant="body2" fontWeight="bold" sx={{ minWidth: 20, textAlign: 'center' }}>{item.quantity}</Typography>
+                                            <Typography
+                                                variant="body2"
+                                                fontWeight="bold"
+                                                sx={{
+                                                    minWidth: 35,
+                                                    textAlign: 'center',
+                                                    cursor: 'pointer',
+                                                    px: 1,
+                                                    py: 0.2,
+                                                    borderRadius: 1,
+                                                    color: 'primary.main',
+                                                    bgcolor: 'rgba(26, 115, 232, 0.05)',
+                                                    transition: 'all 0.2s',
+                                                    '&:hover': {
+                                                        bgcolor: 'rgba(26, 115, 232, 0.15)',
+                                                        transform: 'scale(1.1)'
+                                                    }
+                                                }}
+                                                onClick={() => onQuantityClick?.(item)}
+                                            >
+                                                {item.quantity}
+                                            </Typography>
                                             <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, 1)} color="primary">
                                                 <AddIcon fontSize="small" />
                                             </IconButton>
@@ -149,7 +170,21 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, lastAddedItemId }
                                         <Typography variant="body2" fontWeight="bold">₹{(item.price * item.quantity).toFixed(2)}</Typography>
                                     </TableCell>
                                     <TableCell>
-                                        <IconButton size="medium" color="error" onClick={() => onRemoveFromCart(item.batch_id)}>
+                                        <IconButton
+                                            size="medium"
+                                            color="error"
+                                            onClick={() => onRemoveFromCart(item.batch_id)}
+                                            sx={{
+                                                border: '1.5px solid',
+                                                borderColor: 'error.light',
+                                                borderRadius: 2,
+                                                transition: 'all 0.2s',
+                                                '&:hover': {
+                                                    borderColor: 'error.main',
+                                                    bgcolor: 'rgba(211, 47, 47, 0.04)'
+                                                }
+                                            }}
+                                        >
                                             <DeleteIcon fontSize="medium" />
                                         </IconButton>
                                     </TableCell>

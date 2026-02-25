@@ -23,13 +23,14 @@ import CartTable from './CartTable';
 import TransactionPanel from './TransactionPanel';
 import BatchSelectionDialog from './BatchSelectionDialog';
 import ReceiptPreviewDialog from './ReceiptPreviewDialog';
+import QuantityDialog from './QuantityDialog';
 import LooseSaleDialog from './LooseSaleDialog';
 import POSTabs from './POSTabs';
 import Receipt from './Receipt';
 import CustomDialog from '../common/CustomDialog';
 import SuccessNotification from '../common/SuccessNotification';
 import useCustomDialog from '../../hooks/useCustomDialog';
-import { getStoredPaymentSettings, getFullscreenEnabled, getNotificationDuration, getExtraDiscountEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
+import { getStoredPaymentSettings, getFullscreenEnabled, getNotificationDuration, getExtraDiscountEnabled, getChangeCalculatorEnabled, setChangeCalculatorEnabled, getPaymentMethodsEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
 
 const STORAGE_KEYS = {
     receipt: 'posReceiptSettings',
@@ -124,6 +125,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     });
 
     const [scannedProduct, setScannedProduct] = useState(null);
+    const [manualQuantityItem, setManualQuantityItem] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [lastSale, setLastSale] = useState(null);
     const [showReceipt, setShowReceipt] = useState(false);
@@ -134,6 +136,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled);
     const [extraDiscountEnabled, setExtraDiscountEnabled] = useState(() => getExtraDiscountEnabled());
+    const [changeCalculatorEnabled, setChangeCalculatorEnabledState] = useState(getChangeCalculatorEnabled());
+    const [paymentMethodsEnabled, setPaymentMethodsEnabled] = useState(getPaymentMethodsEnabled());
     const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
     const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -413,6 +417,24 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         }));
     };
 
+    const handleSetQuantity = (batchId, quantity) => {
+        if (quantity < 1) return;
+        setCart(prev => prev.map(item => {
+            if (item.batch_id === batchId) {
+                // Recalculate price based on new quantity
+                let newPrice = item.sellingPrice;
+                if (item.wholesaleEnabled && item.wholesaleMinQty && quantity >= item.wholesaleMinQty) {
+                    newPrice = item.wholesalePrice;
+                } else if (item.isOnSale) {
+                    newPrice = item.promoPrice;
+                }
+
+                return { ...item, quantity, price: newPrice };
+            }
+            return item;
+        }));
+    };
+
     const handleProductInteraction = (product) => {
         // Clear search query immediately for fast scanning
         setSearchQuery('');
@@ -581,6 +603,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             setPaymentSettings(getStoredPaymentSettings());
             setNotificationDuration(getNotificationDuration());
             setExtraDiscountEnabled(getExtraDiscountEnabled());
+            setChangeCalculatorEnabledState(getChangeCalculatorEnabled());
+            setPaymentMethodsEnabled(getPaymentMethodsEnabled());
             setLooseSaleEnabled(localStorage.getItem('posLooseSaleEnabled') !== 'false');
         };
 
@@ -611,6 +635,27 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         });
     };
 
+    // Global focus protection
+    useEffect(() => {
+        const handleGlobalMouseDown = (e) => {
+            // Give a tiny timeout to see if focus actually moves to another input
+            setTimeout(() => {
+                const activeElement = document.activeElement;
+                const isInput = activeElement.tagName === 'INPUT' ||
+                    activeElement.tagName === 'TEXTAREA' ||
+                    activeElement.isContentEditable;
+
+                // If focus isn't on an input/editable and searchBar exists, refocus it
+                if (!isInput && searchBarRef.current) {
+                    searchBarRef.current.focus();
+                }
+            }, 50);
+        };
+
+        window.addEventListener('mousedown', handleGlobalMouseDown);
+        return () => window.removeEventListener('mousedown', handleGlobalMouseDown);
+    }, []);
+
     return (
         <>
             <SuccessNotification
@@ -629,7 +674,9 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                     py: { xs: 2, md: 3 },
                     height: 'calc(100vh - 72px)',
                     overflow: 'hidden',
-                    position: 'relative'
+                    position: 'relative',
+                    userSelect: 'none', // Prevent text selection stealing focus
+                    '& input, & textarea': { userSelect: 'auto' } // Re-enable for inputs
                 }}
             >
                 {/* Fullscreen Toggle Button - Bottom Left */}
@@ -688,6 +735,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                         cart={cart}
                         onUpdateQuantity={updateQuantity}
                         onRemoveFromCart={removeFromCart}
+                        onQuantityClick={setManualQuantityItem}
                         lastAddedItemId={lastAddedItemId}
                     />
                 </Paper>
@@ -747,6 +795,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                         totalQty={totalQty}
                         totalAmount={totalAmount}
                         totalSavings={totalSavings}
+                        changeCalculatorEnabled={changeCalculatorEnabled}
+                        paymentMethodsEnabled={paymentMethodsEnabled}
                     />
                 </Box>
 
@@ -771,6 +821,14 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                     onTextSettingChange={handleTextSettingChange}
                     isAdmin={currentUser?.role === 'admin'}
                     shopMetadata={shopMetadata}
+                />
+
+                <QuantityDialog
+                    open={Boolean(manualQuantityItem)}
+                    onClose={() => setManualQuantityItem(null)}
+                    onConfirm={(qty) => handleSetQuantity(manualQuantityItem.batch_id, qty)}
+                    itemName={manualQuantityItem?.name}
+                    initialValue={manualQuantityItem?.quantity || 1}
                 />
 
                 <LooseSaleDialog

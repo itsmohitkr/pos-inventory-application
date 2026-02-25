@@ -75,6 +75,7 @@ const getAllUsers = async (req, res) => {
             select: {
                 id: true,
                 username: true,
+                password: true,
                 role: true,
                 status: true,
                 createdAt: true,

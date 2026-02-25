@@ -64,12 +64,13 @@ model Batch {
 }
 
 model Sale {
-  id           Int        @id @default(autoincrement())
-  totalAmount  Float
-  discount     Float      @default(0)
+  id            Int        @id @default(autoincrement())
+  totalAmount   Float
+  discount      Float      @default(0)
   extraDiscount Float      @default(0)
-  items        SaleItem[]
-  createdAt    DateTime   @default(now())
+  paymentMethod String     @default("Cash")
+  items         SaleItem[]
+  createdAt     DateTime   @default(now())
 }
 
 model SaleItem {

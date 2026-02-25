@@ -122,38 +122,32 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
                                         </Typography>
                                     }
                                     secondary={
-                                        <Box component="span" sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
-                                            {!isPriceMode && (
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight="bold" // Added bold
-                                                    sx={{ color: 'text.secondary' }}
-                                                >
-                                                    MRP: ₹{batch.mrp}
-                                                </Typography>
-                                            )}
-                                            <Typography
-                                                variant="body2"
-                                                fontWeight="bold"
-                                                sx={{ color: 'success.main' }}
-                                            >
-                                                SP: ₹{batch.sellingPrice}
+                                        <Box component="span" sx={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                                            gap: 1.5,
+                                            mt: 1,
+                                            p: 1,
+                                            bgcolor: isFocused ? 'rgba(25, 118, 210, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                                            borderRadius: 1
+                                        }}>
+                                            <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 900, fontSize: '1rem' }}>
+                                                <strong>MRP:</strong> ₹{batch.mrp}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 700 }}>
+                                                <strong>SP:</strong> ₹{batch.sellingPrice}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 700 }}>
+                                                <strong>Qty:</strong> {batch.quantity}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: batch.expiryDate ? 'error.main' : 'text.disabled' }}>
+                                                <strong>Exp:</strong> {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A'}
                                             </Typography>
                                             {batch.wholesaleEnabled && (
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight="bold"
-                                                    sx={{ color: 'primary.main' }}
-                                                >
-                                                    WS: ₹{batch.wholesalePrice} ({batch.wholesaleMinQty}+)
+                                                <Typography variant="body2" sx={{ color: 'info.main', fontWeight: 600, gridColumn: '1 / -1' }}>
+                                                    <strong>Wholesale:</strong> ₹{batch.wholesalePrice} (Min: {batch.wholesaleMinQty})
                                                 </Typography>
                                             )}
-                                            <Typography
-                                                variant="body2"
-                                                sx={{ color: 'text.secondary' }}
-                                            >
-                                                {batch.expiryDate ? `Exp: ${new Date(batch.expiryDate).toLocaleDateString()}` : `Qty: ${batch.quantity}`}
-                                            </Typography>
                                         </Box>
                                     }
                                 />

@@ -479,6 +479,16 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
                           sx={{
                             fontWeight: 800,
                             bgcolor: "#f8fafc",
+                            minWidth: 100,
+                          }}
+                        >
+                          PAYMENT
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            fontWeight: 800,
+                            bgcolor: "#f8fafc",
                             minWidth: 110,
                           }}
                         >
@@ -535,6 +545,19 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
                             ₹{sale.netTotalAmount.toFixed(2)}
                           </TableCell>
                           <TableCell align="center">
+                            <Chip
+                              label={sale.paymentMethod || 'Cash'}
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
+                                color: sale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
+                                borderColor: sale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1'
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
                             {(() => {
                               const refundStatus = getRefundStatus(sale.items);
                               const display = getStatusDisplay(refundStatus);
@@ -554,21 +577,47 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
                           <TableCell
                             align="center"
                             onClick={(e) => e.stopPropagation()}
+                            sx={{ minWidth: 120 }}
                           >
-                            <IconButton
-                              size="small"
-                              onClick={() => handlePrintReceipt(sale)}
-                              sx={{ color: "#2e7d32", mr: 1 }}
-                            >
-                              <PrintIcon />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleRefund(sale)}
-                              sx={{ color: "#d32f2f" }}
-                            >
-                              <RefundIcon />
-                            </IconButton>
+                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handlePrintReceipt(sale)}
+                                  sx={{
+                                    bgcolor: 'rgba(46, 125, 50, 0.1)',
+                                    color: "#2e7d32",
+                                    '&:hover': {
+                                      bgcolor: 'rgba(46, 125, 50, 0.2)'
+                                    }
+                                  }}
+                                >
+                                  <PrintIcon fontSize="small" />
+                                </IconButton>
+                                <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#2e7d32' }}>
+                                  Print
+                                </Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleRefund(sale)}
+                                  sx={{
+                                    bgcolor: 'rgba(211, 47, 47, 0.1)',
+                                    color: "#d32f2f",
+                                    '&:hover': {
+                                      bgcolor: 'rgba(211, 47, 47, 0.2)'
+                                    }
+                                  }}
+                                >
+                                  <RefundIcon fontSize="small" />
+                                </IconButton>
+                                <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#d32f2f' }}>
+                                  Refund
+                                </Typography>
+                              </Box>
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -639,9 +688,23 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                           {new Date(selectedSale.createdAt).toLocaleDateString()} {new Date(selectedSale.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </Typography>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: "#64748b", display: 'block', mt: 0.5 }}>
-                          Total Items: {selectedSale.items.reduce((sum, item) => sum + item.quantity, 0)}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: "#64748b" }}>
+                            Items: {selectedSale.items.reduce((sum, item) => sum + item.quantity, 0)}
+                          </Typography>
+                          <Chip
+                            label={selectedSale.paymentMethod || 'Cash'}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: 20,
+                              fontWeight: 700,
+                              fontSize: '0.65rem',
+                              color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
+                              borderColor: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1'
+                            }}
+                          />
+                        </Box>
                       </Box>
                       <Box
                         sx={{

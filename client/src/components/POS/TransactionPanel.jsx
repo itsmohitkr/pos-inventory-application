@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-    Box, Typography, Grid, Paper, Divider, TextField, InputAdornment, Button, Stack
+    Box, Typography, Grid, Paper, Divider, TextField, InputAdornment, Button, Stack, Card, CardContent
 } from '@mui/material';
+import NumpadDialog from './NumpadDialog';
 import {
     ReceiptLong as ReceiptIcon,
     CheckCircle as CheckCircleIcon,
@@ -35,8 +36,19 @@ const TransactionPanel = ({
     totalMrp,
     totalQty,
     totalAmount,
-    totalSavings
+    totalSavings,
+    changeCalculatorEnabled,
+    paymentMethodsEnabled
 }) => {
+    const [receivedAmount, setReceivedAmount] = React.useState(0);
+    const [showNumpad, setShowNumpad] = React.useState(false);
+
+    const changeDue = Math.max(0, receivedAmount - totalAmount);
+
+    // Reset received amount when total amount changes significantly (new order)
+    React.useEffect(() => {
+        if (totalAmount === 0) setReceivedAmount(0);
+    }, [totalAmount]);
     const getAvailablePaymentMethods = () => {
         const enabled = paymentSettings?.enabledMethods || [];
         const custom = paymentSettings?.customMethods || [];
@@ -141,60 +153,141 @@ const TransactionPanel = ({
                         ₹{totalAmount.toFixed(2)}
                     </Typography>
                 </Paper>
+
+                {/* Change Calculator Section - Premium Redesign */}
+                {changeCalculatorEnabled && (
+                    <Box
+                        sx={{
+                            mb: 1,
+                            p: 1.5,
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            bgcolor: 'rgba(0,0,0,0.01)'
+                        }}
+                    >
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 800, letterSpacing: '0.05em', mb: 1, display: 'block' }}>
+                            Change Calculator
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', gap: 1.5 }}>
+                            <Box
+                                onClick={() => setShowNumpad(true)}
+                                sx={{
+                                    bgcolor: '#f8fafc', // Very light blue-grey
+                                    p: 1.5,
+                                    borderRadius: 1,
+                                    cursor: 'pointer',
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    '&:hover': { borderColor: 'primary.main', bgcolor: '#f1f5f9' },
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    minHeight: 65,
+                                    flex: 1,
+                                    maxWidth: '46%'
+                                }}
+                            >
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 700, fontSize: '0.8rem' }}>
+                                    Received Amount
+                                </Typography>
+                                <Typography variant="h5" fontWeight="900" color="primary.main">
+                                    ₹{receivedAmount.toFixed(0)}
+                                </Typography>
+                            </Box>
+
+                            <Box
+                                sx={{
+                                    bgcolor: '#f5f3ff', // Very light indigo/violet
+                                    p: 1.5,
+                                    borderRadius: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    color: '#4f46e5',
+                                    border: '1px solid',
+                                    borderColor: '#e0e7ff',
+                                    minHeight: 65,
+                                    flex: 1,
+                                    maxWidth: '46%'
+                                }}
+                            >
+                                <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 700, fontSize: '0.8rem', color: 'indigo.500' }}>
+                                    Return Amount
+                                </Typography>
+                                <Typography variant="h5" fontWeight="900">
+                                    ₹{changeDue.toFixed(0)}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Box>
+                )}
+
+                <NumpadDialog
+                    open={showNumpad}
+                    onClose={() => setShowNumpad(false)}
+                    initialValue={receivedAmount}
+                    onConfirm={(val) => setReceivedAmount(val)}
+                    title="Received Amount"
+                />
             </Box>
 
             {/* Actions Footer - Fixed at bottom */}
             <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderTop: '1px solid rgba(16, 24, 40, 0.08)', display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {/* Payment Methods Section - Compact */}
-                <Box>
-                    <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ display: 'block', mb: 0.5, fontSize: '0.7rem' }}>
-                        PAYMENT METHOD
-                    </Typography>
-                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 1 }}>
-                        {getAvailablePaymentMethods().map((method) => (
-                            <Button
-                                key={method.id}
-                                variant={selectedPaymentMethod?.id === method.id ? 'contained' : 'outlined'}
-                                color={selectedPaymentMethod?.id === method.id ? 'primary' : 'inherit'}
-                                className="pos-action-btn"
-                                onClick={() => onSelectPaymentMethod(method)}
-                                size="large"
-                                sx={{
-                                    textTransform: 'none',
-                                    fontWeight: 700,
-                                    py: 1.5,
-                                    px: 1,
-                                    fontSize: '1rem',
-                                    minHeight: 56,
-                                    width: '100%',
-                                    lineHeight: 1.2,
-                                    textAlign: 'center',
-                                    whiteSpace: 'normal',
-                                    wordBreak: 'break-word',
-                                    border: '1px solid rgba(16, 24, 40, 0.12)',
-                                    borderColor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'rgba(16, 24, 40, 0.12)',
-                                    bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.light' : 'action.hover',
-                                    color: selectedPaymentMethod?.id === method.id ? 'primary.contrastText' : 'text.primary',
-                                    transition: 'background 0.2s, color 0.2s, border-color 0.2s',
-                                    '&:hover': {
-                                        bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'primary.light',
-                                        color: 'primary.contrastText',
-                                        borderColor: 'primary.main'
-                                    }
-                                }}
-                            >
-                                {method.label}
-                            </Button>
-                        ))}
-                    </Box>
-                    {cart.length > 0 && !selectedPaymentMethod && (
-                        <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5, fontSize: '0.75rem' }}>
-                            Please select a payment method
+                {paymentMethodsEnabled && (
+                    <Box>
+                        <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ display: 'block', mb: 0.5, fontSize: '0.7rem' }}>
+                            Payment Method
                         </Typography>
-                    )}
-                </Box>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 1 }}>
+                            {getAvailablePaymentMethods().map((method) => (
+                                <Button
+                                    key={method.id}
+                                    variant={selectedPaymentMethod?.id === method.id ? 'contained' : 'outlined'}
+                                    color={selectedPaymentMethod?.id === method.id ? 'primary' : 'inherit'}
+                                    className="pos-action-btn"
+                                    onClick={() => onSelectPaymentMethod(method)}
+                                    size="large"
+                                    sx={{
+                                        textTransform: 'none',
+                                        fontWeight: 700,
+                                        py: 1.5,
+                                        px: 1,
+                                        fontSize: '1rem',
+                                        minHeight: 56,
+                                        width: '100%',
+                                        lineHeight: 1.2,
+                                        textAlign: 'center',
+                                        whiteSpace: 'normal',
+                                        wordBreak: 'break-word',
+                                        border: '1px solid rgba(16, 24, 40, 0.12)',
+                                        borderColor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'rgba(16, 24, 40, 0.12)',
+                                        bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.light' : 'action.hover',
+                                        color: selectedPaymentMethod?.id === method.id ? 'primary.contrastText' : 'text.primary',
+                                        transition: 'background 0.2s, color 0.2s, border-color 0.2s',
+                                        '&:hover': {
+                                            bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'primary.light',
+                                            color: 'primary.contrastText',
+                                            borderColor: 'primary.main'
+                                        }
+                                    }}
+                                >
+                                    {method.label}
+                                </Button>
+                            ))}
+                        </Box>
+                        {cart.length > 0 && !selectedPaymentMethod && (
+                            <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5, fontSize: '0.75rem' }}>
+                                Please select a payment method
+                            </Typography>
+                        )}
+                    </Box>
+                )}
 
-                <Divider sx={{ my: 1 }} />
+                {paymentMethodsEnabled && <Divider sx={{ my: 1 }} />}
 
                 {/* Action Buttons - Compact */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>

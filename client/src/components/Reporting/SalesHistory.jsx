@@ -38,7 +38,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
     doc.text(`Timeframe: ${timeframeLabel}`, 14, 28);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34);
 
-    const tableColumn = ["Date & Time", "Order ID", "Amount", "Profit", "Status"];
+    const tableColumn = ["Date & Time", "Order ID", "Amount", "Profit", "Payment", "Status"];
     const tableRows = [];
 
     sales.forEach(sale => {
@@ -50,6 +50,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
         `#${sale.id}`,
         `Rs ${(sale.netTotalAmount || 0).toFixed(2)}`,
         `Rs ${(sale.profit || 0).toFixed(2)}`,
+        sale.paymentMethod || 'Cash',
         display.label
       ];
       tableRows.push(rowData);
@@ -143,6 +144,18 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                 ORDER ID
               </TableCell>
               <TableCell
+                align="center"
+                sx={{
+                  fontWeight: 800,
+                  bgcolor: "#f8fafc",
+                  color: "#64748b",
+                  width: "12%",
+                  py: 2,
+                }}
+              >
+                PAYMENT
+              </TableCell>
+              <TableCell
                 align="right"
                 sx={{
                   fontWeight: 800,
@@ -212,6 +225,19 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ fontWeight: 500 }}>#{sale.id}</TableCell>
+                <TableCell align="center">
+                  <Chip
+                    label={sale.paymentMethod || 'Cash'}
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: '0.7rem',
+                      color: sale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
+                      borderColor: sale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1'
+                    }}
+                  />
+                </TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700 }}>
                   ₹{(sale?.netTotalAmount || 0).toFixed(2)}
                 </TableCell>
@@ -240,13 +266,26 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   })()}
                 </TableCell>
                 <TableCell align="center" className="no-print">
-                  <IconButton
-                    size="small"
-                    onClick={() => onSelectSale(sale)}
-                    sx={{ color: "#1a73e8" }}
-                  >
-                    <ViewIcon />
-                  </IconButton>
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => onSelectSale(sale)}
+                        sx={{
+                          bgcolor: 'rgba(26, 115, 232, 0.1)',
+                          color: "#1a73e8",
+                          '&:hover': {
+                            bgcolor: 'rgba(26, 115, 232, 0.2)'
+                          }
+                        }}
+                      >
+                        <ViewIcon fontSize="small" />
+                      </IconButton>
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1a73e8' }}>
+                        View
+                      </Typography>
+                    </Box>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}

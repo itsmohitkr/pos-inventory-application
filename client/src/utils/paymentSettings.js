@@ -4,6 +4,8 @@ export const STORAGE_KEYS = {
     enableFullscreen: 'posEnableFullscreen',
     notificationDuration: 'posNotificationDuration',
     enableExtraDiscount: 'posEnableExtraDiscount',
+    enableChangeCalculator: 'posEnableChangeCalculator',
+    enablePaymentMethods: 'posEnablePaymentMethods',
     receipt: 'posReceiptSettings',
     shopName: 'posShopName'
 };
@@ -67,5 +69,41 @@ export const setExtraDiscountEnabled = (enabled) => {
         window.dispatchEvent(new Event('pos-settings-updated'));
     } catch (error) {
         console.error('Failed to save extra discount setting:', error);
+    }
+};
+
+export const getChangeCalculatorEnabled = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.enableChangeCalculator);
+        return stored ? JSON.parse(stored) : false; // Default to false (disabled)
+    } catch {
+        return false;
+    }
+};
+
+export const setChangeCalculatorEnabled = (enabled) => {
+    try {
+        localStorage.setItem(STORAGE_KEYS.enableChangeCalculator, JSON.stringify(enabled));
+        window.dispatchEvent(new Event('pos-settings-updated'));
+    } catch (error) {
+        console.error('Failed to save change calculator setting:', error);
+    }
+};
+
+export const getPaymentMethodsEnabled = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.enablePaymentMethods);
+        return stored ? JSON.parse(stored) : true; // Default to true (enabled)
+    } catch {
+        return true;
+    }
+};
+
+export const setPaymentMethodsEnabled = (enabled) => {
+    try {
+        localStorage.setItem(STORAGE_KEYS.enablePaymentMethods, JSON.stringify(enabled));
+        window.dispatchEvent(new Event('pos-settings-updated'));
+    } catch (error) {
+        console.error('Failed to save payment methods setting:', error);
     }
 };
