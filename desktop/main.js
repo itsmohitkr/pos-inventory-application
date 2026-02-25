@@ -38,6 +38,10 @@ ipcMain.on('check-for-updates', () => {
   autoUpdater.checkForUpdates();
 });
 
+ipcMain.on('restart-app', () => {
+  autoUpdater.quitAndInstall();
+});
+
 // -------------------------------------------------------------------------
 // CRITICAL: INITIALIZATION ORDER
 // -------------------------------------------------------------------------
