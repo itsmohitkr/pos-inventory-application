@@ -24,7 +24,6 @@
         "electron-builder": "^26.8.1",
         "electron-is-dev": "^3.0.1",
         "fs-extra": "^11.3.3",
-        "prisma": "^5.22.0",
         "wait-on": "^7.0.1"
     },
     "type": "commonjs",
@@ -114,6 +113,7 @@
     },
     "dependencies": {
         "@prisma/client": "^5.22.0",
+        "prisma": "^5.22.0",
         "body-parser": "^2.2.2",
         "cors": "^2.8.6",
         "dotenv": "^17.3.1",

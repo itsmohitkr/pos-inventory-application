@@ -90,9 +90,15 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
             });
         }
 
+        const settingService = require('./setting.service');
+        const receiptSettings = await settingService.getSettingByKey('posReceiptSettings') || {};
+
+        const finalAmountBeforeRounding = totalAmount - discount - extraDiscount;
+        const finalAmount = receiptSettings.roundOff ? Math.round(finalAmountBeforeRounding) : finalAmountBeforeRounding;
+
         const sale = await tx.sale.create({
             data: {
-                totalAmount: totalAmount - discount - extraDiscount,
+                totalAmount: Math.max(0, finalAmount),
                 discount: discount,
                 extraDiscount: extraDiscount,
                 paymentMethod: paymentMethod,

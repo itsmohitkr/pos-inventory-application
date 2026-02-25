@@ -627,7 +627,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const subTotal = (cart || []).reduce((sum, item) => sum + ((item?.price || 0) * (item?.quantity || 0)), 0);
     const totalMrp = (cart || []).reduce((sum, item) => sum + ((item?.mrp || 0) * (item?.quantity || 0)), 0);
     const totalQty = (cart || []).reduce((sum, item) => sum + (item?.quantity || 0), 0);
-    const totalAmount = Math.max(0, subTotal - discount);
+    const baseTotalAmount = Math.max(0, subTotal - discount);
+    const totalAmount = receiptSettings.roundOff ? Math.round(baseTotalAmount) : baseTotalAmount;
     const totalSavings = totalMrp - totalAmount;
 
     const filterOptions = (options, { inputValue }) => {

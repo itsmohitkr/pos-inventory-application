@@ -178,6 +178,49 @@ console.log('DATABASE_URL:', process.env.DATABASE_URL);
 console.log('Prisma Engine Path set to:', process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default');
 console.log('---------------------------------------------------');
 
+/**
+ * PRODUCTION-LEVEL MIGRATION STRATEGY
+ * Automatically applies pending Prisma migrations before starting the server.
+ */
+const { execSync } = require('child_process');
+const applyMigrations = async () => {
+  console.log('Checking for pending database migrations...');
+  try {
+    const prismaPath = isDev
+      ? 'npx prisma'
+      : path.join(process.resourcesPath, 'app.asar.unpacked/node_modules/prisma/build/index.js');
+
+    const schemaPath = isDev
+      ? path.join(__dirname, '../server/prisma/schema.prisma')
+      : path.join(process.resourcesPath, 'app.asar.unpacked/server/prisma/schema.prisma');
+
+    const command = isDev
+      ? `npx prisma migrate deploy --schema "${schemaPath}"`
+      : `node "${prismaPath}" migrate deploy --schema "${schemaPath}"`;
+
+    console.log(`Executing migration: ${command}`);
+
+    // Execute migration synchronously to block server startup until DB is ready
+    const output = execSync(command, {
+      env: {
+        ...process.env,
+        DATABASE_URL: process.env.DATABASE_URL
+      },
+      cwd: isDev ? path.join(__dirname, '../server') : path.join(process.resourcesPath, 'app.asar.unpacked/server')
+    });
+
+    console.log('Migration output:', output.toString());
+    console.log('Database migrations applied successfully.');
+  } catch (error) {
+    console.error('FAILED to apply database migrations:', error.message);
+    if (error.stdout) console.log('Prisma Output:', error.stdout.toString());
+    if (error.stderr) console.error('Prisma Error:', error.stderr.toString());
+
+    // In production, we might want to alert the user, but for now we log and continue
+    // as some environments might have permissions issues but valid DBs.
+  }
+};
+
 const createWindow = () => {
   // Use shop_logo.jpeg for app icon
   const iconPath = path.join(__dirname, '../assets/shop_logo.jpeg');
@@ -415,6 +458,7 @@ ${(() => {
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
 
+    await applyMigrations();
     await startServer();
     createWindow();
   } catch (error) {
