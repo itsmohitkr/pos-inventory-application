@@ -31,9 +31,6 @@ jobs:
       - name: Build client
         working-directory: client
         run: npx vite build
-        env:
-          VITE_BUILD_TIME: ${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
-          VITE_APP_VERSION: ${{ github.run_number }}
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
       - name: Build Electron app (mac)
@@ -72,9 +69,6 @@ jobs:
       - name: Build client
         working-directory: client
         run: npx vite build
-        env:
-          VITE_BUILD_TIME: ${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
-          VITE_APP_VERSION: ${{ github.run_number }}
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
       - name: Build Electron app (win)
