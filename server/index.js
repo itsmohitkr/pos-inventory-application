@@ -150,6 +150,7 @@ async function migrateSchema() {
                 "totalAmount" REAL NOT NULL,
                 "discount" REAL NOT NULL DEFAULT 0,
                 "extraDiscount" REAL NOT NULL DEFAULT 0,
+                "paymentMethod" TEXT NOT NULL DEFAULT 'Cash',
                 "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         `);
@@ -242,6 +243,7 @@ async function migrateSchema() {
         await addColumnSafely('Batch', 'wholesalePrice', 'REAL');
         await addColumnSafely('Batch', 'wholesaleMinQty', 'INTEGER');
         await addColumnSafely('SaleItem', 'isWholesale', 'BOOLEAN NOT NULL DEFAULT 0');
+        await addColumnSafely('Sale', 'paymentMethod', 'TEXT NOT NULL DEFAULT "Cash"');
 
         // ...existing code...
     } catch (error) {
