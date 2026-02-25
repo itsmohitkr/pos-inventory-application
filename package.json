@@ -74,7 +74,8 @@
             "category": "public.app-category.business",
             "identity": null,
             "gatekeeperAssess": false,
-            "icon": "assets/shop_logo.icns"
+            "icon": "assets/shop_logo.icns",
+            "artifactName": "${productName}-${version}-${arch}.${ext}"
         },
         "dmg": {
             "contents": [
@@ -105,7 +106,8 @@
                     ]
                 }
             ],
-            "icon": "assets/shop_logo.ico"
+            "icon": "assets/shop_logo.ico",
+            "artifactName": "${productName} Setup ${version}.${ext}"
         },
         "nsis": {
             "oneClick": false,
