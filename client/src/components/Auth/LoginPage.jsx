@@ -66,7 +66,7 @@ const LoginPage = ({ onLogin }) => {
                         <StoreIcon sx={{ fontSize: 48, color: '#1f8a5b', mb: 2 }} />
                         <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                             Bachat Bazaar
-                            <Box sx={{ width: 10, height: 10, bgcolor: '#4caf50', borderRadius: '50%' }} />
+                            <Box sx={{ width: 10, height: 10, bgcolor: '#2196f3', borderRadius: '50%' }} />
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
                             POS System Login
