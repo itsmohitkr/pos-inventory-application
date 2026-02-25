@@ -579,6 +579,18 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         }
     };
 
+    const handlePrintLastReceipt = () => {
+        if (lastSale) {
+            if (receiptSettings.directPrint) {
+                setTimeout(() => {
+                    window.print();
+                }, 500);
+            } else {
+                setShowReceipt(true);
+            }
+        }
+    };
+
     const handleRefund = () => {
         navigate('/refund');
     };
@@ -797,6 +809,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                         totalSavings={totalSavings}
                         changeCalculatorEnabled={changeCalculatorEnabled}
                         paymentMethodsEnabled={paymentMethodsEnabled}
+                        onPrintLastReceipt={handlePrintLastReceipt}
+                        hasLastSale={!!lastSale}
                     />
                 </Box>
 

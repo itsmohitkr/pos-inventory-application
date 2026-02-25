@@ -8,7 +8,8 @@ import {
     CheckCircle as CheckCircleIcon,
     Replay as ReplayIcon,
     Print as PrintIcon,
-    Payment as PaymentIcon
+    Payment as PaymentIcon,
+    DeleteForever as DeleteIcon
 } from '@mui/icons-material';
 
 const PAYMENT_METHOD_OPTIONS = {
@@ -38,7 +39,9 @@ const TransactionPanel = ({
     totalAmount,
     totalSavings,
     changeCalculatorEnabled,
-    paymentMethodsEnabled
+    paymentMethodsEnabled,
+    onPrintLastReceipt,
+    hasLastSale
 }) => {
     const [receivedAmount, setReceivedAmount] = React.useState(0);
     const [showNumpad, setShowNumpad] = React.useState(false);
@@ -348,15 +351,47 @@ const TransactionPanel = ({
                     <Button
                         fullWidth
                         variant="outlined"
+                        color="secondary"
+                        size="large"
+                        className="pos-action-btn"
+                        onClick={onPrintLastReceipt}
+                        disabled={!hasLastSale}
+                        startIcon={<PrintIcon />}
+                        sx={{
+                            flex: 1,
+                            height: 64,
+                            fontWeight: 'bold',
+                            fontSize: '0.85rem',
+                            whiteSpace: 'normal',
+                            lineHeight: 1.2,
+                            bgcolor: 'secondary.light',
+                            color: 'secondary.contrastText',
+                            transition: 'background 0.2s, color 0.2s',
+                            '&:hover': {
+                                bgcolor: 'secondary.main',
+                                color: 'secondary.contrastText'
+                            },
+                            '&:disabled': {
+                                bgcolor: 'action.disabledBackground',
+                                color: 'text.disabled'
+                            }
+                        }}
+                    >
+                        Last Receipt
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="contained"
                         color="warning"
                         size="large"
                         className="pos-action-btn"
                         onClick={onRefund}
                         startIcon={<ReplayIcon />}
                         sx={{
+                            flex: 1,
                             height: 64,
                             fontWeight: 'bold',
-                            fontSize: '1rem',
+                            fontSize: '0.85rem',
                             whiteSpace: 'normal',
                             lineHeight: 1.2,
                             bgcolor: 'warning.light',
@@ -372,16 +407,17 @@ const TransactionPanel = ({
                     </Button>
                     <Button
                         fullWidth
-                        variant="outlined"
+                        variant="contained"
                         color="error"
                         size="large"
                         className="pos-action-btn"
                         onClick={onVoid}
                         disabled={cart.length === 0}
                         sx={{
+                            flex: 1,
                             height: 64,
                             fontWeight: 'bold',
-                            fontSize: '1rem',
+                            fontSize: '0.85rem',
                             whiteSpace: 'normal',
                             lineHeight: 1.2,
                             bgcolor: 'error.light',
