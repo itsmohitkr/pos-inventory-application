@@ -75,7 +75,7 @@
             "identity": null,
             "gatekeeperAssess": false,
             "icon": "assets/shop_logo.icns",
-            "artifactName": "${productName}-${version}-${arch}.${ext}"
+            "artifactName": "Bachat-Bazaar-${version}-${arch}.${ext}"
         },
         "dmg": {
             "contents": [
@@ -107,7 +107,7 @@
                 }
             ],
             "icon": "assets/shop_logo.ico",
-            "artifactName": "${productName} Setup ${version}.${ext}"
+            "artifactName": "Bachat-Bazaar-Setup-${version}.${ext}"
         },
         "nsis": {
             "oneClick": false,
