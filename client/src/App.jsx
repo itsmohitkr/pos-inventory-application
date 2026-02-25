@@ -724,7 +724,7 @@ function App() {
               <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
                 <RouterLink to="/" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {shopName}
-                  <Box sx={{ width: 8, height: 8, bgcolor: '#2196f3', borderRadius: '50%', display: 'inline-block' }} />
+                  <Box sx={{ width: 8, height: 8, bgcolor: '#4caf50', borderRadius: '50%', display: 'inline-block' }} />
                 </RouterLink>
               </Typography>
               <Typography variant="caption" sx={{ color: 'rgba(248, 245, 240, 0.7)' }}>
