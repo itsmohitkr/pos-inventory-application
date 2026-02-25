@@ -133,20 +133,7 @@ const POSSearchBar = React.forwardRef(({ products, searchQuery, onSearchInputCha
                         onBlur={handleBlur}
                         onFocus={handleFocus}
                         onKeyDown={handleKeyDown}
-                        sx={{
-                            bgcolor: 'background.paper',
-                            '& .MuiOutlinedInput-root': {
-                                fontSize: '1.2rem',
-                                fontWeight: 900
-                            }
-                        }}
-                        inputProps={{
-                            ...params.inputProps,
-                            style: {
-                                fontWeight: 900,
-                                caretColor: '#000'
-                            }
-                        }}
+                        sx={{ bgcolor: 'background.paper' }}
                         InputProps={{
                             ...params.InputProps,
                             startAdornment: (
