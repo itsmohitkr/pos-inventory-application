@@ -98,16 +98,11 @@
                     "arch": [
                         "x64"
                     ]
-                },
-                {
-                    "target": "portable",
-                    "arch": [
-                        "x64"
-                    ]
                 }
             ],
             "icon": "assets/shop_logo.ico",
-            "artifactName": "Bachat-Bazaar-Setup-${version}.${ext}"
+            "artifactName": "Bachat-Bazaar-Setup-${version}.${ext}",
+            "executableName": "BachatBazaar"
         },
         "nsis": {
             "oneClick": false,
