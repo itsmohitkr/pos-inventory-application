@@ -138,6 +138,9 @@ const LoginPage = ({ onLogin }) => {
                         <Typography variant="caption" sx={{ display: 'block', mt: 2, color: '#999', textAlign: 'center' }}>
                             Demo: admin123 / cashier123 / salesman123
                         </Typography>
+                        <Typography variant="caption" sx={{ display: 'block', mt: 2, color: '#bbb', textAlign: 'center', fontSize: '0.7rem' }}>
+                            Last Updated: {import.meta.env.VITE_BUILD_TIME || 'Pending Build'}
+                        </Typography>
                     </Box>
                 </Paper>
             </Box>
