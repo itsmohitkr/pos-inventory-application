@@ -56,81 +56,55 @@ app.use((err, req, res, next) => {
     });
 });
 
-// FAILSAFE: Manual SQL Migration as a backup if Prisma fails
-async function failsafeMigrate() {
-    console.error('[FAILSAFE MIGRATION] Running backup schema check...');
+const { execSync } = require('child_process');
+const path = require('path');
+
+// Auto-run Prisma migrations on startup
+function runPrismaMigrations() {
+    console.error('[BOOT MIGRATION] Running automated Prisma migrations...');
+
     try {
-        // Attempt to add 'paymentMethod' to 'Sale' table if it doesn't exist
-        try {
-            await prisma.$executeRawUnsafe(`ALTER TABLE "Sale" ADD COLUMN "paymentMethod" TEXT NOT NULL DEFAULT 'Cash'`);
-            console.error('[FAILSAFE MIGRATION] Added missing paymentMethod column to Sale table.');
-        } catch (e) {
-            if (!e.message.includes('duplicate column name')) {
-                console.error('[FAILSAFE MIGRATION] Sale table check result:', e.message);
-            }
+        let prismaCliPath;
+        let schemaPath;
+        let pEnv = { ...process.env };
+        let nodeExecutable = process.execPath;
+
+        // Check if running inside packaged app
+        const isPackaged = process.env.NODE_ENV === 'production' || __dirname.includes('app.asar');
+
+        if (isPackaged) {
+            // Paths relative to 'server' folder unpacked outside app.asar
+            prismaCliPath = path.join(__dirname, '..', 'node_modules', 'prisma', 'build', 'index.js');
+            schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
+            pEnv.ELECTRON_RUN_AS_NODE = '1';
+        } else {
+            // Standard paths when running 'npm run dev'
+            prismaCliPath = path.join(__dirname, 'node_modules', 'prisma', 'build', 'index.js');
+            schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
+            // Ensure we use the exact node executable in dev
+            nodeExecutable = process.execPath;
         }
 
-        // Ensure other critical tables exist (basic bootstrapping)
-        await prisma.$executeRawUnsafe(`
-            CREATE TABLE IF NOT EXISTS "User" (
-                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                "username" TEXT NOT NULL,
-                "password" TEXT NOT NULL,
-                "role" TEXT NOT NULL DEFAULT 'cashier',
-                "status" TEXT NOT NULL DEFAULT 'active',
-                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");`);
+        console.error('[BOOT MIGRATION] Prisma CLI Path:', prismaCliPath);
+        console.error('[BOOT MIGRATION] Schema Path:', schemaPath);
 
-        // Ensure new tables exist (updates for v1.0.1)
-        await prisma.$executeRawUnsafe(`
-            CREATE TABLE IF NOT EXISTS "Expense" (
-                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                "amount" REAL NOT NULL,
-                "category" TEXT NOT NULL,
-                "description" TEXT,
-                "date" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                "updatedAt" DATETIME NOT NULL
-            );
-        `);
+        // Use execSync so DB migrations block server startup
+        const output = execSync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
+            env: pEnv,
+            encoding: 'utf-8'
+        });
 
-        await prisma.$executeRawUnsafe(`
-            CREATE TABLE IF NOT EXISTS "Purchase" (
-                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                "vendor" TEXT,
-                "totalAmount" REAL NOT NULL,
-                "date" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                "note" TEXT,
-                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                "updatedAt" DATETIME NOT NULL
-            );
-        `);
-
-        await prisma.$executeRawUnsafe(`
-            CREATE TABLE IF NOT EXISTS "PurchaseItem" (
-                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                "purchaseId" INTEGER NOT NULL,
-                "batchId" INTEGER,
-                "productId" INTEGER NOT NULL,
-                "quantity" INTEGER NOT NULL,
-                "costPrice" REAL NOT NULL,
-                CONSTRAINT "PurchaseItem_purchaseId_fkey" FOREIGN KEY ("purchaseId") REFERENCES "Purchase" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-            );
-        `);
-
+        console.error('[BOOT MIGRATION] Successful:\n', output);
     } catch (error) {
-        console.error('[FAILSAFE MIGRATION FATAL]:', error);
+        console.error('[BOOT MIGRATION FATAL]:\n', error.stdout || error.message);
     }
 }
 
 // Auto-seed database on first run
 async function checkAndSeed() {
     try {
-        // Run failsafe migration first (it handles its own errors)
-        await failsafeMigrate();
+        // Run migrations first
+        runPrismaMigrations();
 
         // Check if any users exist in the database
         const userCount = await prisma.user.count();

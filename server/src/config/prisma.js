@@ -1,6 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
+const path = require('path');
+
+// Guarantee dotenv loads the .env file if DATABASE_URL is somehow missing but file exists locally
 if (!process.env.DATABASE_URL) {
-    require('dotenv').config();
+    require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 }
 
 // Use DATABASE_URL from environment (set by Electron main process in production)
