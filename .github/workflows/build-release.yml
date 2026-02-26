@@ -15,6 +15,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18"
+      - name: Update version
+        run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
       - name: Clean node_modules
         run: rm -rf node_modules
       - name: Clean install dependencies
@@ -54,6 +56,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18"
+      - name: Update version
+        run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
       - name: Clean node_modules
         run: |
           if (Test-Path node_modules) {
