@@ -569,7 +569,7 @@ function App() {
       window.electron.ipcRenderer.off('update-error', handleUpdateError);
       window.electron.ipcRenderer.off('update-not-available', onNotAvailable);
     };
-  }, [handleUpdateAvailable, handleUpdateDownloaded, handleUpdateError]);
+  }, []);
 
   const handleRestartApp = () => {
     if (window.electron) {
