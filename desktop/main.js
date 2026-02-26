@@ -203,7 +203,7 @@ const applyMigrations = async () => {
 
     const command = isDev
       ? `npx prisma migrate deploy --schema "${schemaPath}"`
-      : `node "${prismaPath}" migrate deploy --schema "${schemaPath}"`;
+      : `"${process.execPath}" "${prismaPath}" migrate deploy --schema "${schemaPath}"`;
 
     console.log(`[MIGRATION] Executing: ${command}`);
 
@@ -212,7 +212,8 @@ const applyMigrations = async () => {
       env: {
         ...process.env,
         DATABASE_URL: process.env.DATABASE_URL,
-        PRISMA_CLI_QUERY_ENGINE_TYPE: 'library'
+        PRISMA_CLI_QUERY_ENGINE_TYPE: 'library',
+        ELECTRON_RUN_AS_NODE: '1' // Crucial: Tells Electron to act as a Node interpreter
       },
       cwd: isDev ? path.join(__dirname, '../server') : path.join(process.resourcesPath, 'app.asar.unpacked/server')
     });
@@ -223,6 +224,9 @@ const applyMigrations = async () => {
     console.error('[MIGRATION ERROR] Failed to apply migrations:', error.message);
     if (error.stdout) console.log('[MIGRATION STDOUT]:', error.stdout.toString());
     if (error.stderr) console.error('[MIGRATION STDERR]:', error.stderr.toString());
+
+    // If Prisma fails, we'll rely on the backend failsafe manual migration as a backup
+    console.log('[MIGRATION] Proceeding to start server; failsafe manual migration will be attempted by the backend.');
   }
   console.log('---------------------------------------------------');
 };

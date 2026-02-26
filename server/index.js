@@ -52,12 +52,44 @@ app.use((err, req, res, next) => {
     });
 });
 
-// DELETED migrateSchema() - Now handled by Prisma in main.js
+// FAILSAFE: Manual SQL Migration as a backup if Prisma fails
+async function failsafeMigrate() {
+    console.error('[FAILSAFE MIGRATION] Running backup schema check...');
+    try {
+        // Attempt to add 'paymentMethod' to 'Sale' table if it doesn't exist
+        try {
+            await prisma.$executeRawUnsafe(`ALTER TABLE "Sale" ADD COLUMN "paymentMethod" TEXT NOT NULL DEFAULT 'Cash'`);
+            console.error('[FAILSAFE MIGRATION] Added missing paymentMethod column to Sale table.');
+        } catch (e) {
+            if (!e.message.includes('duplicate column name')) {
+                console.error('[FAILSAFE MIGRATION] Sale table check result:', e.message);
+            }
+        }
+
+        // Ensure other critical tables exist (basic bootstrapping)
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "User" (
+                "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "username" TEXT NOT NULL,
+                "password" TEXT NOT NULL,
+                "role" TEXT NOT NULL DEFAULT 'cashier',
+                "status" TEXT NOT NULL DEFAULT 'active',
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");`);
+
+    } catch (error) {
+        console.error('[FAILSAFE MIGRATION FATAL]:', error);
+    }
+}
 
 // Auto-seed database on first run
 async function checkAndSeed() {
     try {
-        // Removed: await migrateSchema();
+        // Run failsafe migration first (it handles its own errors)
+        await failsafeMigrate();
 
         // Check if any users exist in the database
         const userCount = await prisma.user.count();
