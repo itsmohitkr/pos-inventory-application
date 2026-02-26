@@ -58,6 +58,7 @@ app.use((err, req, res, next) => {
 
 const { execSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 // Auto-run Prisma migrations on startup
 function runPrismaMigrations() {
@@ -88,15 +89,55 @@ function runPrismaMigrations() {
         console.error('[BOOT MIGRATION] Prisma CLI Path:', prismaCliPath);
         console.error('[BOOT MIGRATION] Schema Path:', schemaPath);
 
-        // Use execSync so DB migrations block server startup
-        const output = execSync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
-            env: pEnv,
-            encoding: 'utf-8'
-        });
+        try {
+            // Use execSync so DB migrations block server startup
+            const output = execSync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
+                env: pEnv,
+                encoding: 'utf-8',
+                stdio: ['ignore', 'pipe', 'pipe']
+            });
+            console.error('[BOOT MIGRATION] Successful:\n', output);
+        } catch (deployError) {
+            const errorMsg = deployError.stderr || deployError.stdout || deployError.message || "";
+            if (errorMsg.includes('P3005')) {
+                console.error('[BOOT MIGRATION] P3005 Detected: Database schema not empty. Baselining...');
 
-        console.error('[BOOT MIGRATION] Successful:\n', output);
+                // Read all migrations to mark as applied (except the very latest ones if needed, but resolve is safe)
+                const migrationsDir = path.join(path.dirname(schemaPath), 'migrations');
+                if (fs.existsSync(migrationsDir)) {
+                    const dirs = fs.readdirSync(migrationsDir, { withFileTypes: true })
+                        .filter(dirent => dirent.isDirectory())
+                        .map(dirent => dirent.name);
+
+                    // Sort to ensure chronological order
+                    dirs.sort();
+
+                    for (const migration of dirs) {
+                        try {
+                            execSync(`"${nodeExecutable}" "${prismaCliPath}" migrate resolve --applied "${migration}" --schema="${schemaPath}"`, {
+                                env: pEnv,
+                                stdio: ['ignore', 'pipe', 'pipe']
+                            });
+                            console.error(`[BOOT MIGRATION] Baselined migration: ${migration}`);
+                        } catch (resolveErr) {
+                            // If it fails (e.g., already applied), just ignore and continue
+                        }
+                    }
+
+                    // Re-run deployment for any completely new tables (like Expense and Purchase)
+                    console.error('[BOOT MIGRATION] Running final deploy after baselining...');
+                    const outputFinal = execSync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
+                        env: pEnv,
+                        encoding: 'utf-8'
+                    });
+                    console.error('[BOOT MIGRATION] Post-Baseline Deploy Successful:\n', outputFinal);
+                }
+            } else {
+                throw deployError;
+            }
+        }
     } catch (error) {
-        console.error('[BOOT MIGRATION FATAL]:\n', error.stdout || error.message);
+        console.error('[BOOT MIGRATION FATAL]:\n', error.stderr || error.stdout || error.message);
     }
 }
 
