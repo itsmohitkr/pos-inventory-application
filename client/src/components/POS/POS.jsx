@@ -641,7 +641,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         const fetchPrinters = async () => {
             if (window.electron) {
                 try {
-                    const printerList = await window.electron.app.invoke('get-printers');
+                    const printerList = await window.electron.ipcRenderer.invoke('get-printers');
                     setPrinters(printerList || []);
                     const def = printerList?.find(p => p.isDefault);
                     if (def) setDefaultPrinter(def.name);
