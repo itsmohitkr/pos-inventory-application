@@ -204,59 +204,6 @@ console.log('DATABASE_URL:', process.env.DATABASE_URL);
 console.log('Prisma Engine Path set to:', process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default');
 console.log('---------------------------------------------------');
 
-/**
- * PRODUCTION-LEVEL MIGRATION STRATEGY
- * Automatically applies pending Prisma migrations before starting the server.
- */
-const { execSync } = require('child_process');
-const applyMigrations = async () => {
-  console.log('---------------------------------------------------');
-  console.log('[MIGRATION] Starting database migration check...');
-  try {
-    let prismaPath;
-    let schemaPath;
-
-    if (isDev) {
-      prismaPath = 'npx prisma';
-      schemaPath = path.join(__dirname, '../server/prisma/schema.prisma');
-    } else {
-      // In production, we use the unpacked node_modules and server folder
-      prismaPath = path.join(process.resourcesPath, 'app.asar.unpacked/node_modules/prisma/build/index.js');
-      schemaPath = path.join(process.resourcesPath, 'app.asar.unpacked/server/prisma/schema.prisma');
-    }
-
-    console.log('[MIGRATION] Schema Path:', schemaPath);
-
-    const command = isDev
-      ? `npx prisma migrate deploy --schema "${schemaPath}"`
-      : `"${process.execPath}" "${prismaPath}" migrate deploy --schema "${schemaPath}"`;
-
-    console.log(`[MIGRATION] Executing: ${command}`);
-
-    // Execute migration synchronously to block server startup until DB is ready
-    const output = execSync(command, {
-      env: {
-        ...process.env,
-        DATABASE_URL: process.env.DATABASE_URL,
-        PRISMA_CLI_QUERY_ENGINE_TYPE: 'library',
-        ELECTRON_RUN_AS_NODE: '1' // Crucial: Tells Electron to act as a Node interpreter
-      },
-      cwd: isDev ? path.join(__dirname, '../server') : path.join(process.resourcesPath, 'app.asar.unpacked/server')
-    });
-
-    console.log('[MIGRATION] Output:', output.toString());
-    console.log('[MIGRATION] Success: Database is now up to date.');
-  } catch (error) {
-    console.error('[MIGRATION ERROR] Failed to apply migrations:', error.message);
-    if (error.stdout) console.log('[MIGRATION STDOUT]:', error.stdout.toString());
-    if (error.stderr) console.error('[MIGRATION STDERR]:', error.stderr.toString());
-
-    // If Prisma fails, we'll rely on the backend failsafe manual migration as a backup
-    console.log('[MIGRATION] Proceeding to start server; failsafe manual migration will be attempted by the backend.');
-  }
-  console.log('---------------------------------------------------');
-};
-
 const createWindow = () => {
   // Use shop_logo.jpeg for app icon
   const iconPath = path.join(__dirname, '../assets/shop_logo.jpeg');
@@ -494,7 +441,6 @@ ${(() => {
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
 
-    await applyMigrations();
     await startServer();
     createWindow();
   } catch (error) {
