@@ -31,10 +31,15 @@ import {
     Add as AddIcon,
     Delete as DeleteIcon,
     Receipt as ReceiptIcon,
-    LocalShipping as ShippingIcon,
-    Assessment as ProfitIcon
+    LocalShipping as ShippingIcon
 } from '@mui/icons-material';
 import api from '../../api';
+
+// Helper to get local date string YYYY-MM-DD
+const getLocalTodayString = () => {
+    const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+    return (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1).split('T')[0];
+};
 
 const ExpenseManagement = () => {
     const [activeTab, setActiveTab] = useState(0);
@@ -42,6 +47,10 @@ const ExpenseManagement = () => {
     const [purchases, setPurchases] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Filtering states
+    const [dateFilter, setDateFilter] = useState('thisMonth');
+    const [customDates, setCustomDates] = useState({ start: getLocalTodayString(), end: getLocalTodayString() });
 
     // Dialog states
     const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
@@ -52,13 +61,13 @@ const ExpenseManagement = () => {
         amount: '',
         category: 'Misc',
         description: '',
-        date: new Date().toISOString().split('T')[0]
+        date: getLocalTodayString()
     });
 
     const [purchaseForm, setPurchaseForm] = useState({
         vendor: '',
         totalAmount: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalTodayString(),
         note: '',
         items: []
     });
@@ -66,15 +75,66 @@ const ExpenseManagement = () => {
     const categories = ['Electricity', 'Rent', 'Wages', 'WiFi', 'Maintenance', 'Misc'];
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (dateFilter !== 'custom') {
+            fetchData();
+        }
+    }, [dateFilter]);
+
+    const getDateRange = () => {
+        if (dateFilter === 'custom') {
+            return {
+                startDate: customDates.start ? new Date(`${customDates.start}T00:00:00`).toISOString() : undefined,
+                endDate: customDates.end ? new Date(`${customDates.end}T23:59:59.999`).toISOString() : undefined
+            };
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const start = new Date(today);
+        const end = new Date(today);
+        end.setHours(23, 59, 59, 999);
+
+        switch (dateFilter) {
+            case 'today':
+                break;
+            case 'yesterday':
+                start.setDate(start.getDate() - 1);
+                end.setDate(end.getDate() - 1);
+                break;
+            case 'thisWeek':
+                const day = start.getDay();
+                // Monday as start of week
+                const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+                start.setDate(diff);
+                break;
+            case 'thisMonth':
+                start.setDate(1);
+                break;
+            case 'thisYear':
+                start.setMonth(0, 1);
+                break;
+            default:
+                return {};
+        }
+        return { startDate: start.toISOString(), endDate: end.toISOString() };
+    };
 
     const fetchData = async () => {
         setLoading(true);
+        setError(null);
         try {
+            const { startDate, endDate } = getDateRange();
+
+            let queryParams = '?';
+            const params = new URLSearchParams();
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            queryParams += params.toString();
+
             const [expRes, purRes] = await Promise.all([
-                api.get('/api/expenses'),
-                api.get('/api/purchases')
+                api.get(`/api/expenses${queryParams}`),
+                api.get(`/api/purchases${queryParams}`)
             ]);
             setExpenses(expRes.data);
             setPurchases(purRes.data);
@@ -85,12 +145,21 @@ const ExpenseManagement = () => {
         }
     };
 
+    const handleOpenExpenseDialog = () => {
+        setExpenseForm({ amount: '', category: 'Misc', description: '', date: getLocalTodayString() });
+        setExpenseDialogOpen(true);
+    };
+
+    const handleOpenPurchaseDialog = () => {
+        setPurchaseForm({ vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', items: [] });
+        setPurchaseDialogOpen(true);
+    };
+
     const handleCreateExpense = async () => {
         try {
             await api.post('/api/expenses', expenseForm);
             setExpenseDialogOpen(false);
             fetchData();
-            setExpenseForm({ amount: '', category: 'Misc', description: '', date: new Date().toISOString().split('T')[0] });
         } catch (err) {
             setError('Failed to create expense');
         }
@@ -109,7 +178,6 @@ const ExpenseManagement = () => {
 
     const handleCreatePurchase = async () => {
         try {
-            // Ensure numbers are handled correctly and items are filtered
             const submissionData = {
                 ...purchaseForm,
                 totalAmount: parseFloat(purchaseForm.totalAmount) || 0,
@@ -119,24 +187,65 @@ const ExpenseManagement = () => {
             await api.post('/api/purchases', submissionData);
             setPurchaseDialogOpen(false);
             fetchData();
-            setPurchaseForm({
-                vendor: '',
-                totalAmount: '',
-                date: new Date().toISOString().split('T')[0],
-                note: '',
-                items: []
-            });
         } catch (err) {
             console.error('Purchase creation error:', err);
             setError('Failed to create purchase. Please check your inputs.');
         }
     };
 
+    // Derived totals
+    const totalExpensesAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalPurchasesAmount = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
+
     return (
         <Box sx={{ p: 3, height: '100%', overflow: 'auto' }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
-                Financial Tracking
-            </Typography>
+            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2} sx={{ mb: 3 }}>
+                <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    Financial Tracking
+                </Typography>
+
+                <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                        <InputLabel>Time Frame</InputLabel>
+                        <Select
+                            value={dateFilter}
+                            label="Time Frame"
+                            onChange={(e) => setDateFilter(e.target.value)}
+                        >
+                            <MenuItem value="today">Today</MenuItem>
+                            <MenuItem value="yesterday">Yesterday</MenuItem>
+                            <MenuItem value="thisWeek">This Week</MenuItem>
+                            <MenuItem value="thisMonth">This Month</MenuItem>
+                            <MenuItem value="thisYear">This Year</MenuItem>
+                            <MenuItem value="custom">Custom Date</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {dateFilter === 'custom' && (
+                        <>
+                            <TextField
+                                size="small"
+                                type="date"
+                                label="Start"
+                                value={customDates.start}
+                                onChange={(e) => setCustomDates({ ...customDates, start: e.target.value })}
+                                InputLabelProps={{ shrink: true }}
+                            />
+                            <TextField
+                                size="small"
+                                type="date"
+                                label="End"
+                                value={customDates.end}
+                                onChange={(e) => setCustomDates({ ...customDates, end: e.target.value })}
+                                InputLabelProps={{ shrink: true }}
+                            />
+                            <Button variant="outlined" onClick={fetchData} sx={{ height: 40 }}>
+                                Apply
+                            </Button>
+                        </>
+                    )}
+                </Stack>
+            </Stack>
 
             <Paper sx={{ mb: 3 }}>
                 <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -151,7 +260,7 @@ const ExpenseManagement = () => {
                         <Box>
                             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
                                 <Typography variant="h6">Operating Expenses</Typography>
-                                <Button variant="contained" startIcon={<AddIcon />} onClick={() => setExpenseDialogOpen(true)}>
+                                <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenExpenseDialog}>
                                     Add Expense
                                 </Button>
                             </Stack>
@@ -183,7 +292,22 @@ const ExpenseManagement = () => {
                                         ))}
                                         {expenses.length === 0 && (
                                             <TableRow>
-                                                <TableCell colSpan={5} align="center">No expenses found</TableCell>
+                                                <TableCell colSpan={5} align="center">No expenses found for this period</TableCell>
+                                            </TableRow>
+                                        )}
+                                        {/* Highlighted Total Row */}
+                                        {expenses.length > 0 && (
+                                            <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
+                                                <TableCell colSpan={3} sx={{ py: 1.5 }}>
+                                                    <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
+                                                        Total Current Period
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell align="right" colSpan={2} sx={{ py: 1.5 }}>
+                                                    <Typography variant="h6" fontWeight="bold" color="primary.dark">
+                                                        ₹{totalExpensesAmount.toLocaleString()}
+                                                    </Typography>
+                                                </TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
@@ -196,7 +320,7 @@ const ExpenseManagement = () => {
                         <Box>
                             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
                                 <Typography variant="h6">Inventory Purchases</Typography>
-                                <Button variant="contained" startIcon={<AddIcon />} onClick={() => setPurchaseDialogOpen(true)}>
+                                <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenPurchaseDialog}>
                                     Log Purchase
                                 </Button>
                             </Stack>
@@ -222,7 +346,22 @@ const ExpenseManagement = () => {
                                         ))}
                                         {purchases.length === 0 && (
                                             <TableRow>
-                                                <TableCell colSpan={4} align="center">No purchases recorded</TableCell>
+                                                <TableCell colSpan={4} align="center">No purchases recorded for this period</TableCell>
+                                            </TableRow>
+                                        )}
+                                        {/* Highlighted Total Row */}
+                                        {purchases.length > 0 && (
+                                            <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
+                                                <TableCell colSpan={3} sx={{ py: 1.5 }}>
+                                                    <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
+                                                        Total Current Period
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell align="right" sx={{ py: 1.5 }}>
+                                                    <Typography variant="h6" fontWeight="bold" color="primary.dark">
+                                                        ₹{totalPurchasesAmount.toLocaleString()}
+                                                    </Typography>
+                                                </TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
