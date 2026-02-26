@@ -549,16 +549,27 @@ function App() {
       // Don't disturb user with snackbar for simple check errors unless they requested it
     };
 
+    const onNotAvailable = () => {
+      setUpdateNotification({
+        open: true,
+        message: 'You are on the latest version!',
+        severity: 'success',
+        showAction: false
+      });
+    };
+
     window.electron.ipcRenderer.on('update-available', handleUpdateAvailable);
     window.electron.ipcRenderer.on('update-downloaded', handleUpdateDownloaded);
     window.electron.ipcRenderer.on('update-error', handleUpdateError);
+    window.electron.ipcRenderer.on('update-not-available', onNotAvailable);
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners('update-available');
-      window.electron.ipcRenderer.removeAllListeners('update-downloaded');
-      window.electron.ipcRenderer.removeAllListeners('update-error');
+      window.electron.ipcRenderer.off('update-available', handleUpdateAvailable);
+      window.electron.ipcRenderer.off('update-downloaded', handleUpdateDownloaded);
+      window.electron.ipcRenderer.off('update-error', handleUpdateError);
+      window.electron.ipcRenderer.off('update-not-available', onNotAvailable);
     };
-  }, []);
+  }, [handleUpdateAvailable, handleUpdateDownloaded, handleUpdateError]);
 
   const handleRestartApp = () => {
     if (window.electron) {

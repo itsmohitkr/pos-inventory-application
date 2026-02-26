@@ -21,6 +21,11 @@ app.on('ready', async () => {
         mainWindow.webContents.send('update-downloaded');
       }
     });
+    autoUpdater.on('update-not-available', () => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-not-available');
+      }
+    });
     autoUpdater.on('error', (err) => {
       if (mainWindow) {
         mainWindow.webContents.send('update-error', err.message);
@@ -40,6 +45,27 @@ ipcMain.on('check-for-updates', () => {
 
 ipcMain.on('restart-app', () => {
   autoUpdater.quitAndInstall();
+});
+
+ipcMain.handle('get-printers', async () => {
+  if (!mainWindow) return [];
+  return await mainWindow.webContents.getPrintersAsync();
+});
+
+ipcMain.on('print-manual', (event, { printerName }) => {
+  if (!mainWindow) return;
+  console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
+  mainWindow.webContents.print({
+    silent: true,
+    deviceName: printerName || undefined,
+    printBackground: true
+  }, (success, failureReason) => {
+    if (!success) {
+      console.error(`[PRINT ERROR] Failed to print: ${failureReason}`);
+    } else {
+      console.log('[PRINT SUCCESS] Direct print sent to printer.');
+    }
+  });
 });
 
 // -------------------------------------------------------------------------

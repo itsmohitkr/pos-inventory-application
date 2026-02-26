@@ -109,29 +109,39 @@ const AccountDetailsDialog = ({
 
   useEffect(() => {
     if (window.electron && window.electron.ipcRenderer) {
-      window.electron.ipcRenderer.on("update-available", () => {
+      const onAvailable = () => {
         setUpdateStatus("info");
         setUpdateMessage("A new update is available. Downloading...");
         setSnackbarOpen(true);
-      });
-      window.electron.ipcRenderer.on("update-downloaded", () => {
+      };
+      const onDownloaded = () => {
         setUpdateStatus("success");
         setUpdateMessage("Update downloaded! Restart the app to apply.");
         setSnackbarOpen(true);
-      });
-      window.electron.ipcRenderer.on("update-error", (_event, msg) => {
+      };
+      const onError = (_event, msg) => {
         setUpdateStatus("error");
         setUpdateMessage("Update error: " + msg);
         setSnackbarOpen(true);
-      });
+      };
+      const onNotAvailable = () => {
+        setUpdateStatus("success");
+        setUpdateMessage("You are on the latest version!");
+        setSnackbarOpen(true);
+      };
+
+      window.electron.ipcRenderer.on("update-available", onAvailable);
+      window.electron.ipcRenderer.on("update-downloaded", onDownloaded);
+      window.electron.ipcRenderer.on("update-error", onError);
+      window.electron.ipcRenderer.on("update-not-available", onNotAvailable);
+
+      return () => {
+        window.electron.ipcRenderer.off("update-available", onAvailable);
+        window.electron.ipcRenderer.off("update-downloaded", onDownloaded);
+        window.electron.ipcRenderer.off("update-error", onError);
+        window.electron.ipcRenderer.off("update-not-available", onNotAvailable);
+      };
     }
-    return () => {
-      if (window.electron && window.electron.ipcRenderer) {
-        window.electron.ipcRenderer.removeAllListeners("update-available");
-        window.electron.ipcRenderer.removeAllListeners("update-downloaded");
-        window.electron.ipcRenderer.removeAllListeners("update-error");
-      }
-    };
   }, []);
 
   useEffect(() => {

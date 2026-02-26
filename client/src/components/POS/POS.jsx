@@ -140,6 +140,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const [paymentMethodsEnabled, setPaymentMethodsEnabled] = useState(getPaymentMethodsEnabled());
     const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
     const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
+    const [printers, setPrinters] = useState([]);
+    const [defaultPrinter, setDefaultPrinter] = useState(null);
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const [lastAddedItemId, setLastAddedItemId] = useState(null);
     const searchBarRef = useRef(null);
@@ -548,7 +550,12 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             if (receiptSettings.directPrint) {
                 // Short timeout to ensure the DOM is updated for the hidden print container
                 setTimeout(() => {
-                    window.print();
+                    const printer = defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+                    if (window.electron) {
+                        window.electron.ipcRenderer.send('print-manual', { printerName: printer });
+                    } else {
+                        window.print();
+                    }
                 }, 500);
             } else {
                 setShowReceipt(true);
@@ -583,7 +590,12 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         if (lastSale) {
             if (receiptSettings.directPrint) {
                 setTimeout(() => {
-                    window.print();
+                    const printer = defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+                    if (window.electron) {
+                        window.electron.ipcRenderer.send('print-manual', { printerName: printer });
+                    } else {
+                        window.print();
+                    }
                 }, 500);
             } else {
                 setShowReceipt(true);
@@ -622,6 +634,23 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
         window.addEventListener('pos-settings-updated', handleSettingsUpdated);
         return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
+    }, []);
+
+    // Fetch printers on mount
+    useEffect(() => {
+        const fetchPrinters = async () => {
+            if (window.electron) {
+                try {
+                    const printerList = await window.electron.app.invoke('get-printers');
+                    setPrinters(printerList || []);
+                    const def = printerList?.find(p => p.isDefault);
+                    if (def) setDefaultPrinter(def.name);
+                } catch (err) {
+                    console.error('Failed to fetch printers:', err);
+                }
+            }
+        };
+        fetchPrinters();
     }, []);
 
     const subTotal = (cart || []).reduce((sum, item) => sum + ((item?.price || 0) * (item?.quantity || 0)), 0);
@@ -836,6 +865,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                     onTextSettingChange={handleTextSettingChange}
                     isAdmin={currentUser?.role === 'admin'}
                     shopMetadata={shopMetadata}
+                    printers={printers}
+                    defaultPrinter={defaultPrinter}
                 />
 
                 <QuantityDialog

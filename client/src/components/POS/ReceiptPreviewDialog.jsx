@@ -18,7 +18,9 @@ const ReceiptPreviewDialog = ({
     showPrint = true,
     showShopNameField = true,
     saveLabel = 'Save',
-    shopMetadata
+    shopMetadata,
+    printers = [],
+    defaultPrinter = null
 }) => {
     const handleKeyDown = (event) => {
         if (event.defaultPrevented) return;
@@ -316,7 +318,14 @@ const ReceiptPreviewDialog = ({
                         variant="contained"
                         color="primary"
                         startIcon={<PrintIcon />}
-                        onClick={() => window.print()}
+                        onClick={() => {
+                            if (receiptSettings.directPrint && window.electron) {
+                                const printer = defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+                                window.electron.ipcRenderer.send('print-manual', { printerName: printer });
+                            } else {
+                                window.print();
+                            }
+                        }}
                     >
                         Print Receipt
                     </Button>
