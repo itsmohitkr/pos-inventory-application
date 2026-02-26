@@ -45,6 +45,8 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
   const [autoPrint, setAutoPrint] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [refundSale, setRefundSale] = useState(null);
+  const [printers, setPrinters] = useState([]);
+  const [defaultPrinter, setDefaultPrinter] = useState(null);
 
   const timeframes = [
     { label: "Today", getValue: () => getRange("day") },
@@ -123,12 +125,35 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
   useEffect(() => {
     if (autoPrint && selectedSale) {
       const timer = setTimeout(() => {
-        window.print();
+        if (receiptSettings?.directPrint && window.electron) {
+          const printer = defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+          window.electron.ipcRenderer.send('print-manual', { printerName: printer });
+        } else {
+          window.print();
+        }
         setAutoPrint(false);
-      }, 100);
+      }, 500); // 500ms to ensure DOM is ready for hidden container
       return () => clearTimeout(timer);
     }
-  }, [autoPrint, selectedSale]);
+  }, [autoPrint, selectedSale, receiptSettings?.directPrint, printers, defaultPrinter]);
+
+  // Fetch printers on mount for direct printing
+  useEffect(() => {
+    const fetchPrinters = async () => {
+      if (window.electron) {
+        try {
+          // Use ipcRenderer.invoke as exposed in preload.js
+          const printerList = await window.electron.ipcRenderer.invoke('get-printers');
+          setPrinters(printerList || []);
+          const def = printerList?.find(p => p.isDefault);
+          if (def) setDefaultPrinter(def.name);
+        } catch (err) {
+          console.error('Failed to fetch printers:', err);
+        }
+      }
+    };
+    fetchPrinters();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -959,41 +984,33 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
           </Grid>
         )}
 
-        {/* Hidden receipt for thermal printing */}
-        {autoPrint && selectedSale && (
-          <Box
-            sx={{
-              position: "fixed",
-              left: "-9999px",
-              top: 0,
-              "@media print": {
-                position: "static",
-                left: "auto",
-              },
-            }}
-          >
-            <Receipt
-              sale={selectedSale}
-              settings={receiptSettings || {
-                shopName: true,
-                header: true,
-                footer: true,
-                mrp: true,
-                price: true,
-                discount: true,
-                totalValue: true,
-                productName: true,
-                exp: true,
-                barcode: true,
-                totalSavings: true,
-                customShopName: localStorage.getItem("posShopName") || "Bachat Bazaar",
-                customHeader: "123 Business Street, City",
-                customFooter: "Thank You! Visit Again",
-              }}
-              shopMetadata={shopMetadata}
-            />
-          </Box>
-        )}
+        {/* Hidden receipt for thermal printing - Always present for Electron but hidden from view */}
+        <Box sx={{ display: 'none', displayPrint: 'block' }}>
+          <div id="thermal-receipt-print">
+            {selectedSale && (
+              <Receipt
+                sale={selectedSale}
+                settings={receiptSettings || {
+                  shopName: true,
+                  header: true,
+                  footer: true,
+                  mrp: true,
+                  price: true,
+                  discount: true,
+                  totalValue: true,
+                  productName: true,
+                  exp: true,
+                  barcode: true,
+                  totalSavings: true,
+                  customShopName: localStorage.getItem("posShopName") || "Bachat Bazaar",
+                  customHeader: "123 Business Street, City",
+                  customFooter: "Thank You! Visit Again",
+                }}
+                shopMetadata={shopMetadata}
+              />
+            )}
+          </div>
+        </Box>
 
         {/* Refund Dialog */}
         <RefundDialog
