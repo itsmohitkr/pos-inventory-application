@@ -84,10 +84,40 @@ const getReports = async ({ startDate, endDate }) => {
         };
     });
 
+    // Recalculate based on net amounts
+    totalSales = detailedSales.reduce((sum, s) => sum + s.netTotalAmount, 0);
+    totalProfit = detailedSales.reduce((sum, s) => sum + s.profit, 0);
+
+    // Fetch Expenses and Purchases for the same period
+    const expenseWhere = {};
+    if (startDate && endDate) {
+        expenseWhere.date = {
+            gte: new Date(startDate),
+            lte: new Date(endDate)
+        };
+    }
+
+    const [expenses, purchases] = await Promise.all([
+        prisma.expense.findMany({ where: expenseWhere }),
+        prisma.purchase.findMany({ where: expenseWhere })
+    ]);
+
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalPurchases = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
+
+    const netProfit = totalProfit - totalExpenses;
+    const totalCashBalance = totalSales - totalExpenses - totalPurchases;
+
     return {
         totalSales,
         totalProfit,
-        totalOrders,
+        netProfit,
+        totalCashBalance,
+        totalExpenses,
+        totalPurchases,
+        expenses,
+        purchases,
+        totalOrders: sales.length,
         salesCount: sales.length,
         sales: detailedSales
     };

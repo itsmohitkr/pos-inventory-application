@@ -13,6 +13,8 @@ const authRoutes = require('./src/routes/auth.routes');
 const categoryRoutes = require('./src/routes/category.routes');
 const looseSaleRoutes = require('./src/routes/loose-sale.routes');
 const promotionRoutes = require('./src/routes/promotion.routes');
+const expenseRoutes = require('./src/routes/expense.routes');
+const purchaseRoutes = require('./src/routes/purchase.routes');
 const settingRoutes = require('./src/routes/setting.routes');
 const settingService = require('./src/services/setting.service');
 const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/utils/constants');
@@ -38,6 +40,8 @@ apiRouter.use(saleRoutes);
 apiRouter.use(reportRoutes);
 apiRouter.use(looseSaleRoutes);
 apiRouter.use(promotionRoutes);
+apiRouter.use('/expenses', expenseRoutes);
+apiRouter.use('/purchases', purchaseRoutes);
 apiRouter.use('/settings', settingRoutes);
 
 app.use('/api', apiRouter);

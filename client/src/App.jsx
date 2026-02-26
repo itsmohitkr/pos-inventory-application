@@ -49,6 +49,7 @@ import InventoryTree from './components/Inventory/InventoryTree';
 import BulkImportDialog from './components/Inventory/BulkImportDialog';
 import POS from './components/POS/POS';
 import Reporting from './components/Reporting/Reporting';
+import ExpenseManagement from './components/Expenses/ExpenseManagement';
 import Refund from './components/Refund/Refund';
 import ReceiptPreviewDialog from './components/POS/ReceiptPreviewDialog';
 import DashboardPage from './components/Dashboard/Dashboard';
@@ -709,6 +710,7 @@ function App() {
   const canAccessRefund = isAdmin || currentUser?.role === 'salesman';
   const canAccessSaleHistory = isAdmin || currentUser?.role === 'salesman';
   const canAccessPromotions = isAdmin;
+  const canAccessExpenses = isAdmin;
 
   if (loading) return <Box>Loading...</Box>;
 
@@ -747,6 +749,7 @@ function App() {
               {canAccessSaleHistory && <NavButton to="/sale-history">Sale History</NavButton>}
               {canAccessInventory && <NavButton to="/inventory">Inventory</NavButton>}
               {canAccessReports && <NavButton to="/reports">Reports</NavButton>}
+              {canAccessExpenses && <NavButton to="/expenses">Expenses</NavButton>}
               {canAccessRefund && <NavButton to="/refund">Refund</NavButton>}
               {canAccessPromotions && <NavButton to="/promotions">Promotions</NavButton>}
               {canAccessDashboard && <NavButton to="/dashboard">Dashboard</NavButton>}
@@ -796,6 +799,7 @@ function App() {
             )}
             {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Inventory /></Box>} />}
             {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting receiptSettings={receiptSettings} shopMetadata={shopMetadata} /></Box>} />}
+            {canAccessExpenses && <Route path="/expenses" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><ExpenseManagement /></Box>} />}
             {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Refund /></Box>} />}
             {canAccessPromotions && <Route path="/promotions" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><PromotionManagement /></Box>} />}
             {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><DashboardPage shopName={shopName} userRole={currentUser.role} /></Box>} />}

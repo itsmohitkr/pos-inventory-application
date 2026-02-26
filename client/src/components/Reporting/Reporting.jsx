@@ -33,7 +33,8 @@ import {
   TrendingUp as SalesChartIcon,
   Assignment as ItemSalesIcon,
   Inventory as StockIcon,
-  LocalPrintshop as LooseIcon
+  LocalPrintshop as LooseIcon,
+  AccountBalanceWallet as SummaryIcon
 } from "@mui/icons-material";
 
 // Sub-components
@@ -64,7 +65,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
   const [loading, setLoading] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [selectedSale, setSelectedSale] = useState(null);
-  const [reportType, setReportType] = useState("profit_margin"); // profit_margin, category_sales, expiry_report, item_sales, low_stock
+  const [reportType, setReportType] = useState("financial_summary"); // financial_summary, profit_margin, category_sales, expiry_report, item_sales, low_stock
   const [dateRange, setDateRange] = useState({
     startDate: "",
     endDate: "",
@@ -230,7 +231,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                 value={tabValue}
                 onChange={handleTabChange}
                 variant="scrollable"
-                scrollButtonsDisplay="auto"
+                scrollButtons="auto"
               >
                 {timeframes.map((tf, idx) => (
                   <Tab key={idx} label={tf.label} />
@@ -335,6 +336,26 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
               <List sx={{ p: 1 }}>
                 <ListItem disablePadding sx={{ mb: 1 }}>
                   <ListItemButton
+                    selected={reportType === 'financial_summary'}
+                    onClick={() => setReportType('financial_summary')}
+                    sx={{
+                      borderRadius: 1,
+                      '&.Mui-selected': {
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'primary.dark' },
+                        '& .MuiListItemIcon-root': { color: 'white' }
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'financial_summary' ? 'inherit' : 'primary.main' }}>
+                      <SummaryIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Financial Summary" primaryTypographyProps={{ fontWeight: 600 }} />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding sx={{ mb: 1 }}>
+                  <ListItemButton
                     selected={reportType === 'profit_margin'}
                     onClick={() => setReportType('profit_margin')}
                     sx={{
@@ -347,7 +368,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                       }
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'profit_margin' ? 'inherit' : 'primary.main' }}>
+                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'profit_margin' ? 'inherit' : 'secondary.main' }}>
                       <ProfitIcon />
                     </ListItemIcon>
                     <ListItemText primary="Profit & Margin" primaryTypographyProps={{ fontWeight: 600 }} />
@@ -458,41 +479,17 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
 
             {/* Main Content Area */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              {reportType === 'profit_margin' ? (
-                <Box sx={{
-                  display: 'flex',
-                  flexDirection: { xs: 'column', lg: 'row' },
-                  gap: 3,
-                  flex: 1,
-                  minHeight: 0
-                }}>
-                  {/* Stats Panel */}
-                  <Box sx={{
-                    flex: { lg: 0.8 },
-                    minHeight: 0,
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}>
-                    <AnalyticsPanel
-                      reportData={reportData}
-                      loading={loading}
-                    />
-                  </Box>
-
-                  {/* Sales History */}
-                  <Box sx={{
-                    flex: { lg: 1.2 },
-                    minHeight: 0,
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}>
-                    <SalesHistory
-                      sales={reportData?.sales}
-                      timeframeLabel={timeframes[tabValue].label}
-                      onSelectSale={setSelectedSale}
-                    />
-                  </Box>
-                </Box>
+              {reportType === 'financial_summary' ? (
+                <AnalyticsPanel
+                  reportData={reportData}
+                  loading={loading}
+                />
+              ) : reportType === 'profit_margin' ? (
+                <SalesHistory
+                  sales={reportData?.sales}
+                  timeframeLabel={timeframes[tabValue].label}
+                  onSelectSale={setSelectedSale}
+                />
               ) : reportType === 'category_sales' ? (
                 <CategorySalesPanel sales={reportData?.sales || []} />
               ) : reportType === 'expiry_report' ? (

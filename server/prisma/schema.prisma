@@ -1,7 +1,4 @@
-generator client {
-  provider      = "prisma-client-js"
-  output        = "../../node_modules/.prisma/client"
-  binaryTargets = ["windows", "darwin"]
+  binaryTargets = ["native", "windows", "darwin"]
 }
 
 datasource db {
@@ -133,4 +130,35 @@ model Setting {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  category    String   // 'Electricity', 'Rent', 'Wages', 'WiFi', 'Maintenance', 'Misc'
+  description String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Purchase {
+  id          Int      @id @default(autoincrement())
+  vendor      String?
+  totalAmount Float
+  date        DateTime @default(now())
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       PurchaseItem[]
+}
+
+model PurchaseItem {
+  id         Int      @id @default(autoincrement())
+  purchaseId Int
+  batchId    Int?
+  productId  Int
+  quantity   Int
+  costPrice  Float
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 }
