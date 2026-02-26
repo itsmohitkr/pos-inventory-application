@@ -51,7 +51,8 @@
         ],
         "asarUnpack": [
             "server/**/*",
-            "node_modules/**/*"
+            "node_modules/**/*",
+            "server/prisma/migrations/**/*"
         ],
         "extraFiles": [
             {

@@ -184,41 +184,47 @@ console.log('---------------------------------------------------');
  */
 const { execSync } = require('child_process');
 const applyMigrations = async () => {
-  console.log('Checking for pending database migrations...');
+  console.log('---------------------------------------------------');
+  console.log('[MIGRATION] Starting database migration check...');
   try {
-    const prismaPath = isDev
-      ? 'npx prisma'
-      : path.join(process.resourcesPath, 'app.asar.unpacked/node_modules/prisma/build/index.js');
+    let prismaPath;
+    let schemaPath;
 
-    const schemaPath = isDev
-      ? path.join(__dirname, '../server/prisma/schema.prisma')
-      : path.join(process.resourcesPath, 'app.asar.unpacked/server/prisma/schema.prisma');
+    if (isDev) {
+      prismaPath = 'npx prisma';
+      schemaPath = path.join(__dirname, '../server/prisma/schema.prisma');
+    } else {
+      // In production, we use the unpacked node_modules and server folder
+      prismaPath = path.join(process.resourcesPath, 'app.asar.unpacked/node_modules/prisma/build/index.js');
+      schemaPath = path.join(process.resourcesPath, 'app.asar.unpacked/server/prisma/schema.prisma');
+    }
+
+    console.log('[MIGRATION] Schema Path:', schemaPath);
 
     const command = isDev
       ? `npx prisma migrate deploy --schema "${schemaPath}"`
       : `node "${prismaPath}" migrate deploy --schema "${schemaPath}"`;
 
-    console.log(`Executing migration: ${command}`);
+    console.log(`[MIGRATION] Executing: ${command}`);
 
     // Execute migration synchronously to block server startup until DB is ready
     const output = execSync(command, {
       env: {
         ...process.env,
-        DATABASE_URL: process.env.DATABASE_URL
+        DATABASE_URL: process.env.DATABASE_URL,
+        PRISMA_CLI_QUERY_ENGINE_TYPE: 'library'
       },
       cwd: isDev ? path.join(__dirname, '../server') : path.join(process.resourcesPath, 'app.asar.unpacked/server')
     });
 
-    console.log('Migration output:', output.toString());
-    console.log('Database migrations applied successfully.');
+    console.log('[MIGRATION] Output:', output.toString());
+    console.log('[MIGRATION] Success: Database is now up to date.');
   } catch (error) {
-    console.error('FAILED to apply database migrations:', error.message);
-    if (error.stdout) console.log('Prisma Output:', error.stdout.toString());
-    if (error.stderr) console.error('Prisma Error:', error.stderr.toString());
-
-    // In production, we might want to alert the user, but for now we log and continue
-    // as some environments might have permissions issues but valid DBs.
+    console.error('[MIGRATION ERROR] Failed to apply migrations:', error.message);
+    if (error.stdout) console.log('[MIGRATION STDOUT]:', error.stdout.toString());
+    if (error.stderr) console.error('[MIGRATION STDERR]:', error.stderr.toString());
   }
+  console.log('---------------------------------------------------');
 };
 
 const createWindow = () => {
