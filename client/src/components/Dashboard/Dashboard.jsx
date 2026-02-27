@@ -149,12 +149,17 @@ const Dashboard = () => {
                 const name = item.productName || item.batch?.product?.name || 'Unknown';
                 const category = item.batch?.product?.category || 'Uncategorized';
 
-                productTotals.set(name, (productTotals.get(name) || 0) + (item.sellingPrice * qty));
+                const currentProduct = productTotals.get(name) || { amount: 0, qty: 0 };
+                productTotals.set(name, {
+                    amount: currentProduct.amount + (item.sellingPrice * qty),
+                    qty: currentProduct.qty + qty
+                });
+
                 categoryTotals.set(category, (categoryTotals.get(category) || 0) + (item.sellingPrice * qty));
             });
         });
 
-        const topProducts = [...productTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+        const topProducts = [...productTotals.entries()].sort((a, b) => b[1].amount - a[1].amount).slice(0, 5);
         const topCategories = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1]);
         const maxHourlySalesAmt = Math.max(...hourlySalesAmt, 0);
 
@@ -376,15 +381,17 @@ const Dashboard = () => {
                                 <TableHead>
                                     <TableRow>
                                         <TableCell sx={{ color: '#0ea5e9', borderBottom: '2px solid #0ea5e9', py: 0.5, px: 0 }}>Product</TableCell>
+                                        <TableCell align="right" sx={{ color: '#6b7280', borderBottom: '1px solid #d1d5db', py: 0.5, px: 0 }}>Qty</TableCell>
                                         <TableCell align="right" sx={{ color: '#6b7280', borderBottom: '1px solid #d1d5db', py: 0.5, px: 0 }}>Total</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {periodicMetrics.topProducts.map(([name, total]) => (
+                                    {periodicMetrics.topProducts.map(([name, data]) => (
                                         <TableRow key={name}>
                                             <TableCell sx={{ py: 1, px: 0, color: '#4b5563', borderBottom: '1px solid #f3f4f6' }}>{name}</TableCell>
+                                            <TableCell align="right" sx={{ py: 1, px: 0, color: '#4b5563', borderBottom: '1px solid #f3f4f6' }}>{data.qty}</TableCell>
                                             <TableCell align="right" sx={{ py: 1, px: 0, color: '#4b5563', borderBottom: '1px solid #f3f4f6' }}>
-                                                {total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                {data.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </TableCell>
                                         </TableRow>
                                     ))}
