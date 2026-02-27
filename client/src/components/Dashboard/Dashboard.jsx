@@ -16,9 +16,15 @@ import {
     TableHead,
     TableRow,
     TableContainer,
-    Button
+    Button,
+    IconButton
 } from '@mui/material';
-import { CalendarToday as CalendarIcon, Sync as SyncIcon } from '@mui/icons-material';
+import {
+    CalendarToday as CalendarIcon,
+    Sync as SyncIcon,
+    ChevronLeft as ChevronLeftIcon,
+    ChevronRight as ChevronRightIcon
+} from '@mui/icons-material';
 
 const CATEGORY_COLORS = ['#0891b2', '#0284c7', '#2563eb', '#4f46e5', '#7c3aed', '#db2777', '#ea580c', '#65a30d', '#059669'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -29,6 +35,7 @@ const Dashboard = () => {
     const [monthlyData, setMonthlyData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [tabValue, setTabValue] = useState(0);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
     const formatLocalDate = (date) => {
         const tzOffset = date.getTimezoneOffset() * 60000;
@@ -129,10 +136,9 @@ const Dashboard = () => {
         }
     };
 
-    const fetchMonthlyData = async () => {
+    const fetchMonthlyData = async (year) => {
         try {
-            const currentYear = new Date().getFullYear();
-            const res = await api.get('/api/reports/monthly', { params: { year: currentYear } });
+            const res = await api.get('/api/reports/monthly', { params: { year: year || selectedYear } });
             setMonthlyData(res.data || []);
         } catch (error) {
             console.error('Failed to load monthly sales data:', error);
@@ -142,8 +148,20 @@ const Dashboard = () => {
     useEffect(() => {
         const range = getRange("day");
         fetchPeriodicData(range.start, range.end);
-        fetchMonthlyData();
+        fetchMonthlyData(selectedYear);
     }, []);
+
+    const handlePrevYear = () => {
+        const prevYear = selectedYear - 1;
+        setSelectedYear(prevYear);
+        fetchMonthlyData(prevYear);
+    };
+
+    const handleNextYear = () => {
+        const nextYear = selectedYear + 1;
+        setSelectedYear(nextYear);
+        fetchMonthlyData(nextYear);
+    };
 
     const handleTabChange = (event) => {
         const newValue = event.target.value;
@@ -291,14 +309,24 @@ const Dashboard = () => {
                     {/* Monthly Sales Graph */}
                     <Paper elevation={0} sx={{ flex: 1, p: 2, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Box>
-                                <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600, letterSpacing: '-0.5px' }}>
-                                    Monthly Sales - {new Date().getFullYear()}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: '#9ca3af' }}>Sales data grouped by month</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box>
+                                    <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600, letterSpacing: '-0.5px' }}>
+                                        Monthly Sales - {selectedYear}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#9ca3af' }}>Sales data grouped by month</Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', ml: 1 }}>
+                                    <IconButton size="small" onClick={handlePrevYear} sx={{ color: '#64748b' }}>
+                                        <ChevronLeftIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton size="small" onClick={handleNextYear} sx={{ color: '#64748b' }}>
+                                        <ChevronRightIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
                             </Box>
                             <Box sx={{ display: 'flex', gap: 1, color: '#6b7280' }}>
-                                <SyncIcon fontSize="small" sx={{ cursor: 'pointer' }} onClick={fetchMonthlyData} />
+                                <SyncIcon fontSize="small" sx={{ cursor: 'pointer' }} onClick={() => fetchMonthlyData(selectedYear)} />
                             </Box>
                         </Box>
 
