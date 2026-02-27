@@ -37,8 +37,22 @@ const deleteExpense = async (id) => {
     });
 };
 
+const updateExpense = async (id, data) => {
+    const { amount, category, description, date } = data;
+    return await prisma.expense.update({
+        where: { id: parseInt(id) },
+        data: {
+            amount: parseFloat(amount),
+            category,
+            description,
+            date: date ? new Date(date) : undefined
+        }
+    });
+};
+
 module.exports = {
     createExpense,
     getExpenses,
-    deleteExpense
+    deleteExpense,
+    updateExpense
 };

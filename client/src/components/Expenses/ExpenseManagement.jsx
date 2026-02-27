@@ -31,7 +31,8 @@ import {
     Add as AddIcon,
     Delete as DeleteIcon,
     Receipt as ReceiptIcon,
-    LocalShipping as ShippingIcon
+    LocalShipping as ShippingIcon,
+    Edit as EditIcon
 } from '@mui/icons-material';
 import api from '../../api';
 
@@ -58,13 +59,15 @@ const ExpenseManagement = () => {
 
     // Form states
     const [expenseForm, setExpenseForm] = useState({
+        id: null,
         amount: '',
-        category: 'Misc',
+        category: '',
         description: '',
         date: getLocalTodayString()
     });
 
     const [purchaseForm, setPurchaseForm] = useState({
+        id: null,
         vendor: '',
         totalAmount: '',
         date: getLocalTodayString(),
@@ -146,22 +149,50 @@ const ExpenseManagement = () => {
     };
 
     const handleOpenExpenseDialog = () => {
-        setExpenseForm({ amount: '', category: 'Misc', description: '', date: getLocalTodayString() });
+        setExpenseForm({ id: null, amount: '', category: '', description: '', date: getLocalTodayString() });
         setExpenseDialogOpen(true);
     };
 
     const handleOpenPurchaseDialog = () => {
-        setPurchaseForm({ vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', items: [] });
+        setPurchaseForm({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', items: [] });
         setPurchaseDialogOpen(true);
     };
 
-    const handleCreateExpense = async () => {
+    const handleEditExpense = (expense) => {
+        setExpenseForm({
+            id: expense.id,
+            amount: expense.amount,
+            category: expense.category,
+            description: expense.description || '',
+            date: new Date(expense.date).toISOString().split('T')[0]
+        });
+        setExpenseDialogOpen(true);
+    };
+
+    const handleEditPurchase = (purchase) => {
+        setPurchaseForm({
+            id: purchase.id,
+            vendor: purchase.vendor || '',
+            totalAmount: purchase.totalAmount,
+            note: purchase.note || '',
+            date: new Date(purchase.date).toISOString().split('T')[0],
+            items: purchase.items || []
+        });
+        setPurchaseDialogOpen(true);
+    };
+
+    const handleCreateExpense = async (e) => {
+        if (e) e.preventDefault();
         try {
-            await api.post('/api/expenses', expenseForm);
+            if (expenseForm.id) {
+                await api.put(`/api/expenses/${expenseForm.id}`, expenseForm);
+            } else {
+                await api.post('/api/expenses', expenseForm);
+            }
             setExpenseDialogOpen(false);
             fetchData();
         } catch (err) {
-            setError('Failed to create expense');
+            setError('Failed to save expense');
         }
     };
 
@@ -176,7 +207,8 @@ const ExpenseManagement = () => {
         }
     };
 
-    const handleCreatePurchase = async () => {
+    const handleCreatePurchase = async (e) => {
+        if (e) e.preventDefault();
         try {
             const submissionData = {
                 ...purchaseForm,
@@ -184,12 +216,27 @@ const ExpenseManagement = () => {
                 items: (purchaseForm.items || []).filter(item => item.productId && item.quantity)
             };
 
-            await api.post('/api/purchases', submissionData);
+            if (purchaseForm.id) {
+                await api.put(`/api/purchases/${purchaseForm.id}`, submissionData);
+            } else {
+                await api.post('/api/purchases', submissionData);
+            }
             setPurchaseDialogOpen(false);
             fetchData();
         } catch (err) {
-            console.error('Purchase creation error:', err);
-            setError('Failed to create purchase. Please check your inputs.');
+            console.error('Purchase saving error:', err);
+            setError('Failed to save purchase. Please check your inputs.');
+        }
+    };
+
+    const handleDeletePurchase = async (id) => {
+        if (window.confirm('Are you sure you want to delete this purchase?')) {
+            try {
+                await api.delete(`/api/purchases/${id}`);
+                fetchData();
+            } catch (err) {
+                setError('Failed to delete purchase');
+            }
         }
     };
 
@@ -284,6 +331,9 @@ const ExpenseManagement = () => {
                                                 <TableCell>{row.description}</TableCell>
                                                 <TableCell align="right">₹{row.amount.toLocaleString()}</TableCell>
                                                 <TableCell align="right">
+                                                    <IconButton size="small" color="primary" onClick={() => handleEditExpense(row)}>
+                                                        <EditIcon fontSize="small" />
+                                                    </IconButton>
                                                     <IconButton size="small" color="error" onClick={() => handleDeleteExpense(row.id)}>
                                                         <DeleteIcon fontSize="small" />
                                                     </IconButton>
@@ -333,6 +383,7 @@ const ExpenseManagement = () => {
                                             <TableCell>Vendor</TableCell>
                                             <TableCell>Note</TableCell>
                                             <TableCell align="right">Total Amount</TableCell>
+                                            <TableCell align="right">Actions</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -342,11 +393,19 @@ const ExpenseManagement = () => {
                                                 <TableCell>{row.vendor || 'N/A'}</TableCell>
                                                 <TableCell>{row.note}</TableCell>
                                                 <TableCell align="right">₹{row.totalAmount.toLocaleString()}</TableCell>
+                                                <TableCell align="right">
+                                                    <IconButton size="small" color="primary" onClick={() => handleEditPurchase(row)}>
+                                                        <EditIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton size="small" color="error" onClick={() => handleDeletePurchase(row.id)}>
+                                                        <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                         {purchases.length === 0 && (
                                             <TableRow>
-                                                <TableCell colSpan={4} align="center">No purchases recorded for this period</TableCell>
+                                                <TableCell colSpan={5} align="center">No purchases recorded for this period</TableCell>
                                             </TableRow>
                                         )}
                                         {/* Highlighted Total Row */}
@@ -374,110 +433,115 @@ const ExpenseManagement = () => {
 
             {/* Expense Form Dialog */}
             <Dialog open={expenseDialogOpen} onClose={() => setExpenseDialogOpen(false)} fullWidth maxWidth="sm">
-                <DialogTitle>Add New Expense</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mt: 2 }}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Amount"
-                                    type="number"
-                                    value={expenseForm.amount}
-                                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Category</InputLabel>
-                                    <Select
+                <form onSubmit={handleCreateExpense}>
+                    <DialogTitle>{expenseForm.id ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ mt: 2 }}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        required
+                                        label="Amount"
+                                        type="number"
+                                        value={expenseForm.amount}
+                                        onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        required
+                                        label="Expenses for?"
                                         value={expenseForm.category}
-                                        label="Category"
                                         onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                                    >
-                                        {categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                                    </Select>
-                                </FormControl>
+                                        placeholder="Enter category details..."
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        required
+                                        label="Date"
+                                        type="date"
+                                        value={expenseForm.date}
+                                        onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Description"
+                                        multiline
+                                        rows={3}
+                                        value={expenseForm.description}
+                                        onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                                    />
+                                </Grid>
                             </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Date"
-                                    type="date"
-                                    value={expenseForm.date}
-                                    onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                                    InputLabelProps={{ shrink: true }}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Description"
-                                    multiline
-                                    rows={3}
-                                    value={expenseForm.description}
-                                    onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                                />
-                            </Grid>
-                        </Grid>
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setExpenseDialogOpen(false)}>Cancel</Button>
-                    <Button variant="contained" onClick={handleCreateExpense} disabled={!expenseForm.amount}>Save Expense</Button>
-                </DialogActions>
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setExpenseDialogOpen(false)}>Cancel</Button>
+                        <Button variant="contained" type="submit" disabled={!expenseForm.amount || !expenseForm.category || !expenseForm.date}>Successful</Button>
+                    </DialogActions>
+                </form>
             </Dialog>
 
             {/* Purchase Form Dialog */}
             <Dialog open={purchaseDialogOpen} onClose={() => setPurchaseDialogOpen(false)} fullWidth maxWidth="sm">
-                <DialogTitle>Log Inventory Purchase</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mt: 2 }}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Vendor Name"
-                                    value={purchaseForm.vendor}
-                                    onChange={(e) => setPurchaseForm({ ...purchaseForm, vendor: e.target.value })}
-                                />
+                <form onSubmit={handleCreatePurchase}>
+                    <DialogTitle>{purchaseForm.id ? 'Edit Purchase' : 'Log Inventory Purchase'}</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ mt: 2 }}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Vendor Name"
+                                        value={purchaseForm.vendor}
+                                        onChange={(e) => setPurchaseForm({ ...purchaseForm, vendor: e.target.value })}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        required
+                                        label="Total Amount"
+                                        type="number"
+                                        value={purchaseForm.totalAmount}
+                                        onChange={(e) => setPurchaseForm({ ...purchaseForm, totalAmount: e.target.value })}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Date"
+                                        type="date"
+                                        value={purchaseForm.date}
+                                        onChange={(e) => setPurchaseForm({ ...purchaseForm, date: e.target.value })}
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Note"
+                                        multiline
+                                        rows={3}
+                                        value={purchaseForm.note}
+                                        onChange={(e) => setPurchaseForm({ ...purchaseForm, note: e.target.value })}
+                                    />
+                                </Grid>
                             </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Total Amount"
-                                    type="number"
-                                    value={purchaseForm.totalAmount}
-                                    onChange={(e) => setPurchaseForm({ ...purchaseForm, totalAmount: e.target.value })}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Date"
-                                    type="date"
-                                    value={purchaseForm.date}
-                                    onChange={(e) => setPurchaseForm({ ...purchaseForm, date: e.target.value })}
-                                    InputLabelProps={{ shrink: true }}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Note"
-                                    multiline
-                                    rows={2}
-                                    value={purchaseForm.note}
-                                    onChange={(e) => setPurchaseForm({ ...purchaseForm, note: e.target.value })}
-                                />
-                            </Grid>
-                        </Grid>
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setPurchaseDialogOpen(false)}>Cancel</Button>
-                    <Button variant="contained" onClick={handleCreatePurchase} disabled={!purchaseForm.totalAmount}>Log Purchase</Button>
-                </DialogActions>
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setPurchaseDialogOpen(false)}>Cancel</Button>
+                        <Button variant="contained" type="submit" disabled={!purchaseForm.totalAmount}>Successful</Button>
+                    </DialogActions>
+                </form>
             </Dialog>
         </Box>
     );

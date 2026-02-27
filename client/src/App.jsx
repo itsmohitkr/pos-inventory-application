@@ -448,6 +448,8 @@ function App() {
   const [uiZoom, setUiZoom] = useState(() => Number(localStorage.getItem('posUiZoom')) || 100);
   const [monochromeMode, setMonochromeMode] = useState(() => localStorage.getItem('posMonochromeMode') === 'true');
   const [updateNotification, setUpdateNotification] = useState({ open: false, message: '', severity: 'info', showAction: false });
+  const [printers, setPrinters] = useState([]);
+  const [defaultPrinter, setDefaultPrinter] = useState(null);
 
   const [shopMetadata, setShopMetadata] = useState({
     shopMobile: '',
@@ -563,6 +565,19 @@ function App() {
     window.electron.ipcRenderer.on('update-downloaded', handleUpdateDownloaded);
     window.electron.ipcRenderer.on('update-error', handleUpdateError);
     window.electron.ipcRenderer.on('update-not-available', onNotAvailable);
+
+    // Fetch system printers
+    const fetchPrinters = async () => {
+      try {
+        const printerList = await window.electron.ipcRenderer.invoke('get-printers');
+        setPrinters(printerList);
+        const defaultP = printerList.find(p => p.isDefault);
+        if (defaultP) setDefaultPrinter(defaultP.name);
+      } catch (err) {
+        console.error('Failed to get printers:', err);
+      }
+    };
+    fetchPrinters();
 
     return () => {
       window.electron.ipcRenderer.off('update-available', handleUpdateAvailable);
@@ -779,7 +794,7 @@ function App() {
         <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
           <Routes>
             <Route path="/" element={<Navigate to="/pos" replace />} />
-            <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><POS receiptSettings={receiptSettings} shopMetadata={shopMetadata} /></Box>} />
+            <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><POS receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} /></Box>} />
             <Route path="/overview" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><Overview shopName={shopName} userRole={currentUser.role} /></Box>} />
             {canAccessSaleHistory && (
               <Route
@@ -792,13 +807,13 @@ function App() {
                       overflow: 'hidden'
                     }}
                   >
-                    <SaleHistory receiptSettings={receiptSettings} shopMetadata={shopMetadata} />
+                    <SaleHistory receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} />
                   </Box>
                 }
               />
             )}
             {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Inventory /></Box>} />}
-            {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting receiptSettings={receiptSettings} shopMetadata={shopMetadata} /></Box>} />}
+            {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} /></Box>} />}
             {canAccessExpenses && <Route path="/expenses" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><ExpenseManagement /></Box>} />}
             {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Refund /></Box>} />}
             {canAccessPromotions && <Route path="/promotions" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><PromotionManagement /></Box>} />}

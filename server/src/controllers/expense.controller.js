@@ -27,8 +27,18 @@ const deleteExpense = async (req, res) => {
     }
 };
 
+const updateExpense = async (req, res) => {
+    try {
+        const expense = await expenseService.updateExpense(req.params.id, req.body);
+        res.json(expense);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     createExpense,
     getExpenses,
-    deleteExpense
+    deleteExpense,
+    updateExpense
 };

@@ -170,13 +170,24 @@ const ReceiptPreviewDialog = ({
                                 <Divider sx={{ my: 1 }} />
 
                                 <Typography variant="caption" fontWeight="bold" color="primary">PRINTER SETTINGS</Typography>
-                                <TextField
-                                    label="Printer Type (e.g. Thermal)"
-                                    size="small"
-                                    fullWidth
-                                    value={receiptSettings.printerType || ''}
-                                    onChange={(e) => onTextSettingChange('printerType', e.target.value)}
-                                />
+                                <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+                                    <InputLabel>Printer Selection</InputLabel>
+                                    <Select
+                                        value={receiptSettings.printerType || ''}
+                                        label="Printer Selection"
+                                        onChange={(e) => onTextSettingChange('printerType', e.target.value)}
+                                        displayEmpty
+                                    >
+                                        <MenuItem value="" disabled>
+                                            {printers && printers.length > 0 ? 'Select a printer...' : 'No printers found'}
+                                        </MenuItem>
+                                        {printers && printers.map((printer, index) => (
+                                            <MenuItem key={index} value={printer.name}>
+                                                {printer.name} {printer.isDefault ? '(Default)' : ''}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
 
                                 <FormControl fullWidth size="small" sx={{ mt: 1 }}>
                                     <InputLabel>Paper Size</InputLabel>
@@ -320,7 +331,8 @@ const ReceiptPreviewDialog = ({
                         startIcon={<PrintIcon />}
                         onClick={() => {
                             if (receiptSettings.directPrint && window.electron) {
-                                const printer = defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+                                // Use the specifically selected printerType, fallback to defaultPrinter, then first printer
+                                const printer = receiptSettings.printerType || defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
                                 window.electron.ipcRenderer.send('print-manual', { printerName: printer });
                             } else {
                                 window.print();

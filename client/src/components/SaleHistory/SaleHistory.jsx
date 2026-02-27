@@ -32,7 +32,7 @@ import Receipt from "../POS/Receipt";
 import RefundDialog from "../Refund/RefundDialog";
 import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
 
-const SaleHistory = ({ receiptSettings, shopMetadata }) => {
+const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrinter = null }) => {
   const [sales, setSales] = useState([]);
   const [looseSales, setLooseSales] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,8 +45,6 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
   const [autoPrint, setAutoPrint] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [refundSale, setRefundSale] = useState(null);
-  const [printers, setPrinters] = useState([]);
-  const [defaultPrinter, setDefaultPrinter] = useState(null);
 
   const timeframes = [
     { label: "Today", getValue: () => getRange("day") },
@@ -126,7 +124,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
     if (autoPrint && selectedSale) {
       const timer = setTimeout(() => {
         if (receiptSettings?.directPrint && window.electron) {
-          const printer = defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+          const printer = receiptSettings?.printerType || defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
           window.electron.ipcRenderer.send('print-manual', { printerName: printer });
         } else {
           window.print();
@@ -135,25 +133,9 @@ const SaleHistory = ({ receiptSettings, shopMetadata }) => {
       }, 500); // 500ms to ensure DOM is ready for hidden container
       return () => clearTimeout(timer);
     }
-  }, [autoPrint, selectedSale, receiptSettings?.directPrint, printers, defaultPrinter]);
+  }, [autoPrint, selectedSale, receiptSettings, printers, defaultPrinter]);
 
-  // Fetch printers on mount for direct printing
-  useEffect(() => {
-    const fetchPrinters = async () => {
-      if (window.electron) {
-        try {
-          // Use ipcRenderer.invoke as exposed in preload.js
-          const printerList = await window.electron.ipcRenderer.invoke('get-printers');
-          setPrinters(printerList || []);
-          const def = printerList?.find(p => p.isDefault);
-          if (def) setDefaultPrinter(def.name);
-        } catch (err) {
-          console.error('Failed to fetch printers:', err);
-        }
-      }
-    };
-    fetchPrinters();
-  }, []);
+
 
   useEffect(() => {
     const handleKeyDown = (e) => {

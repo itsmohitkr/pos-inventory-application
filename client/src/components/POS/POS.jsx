@@ -87,7 +87,7 @@ const getStoredReceiptSettings = () => {
     }
 };
 
-const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetadata }) => {
+const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetadata, printers = [], defaultPrinter = null }) => {
     const navigate = useNavigate();
     const { dialogState, showError, showWarning, showConfirm, closeDialog } = useCustomDialog();
     const [products, setProducts] = useState([]);
@@ -550,7 +550,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             if (receiptSettings.directPrint) {
                 // Short timeout to ensure the DOM is updated for the hidden print container
                 setTimeout(() => {
-                    const printer = defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+                    const printer = receiptSettings.printerType || defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
                     if (window.electron) {
                         window.electron.ipcRenderer.send('print-manual', { printerName: printer });
                     } else {
@@ -590,7 +590,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         if (lastSale) {
             if (receiptSettings.directPrint) {
                 setTimeout(() => {
-                    const printer = defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+                    const printer = receiptSettings.printerType || defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
                     if (window.electron) {
                         window.electron.ipcRenderer.send('print-manual', { printerName: printer });
                     } else {

@@ -242,6 +242,9 @@ const wipeDatabase = async (req, res) => {
             await deleteTable('stockMovement');
             await deleteTable('batch');
             await deleteTable('product');
+            await deleteTable('purchaseItem');
+            await deleteTable('purchase');
+            await deleteTable('expense');
 
             // Categories (self-relation)
             try {
