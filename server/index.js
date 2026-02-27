@@ -60,12 +60,20 @@ const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// IPC Helper for Splash Screen
+const sendSplashMsg = (msg) => {
+    if (process.send) {
+        process.send({ type: 'splash-status', message: msg });
+    }
+};
+
 const util = require('util');
 const execAsync = util.promisify(require('child_process').exec);
 
 // Auto-run Prisma migrations on startup
 async function runPrismaMigrations() {
     console.error('[BOOT MIGRATION] Running automated Prisma migrations...');
+    sendSplashMsg('Applying database schemas...');
 
     try {
         let prismaCliPath;
@@ -138,6 +146,7 @@ async function runPrismaMigrations() {
 // Auto-seed database on first run
 async function checkAndSeed() {
     try {
+        sendSplashMsg('Checking Local Database Status...');
         // Run migrations first
         await runPrismaMigrations();
 
@@ -194,6 +203,7 @@ async function checkAndSeed() {
 async function startServer() {
     try {
         console.error('[BOOT] Starting checkAndSeed with timeout...');
+        sendSplashMsg('Starting core database engine...');
         // Set a timeout for DB check to prevent boot hangs
         const bootstrapPromise = checkAndSeed();
         const timeoutPromise = new Promise((_, reject) =>
@@ -213,6 +223,7 @@ async function startServer() {
 
     app.listen(PORT, () => {
         console.error(`[BOOT SUCCESS] Server running on port ${PORT}`);
+        sendSplashMsg('Starting UI Interface...');
     });
 }
 

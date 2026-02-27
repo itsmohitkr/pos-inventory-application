@@ -204,14 +204,41 @@ console.log('DATABASE_URL:', process.env.DATABASE_URL);
 console.log('Prisma Engine Path set to:', process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default');
 console.log('---------------------------------------------------');
 
+let splashWindow;
+
 const createWindow = () => {
   // Use shop_logo.jpeg for app icon
   const iconPath = path.join(__dirname, '../assets/shop_logo.jpeg');
+
+  // 1. Create Splash Window
+  splashWindow = new BrowserWindow({
+    width: 500,
+    height: 400,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false // Needed for simple IPC in splash
+    }
+  });
+
+  const splashUrl = url.format({
+    pathname: path.join(__dirname, 'splash/splash.html'),
+    protocol: 'file:',
+    slashes: true
+  });
+
+  splashWindow.loadURL(splashUrl);
+
+  // 2. Create hidden Main Window
   const windowConfig = {
     width: 1400,
     height: 900,
     minWidth: 1024,
     minHeight: 768,
+    show: false, // Don't show until ready
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -220,24 +247,11 @@ const createWindow = () => {
     }
   };
 
-  // Only add icon if it exists
   if (fs.existsSync(iconPath)) {
     windowConfig.icon = iconPath;
   }
 
   mainWindow = new BrowserWindow(windowConfig);
-
-  const startUrl = isDev
-    ? 'http://localhost:5173'
-    : url.format({
-      pathname: path.resolve(__dirname, '../client/dist/index.html'),
-      protocol: 'file:',
-      slashes: true
-    });
-
-  mainWindow.loadURL(startUrl);
-
-  // Set window title
   mainWindow.setTitle('Bachat Bazaar - POS Application');
 
   if (isDev) {
@@ -247,6 +261,44 @@ const createWindow = () => {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // 3. Start Server then load Main Window
+  const startUrl = isDev
+    ? 'http://localhost:5173'
+    : url.format({
+      pathname: path.resolve(__dirname, '../client/dist/index.html'),
+      protocol: 'file:',
+      slashes: true
+    });
+
+  mainWindow.once('ready-to-show', () => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close();
+    }
+    mainWindow.show();
+    mainWindow.focus();
+  });
+
+  // 4. Intercept simulated IPC for Splash Screen
+  process.send = (msg) => {
+    if (msg && msg.type === 'splash-status' && splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.webContents.send('splash-status', msg.message);
+    }
+  };
+
+  startServer()
+    .then(() => {
+      console.log("Server started, loading frontend...");
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.webContents.send('splash-status', 'Loading User Interface...');
+      }
+      mainWindow.loadURL(startUrl);
+    })
+    .catch(err => {
+      console.error('Failed to start server:', err);
+      dialog.showErrorBox('Server Error', `Background server failed to start.\n\nDetails: ${err.message}`);
+      if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+    });
 };
 
 const startServer = () => {
@@ -442,13 +494,6 @@ ${(() => {
     Menu.setApplicationMenu(menu);
 
     createWindow();
-    startServer().catch(err => {
-      console.error('Failed to start server:', err);
-      dialog.showErrorBox(
-        'Server Error',
-        `Background server failed to start.\n\nDetails: ${err.message}`
-      );
-    });
   } catch (error) {
     console.error('Failed to start application:', error);
     const message = error.message || error.toString();
