@@ -29,9 +29,17 @@ const Dashboard = () => {
     const [monthlyData, setMonthlyData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [tabValue, setTabValue] = useState(0);
+
+    const formatLocalDate = (date) => {
+        const tzOffset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - tzOffset).toISOString().split('T')[0];
+    };
+
+    const localToday = formatLocalDate(new Date());
+
     const [dateRange, setDateRange] = useState({
-        startDate: new Date().toISOString().split("T")[0],
-        endDate: new Date().toISOString().split("T")[0],
+        startDate: localToday,
+        endDate: localToday,
     });
 
     const timeframes = [
@@ -99,7 +107,12 @@ const Dashboard = () => {
             default:
                 break;
         }
-        return { start: start.toISOString(), end: end.toISOString() };
+        return {
+            start: start.toISOString(),
+            end: end.toISOString(),
+            localStart: formatLocalDate(start),
+            localEnd: formatLocalDate(end)
+        };
     };
 
     const fetchPeriodicData = async (start, end) => {
@@ -138,8 +151,8 @@ const Dashboard = () => {
         if (timeframes[newValue].label !== "Custom") {
             const range = timeframes[newValue].getValue();
             setDateRange({
-                startDate: range.start.split('T')[0],
-                endDate: range.end.split('T')[0]
+                startDate: range.localStart,
+                endDate: range.localEnd
             })
             fetchPeriodicData(range.start, range.end);
         }
