@@ -82,7 +82,7 @@ const DEFAULT_RECEIPT_SETTINGS = {
   customHeader: '123 Business Street, City',
   customFooter: 'Thank You! Visit Again',
   directPrint: false,
-  printerType: 'Thermal Printer',
+  printerType: '',
   paperSize: '80mm'
 };
 
@@ -947,6 +947,8 @@ function App() {
           showShopNameField={false}
           saveLabel="Save settings"
           shopMetadata={shopMetadata}
+          printers={printers}
+          defaultPrinter={defaultPrinter}
         />
 
         <UserManagementDialog

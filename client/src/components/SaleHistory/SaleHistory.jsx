@@ -124,7 +124,9 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
     if (autoPrint && selectedSale) {
       const timer = setTimeout(() => {
         if (receiptSettings?.directPrint && window.electron) {
-          const printer = receiptSettings?.printerType || defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+          const rawPrinter = receiptSettings?.printerType;
+          const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
+          const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
           window.electron.ipcRenderer.send('print-manual', { printerName: printer });
         } else {
           window.print();

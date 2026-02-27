@@ -56,7 +56,7 @@ const DEFAULT_RECEIPT_SETTINGS = {
     customFooter: 'Thank You! Visit Again',
     customFooter2: '',
     directPrint: false,
-    printerType: 'Thermal Printer',
+    printerType: '',
     paperSize: '80mm',
     marginTop: 0,
     marginBottom: 0,
@@ -549,7 +549,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             if (receiptSettings.directPrint) {
                 // Short timeout to ensure the DOM is updated for the hidden print container
                 setTimeout(() => {
-                    const printer = receiptSettings.printerType || defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+                    const rawPrinter = receiptSettings.printerType;
+                    const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
+                    const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
+
                     if (window.electron) {
                         window.electron.ipcRenderer.send('print-manual', { printerName: printer });
                     } else {
@@ -589,7 +592,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         if (lastSale) {
             if (receiptSettings.directPrint) {
                 setTimeout(() => {
-                    const printer = receiptSettings.printerType || defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+                    const rawPrinter = receiptSettings.printerType;
+                    const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
+                    const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
+
                     if (window.electron) {
                         window.electron.ipcRenderer.send('print-manual', { printerName: printer });
                     } else {

@@ -194,7 +194,7 @@ const ReceiptPreviewDialog = ({
                                 <FormControl fullWidth size="small" sx={{ mt: 1 }}>
                                     <InputLabel>Printer Selection</InputLabel>
                                     <Select
-                                        value={receiptSettings.printerType || ''}
+                                        value={printers?.some(p => p.name === receiptSettings.printerType) ? receiptSettings.printerType : ''}
                                         label="Printer Selection"
                                         onChange={(e) => onTextSettingChange('printerType', e.target.value)}
                                         displayEmpty
@@ -353,7 +353,9 @@ const ReceiptPreviewDialog = ({
                         onClick={() => {
                             if (receiptSettings.directPrint && window.electron) {
                                 // Use the specifically selected printerType, fallback to defaultPrinter, then first printer
-                                const printer = receiptSettings.printerType || defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name;
+                                const rawPrinter = receiptSettings.printerType;
+                                const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
+                                const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
                                 window.electron.ipcRenderer.send('print-manual', { printerName: printer });
                             } else {
                                 window.print();
