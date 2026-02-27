@@ -137,6 +137,7 @@ const Dashboard = () => {
         const productTotals = new Map();
         const categoryTotals = new Map();
         let totalCustomers = sales.length; // Approximate distinct walk-ins
+        let totalCostAmount = 0;
 
         const hourlySalesAmt = Array.from({ length: 24 }, () => 0);
 
@@ -152,6 +153,7 @@ const Dashboard = () => {
                 productTotals.set(name, (productTotals.get(name) || 0) + (item.sellingPrice * qty));
 
                 categoryTotals.set(category, (categoryTotals.get(category) || 0) + (item.sellingPrice * qty));
+                totalCostAmount += (item.costPrice || 0) * qty;
             });
         });
 
@@ -159,13 +161,19 @@ const Dashboard = () => {
         const topCategories = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1]);
         const maxHourlySalesAmt = Math.max(...hourlySalesAmt, 0);
 
+        const avgSaleValue = totalCustomers > 0 ? totalSalesAmount / totalCustomers : 0;
+        const netProfitAmount = totalSalesAmount - totalCostAmount;
+        const netProfitMargin = totalSalesAmount > 0 ? (netProfitAmount / totalSalesAmount) * 100 : 0;
+
         return {
             totalSalesAmount,
             topProducts,
             topCategories,
             hourlySalesAmt,
             maxHourlySalesAmt,
-            totalCustomers
+            totalCustomers,
+            avgSaleValue,
+            netProfitMargin
         };
     }, [report]);
 
@@ -235,17 +243,17 @@ const Dashboard = () => {
     };
 
     return (
-        <Box sx={{ bgcolor: "#f3f4f6", height: "100%", overflowY: "auto", p: 2 }}>
+        <Box sx={{ bgcolor: "#f8fafc", height: "100%", overflowY: "auto", p: 2 }}>
             <Box sx={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
 
                 {/* TOP ROW: Monthly Sales & Total Year Sales */}
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
 
                     {/* Monthly Sales Graph */}
-                    <Paper elevation={0} sx={{ flex: 1, p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                    <Paper elevation={0} sx={{ flex: 1, p: 2, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                             <Box>
-                                <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300, letterSpacing: '-0.5px' }}>
+                                <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600, letterSpacing: '-0.5px' }}>
                                     Monthly Sales - {new Date().getFullYear()}
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: '#9ca3af' }}>Sales data grouped by month</Typography>
@@ -283,8 +291,10 @@ const Dashboard = () => {
                                                 sx={{
                                                     width: '100%',
                                                     height: `${hPct}%`,
-                                                    bgcolor: '#06b6d4',
-                                                    borderRight: '1px solid #fff'
+                                                    bgcolor: '#0b1d39',
+                                                    borderRight: '1px solid #fff',
+                                                    borderTopLeftRadius: 4,
+                                                    borderTopRightRadius: 4,
                                                 }}
                                             />
                                         </Box>
@@ -303,16 +313,16 @@ const Dashboard = () => {
                     </Paper>
 
                     {/* Total Sales (Year) */}
-                    <Paper elevation={0} sx={{ width: '300px', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="h6" sx={{ color: '#6b7280', fontWeight: 400 }}>Total Sales</Typography>
-                        <Typography variant="h2" sx={{ fontWeight: 800, color: '#374151', mt: 0, letterSpacing: '-1px' }}>
+                    <Paper elevation={0} sx={{ width: '300px', p: 3, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', bgcolor: '#0b1d39', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
+                        <Typography variant="h6" sx={{ color: '#94a3b8', fontWeight: 500 }}>Total Sales</Typography>
+                        <Typography variant="h2" sx={{ fontWeight: 800, color: '#f8fafc', mt: 0, letterSpacing: '-1px' }}>
                             {formatShortNum(yearMetrics.totalYearlySales)}
                         </Typography>
 
-                        <Box sx={{ mt: 'auto', pt: 2 }}>
-                            <Typography variant="body2" sx={{ color: '#6b7280' }}>Top performing month:</Typography>
-                            <Typography variant="subtitle2" sx={{ color: '#6b7280', fontWeight: 600 }}>{yearMetrics.topMonthName}</Typography>
-                            <Typography variant="h6" sx={{ color: '#4b5563', fontWeight: 600 }}>{yearMetrics.topMonthVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+                        <Box sx={{ mt: 'auto', pt: 2, borderTop: '1px solid #1e293b' }}>
+                            <Typography variant="body2" sx={{ color: '#94a3b8' }}>Top performing month:</Typography>
+                            <Typography variant="subtitle2" sx={{ color: '#e2e8f0', fontWeight: 600 }}>{yearMetrics.topMonthName}</Typography>
+                            <Typography variant="h6" sx={{ color: '#38bdf8', fontWeight: 600 }}>{yearMetrics.topMonthVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
                         </Box>
                     </Paper>
 
@@ -320,18 +330,18 @@ const Dashboard = () => {
 
                 {/* PERIODIC REPORTS HEADER */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                    <Typography variant="h6" sx={{ color: '#6b7280', fontWeight: 400 }}>
+                    <Typography variant="h6" sx={{ color: '#0b1d39', fontWeight: 600 }}>
                         Periodic Reports ( {formatDateDisplay(dateRange.startDate)} - {formatDateDisplay(dateRange.endDate)} )
                     </Typography>
-                    <CalendarIcon sx={{ color: '#374151', fontSize: '1.2rem' }} />
-                    <Box sx={{ flex: 1, height: '1px', bgcolor: '#d1d5db', ml: 2 }} />
+                    <CalendarIcon sx={{ color: '#0b1d39', fontSize: '1.2rem' }} />
+                    <Box sx={{ flex: 1, height: '1px', bgcolor: '#e2e8f0', ml: 2 }} />
 
                     <Stack direction="row" spacing={1} alignItems="center">
                         <FormControl size="small" sx={{ minWidth: 120 }}>
                             <Select
                                 value={tabValue}
                                 onChange={handleTabChange}
-                                sx={{ bgcolor: '#fff', borderRadius: 0, height: 32, fontSize: '0.85rem' }}
+                                sx={{ bgcolor: '#fff', borderRadius: 1, height: 32, fontSize: '0.85rem' }}
                             >
                                 {timeframes.map((tf, idx) => (
                                     <MenuItem key={idx} value={idx}>{tf.label}</MenuItem>
@@ -346,16 +356,16 @@ const Dashboard = () => {
                                     size="small"
                                     value={dateRange.startDate}
                                     onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-                                    sx={{ bgcolor: '#fff', '& .MuiInputBase-root': { height: 32, fontSize: '0.85rem', borderRadius: 0 } }}
+                                    sx={{ bgcolor: '#fff', '& .MuiInputBase-root': { height: 32, fontSize: '0.85rem', borderRadius: 1 } }}
                                 />
                                 <TextField
                                     type="date"
                                     size="small"
                                     value={dateRange.endDate}
                                     onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-                                    sx={{ bgcolor: '#fff', '& .MuiInputBase-root': { height: 32, fontSize: '0.85rem', borderRadius: 0 } }}
+                                    sx={{ bgcolor: '#fff', '& .MuiInputBase-root': { height: 32, fontSize: '0.85rem', borderRadius: 1 } }}
                                 />
-                                <Button variant="contained" onClick={handleApplyCustomRange} sx={{ height: 32, borderRadius: 0, bgcolor: '#374151', '&:hover': { bgcolor: '#1f2937' }, boxShadow: 'none' }}>
+                                <Button variant="contained" onClick={handleApplyCustomRange} sx={{ height: 32, borderRadius: 1, bgcolor: '#0b1d39', '&:hover': { bgcolor: '#1e3a8a' }, boxShadow: 'none' }}>
                                     GO
                                 </Button>
                             </>
@@ -367,17 +377,17 @@ const Dashboard = () => {
                 <Box sx={{ display: 'flex', gap: 2, height: '300px' }}>
 
                     {/* Top Products */}
-                    <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                    <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300 }}>Top Products</Typography>
+                            <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600 }}>Top Products</Typography>
                         </Box>
 
                         <TableContainer sx={{ flex: 1 }}>
                             <Table size="small">
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell sx={{ color: '#0ea5e9', borderBottom: '2px solid #0ea5e9', py: 0.5, px: 0 }}>Product</TableCell>
-                                        <TableCell align="right" sx={{ color: '#6b7280', borderBottom: '1px solid #d1d5db', py: 0.5, px: 0 }}>Total</TableCell>
+                                        <TableCell sx={{ color: '#0b1d39', borderBottom: '2px solid #0b1d39', py: 0.5, px: 0 }}>Product</TableCell>
+                                        <TableCell align="right" sx={{ color: '#64748b', borderBottom: '1px solid #e2e8f0', py: 0.5, px: 0 }}>Total</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -395,10 +405,10 @@ const Dashboard = () => {
                     </Paper>
 
                     {/* Hourly Sales */}
-                    <Paper elevation={0} sx={{ flex: '1 1 40%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                    <Paper elevation={0} sx={{ flex: '1 1 40%', p: 2, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                            <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300 }}>Hourly Sales</Typography>
-                            <Typography variant="caption" sx={{ color: '#4b5563' }}>Amount ▼</Typography>
+                            <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600 }}>Hourly Sales</Typography>
+                            <Typography variant="caption" sx={{ color: '#64748b' }}>Amount ▼</Typography>
                         </Box>
 
                         <Box sx={{ flex: 1, display: 'flex', alignItems: 'flex-end', position: 'relative' }}>
@@ -428,18 +438,18 @@ const Dashboard = () => {
                                                     {Math.round(amt)}
                                                 </Typography>
                                             )}
-                                            {amt > 0 && <Box sx={{ width: '100%', height: `${hPct}%`, bgcolor: barColor }} />}
+                                            {amt > 0 && <Box sx={{ width: '100%', height: `${hPct}%`, bgcolor: barColor, borderTopLeftRadius: 2, borderTopRightRadius: 2 }} />}
                                         </Box>
                                     );
                                 })}
                             </Box>
                         </Box>
-                        <Typography variant="caption" sx={{ textAlign: 'center', color: '#6b7280', fontSize: '0.6rem', mt: 1 }}>Hour</Typography>
+                        <Typography variant="caption" sx={{ textAlign: 'center', color: '#64748b', fontSize: '0.6rem', mt: 1 }}>Hour</Typography>
                     </Paper>
 
                     {/* Total Sales (Period) */}
-                    <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300, mb: 1 }}>Total Sales (Amount)</Typography>
+                    <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
+                        <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600, mb: 1 }}>Total Sales (Amount)</Typography>
                         <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Typography variant="h1" sx={{ fontWeight: 800, color: '#374151', letterSpacing: '-2px', textShadow: '2px 2px 0px #fff' }}>
                                 {formatShortNum(periodicMetrics.totalSalesAmount)}
@@ -450,12 +460,12 @@ const Dashboard = () => {
                 </Box>
 
                 {/* BOTTOM ROW */}
-                <Box sx={{ display: 'flex', gap: 2, height: '220px' }}>
+                <Box sx={{ display: 'flex', gap: 2, height: '220px', mb: 4 }}>
 
                     {/* Top Product Groups */}
-                    <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300, mb: 0 }}>Top Product Groups</Typography>
-                        <Typography variant="caption" sx={{ color: '#9ca3af', mb: 2 }}>Top selling product groups in selected period</Typography>
+                    <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
+                        <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600, mb: 0 }}>Top Product Groups</Typography>
+                        <Typography variant="caption" sx={{ color: '#64748b', mb: 2 }}>Top selling product groups in selected period</Typography>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, position: 'relative' }}>
                             <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative' }}>
@@ -482,20 +492,30 @@ const Dashboard = () => {
                         </Box>
                     </Paper>
 
-                    {/* Top Customers (Replaced with Walk-In fill) */}
-                    <Paper elevation={0} sx={{ flex: '1 1 70%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300, mb: 0 }}>Top Customers</Typography>
-                        <Typography variant="caption" sx={{ color: '#9ca3af', mb: 2 }}>Lead customers in selected period (top 5)</Typography>
+                    {/* Average Sale & Margin Cards (Replaces Top Customers) */}
+                    <Box sx={{ flex: '1 1 70%', display: 'flex', gap: 2 }}>
+                        {/* Avg Sale Value */}
+                        <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
+                            <Typography variant="h6" sx={{ color: '#64748b', fontWeight: 500, mb: 0 }}>Average Sale Value</Typography>
+                            <Typography variant="caption" sx={{ color: '#94a3b8', mb: 3 }}>Average order size across {periodicMetrics.totalCustomers} transactions</Typography>
+                            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Typography variant="h2" sx={{ fontWeight: 800, color: '#0b1d39', letterSpacing: '-1px' }}>
+                                    ₹{formatShortNum(periodicMetrics.avgSaleValue)}
+                                </Typography>
+                            </Box>
+                        </Paper>
 
-                        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                            <Box sx={{ width: '40px' }}>
-                                <Typography variant="caption" sx={{ color: '#4b5563', lineHeight: 1 }}>walk-in<br />customers</Typography>
+                        {/* Net Profit Margin */}
+                        <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', bgcolor: '#0b1d39', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
+                            <Typography variant="h6" sx={{ color: '#94a3b8', fontWeight: 500, mb: 0 }}>Net Profit Margin</Typography>
+                            <Typography variant="caption" sx={{ color: '#64748b', mb: 3 }}>Estimated aggregate product markup percentage</Typography>
+                            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Typography variant="h2" sx={{ fontWeight: 800, color: '#10b981', letterSpacing: '-1.5px', textShadow: '0px 2px 4px rgba(0,0,0,0.5)' }}>
+                                    {periodicMetrics.netProfitMargin.toFixed(1)}%
+                                </Typography>
                             </Box>
-                            <Box sx={{ flex: 1, height: '100px', bgcolor: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', px: 2 }}>
-                                <Typography variant="body2" sx={{ color: '#fff', fontWeight: 'bold' }}>{periodicMetrics.totalCustomers}</Typography>
-                            </Box>
-                        </Box>
-                    </Paper>
+                        </Paper>
+                    </Box>
 
                 </Box>
             </Box>
