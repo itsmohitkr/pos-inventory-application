@@ -12,9 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20.x"
       - name: Update version
         run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
       - name: Clean node_modules
@@ -53,9 +53,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20.x"
       - name: Update version
         run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
       - name: Clean node_modules

@@ -140,8 +140,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const [paymentMethodsEnabled, setPaymentMethodsEnabled] = useState(getPaymentMethodsEnabled());
     const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
     const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
-    const [printers, setPrinters] = useState([]);
-    const [defaultPrinter, setDefaultPrinter] = useState(null);
+
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const [lastAddedItemId, setLastAddedItemId] = useState(null);
     const searchBarRef = useRef(null);
@@ -636,22 +635,6 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
     }, []);
 
-    // Fetch printers on mount
-    useEffect(() => {
-        const fetchPrinters = async () => {
-            if (window.electron) {
-                try {
-                    const printerList = await window.electron.ipcRenderer.invoke('get-printers');
-                    setPrinters(printerList || []);
-                    const def = printerList?.find(p => p.isDefault);
-                    if (def) setDefaultPrinter(def.name);
-                } catch (err) {
-                    console.error('Failed to fetch printers:', err);
-                }
-            }
-        };
-        fetchPrinters();
-    }, []);
 
     const subTotal = (cart || []).reduce((sum, item) => sum + ((item?.price || 0) * (item?.quantity || 0)), 0);
     const totalMrp = (cart || []).reduce((sum, item) => sum + ((item?.mrp || 0) * (item?.quantity || 0)), 0);
