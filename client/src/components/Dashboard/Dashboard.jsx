@@ -37,7 +37,11 @@ const Dashboard = () => {
         { label: "Today", getValue: () => getRange("day") },
         { label: "Yesterday", getValue: () => getRange("yesterday") },
         { label: "This Week", getValue: () => getRange("week") },
+        { label: "Last Week", getValue: () => getRange("last_week") },
         { label: "This Month", getValue: () => getRange("month") },
+        { label: "Last Month", getValue: () => getRange("last_month") },
+        { label: "This Year", getValue: () => getRange("year") },
+        { label: "Last Year", getValue: () => getRange("last_year") },
         { label: "Custom", getValue: () => null },
     ];
 
@@ -69,6 +73,27 @@ const Dashboard = () => {
                 start.setDate(1);
                 start.setHours(0, 0, 0, 0);
                 end.setHours(23, 59, 59, 999);
+                break;
+            case "last_week": {
+                const dayOfWeek = now.getDay();
+                const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                start.setDate(now.getDate() - diffToMonday - 7);
+                start.setHours(0, 0, 0, 0);
+                end.setDate(now.getDate() - diffToMonday - 1);
+                end.setHours(23, 59, 59, 999);
+                break;
+            }
+            case "last_month":
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+                break;
+            case "year":
+                start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
+                break;
+            case "last_year":
+                start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+                end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
                 break;
             default:
                 break;
@@ -109,7 +134,7 @@ const Dashboard = () => {
     const handleTabChange = (event) => {
         const newValue = event.target.value;
         setTabValue(newValue);
-        if (newValue < 4) {
+        if (timeframes[newValue].label !== "Custom") {
             const range = timeframes[newValue].getValue();
             setDateRange({
                 startDate: range.start.split('T')[0],
@@ -349,7 +374,7 @@ const Dashboard = () => {
                             </Select>
                         </FormControl>
 
-                        {tabValue === 4 && (
+                        {timeframes[tabValue]?.label === 'Custom' && (
                             <>
                                 <TextField
                                     type="date"
