@@ -29,8 +29,19 @@ const getLowStockReport = async (req, res) => {
     }
 };
 
+const getMonthlySales = async (req, res) => {
+    const { year } = req.query;
+    try {
+        const stats = await reportService.getMonthlySales({ year: year ? parseInt(year) : new Date().getFullYear() });
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getReports,
     getExpiryReport,
-    getLowStockReport
+    getLowStockReport,
+    getMonthlySales
 };

@@ -2,27 +2,30 @@ import React, { useEffect, useMemo, useState } from 'react';
 import api from '../../api';
 import {
     Box,
-    Button,
-    Container,
-    Grid,
     Paper,
     TextField,
     Typography,
     Divider,
     FormControl,
-    InputLabel,
     Select,
     MenuItem,
-    Stack
+    Stack,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+    TableContainer
 } from '@mui/material';
-import { CalendarToday as CalendarIcon } from '@mui/icons-material';
+import { CalendarToday as CalendarIcon, Sync as SyncIcon } from '@mui/icons-material';
 
-const LOW_STOCK_THRESHOLD = 10;
-const CATEGORY_COLORS = ['#0b1d39', '#f2b544', '#1f8a5b', '#d97706', '#2563eb', '#7c3aed'];
+const CATEGORY_COLORS = ['#0891b2', '#0284c7', '#2563eb', '#4f46e5', '#7c3aed', '#db2777', '#ea580c', '#65a30d', '#059669'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const FULL_MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
 
 const Dashboard = () => {
     const [report, setReport] = useState(null);
-    const [products, setProducts] = useState([]);
+    const [monthlyData, setMonthlyData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [tabValue, setTabValue] = useState(0);
     const [dateRange, setDateRange] = useState({
@@ -73,33 +76,34 @@ const Dashboard = () => {
         return { start: start.toISOString(), end: end.toISOString() };
     };
 
-    const fetchData = async (start, end) => {
+    const fetchPeriodicData = async (start, end) => {
         setLoading(true);
         try {
-            const [reportRes, productRes] = await Promise.all([
-                api.get('/api/reports', {
-                    params: {
-                        startDate: start,
-                        endDate: end
-                    }
-                }),
-                api.get('/api/products', {
-                    params: { page: 1, pageSize: 1000 }
-                })
-            ]);
-
+            const reportRes = await api.get('/api/reports', {
+                params: { startDate: start, endDate: end }
+            });
             setReport(reportRes.data);
-            setProducts(productRes.data.data || []);
         } catch (error) {
-            console.error('Failed to load dashboard data:', error);
+            console.error('Failed to load periodic report data:', error);
         } finally {
             setLoading(false);
         }
     };
 
+    const fetchMonthlyData = async () => {
+        try {
+            const currentYear = new Date().getFullYear();
+            const res = await api.get('/api/reports/monthly', { params: { year: currentYear } });
+            setMonthlyData(res.data || []);
+        } catch (error) {
+            console.error('Failed to load monthly sales data:', error);
+        }
+    };
+
     useEffect(() => {
         const range = getRange("day");
-        fetchData(range.start, range.end);
+        fetchPeriodicData(range.start, range.end);
+        fetchMonthlyData();
     }, []);
 
     const handleTabChange = (event) => {
@@ -107,7 +111,11 @@ const Dashboard = () => {
         setTabValue(newValue);
         if (newValue < 4) {
             const range = timeframes[newValue].getValue();
-            fetchData(range.start, range.end);
+            setDateRange({
+                startDate: range.start.split('T')[0],
+                endDate: range.end.split('T')[0]
+            })
+            fetchPeriodicData(range.start, range.end);
         }
     };
 
@@ -117,101 +125,90 @@ const Dashboard = () => {
             start.setHours(0, 0, 0, 0);
             const end = new Date(dateRange.endDate);
             end.setHours(23, 59, 59, 999);
-            fetchData(start.toISOString(), end.toISOString());
+            fetchPeriodicData(start.toISOString(), end.toISOString());
         }
     };
 
-    const metrics = useMemo(() => {
+    // Calculate metrics for Periodic Reports section
+    const periodicMetrics = useMemo(() => {
         const sales = report?.sales || [];
-        const totalSales = report?.totalSales || 0;
-        const totalProfit = report?.totalProfit || 0;
-        const totalOrders = report?.totalOrders || 0;
+        const totalSalesAmount = report?.totalSales || 0;
 
         const productTotals = new Map();
-        const productMargins = new Map();
         const categoryTotals = new Map();
-        let totalItemsSold = 0;
-        const hourlyQty = Array.from({ length: 24 }, () => 0);
+        let totalCustomers = sales.length; // Approximate distinct walk-ins
+
+        const hourlySalesAmt = Array.from({ length: 24 }, () => 0);
 
         sales.forEach((sale) => {
             const saleHour = new Date(sale.createdAt).getHours();
+            hourlySalesAmt[saleHour] += sale.netTotalAmount || 0;
+
             sale.items.forEach((item) => {
                 const qty = item.netQuantity ?? (item.quantity - item.returnedQuantity);
                 const name = item.productName || item.batch?.product?.name || 'Unknown';
                 const category = item.batch?.product?.category || 'Uncategorized';
-                totalItemsSold += qty;
-                hourlyQty[saleHour] += qty;
 
-                productTotals.set(name, (productTotals.get(name) || 0) + qty);
-                categoryTotals.set(category, (categoryTotals.get(category) || 0) + qty);
-
-                const margin = item.sellingPrice > 0
-                    ? ((item.sellingPrice - item.costPrice) / item.sellingPrice) * 100
-                    : 0;
-                const existingMargin = productMargins.get(name);
-                if (existingMargin === undefined || margin > existingMargin) {
-                    productMargins.set(name, margin);
-                }
+                productTotals.set(name, (productTotals.get(name) || 0) + (item.sellingPrice * qty));
+                categoryTotals.set(category, (categoryTotals.get(category) || 0) + (item.sellingPrice * qty));
             });
         });
 
-        const topSelling = [...productTotals.entries()].sort((a, b) => b[1] - a[1]);
-        const topSellingProduct = topSelling[0] || ['N/A', 0];
-        const highestMargin = [...productMargins.entries()].sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
-
-        const hourlySales = sales.reduce((acc, sale) => {
-            const hour = new Date(sale.createdAt).getHours();
-            acc[hour] = (acc[hour] || 0) + 1;
-            return acc;
-        }, {});
-
-        const peakHourEntry = Object.entries(hourlySales).sort((a, b) => b[1] - a[1])[0];
-        const peakHour = peakHourEntry ? Number(peakHourEntry[0]) : null;
-        const peakHourLabel = peakHour === null
-            ? 'No data'
-            : `${((peakHour + 11) % 12) + 1}:00 ${peakHour < 12 ? 'AM' : 'PM'} - ${((peakHour + 12) % 12) + 1}:00 ${peakHour < 11 ? 'AM' : 'PM'}`;
+        const topProducts = [...productTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+        const topCategories = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1]);
+        const maxHourlySalesAmt = Math.max(...hourlySalesAmt, 0);
 
         return {
-            totalSales,
-            totalProfit,
-            totalOrders,
-            totalItemsSold,
-            profitMargin: totalSales > 0 ? (totalProfit / totalSales) * 100 : 0,
-            avgOrderValue: totalOrders > 0 ? totalSales / totalOrders : 0,
-            topSelling,
-            topSellingProduct,
-            highestMargin,
-            peakHourLabel,
-            hourlyQty,
-            maxHourlyQty: Math.max(...hourlyQty, 0),
-            categoryMix: [...categoryTotals.entries()].sort((a, b) => b[1] - a[1])
+            totalSalesAmount,
+            topProducts,
+            topCategories,
+            hourlySalesAmt,
+            maxHourlySalesAmt,
+            totalCustomers
         };
     }, [report]);
 
-    const stockWarnings = useMemo(() => ({
-        lowStock: products.filter(p => p.total_stock > 0 && p.total_stock <= LOW_STOCK_THRESHOLD),
-        zeroStock: products.filter(p => p.total_stock === 0)
-    }), [products]);
+    // Calculate metrics for Top Monthly row
+    const yearMetrics = useMemo(() => {
+        if (!monthlyData || monthlyData.length === 0) return { totalYearlySales: 0, topMonthName: 'N/A', topMonthVal: 0, maxMonthVal: 0 };
 
-    const topSellingGraph = metrics.topSelling.slice(0, 5);
-    const maxTopQty = topSellingGraph[0]?.[1] || 1;
+        let total = 0;
+        let highest = { month: 0, val: 0 };
+        let maxMonthVal = 0;
+
+        monthlyData.forEach(m => {
+            total += m.totalSales;
+            if (m.totalSales > highest.val) {
+                highest = { month: m.month, val: m.totalSales };
+            }
+            if (m.totalSales > maxMonthVal) {
+                maxMonthVal = m.totalSales;
+            }
+        });
+
+        return {
+            totalYearlySales: total,
+            topMonthName: FULL_MONTHS[highest.month] || 'N/A',
+            topMonthVal: highest.val,
+            maxMonthVal
+        };
+    }, [monthlyData]);
 
     const categoryMix = useMemo(() => {
-        const entries = metrics.categoryMix || [];
-        const total = entries.reduce((sum, [, qty]) => sum + qty, 0) || 1;
-        const top = entries.slice(0, 5);
-        const otherQty = entries.slice(5).reduce((sum, [, qty]) => sum + qty, 0);
-        const segments = [...top];
-        if (otherQty > 0) segments.push(['Other', otherQty]);
+        const entries = periodicMetrics.topCategories || [];
+        const total = entries.reduce((sum, [, val]) => sum + val, 0) || 1;
 
-        const gradientStops = segments.map(([, qty], index) => {
-            const percent = (qty / total) * 100;
-            const color = CATEGORY_COLORS[index % CATEGORY_COLORS.length];
-            return { color, percent };
+        const segments = entries.map((entry, index) => {
+            return {
+                name: entry[0],
+                value: entry[1],
+                percent: (entry[1] / total) * 100,
+                color: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
+            }
         });
 
         let cumulative = 0;
-        const gradient = gradientStops.map((stop) => {
+        const gradient = segments.map((stop) => {
             const start = cumulative;
             cumulative += stop.percent;
             return `${stop.color} ${start}% ${cumulative}%`;
@@ -222,46 +219,118 @@ const Dashboard = () => {
             segments,
             gradient: gradient ? `conic-gradient(${gradient})` : 'none'
         };
-    }, [metrics.categoryMix]);
+    }, [periodicMetrics.topCategories]);
+
+    const formatShortNum = (num) => {
+        if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+        return num.toFixed(2);
+    };
+
+    const formatDateDisplay = (dateString) => {
+        if (!dateString) return '';
+        const d = new Date(dateString);
+        return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    };
 
     return (
-        <Box
-            sx={{
-                bgcolor: "background.default",
-                height: "100%",
-                minHeight: 0,
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-            }}
-        >
-            <Paper
-                elevation={0}
-                sx={{
-                    m: 3,
-                    px: 4,
-                    py: 2.5,
-                    background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
-                    borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
-                    flexShrink: 0
-                }}
-            >
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-                    <Box>
-                        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
-                            Dashboard
+        <Box sx={{ bgcolor: "#f3f4f6", height: "100%", overflowY: "auto", p: 2 }}>
+            <Box sx={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+                {/* TOP ROW: Monthly Sales & Total Year Sales */}
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
+
+                    {/* Monthly Sales Graph */}
+                    <Paper elevation={0} sx={{ flex: 1, p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Box>
+                                <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300, letterSpacing: '-0.5px' }}>
+                                    Monthly Sales - {new Date().getFullYear()}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: '#9ca3af' }}>Sales data grouped by month</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1, color: '#6b7280' }}>
+                                <SyncIcon fontSize="small" sx={{ cursor: 'pointer' }} onClick={fetchMonthlyData} />
+                            </Box>
+                        </Box>
+
+                        <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'flex-end', height: 140, position: 'relative' }}>
+                            {/* Y-Axis scale lines */}
+                            <Box sx={{ position: 'absolute', top: 0, bottom: 20, left: 0, right: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 0 }}>
+                                {[1, 0.8, 0.6, 0.4, 0.2, 0].map(tier => (
+                                    <Box key={tier} sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                        <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#9ca3af', width: 30 }}>
+                                            {Math.round(yearMetrics.maxMonthVal * tier)}
+                                        </Typography>
+                                        <Box sx={{ flex: 1, height: '1px', bgcolor: tier === 0 ? '#d1d5db' : '#f3f4f6' }} />
+                                    </Box>
+                                ))}
+                            </Box>
+
+                            {/* Bars */}
+                            <Box sx={{ display: 'flex', ml: '30px', flex: 1, zIndex: 1, height: '100%', alignItems: 'flex-end' }}>
+                                {monthlyData.map((data, idx) => {
+                                    const hPct = yearMetrics.maxMonthVal > 0 ? (data.totalSales / yearMetrics.maxMonthVal) * 100 : 0;
+                                    return (
+                                        <Box key={idx} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                                            {data.totalSales > 0 && (
+                                                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#fff', mb: 0.5, zIndex: 2, mt: '-15px' }}>
+                                                    {data.totalSales.toFixed(2)}
+                                                </Typography>
+                                            )}
+                                            <Box
+                                                sx={{
+                                                    width: '100%',
+                                                    height: `${hPct}%`,
+                                                    bgcolor: '#06b6d4',
+                                                    borderRight: '1px solid #fff'
+                                                }}
+                                            />
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', ml: '30px', borderTop: '1px solid #d1d5db' }}>
+                            {MONTHS.map(m => (
+                                <Typography key={m} variant="caption" sx={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', color: '#4b5563', mt: 0.5 }}>
+                                    {m.charAt(0)}
+                                </Typography>
+                            ))}
+                        </Box>
+                        <Typography variant="caption" sx={{ textAlign: 'center', color: '#6b7280', fontSize: '0.6rem', mt: 1 }}>Month</Typography>
+                    </Paper>
+
+                    {/* Total Sales (Year) */}
+                    <Paper elevation={0} sx={{ width: '300px', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="h6" sx={{ color: '#6b7280', fontWeight: 400 }}>Total Sales</Typography>
+                        <Typography variant="h2" sx={{ fontWeight: 800, color: '#374151', mt: 0, letterSpacing: '-1px' }}>
+                            {formatShortNum(yearMetrics.totalYearlySales)}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            Overview of your business performance and key metrics.
-                        </Typography>
-                    </Box>
-                    <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <InputLabel>Time Frame</InputLabel>
+
+                        <Box sx={{ mt: 'auto', pt: 2 }}>
+                            <Typography variant="body2" sx={{ color: '#6b7280' }}>Top performing month:</Typography>
+                            <Typography variant="subtitle2" sx={{ color: '#6b7280', fontWeight: 600 }}>{yearMetrics.topMonthName}</Typography>
+                            <Typography variant="h6" sx={{ color: '#4b5563', fontWeight: 600 }}>{yearMetrics.topMonthVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+                        </Box>
+                    </Paper>
+
+                </Box>
+
+                {/* PERIODIC REPORTS HEADER */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                    <Typography variant="h6" sx={{ color: '#6b7280', fontWeight: 400 }}>
+                        Periodic Reports ( {formatDateDisplay(dateRange.startDate)} - {formatDateDisplay(dateRange.endDate)} )
+                    </Typography>
+                    <CalendarIcon sx={{ color: '#374151', fontSize: '1.2rem' }} />
+                    <Box sx={{ flex: 1, height: '1px', bgcolor: '#d1d5db', ml: 2 }} />
+
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
                             <Select
                                 value={tabValue}
-                                label="Time Frame"
                                 onChange={handleTabChange}
+                                sx={{ bgcolor: '#fff', borderRadius: 0, height: 32, fontSize: '0.85rem' }}
                             >
                                 {timeframes.map((tf, idx) => (
                                     <MenuItem key={idx} value={idx}>{tf.label}</MenuItem>
@@ -273,175 +342,154 @@ const Dashboard = () => {
                             <>
                                 <TextField
                                     type="date"
-                                    label="Start"
                                     size="small"
-                                    InputLabelProps={{ shrink: true }}
                                     value={dateRange.startDate}
                                     onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                                    sx={{ bgcolor: '#fff', '& .MuiInputBase-root': { height: 32, fontSize: '0.85rem', borderRadius: 0 } }}
                                 />
                                 <TextField
                                     type="date"
-                                    label="End"
                                     size="small"
-                                    InputLabelProps={{ shrink: true }}
                                     value={dateRange.endDate}
                                     onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                                    sx={{ bgcolor: '#fff', '& .MuiInputBase-root': { height: 32, fontSize: '0.85rem', borderRadius: 0 } }}
                                 />
-                                <Button variant="outlined" onClick={handleApplyCustomRange} sx={{ height: 40 }}>
-                                    Apply
+                                <Button variant="contained" onClick={handleApplyCustomRange} sx={{ height: 32, borderRadius: 0, bgcolor: '#374151', '&:hover': { bgcolor: '#1f2937' }, boxShadow: 'none' }}>
+                                    GO
                                 </Button>
                             </>
                         )}
                     </Stack>
                 </Box>
-            </Paper>
 
-            <Box sx={{ flex: 1, overflow: 'auto', px: 3, pb: 3 }}>
-                <Container maxWidth="xl" disableGutters>
-                    <Grid container spacing={2} sx={{ mb: 2 }}>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #1f8a5b 0%, #3ccf9a 100%)' }}>
-                                <Typography variant="overline" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Daily report</Typography>
-                                <Typography variant="h5" fontWeight="bold">₹{metrics.totalSales.toFixed(2)}</Typography>
-                                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Total sales</Typography>
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #0b1d39 0%, #1b3e6f 100%)' }}>
-                                <Typography variant="overline" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Daily status</Typography>
-                                <Typography variant="h5" fontWeight="bold">{metrics.totalOrders}</Typography>
-                                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>Orders in range</Typography>
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #f2b544 0%, #f8d27b 100%)' }}>
-                                <Typography variant="overline" sx={{ color: 'rgba(32, 18, 6, 0.75)' }}>Sales</Typography>
-                                <Typography variant="h5" fontWeight="bold" sx={{ color: '#2d1c05' }}>₹{metrics.avgOrderValue.toFixed(2)}</Typography>
-                                <Typography variant="body2" sx={{ color: 'rgba(32, 18, 6, 0.75)' }}>Average order value</Typography>
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, color: '#fff', background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)' }}>
-                                <Typography variant="overline" sx={{ color: 'rgba(255, 255, 255, 0.85)' }}>Profit margin</Typography>
-                                <Typography variant="h5" fontWeight="bold">{metrics.profitMargin.toFixed(1)}%</Typography>
-                                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)' }}>Overall</Typography>
-                            </Paper>
-                        </Grid>
-                    </Grid>
+                {/* MIDDLE ROW */}
+                <Box sx={{ display: 'flex', gap: 2, height: '300px' }}>
 
-                    <Grid container spacing={2} sx={{ mb: 2 }}>
-                        <Grid item xs={12} sm={6} md={4}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, height: '100%', background: 'linear-gradient(135deg, rgba(11, 29, 57, 0.06), rgba(27, 62, 111, 0.08))' }}>
-                                <Typography variant="subtitle1" fontWeight="bold">Highest profit margin</Typography>
-                                <Typography variant="h6" sx={{ mt: 1 }}>{metrics.highestMargin[0]}</Typography>
-                                <Typography variant="body2" color="text.secondary">Margin: {metrics.highestMargin[1].toFixed(1)}%</Typography>
-                                <Divider sx={{ my: 2 }} />
-                                <Typography variant="subtitle2" color="text.secondary">Top selling product</Typography>
-                                <Typography variant="body1" fontWeight="bold">{metrics.topSellingProduct[0]}</Typography>
-                                <Typography variant="caption" color="text.secondary">Qty sold: {metrics.topSellingProduct[1]}</Typography>
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={4}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, height: '100%', background: 'linear-gradient(135deg, rgba(242, 181, 68, 0.15), rgba(255, 215, 128, 0.18))' }}>
-                                <Typography variant="subtitle1" fontWeight="bold">Peak sales time</Typography>
-                                <Typography variant="h6" sx={{ mt: 1 }}>{metrics.peakHourLabel}</Typography>
-                                <Typography variant="body2" color="text.secondary">Based on order volume</Typography>
-                                <Divider sx={{ my: 2 }} />
-                                <Typography variant="subtitle2" color="text.secondary">Total items sold</Typography>
-                                <Typography variant="body1" fontWeight="bold">{metrics.totalItemsSold}</Typography>
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} sm={12} md={4}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, height: '100%', background: 'linear-gradient(135deg, rgba(31, 138, 91, 0.12), rgba(60, 207, 154, 0.16))' }}>
-                                <Typography variant="subtitle1" fontWeight="bold">Top selling product graph</Typography>
-                                <Box sx={{ mt: 2, display: 'grid', gap: 1 }}>
-                                    {topSellingGraph.map(([name, qty]) => (
-                                        <Box key={name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography variant="caption" sx={{ width: 120 }} noWrap>{name}</Typography>
-                                            <Box sx={{ flex: 1, height: 8, bgcolor: 'rgba(11, 29, 57, 0.1)', borderRadius: 99 }}>
-                                                <Box sx={{ width: `${(qty / maxTopQty) * 100}%`, height: '100%', bgcolor: 'primary.main', borderRadius: 99 }} />
-                                            </Box>
-                                            <Typography variant="caption" sx={{ width: 36, textAlign: 'right' }}>{qty}</Typography>
-                                        </Box>
+                    {/* Top Products */}
+                    <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300 }}>Top Products</Typography>
+                        </Box>
+
+                        <TableContainer sx={{ flex: 1 }}>
+                            <Table size="small">
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell sx={{ color: '#0ea5e9', borderBottom: '2px solid #0ea5e9', py: 0.5, px: 0 }}>Product</TableCell>
+                                        <TableCell align="right" sx={{ color: '#6b7280', borderBottom: '1px solid #d1d5db', py: 0.5, px: 0 }}>Total</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {periodicMetrics.topProducts.map(([name, total]) => (
+                                        <TableRow key={name}>
+                                            <TableCell sx={{ py: 1, px: 0, color: '#4b5563', borderBottom: '1px solid #f3f4f6' }}>{name}</TableCell>
+                                            <TableCell align="right" sx={{ py: 1, px: 0, color: '#4b5563', borderBottom: '1px solid #f3f4f6' }}>
+                                                {total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
-                                </Box>
-                            </Paper>
-                        </Grid>
-                    </Grid>
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </Paper>
 
-                    <Grid container spacing={2} sx={{ mb: 2 }}>
-                        <Grid item xs={12} lg={7}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
-                                <Typography variant="subtitle1" fontWeight="bold">Sales by hour (items sold)</Typography>
-                                <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: 'repeat(24, minmax(0, 1fr))', gap: 0.5, alignItems: 'end', height: 160 }}>
-                                    {metrics.hourlyQty.map((qty, hour) => (
-                                        <Box key={hour} sx={{ textAlign: 'center' }}>
-                                            <Box
-                                                sx={{
-                                                    height: `${metrics.maxHourlyQty ? (qty / metrics.maxHourlyQty) * 120 : 0}px`,
-                                                    bgcolor: qty > 0 ? 'primary.main' : 'rgba(11, 29, 57, 0.1)',
-                                                    borderRadius: 1,
-                                                    transition: 'height 0.2s ease'
-                                                }}
-                                            />
-                                            {(hour % 6 === 0) && <Typography variant="caption" color="text.secondary">{hour}</Typography>}
-                                        </Box>
-                                    ))}
-                                </Box>
-                                <Typography variant="caption" color="text.secondary">Bars show item quantity sold per hour.</Typography>
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} lg={5}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
-                                <Typography variant="subtitle1" fontWeight="bold">Category mix</Typography>
-                                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 2 }}>
-                                    <Box sx={{ width: 160, height: 160, borderRadius: '50%', background: categoryMix.gradient, boxShadow: '0 12px 30px rgba(11, 29, 57, 0.15)' }} />
-                                    <Box sx={{ display: 'grid', gap: 1, flex: 1 }}>
-                                        {categoryMix.segments.map(([name, qty], index) => (
-                                            <Box key={name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }} />
-                                                <Typography variant="body2" sx={{ flex: 1 }} noWrap>{name}</Typography>
-                                                <Typography variant="caption" color="text.secondary">{Math.round((qty / categoryMix.total) * 100)}%</Typography>
-                                            </Box>
-                                        ))}
-                                        {!categoryMix.segments.length && <Typography variant="body2" color="text.secondary">No category data.</Typography>}
-                                    </Box>
-                                </Box>
-                            </Paper>
-                        </Grid>
-                    </Grid>
+                    {/* Hourly Sales */}
+                    <Paper elevation={0} sx={{ flex: '1 1 40%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                            <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300 }}>Hourly Sales</Typography>
+                            <Typography variant="caption" sx={{ color: '#4b5563' }}>Amount ▼</Typography>
+                        </Box>
 
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
-                                <Typography variant="subtitle1" fontWeight="bold">Lower stock warning</Typography>
-                                <Typography variant="body2" color="text.secondary">Below {LOW_STOCK_THRESHOLD} units</Typography>
-                                <Divider sx={{ my: 1.5 }} />
-                                {stockWarnings.lowStock.slice(0, 6).map(item => (
-                                    <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-                                        <Typography variant="body2">{item.name}</Typography>
-                                        <Typography variant="body2" fontWeight="bold">{item.total_stock}</Typography>
+                        <Box sx={{ flex: 1, display: 'flex', alignItems: 'flex-end', position: 'relative' }}>
+                            {/* Y-Axis lines */}
+                            <Box sx={{ position: 'absolute', top: 0, bottom: 20, left: 0, right: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 0 }}>
+                                {[1, 0.8, 0.6, 0.4, 0.2, 0].map(tier => (
+                                    <Box key={tier} sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                        <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#d1d5db', width: 30 }}>
+                                            {Math.round(periodicMetrics.maxHourlySalesAmt * tier)}
+                                        </Typography>
+                                        <Box sx={{ flex: 1, height: '1px', bgcolor: tier === 0 ? '#d1d5db' : '#f3f4f6' }} />
                                     </Box>
                                 ))}
-                                {!stockWarnings.lowStock.length && <Typography variant="body2" color="text.secondary">No low stock items.</Typography>}
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2 }}>
-                                <Typography variant="subtitle1" fontWeight="bold">Zero stock warning</Typography>
-                                <Typography variant="body2" color="text.secondary">Out of stock items</Typography>
-                                <Divider sx={{ my: 1.5 }} />
-                                {stockWarnings.zeroStock.slice(0, 6).map(item => (
-                                    <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-                                        <Typography variant="body2">{item.name}</Typography>
-                                        <Typography variant="body2" fontWeight="bold">0</Typography>
+                            </Box>
+
+                            {/* Bars */}
+                            <Box sx={{ display: 'flex', ml: '30px', flex: 1, zIndex: 1, height: '100%', alignItems: 'flex-end' }}>
+                                {periodicMetrics.hourlySalesAmt.map((amt, idx) => {
+                                    // Extract visible trading hours (e.g., 9am to 9pm) or dynamic window
+                                    // For simplicity matching the graphic, we'll plot every hour but only values > 0 are visible
+                                    const hPct = periodicMetrics.maxHourlySalesAmt > 0 ? (amt / periodicMetrics.maxHourlySalesAmt) * 100 : 0;
+                                    const barColor = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+                                    return (
+                                        <Box key={idx} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', px: '1px' }}>
+                                            {amt > 0 && (
+                                                <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#fff', mb: 0.5, zIndex: 2, mt: '-12px' }}>
+                                                    {Math.round(amt)}
+                                                </Typography>
+                                            )}
+                                            {amt > 0 && <Box sx={{ width: '100%', height: `${hPct}%`, bgcolor: barColor }} />}
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
+                        </Box>
+                        <Typography variant="caption" sx={{ textAlign: 'center', color: '#6b7280', fontSize: '0.6rem', mt: 1 }}>Hour</Typography>
+                    </Paper>
+
+                    {/* Total Sales (Period) */}
+                    <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300, mb: 1 }}>Total Sales (Amount)</Typography>
+                        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Typography variant="h1" sx={{ fontWeight: 800, color: '#374151', letterSpacing: '-2px', textShadow: '2px 2px 0px #fff' }}>
+                                {formatShortNum(periodicMetrics.totalSalesAmount)}
+                            </Typography>
+                        </Box>
+                    </Paper>
+
+                </Box>
+
+                {/* BOTTOM ROW */}
+                <Box sx={{ display: 'flex', gap: 2, height: '220px' }}>
+
+                    {/* Top Product Groups */}
+                    <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300, mb: 0 }}>Top Product Groups</Typography>
+                        <Typography variant="caption" sx={{ color: '#9ca3af', mb: 2 }}>Top selling product groups in selected period</Typography>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, position: 'relative' }}>
+                            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative' }}>
+                                <Box sx={{ width: 100, height: 100, borderRadius: '50%', background: categoryMix.gradient, position: 'relative' }}>
+                                    {/* Donut hole */}
+                                    <Box sx={{ position: 'absolute', top: '25%', left: '25%', width: '50%', height: '50%', bgcolor: '#fff', borderRadius: '50%' }} />
+                                </Box>
+                            </Box>
+                            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5, overflowY: 'auto', maxHeight: '120px' }}>
+                                {categoryMix.segments.map(seg => (
+                                    <Box key={seg.name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Box sx={{ width: 8, height: 16, bgcolor: seg.color }} />
+                                        <Typography variant="caption" sx={{ color: '#4b5563', fontSize: '0.65rem' }}>{seg.name}</Typography>
                                     </Box>
                                 ))}
-                                {!stockWarnings.zeroStock.length && <Typography variant="body2" color="text.secondary">No zero stock items.</Typography>}
-                            </Paper>
-                        </Grid>
-                    </Grid>
-                </Container>
+                            </Box>
+                        </Box>
+                    </Paper>
+
+                    {/* Top Customers (Replaced with Walk-In fill) */}
+                    <Paper elevation={0} sx={{ flex: '1 1 70%', p: 2, borderRadius: 0, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="h5" sx={{ color: '#6b7280', fontWeight: 300, mb: 0 }}>Top Customers</Typography>
+                        <Typography variant="caption" sx={{ color: '#9ca3af', mb: 2 }}>Lead customers in selected period (top 5)</Typography>
+
+                        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{ width: '40px' }}>
+                                <Typography variant="caption" sx={{ color: '#4b5563', lineHeight: 1 }}>walk-in<br />customers</Typography>
+                            </Box>
+                            <Box sx={{ flex: 1, height: '100px', bgcolor: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', px: 2 }}>
+                                <Typography variant="body2" sx={{ color: '#fff', fontWeight: 'bold' }}>{periodicMetrics.totalCustomers}</Typography>
+                            </Box>
+                        </Box>
+                    </Paper>
+
+                </Box>
             </Box>
         </Box>
     );

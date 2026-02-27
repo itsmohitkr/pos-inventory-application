@@ -182,8 +182,56 @@ const getLowStockReport = async () => {
         .filter(product => product.totalQuantity <= product.lowStockThreshold);
 };
 
+const getMonthlySales = async ({ year }) => {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+
+    const sales = await prisma.sale.findMany({
+        where: {
+            createdAt: {
+                gte: startDate,
+                lte: endDate
+            }
+        },
+        include: {
+            items: true
+        }
+    });
+
+    // Initialize exactly 12 months inside the object mapping
+    const monthlyData = Array.from({ length: 12 }, (_, i) => ({
+        month: i, // 0-11 indexing
+        totalSales: 0,
+        totalProfit: 0,
+        orderCount: 0
+    }));
+
+    sales.forEach(sale => {
+        const monthIndex = new Date(sale.createdAt).getMonth();
+        let saleProfit = 0;
+        let saleNetTotal = 0;
+
+        sale.items.forEach(item => {
+            const netQuantity = item.quantity - item.returnedQuantity;
+            saleProfit += (item.sellingPrice - item.costPrice) * netQuantity;
+            saleNetTotal += item.sellingPrice * netQuantity;
+        });
+
+        const extraDiscount = sale.extraDiscount || 0;
+        const finalSaleNetTotal = saleNetTotal - sale.discount - extraDiscount;
+        const finalSaleProfit = saleProfit - sale.discount - extraDiscount;
+
+        monthlyData[monthIndex].totalSales += finalSaleNetTotal;
+        monthlyData[monthIndex].totalProfit += finalSaleProfit;
+        monthlyData[monthIndex].orderCount += 1;
+    });
+
+    return monthlyData;
+};
+
 module.exports = {
     getReports,
     getExpiryReport,
-    getLowStockReport
+    getLowStockReport,
+    getMonthlySales
 };
