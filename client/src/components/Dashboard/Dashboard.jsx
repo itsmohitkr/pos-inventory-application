@@ -466,9 +466,16 @@ const Dashboard = () => {
                             </Box>
                             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5, overflowY: 'auto', maxHeight: '120px' }}>
                                 {categoryMix.segments.map(seg => (
-                                    <Box key={seg.name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Box sx={{ width: 8, height: 16, bgcolor: seg.color }} />
-                                        <Typography variant="caption" sx={{ color: '#4b5563', fontSize: '0.65rem' }}>{seg.name}</Typography>
+                                    <Box key={seg.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Box sx={{ width: 8, height: 16, bgcolor: seg.color }} />
+                                            <Typography variant="caption" sx={{ color: '#4b5563', fontSize: '0.65rem', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {seg.name}
+                                            </Typography>
+                                        </Box>
+                                        <Typography variant="caption" sx={{ color: '#111827', fontSize: '0.65rem', fontWeight: 600 }}>
+                                            {formatShortNum(seg.value)}
+                                        </Typography>
                                     </Box>
                                 ))}
                             </Box>
