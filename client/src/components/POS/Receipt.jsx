@@ -324,7 +324,9 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                     position: absolute;
                     left: 0;
                     top: 0;
-                    width: ${width};
+                    margin: 0;
+                    width: 100%;
+                    max-width: ${width};
                     box-sizing: border-box;
                     padding: ${marginTop} ${marginSide} ${marginBottom} ${marginSide};
                   }

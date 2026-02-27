@@ -558,7 +558,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                     } else {
                         window.print();
                     }
-                }, 50);
+                }, 0);
             } else {
                 setShowReceipt(true);
             }
@@ -601,7 +601,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                     } else {
                         window.print();
                     }
-                }, 50);
+                }, 0);
             } else {
                 setShowReceipt(true);
             }

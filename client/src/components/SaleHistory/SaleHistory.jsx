@@ -132,7 +132,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           window.print();
         }
         setAutoPrint(false);
-      }, 50); // 50ms to ensure DOM is ready for hidden container
+      }, 0); // 0ms to ensure DOM is ready for hidden container
       return () => clearTimeout(timer);
     }
   }, [autoPrint, selectedSale, receiptSettings, printers, defaultPrinter]);
