@@ -570,11 +570,14 @@ function App() {
     const fetchPrinters = async () => {
       try {
         const printerList = await window.electron.ipcRenderer.invoke('get-printers');
-        setPrinters(printerList);
-        const defaultP = printerList.find(p => p.isDefault);
+        console.log('Fetched printers: ', printerList);
+        const list = Array.isArray(printerList) ? printerList : [];
+        setPrinters(list);
+        const defaultP = list.find(p => p.isDefault);
         if (defaultP) setDefaultPrinter(defaultP.name);
       } catch (err) {
         console.error('Failed to get printers:', err);
+        setPrinters([]);
       }
     };
     fetchPrinters();

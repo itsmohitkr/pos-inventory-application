@@ -3,7 +3,7 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, IconButton, Grid, TextField, Divider, Checkbox, Paper, Button,
     FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
-import { Cancel as CancelIcon, Print as PrintIcon } from '@mui/icons-material';
+import { Cancel as CancelIcon, Print as PrintIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import Receipt from './Receipt';
 
 const ReceiptPreviewDialog = ({
@@ -169,7 +169,28 @@ const ReceiptPreviewDialog = ({
 
                                 <Divider sx={{ my: 1 }} />
 
-                                <Typography variant="caption" fontWeight="bold" color="primary">PRINTER SETTINGS</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
+                                    <Typography variant="caption" fontWeight="bold" color="primary">PRINTER SETTINGS</Typography>
+                                    <Button
+                                        size="small"
+                                        startIcon={<RefreshIcon />}
+                                        onClick={async () => {
+                                            if (window.electron) {
+                                                try {
+                                                    const list = await window.electron.ipcRenderer.invoke('get-printers');
+                                                    alert('Found printers: ' + (list ? list.length : 0));
+                                                } catch (e) {
+                                                    alert('Error fetching printers: ' + e.message);
+                                                }
+                                            } else {
+                                                alert('Not in Electron environment');
+                                            }
+                                        }}
+                                        sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0 }}
+                                    >
+                                        Test Fetch
+                                    </Button>
+                                </Box>
                                 <FormControl fullWidth size="small" sx={{ mt: 1 }}>
                                     <InputLabel>Printer Selection</InputLabel>
                                     <Select
