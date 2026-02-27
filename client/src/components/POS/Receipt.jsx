@@ -91,6 +91,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
     return (
         <Box id="receipt-content" sx={{
             width: width,
+            boxSizing: 'border-box',
             paddingTop: marginTop,
             paddingBottom: marginBottom,
             paddingLeft: marginSide,
@@ -324,6 +325,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                     left: 0;
                     top: 0;
                     width: ${width};
+                    box-sizing: border-box;
                     padding: ${marginTop} ${marginSide} ${marginBottom} ${marginSide};
                   }
                   @page {
