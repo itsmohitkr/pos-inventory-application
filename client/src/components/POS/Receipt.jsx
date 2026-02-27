@@ -102,8 +102,10 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
             fontSize: `${config.fontSize || 0.8}rem`,
             lineHeight: config.lineHeight || 1.1,
             '@media print': {
-                width: width,
+                width: '100%',
+                maxWidth: width,
                 margin: 0,
+                boxSizing: 'border-box',
                 '-webkit-print-color-adjust': 'exact',
                 'print-color-adjust': 'exact',
             }
@@ -324,9 +326,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                     position: absolute;
                     left: 0;
                     top: 0;
-                    margin: 0;
-                    width: 100%;
-                    max-width: ${width};
+                    width: ${width};
                     box-sizing: border-box;
                     padding: ${marginTop} ${marginSide} ${marginBottom} ${marginSide};
                   }
