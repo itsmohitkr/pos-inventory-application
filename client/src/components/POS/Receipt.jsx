@@ -50,6 +50,9 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
     // Total savings is MRP - originalTotal
     const calculatedSavings = totalMrp - originalTotal;
 
+    // Total Items Quantity
+    const totalItemCount = sale.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
+
     // Formatting themes
     const themes = {
         Standard: {
@@ -256,6 +259,16 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
 
             {/* Totals */}
             <Box sx={{ ml: 'auto', width: '100%', color: '#000' }}>
+                {(config.totalItems !== false) && (
+                    <>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 0.2 }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.9em', fontWeight: theme.textWeight }}>
+                                Items: {sale.items?.length || 0}, Quantity: {totalItemCount}
+                            </Typography>
+                        </Box>
+                        <Box sx={{ borderBottom: theme.divider, my: 0.5 }} />
+                    </>
+                )}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
                     <Typography variant="body2" sx={{ fontSize: '1em', fontWeight: theme.textWeight }}>Subtotal:</Typography>
                     <Typography variant="body2" sx={{ fontSize: '1em', fontWeight: theme.textWeight }}>₹{(sale.totalAmount + sale.discount + (sale.extraDiscount || 0)).toFixed(2)}</Typography>

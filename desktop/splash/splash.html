@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>Bachat Bazaar - Starting Up</title>
@@ -12,44 +13,55 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      background-color: #0b1a30; /* Blue background */
+      background-color: #0b1a30;
+      /* Blue background */
       color: white;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       overflow: hidden;
     }
-    
+
     .logo-container {
       margin-bottom: 30px;
       animation: pulse 2s infinite ease-in-out;
     }
-    
+
     .logo {
-      width: 151px; /* ~40% bigger than standard 108px */
+      width: 151px;
+      /* ~40% bigger than standard 108px */
       height: auto;
       border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
-    
+
     h1 {
       margin: 0 0 10px 0;
       font-size: 28px;
       font-weight: 800;
       letter-spacing: 0.5px;
     }
-    
+
+    .version-text {
+      font-size: 13px;
+      color: #7dd3fc;
+      margin-bottom: 5px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      opacity: 0.9;
+    }
+
     .status-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       margin-top: 20px;
     }
-    
+
     .status-text {
       font-size: 14px;
       color: #94a3b8;
       margin-bottom: 12px;
     }
-    
+
     /* Horizontal progress bar animator */
     .progress-bar-container {
       width: 250px;
@@ -59,7 +71,7 @@
       overflow: hidden;
       position: relative;
     }
-    
+
     .progress-bar {
       position: absolute;
       top: 0;
@@ -70,38 +82,64 @@
       border-radius: 4px;
       animation: progress 1.5s infinite ease-in-out;
     }
-    
+
     @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+
+      100% {
+        transform: scale(1);
+      }
     }
-    
+
     @keyframes progress {
-      0% { left: -30%; width: 30%; }
-      50% { width: 60%; }
-      100% { left: 100%; width: 30%; }
+      0% {
+        left: -30%;
+        width: 30%;
+      }
+
+      50% {
+        width: 60%;
+      }
+
+      100% {
+        left: 100%;
+        width: 30%;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="logo-container">
-    <img src="../assets/shop_logo.jpeg" class="logo" alt="Bachat Bazaar Logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'120\' height=\'120\' viewBox=\'0 0 24 24\'><path fill=\'white\' d=\'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5\'/></svg>'">
+    <img src="../assets/shop_logo.jpeg" class="logo" alt="Bachat Bazaar Logo"
+      onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'120\' height=\'120\' viewBox=\'0 0 24 24\'><path fill=\'white\' d=\'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5\'/></svg>'">
   </div>
   <h1>Bachat Bazaar</h1>
+  <div class="version-text" id="versionMsg">Loading Version...</div>
   <div class="status-container">
     <div class="status-text" id="statusMsg">Starting local database engine...</div>
     <div class="progress-bar-container">
       <div class="progress-bar"></div>
     </div>
   </div>
-  
+
   <script>
     // Listen for status updates from main process via IPC
     const { ipcRenderer } = require('electron');
     ipcRenderer.on('splash-status', (event, message) => {
       document.getElementById('statusMsg').innerText = message;
     });
+
+    ipcRenderer.on('splash-version', (event, version) => {
+      document.getElementById('versionMsg').innerText = `Version ${version}`;
+    });
   </script>
 </body>
+
 </html>

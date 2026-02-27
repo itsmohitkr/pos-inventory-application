@@ -105,6 +105,27 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
                 items: {
                     create: saleItemsData
                 }
+            },
+            include: {
+                items: {
+                    include: {
+                        batch: {
+                            select: {
+                                id: true,
+                                batchCode: true,
+                                expiryDate: true,
+                                product: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        barcode: true,
+                                        category: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         });
 

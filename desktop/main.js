@@ -44,7 +44,8 @@ ipcMain.on('check-for-updates', () => {
 });
 
 ipcMain.on('restart-app', () => {
-  autoUpdater.quitAndInstall();
+  // Silent install mode, force restart after finish
+  autoUpdater.quitAndInstall(true, true);
 });
 
 ipcMain.handle('get-printers', async () => {
@@ -231,6 +232,10 @@ const createWindow = () => {
   });
 
   splashWindow.loadURL(splashUrl);
+
+  splashWindow.webContents.on('did-finish-load', () => {
+    splashWindow.webContents.send('splash-version', app.getVersion());
+  });
 
   // 2. Create hidden Main Window
   const windowConfig = {

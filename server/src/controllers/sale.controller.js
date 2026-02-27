@@ -3,7 +3,7 @@ const saleService = require('../services/sale.service');
 const processSale = async (req, res) => {
     try {
         const sale = await saleService.processSale(req.body);
-        res.json({ message: "Sale processed successfully", saleId: sale.id });
+        res.json({ message: "Sale processed successfully", saleId: sale.id, sale });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api';
 import {
@@ -538,27 +539,26 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 paymentMethod: selectedPaymentMethod.label || 'Cash',
                 paymentDetails: JSON.stringify({ method: selectedPaymentMethod })
             });
-            const detailedRes = await api.get(`/api/sale/${res.data.saleId}`);
-            setLastSale(detailedRes.data);
 
-            handleCloseTab(activeTabId);
+            flushSync(() => {
+                setLastSale(res.data.sale);
+                handleCloseTab(activeTabId);
+                setSelectedPaymentMethod(null);
+            });
+
             fetchProducts();
-            setSelectedPaymentMethod(null);
 
             // Handle Printing
             if (receiptSettings.directPrint) {
-                // Short timeout to ensure the DOM is updated for the hidden print container
-                setTimeout(() => {
-                    const rawPrinter = receiptSettings.printerType;
-                    const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
-                    const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
+                const rawPrinter = receiptSettings.printerType;
+                const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
+                const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
 
-                    if (window.electron) {
-                        window.electron.ipcRenderer.send('print-manual', { printerName: printer });
-                    } else {
-                        window.print();
-                    }
-                }, 0);
+                if (window.electron) {
+                    window.electron.ipcRenderer.send('print-manual', { printerName: printer });
+                } else {
+                    window.print();
+                }
             } else {
                 setShowReceipt(true);
             }
@@ -591,17 +591,15 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const handlePrintLastReceipt = () => {
         if (lastSale) {
             if (receiptSettings.directPrint) {
-                setTimeout(() => {
-                    const rawPrinter = receiptSettings.printerType;
-                    const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
-                    const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
+                const rawPrinter = receiptSettings.printerType;
+                const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
+                const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
 
-                    if (window.electron) {
-                        window.electron.ipcRenderer.send('print-manual', { printerName: printer });
-                    } else {
-                        window.print();
-                    }
-                }, 0);
+                if (window.electron) {
+                    window.electron.ipcRenderer.send('print-manual', { printerName: printer });
+                } else {
+                    window.print();
+                }
             } else {
                 setShowReceipt(true);
             }

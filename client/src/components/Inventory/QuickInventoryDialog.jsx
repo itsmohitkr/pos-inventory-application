@@ -11,11 +11,11 @@ import {
     Box
 } from '@mui/material';
 import CustomDialog from '../common/CustomDialog';
-import useCustomDialog from '../../hooks/useCustomDialog';
+import SuccessNotification from '../common/SuccessNotification';
 
 const QuickInventoryDialog = ({ open, onClose, batch, productName, onUpdated }) => {
-    const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
     const [addQty, setAddQty] = useState('');
+    const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
     const handleClose = () => {
         setAddQty('');
@@ -28,7 +28,7 @@ const QuickInventoryDialog = ({ open, onClose, batch, productName, onUpdated }) 
 
         const qtyToAdd = Number(addQty);
         if (!Number.isFinite(qtyToAdd) || qtyToAdd <= 0 || !Number.isInteger(qtyToAdd)) {
-            await showError('Enter a positive whole number');
+            setNotification({ open: true, message: 'Enter a positive whole number', severity: 'error' });
             return;
         }
 
@@ -37,12 +37,16 @@ const QuickInventoryDialog = ({ open, onClose, batch, productName, onUpdated }) 
             await api.put(`/api/batches/${batch.id}`, {
                 quantity: nextQuantity
             });
-            await showSuccess('Stock updated');
+            setNotification({ open: true, message: 'Stock updated', severity: 'success' });
             if (onUpdated) onUpdated();
-            handleClose();
+
+            // Allow notification to show before closing the dialog
+            setTimeout(() => {
+                handleClose();
+            }, 1000);
         } catch (error) {
             console.error('Failed to update batch stock:', error);
-            await showError('Failed to update stock: ' + (error.response?.data?.error || error.message));
+            setNotification({ open: true, message: 'Failed to update stock: ' + (error.response?.data?.error || error.message), severity: 'error' });
         }
     };
 
@@ -108,7 +112,13 @@ const QuickInventoryDialog = ({ open, onClose, batch, productName, onUpdated }) 
                     <Button onClick={handleSubmit} variant="contained">Update</Button>
                 </DialogActions>
             </Dialog>
-            <CustomDialog {...dialogState} onClose={closeDialog} />
+            <SuccessNotification
+                open={notification.open}
+                message={notification.message}
+                severity={notification.severity}
+                onClose={() => setNotification({ ...notification, open: false })}
+                duration={3000}
+            />
         </>
     );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { flushSync } from 'react-dom';
 import api from '../../api';
 import {
   Container,
@@ -42,7 +43,6 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
     startDate: "",
     endDate: "",
   });
-  const [autoPrint, setAutoPrint] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [refundSale, setRefundSale] = useState(null);
 
@@ -121,25 +121,6 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   }, []);
 
   useEffect(() => {
-    if (autoPrint && selectedSale) {
-      const timer = setTimeout(() => {
-        if (receiptSettings?.directPrint && window.electron) {
-          const rawPrinter = receiptSettings?.printerType;
-          const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
-          const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
-          window.electron.ipcRenderer.send('print-manual', { printerName: printer });
-        } else {
-          window.print();
-        }
-        setAutoPrint(false);
-      }, 0); // 0ms to ensure DOM is ready for hidden container
-      return () => clearTimeout(timer);
-    }
-  }, [autoPrint, selectedSale, receiptSettings, printers, defaultPrinter]);
-
-
-
-  useEffect(() => {
     const handleKeyDown = (e) => {
       // Don't navigate if user is typing in an input field
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
@@ -192,8 +173,18 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   };
 
   const handlePrintReceipt = (sale) => {
-    setSelectedSale(sale);
-    setAutoPrint(true);
+    flushSync(() => {
+      setSelectedSale(sale);
+    });
+
+    if (receiptSettings?.directPrint && window.electron) {
+      const rawPrinter = receiptSettings?.printerType;
+      const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
+      const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
+      window.electron.ipcRenderer.send('print-manual', { printerName: printer });
+    } else {
+      window.print();
+    }
   };
 
   const handleRefund = (sale) => {

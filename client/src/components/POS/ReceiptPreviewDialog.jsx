@@ -314,7 +314,7 @@ const ReceiptPreviewDialog = ({
                                 <Divider sx={{ my: 2 }} />
                                 <Typography variant="caption" fontWeight="bold" color="text.secondary">CONTENT VISIBILITY</Typography>
 
-                                {['shopName', 'header', 'footer', 'productName', 'mrp', 'price', 'discount', 'totalValue', 'exp', 'barcode', 'totalSavings'].map(field => (
+                                {['shopName', 'header', 'footer', 'productName', 'mrp', 'price', 'discount', 'totalItems', 'totalValue', 'exp', 'barcode', 'totalSavings'].map(field => (
                                     <Box key={field} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
                                             Show {field.replace(/([A-Z])/g, ' $1')}
@@ -339,7 +339,24 @@ const ReceiptPreviewDialog = ({
                 </Grid>
             </DialogContent>
             <DialogActions sx={{ p: 2, borderTop: '1px solid #eee' }}>
-                <Button variant="outlined" onClick={onClose}>Close</Button>
+                <Box sx={{ flexGrow: 1, display: 'flex', gap: 1 }}>
+                    <Button variant="outlined" onClick={onClose}>Close</Button>
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            if (receiptSettings.directPrint && window.electron) {
+                                const rawPrinter = receiptSettings.printerType;
+                                const isValidPrinter = rawPrinter && printers?.some(p => p.name === rawPrinter);
+                                const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers?.find(p => p.isDefault) || printers?.[0])?.name);
+                                window.electron.ipcRenderer.send('print-manual', { printerName: printer });
+                            } else {
+                                window.print();
+                            }
+                        }}
+                    >
+                        Print Test Page
+                    </Button>
+                </Box>
                 {onSave && (
                     <Button variant="contained" color="primary" onClick={onSave}>
                         {saveLabel}
