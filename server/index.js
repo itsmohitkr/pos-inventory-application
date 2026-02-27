@@ -60,8 +60,11 @@ const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+const util = require('util');
+const execAsync = util.promisify(require('child_process').exec);
+
 // Auto-run Prisma migrations on startup
-function runPrismaMigrations() {
+async function runPrismaMigrations() {
     console.error('[BOOT MIGRATION] Running automated Prisma migrations...');
 
     try {
@@ -70,19 +73,15 @@ function runPrismaMigrations() {
         let pEnv = { ...process.env };
         let nodeExecutable = process.execPath;
 
-        // Check if running inside packaged app
         const isPackaged = process.env.NODE_ENV === 'production' || __dirname.includes('app.asar');
 
         if (isPackaged) {
-            // Paths relative to 'server' folder unpacked outside app.asar
             prismaCliPath = path.join(__dirname, '..', 'node_modules', 'prisma', 'build', 'index.js');
             schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
             pEnv.ELECTRON_RUN_AS_NODE = '1';
         } else {
-            // Standard paths when running 'npm run dev'
             prismaCliPath = path.join(__dirname, 'node_modules', 'prisma', 'build', 'index.js');
             schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
-            // Ensure we use the exact node executable in dev
             nodeExecutable = process.execPath;
         }
 
@@ -90,33 +89,29 @@ function runPrismaMigrations() {
         console.error('[BOOT MIGRATION] Schema Path:', schemaPath);
 
         try {
-            // Use execSync so DB migrations block server startup
-            const output = execSync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
+            // Use execAsync so DB migrations do not block electron main process event loop
+            const { stdout, stderr } = await execAsync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
                 env: pEnv,
-                encoding: 'utf-8',
-                stdio: ['ignore', 'pipe', 'pipe']
+                encoding: 'utf-8'
             });
-            console.error('[BOOT MIGRATION] Successful:\n', output);
+            console.error('[BOOT MIGRATION] Successful:\n', stdout);
         } catch (deployError) {
             const errorMsg = deployError.stderr || deployError.stdout || deployError.message || "";
             if (errorMsg.includes('P3005')) {
                 console.error('[BOOT MIGRATION] P3005 Detected: Database schema not empty. Baselining...');
 
-                // Read all migrations to mark as applied (except the very latest ones if needed, but resolve is safe)
                 const migrationsDir = path.join(path.dirname(schemaPath), 'migrations');
                 if (fs.existsSync(migrationsDir)) {
                     const dirs = fs.readdirSync(migrationsDir, { withFileTypes: true })
                         .filter(dirent => dirent.isDirectory())
                         .map(dirent => dirent.name);
 
-                    // Sort to ensure chronological order
                     dirs.sort();
 
                     for (const migration of dirs) {
                         try {
-                            execSync(`"${nodeExecutable}" "${prismaCliPath}" migrate resolve --applied "${migration}" --schema="${schemaPath}"`, {
-                                env: pEnv,
-                                stdio: ['ignore', 'pipe', 'pipe']
+                            await execAsync(`"${nodeExecutable}" "${prismaCliPath}" migrate resolve --applied "${migration}" --schema="${schemaPath}"`, {
+                                env: pEnv
                             });
                             console.error(`[BOOT MIGRATION] Baselined migration: ${migration}`);
                         } catch (resolveErr) {
@@ -124,13 +119,12 @@ function runPrismaMigrations() {
                         }
                     }
 
-                    // Re-run deployment for any completely new tables (like Expense and Purchase)
                     console.error('[BOOT MIGRATION] Running final deploy after baselining...');
-                    const outputFinal = execSync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
+                    const { stdout } = await execAsync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
                         env: pEnv,
                         encoding: 'utf-8'
                     });
-                    console.error('[BOOT MIGRATION] Post-Baseline Deploy Successful:\n', outputFinal);
+                    console.error('[BOOT MIGRATION] Post-Baseline Deploy Successful:\n', stdout);
                 }
             } else {
                 throw deployError;
@@ -145,7 +139,7 @@ function runPrismaMigrations() {
 async function checkAndSeed() {
     try {
         // Run migrations first
-        runPrismaMigrations();
+        await runPrismaMigrations();
 
         // Check if any users exist in the database
         const userCount = await prisma.user.count();

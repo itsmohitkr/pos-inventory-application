@@ -441,8 +441,14 @@ ${(() => {
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
 
-    await startServer();
     createWindow();
+    startServer().catch(err => {
+      console.error('Failed to start server:', err);
+      dialog.showErrorBox(
+        'Server Error',
+        `Background server failed to start.\n\nDetails: ${err.message}`
+      );
+    });
   } catch (error) {
     console.error('Failed to start application:', error);
     const message = error.message || error.toString();
