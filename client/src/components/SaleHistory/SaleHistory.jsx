@@ -7,8 +7,11 @@ import {
   Grid,
   Box,
   CircularProgress,
-  Tabs,
-  Tab,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Stack,
   TextField,
   Button,
   Table,
@@ -158,7 +161,8 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [sales, selectedSale]);
 
-  const handleTabChange = (event, newValue) => {
+  const handleTabChange = (event) => {
+    const newValue = event.target.value;
     setTabValue(newValue);
     if (newValue < 4) {
       const range = timeframes[newValue].getValue();
@@ -268,73 +272,70 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
             flexWrap: "wrap",
           }}
         >
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 800, letterSpacing: -0.5 }}
-          >
-            Sale History
-          </Typography>
-          <Box sx={{ minWidth: 280, display: "flex", justifyContent: "flex-end" }}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              variant="scrollable"
-              scrollButtonsDisplay="auto"
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}
             >
-              {timeframes.map((tf, idx) => (
-                <Tab key={idx} label={tf.label} />
-              ))}
-            </Tabs>
+              Sale History
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              View and manage past transactions and receipts.
+            </Typography>
           </Box>
+          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Time Frame</InputLabel>
+              <Select
+                value={tabValue}
+                label="Time Frame"
+                onChange={handleTabChange}
+              >
+                {timeframes.map((tf, idx) => (
+                  <MenuItem key={idx} value={idx}>{tf.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {tabValue === 4 && (
+              <>
+                <TextField
+                  label="Start Date"
+                  type="date"
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                  value={dateRange.startDate.split("T")[0] || ""}
+                  onChange={(e) =>
+                    setDateRange({
+                      ...dateRange,
+                      startDate: new Date(e.target.value).toISOString(),
+                    })
+                  }
+                />
+                <TextField
+                  label="End Date"
+                  type="date"
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                  value={dateRange.endDate.split("T")[0] || ""}
+                  onChange={(e) =>
+                    setDateRange({
+                      ...dateRange,
+                      endDate: new Date(e.target.value).toISOString(),
+                    })
+                  }
+                />
+                <Button
+                  variant="outlined"
+                  onClick={handleApplyCustomRange}
+                  sx={{ height: 40 }}
+                >
+                  Apply
+                </Button>
+              </>
+            )}
+          </Stack>
         </Box>
-        {tabValue === 4 && (
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              justifyContent: "flex-end",
-              mt: 2,
-              pt: 2,
-              borderTop: "1px solid #eee",
-              flexWrap: "wrap",
-            }}
-          >
-            <TextField
-              label="Start Date"
-              type="date"
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              value={dateRange.startDate.split("T")[0] || ""}
-              onChange={(e) =>
-                setDateRange({
-                  ...dateRange,
-                  startDate: new Date(e.target.value).toISOString(),
-                })
-              }
-            />
-            <TextField
-              label="End Date"
-              type="date"
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              value={dateRange.endDate.split("T")[0] || ""}
-              onChange={(e) =>
-                setDateRange({
-                  ...dateRange,
-                  endDate: new Date(e.target.value).toISOString(),
-                })
-              }
-            />
-            <Button
-              variant="contained"
-              onClick={handleApplyCustomRange}
-              startIcon={<CalendarIcon />}
-            >
-              Apply
-            </Button>
-          </Box>
-        )}
       </Paper>
 
       <Container

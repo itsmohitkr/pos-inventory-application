@@ -280,12 +280,18 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         }
     };
 
-    const persistReceiptSettings = (nextSettings) => {
+    const persistReceiptSettings = async (nextSettings) => {
         try {
             localStorage.setItem(STORAGE_KEYS.receipt, JSON.stringify(nextSettings));
             window.dispatchEvent(new Event('pos-settings-updated'));
-        } catch {
-            console.error('Failed to persist receipt settings');
+
+            // Persist to database
+            await api.post('/api/settings', {
+                key: 'posReceiptSettings',
+                value: JSON.stringify(nextSettings)
+            });
+        } catch (error) {
+            console.error('Failed to persist receipt settings:', error);
         }
     };
 

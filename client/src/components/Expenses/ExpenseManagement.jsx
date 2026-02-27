@@ -245,304 +245,332 @@ const ExpenseManagement = () => {
     const totalPurchasesAmount = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
 
     return (
-        <Box sx={{ p: 3, height: '100%', overflow: 'auto' }}>
-            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2} sx={{ mb: 3 }}>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    Financial Tracking
-                </Typography>
+        <Box
+            sx={{
+                bgcolor: "background.default",
+                height: "100%",
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+            }}
+        >
+            <Paper
+                elevation={0}
+                sx={{
+                    m: 3,
+                    px: 4,
+                    py: 2.5,
+                    background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
+                    borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
+                    flexShrink: 0
+                }}
+            >
+                <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2}>
+                    <Box>
+                        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
+                            Financial Tracking
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Monitor operating expenses and inventory purchases.
+                        </Typography>
+                    </Box>
 
-                <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                    <FormControl size="small" sx={{ minWidth: 150 }}>
-                        <InputLabel>Time Frame</InputLabel>
-                        <Select
-                            value={dateFilter}
-                            label="Time Frame"
-                            onChange={(e) => setDateFilter(e.target.value)}
-                        >
-                            <MenuItem value="today">Today</MenuItem>
-                            <MenuItem value="yesterday">Yesterday</MenuItem>
-                            <MenuItem value="thisWeek">This Week</MenuItem>
-                            <MenuItem value="thisMonth">This Month</MenuItem>
-                            <MenuItem value="thisYear">This Year</MenuItem>
-                            <MenuItem value="custom">Custom Date</MenuItem>
-                        </Select>
-                    </FormControl>
+                    <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                            <InputLabel>Time Frame</InputLabel>
+                            <Select
+                                value={dateFilter}
+                                label="Time Frame"
+                                onChange={(e) => setDateFilter(e.target.value)}
+                            >
+                                <MenuItem value="today">Today</MenuItem>
+                                <MenuItem value="yesterday">Yesterday</MenuItem>
+                                <MenuItem value="thisWeek">This Week</MenuItem>
+                                <MenuItem value="thisMonth">This Month</MenuItem>
+                                <MenuItem value="thisYear">This Year</MenuItem>
+                                <MenuItem value="custom">Custom Date</MenuItem>
+                            </Select>
+                        </FormControl>
 
-                    {dateFilter === 'custom' && (
-                        <>
-                            <TextField
-                                size="small"
-                                type="date"
-                                label="Start"
-                                value={customDates.start}
-                                onChange={(e) => setCustomDates({ ...customDates, start: e.target.value })}
-                                InputLabelProps={{ shrink: true }}
-                            />
-                            <TextField
-                                size="small"
-                                type="date"
-                                label="End"
-                                value={customDates.end}
-                                onChange={(e) => setCustomDates({ ...customDates, end: e.target.value })}
-                                InputLabelProps={{ shrink: true }}
-                            />
-                            <Button variant="outlined" onClick={fetchData} sx={{ height: 40 }}>
-                                Apply
-                            </Button>
-                        </>
-                    )}
+                        {dateFilter === 'custom' && (
+                            <>
+                                <TextField
+                                    size="small"
+                                    type="date"
+                                    label="Start"
+                                    value={customDates.start}
+                                    onChange={(e) => setCustomDates({ ...customDates, start: e.target.value })}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <TextField
+                                    size="small"
+                                    type="date"
+                                    label="End"
+                                    value={customDates.end}
+                                    onChange={(e) => setCustomDates({ ...customDates, end: e.target.value })}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <Button variant="outlined" onClick={fetchData} sx={{ height: 40 }}>
+                                    Apply
+                                </Button>
+                            </>
+                        )}
+                    </Stack>
                 </Stack>
-            </Stack>
-
-            <Paper sx={{ mb: 3 }}>
-                <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tab icon={<ReceiptIcon />} iconPosition="start" label="Expenses" />
-                    <Tab icon={<ShippingIcon />} iconPosition="start" label="Inventory Purchases" />
-                </Tabs>
-
-                <Box sx={{ p: 2 }}>
-                    {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-
-                    {activeTab === 0 && (
-                        <Box>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                                <Typography variant="h6">Operating Expenses</Typography>
-                                <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenExpenseDialog}>
-                                    Add Expense
-                                </Button>
-                            </Stack>
-
-                            <TableContainer component={Paper} variant="outlined">
-                                <Table>
-                                    <TableHead sx={{ bgcolor: 'action.hover' }}>
-                                        <TableRow>
-                                            <TableCell>Date</TableCell>
-                                            <TableCell>Category</TableCell>
-                                            <TableCell>Description</TableCell>
-                                            <TableCell align="right">Amount</TableCell>
-                                            <TableCell align="right">Actions</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {expenses.map((row) => (
-                                            <TableRow key={row.id}>
-                                                <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
-                                                <TableCell>{row.category}</TableCell>
-                                                <TableCell>{row.description}</TableCell>
-                                                <TableCell align="right">₹{row.amount.toLocaleString()}</TableCell>
-                                                <TableCell align="right">
-                                                    <IconButton size="small" color="primary" onClick={() => handleEditExpense(row)}>
-                                                        <EditIcon fontSize="small" />
-                                                    </IconButton>
-                                                    <IconButton size="small" color="error" onClick={() => handleDeleteExpense(row.id)}>
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {expenses.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={5} align="center">No expenses found for this period</TableCell>
-                                            </TableRow>
-                                        )}
-                                        {/* Highlighted Total Row */}
-                                        {expenses.length > 0 && (
-                                            <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
-                                                <TableCell colSpan={3} sx={{ py: 1.5 }}>
-                                                    <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
-                                                        Total Current Period
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell align="right" colSpan={2} sx={{ py: 1.5 }}>
-                                                    <Typography variant="h6" fontWeight="bold" color="primary.dark">
-                                                        ₹{totalExpensesAmount.toLocaleString()}
-                                                    </Typography>
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        </Box>
-                    )}
-
-                    {activeTab === 1 && (
-                        <Box>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                                <Typography variant="h6">Inventory Purchases</Typography>
-                                <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenPurchaseDialog}>
-                                    Log Purchase
-                                </Button>
-                            </Stack>
-
-                            <TableContainer component={Paper} variant="outlined">
-                                <Table>
-                                    <TableHead sx={{ bgcolor: 'action.hover' }}>
-                                        <TableRow>
-                                            <TableCell>Date</TableCell>
-                                            <TableCell>Vendor</TableCell>
-                                            <TableCell>Note</TableCell>
-                                            <TableCell align="right">Total Amount</TableCell>
-                                            <TableCell align="right">Actions</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {purchases.map((row) => (
-                                            <TableRow key={row.id}>
-                                                <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
-                                                <TableCell>{row.vendor || 'N/A'}</TableCell>
-                                                <TableCell>{row.note}</TableCell>
-                                                <TableCell align="right">₹{row.totalAmount.toLocaleString()}</TableCell>
-                                                <TableCell align="right">
-                                                    <IconButton size="small" color="primary" onClick={() => handleEditPurchase(row)}>
-                                                        <EditIcon fontSize="small" />
-                                                    </IconButton>
-                                                    <IconButton size="small" color="error" onClick={() => handleDeletePurchase(row.id)}>
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {purchases.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={5} align="center">No purchases recorded for this period</TableCell>
-                                            </TableRow>
-                                        )}
-                                        {/* Highlighted Total Row */}
-                                        {purchases.length > 0 && (
-                                            <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
-                                                <TableCell colSpan={3} sx={{ py: 1.5 }}>
-                                                    <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
-                                                        Total Current Period
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell align="right" sx={{ py: 1.5 }}>
-                                                    <Typography variant="h6" fontWeight="bold" color="primary.dark">
-                                                        ₹{totalPurchasesAmount.toLocaleString()}
-                                                    </Typography>
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        </Box>
-                    )}
-                </Box>
             </Paper>
 
-            {/* Expense Form Dialog */}
-            <Dialog open={expenseDialogOpen} onClose={() => setExpenseDialogOpen(false)} fullWidth maxWidth="sm">
-                <form onSubmit={handleCreateExpense}>
-                    <DialogTitle>{expenseForm.id ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
-                    <DialogContent>
-                        <Box sx={{ mt: 2 }}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        required
-                                        label="Amount"
-                                        type="number"
-                                        value={expenseForm.amount}
-                                        onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        required
-                                        label="Expenses for?"
-                                        value={expenseForm.category}
-                                        onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                                        placeholder="Enter category details..."
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        required
-                                        label="Date"
-                                        type="date"
-                                        value={expenseForm.date}
-                                        onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                                        InputLabelProps={{ shrink: true }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Description"
-                                        multiline
-                                        rows={3}
-                                        value={expenseForm.description}
-                                        onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                                    />
-                                </Grid>
-                            </Grid>
-                        </Box>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setExpenseDialogOpen(false)}>Cancel</Button>
-                        <Button variant="contained" type="submit" disabled={!expenseForm.amount || !expenseForm.category || !expenseForm.date}>Successful</Button>
-                    </DialogActions>
-                </form>
-            </Dialog>
+            <Box sx={{ flex: 1, overflow: 'auto', px: 3, pb: 3 }}>
+                <Paper sx={{ mb: 3 }}>
+                    <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                        <Tab icon={<ReceiptIcon />} iconPosition="start" label="Expenses" />
+                        <Tab icon={<ShippingIcon />} iconPosition="start" label="Inventory Purchases" />
+                    </Tabs>
 
-            {/* Purchase Form Dialog */}
-            <Dialog open={purchaseDialogOpen} onClose={() => setPurchaseDialogOpen(false)} fullWidth maxWidth="sm">
-                <form onSubmit={handleCreatePurchase}>
-                    <DialogTitle>{purchaseForm.id ? 'Edit Purchase' : 'Log Inventory Purchase'}</DialogTitle>
-                    <DialogContent>
-                        <Box sx={{ mt: 2 }}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Vendor Name"
-                                        value={purchaseForm.vendor}
-                                        onChange={(e) => setPurchaseForm({ ...purchaseForm, vendor: e.target.value })}
-                                    />
+                    <Box sx={{ p: 2 }}>
+                        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+
+                        {activeTab === 0 && (
+                            <Box>
+                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                                    <Typography variant="h6">Operating Expenses</Typography>
+                                    <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenExpenseDialog}>
+                                        Add Expense
+                                    </Button>
+                                </Stack>
+
+                                <TableContainer component={Paper} variant="outlined">
+                                    <Table>
+                                        <TableHead sx={{ bgcolor: 'action.hover' }}>
+                                            <TableRow>
+                                                <TableCell>Date</TableCell>
+                                                <TableCell>Category</TableCell>
+                                                <TableCell>Description</TableCell>
+                                                <TableCell align="right">Amount</TableCell>
+                                                <TableCell align="right">Actions</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {expenses.map((row) => (
+                                                <TableRow key={row.id}>
+                                                    <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
+                                                    <TableCell>{row.category}</TableCell>
+                                                    <TableCell>{row.description}</TableCell>
+                                                    <TableCell align="right">₹{row.amount.toLocaleString()}</TableCell>
+                                                    <TableCell align="right">
+                                                        <IconButton size="small" color="primary" onClick={() => handleEditExpense(row)}>
+                                                            <EditIcon fontSize="small" />
+                                                        </IconButton>
+                                                        <IconButton size="small" color="error" onClick={() => handleDeleteExpense(row.id)}>
+                                                            <DeleteIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {expenses.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} align="center">No expenses found for this period</TableCell>
+                                                </TableRow>
+                                            )}
+                                            {/* Highlighted Total Row */}
+                                            {expenses.length > 0 && (
+                                                <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
+                                                    <TableCell colSpan={3} sx={{ py: 1.5 }}>
+                                                        <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
+                                                            Total Current Period
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="right" colSpan={2} sx={{ py: 1.5 }}>
+                                                        <Typography variant="h6" fontWeight="bold" color="primary.dark">
+                                                            ₹{totalExpensesAmount.toLocaleString()}
+                                                        </Typography>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Box>
+                        )}
+
+                        {activeTab === 1 && (
+                            <Box>
+                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                                    <Typography variant="h6">Inventory Purchases</Typography>
+                                    <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenPurchaseDialog}>
+                                        Log Purchase
+                                    </Button>
+                                </Stack>
+
+                                <TableContainer component={Paper} variant="outlined">
+                                    <Table>
+                                        <TableHead sx={{ bgcolor: 'action.hover' }}>
+                                            <TableRow>
+                                                <TableCell>Date</TableCell>
+                                                <TableCell>Vendor</TableCell>
+                                                <TableCell>Note</TableCell>
+                                                <TableCell align="right">Total Amount</TableCell>
+                                                <TableCell align="right">Actions</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {purchases.map((row) => (
+                                                <TableRow key={row.id}>
+                                                    <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
+                                                    <TableCell>{row.vendor || 'N/A'}</TableCell>
+                                                    <TableCell>{row.note}</TableCell>
+                                                    <TableCell align="right">₹{row.totalAmount.toLocaleString()}</TableCell>
+                                                    <TableCell align="right">
+                                                        <IconButton size="small" color="primary" onClick={() => handleEditPurchase(row)}>
+                                                            <EditIcon fontSize="small" />
+                                                        </IconButton>
+                                                        <IconButton size="small" color="error" onClick={() => handleDeletePurchase(row.id)}>
+                                                            <DeleteIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {purchases.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} align="center">No purchases recorded for this period</TableCell>
+                                                </TableRow>
+                                            )}
+                                            {/* Highlighted Total Row */}
+                                            {purchases.length > 0 && (
+                                                <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
+                                                    <TableCell colSpan={3} sx={{ py: 1.5 }}>
+                                                        <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
+                                                            Total Current Period
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="right" sx={{ py: 1.5 }}>
+                                                        <Typography variant="h6" fontWeight="bold" color="primary.dark">
+                                                            ₹{totalPurchasesAmount.toLocaleString()}
+                                                        </Typography>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Box>
+                        )}
+                    </Box>
+                </Paper>
+
+                {/* Expense Form Dialog */}
+                <Dialog open={expenseDialogOpen} onClose={() => setExpenseDialogOpen(false)} fullWidth maxWidth="sm">
+                    <form onSubmit={handleCreateExpense}>
+                        <DialogTitle>{expenseForm.id ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
+                        <DialogContent>
+                            <Box sx={{ mt: 2 }}>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            label="Amount"
+                                            type="number"
+                                            value={expenseForm.amount}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            label="Expenses for?"
+                                            value={expenseForm.category}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                                            placeholder="Enter category details..."
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            label="Date"
+                                            type="date"
+                                            value={expenseForm.date}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                                            InputLabelProps={{ shrink: true }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Description"
+                                            multiline
+                                            rows={3}
+                                            value={expenseForm.description}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                                        />
+                                    </Grid>
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        required
-                                        label="Total Amount"
-                                        type="number"
-                                        value={purchaseForm.totalAmount}
-                                        onChange={(e) => setPurchaseForm({ ...purchaseForm, totalAmount: e.target.value })}
-                                    />
+                            </Box>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setExpenseDialogOpen(false)}>Cancel</Button>
+                            <Button variant="contained" type="submit" disabled={!expenseForm.amount || !expenseForm.category || !expenseForm.date}>Successful</Button>
+                        </DialogActions>
+                    </form>
+                </Dialog>
+
+                {/* Purchase Form Dialog */}
+                <Dialog open={purchaseDialogOpen} onClose={() => setPurchaseDialogOpen(false)} fullWidth maxWidth="sm">
+                    <form onSubmit={handleCreatePurchase}>
+                        <DialogTitle>{purchaseForm.id ? 'Edit Purchase' : 'Log Inventory Purchase'}</DialogTitle>
+                        <DialogContent>
+                            <Box sx={{ mt: 2 }}>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Vendor Name"
+                                            value={purchaseForm.vendor}
+                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, vendor: e.target.value })}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            label="Total Amount"
+                                            type="number"
+                                            value={purchaseForm.totalAmount}
+                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, totalAmount: e.target.value })}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Date"
+                                            type="date"
+                                            value={purchaseForm.date}
+                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, date: e.target.value })}
+                                            InputLabelProps={{ shrink: true }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Note"
+                                            multiline
+                                            rows={3}
+                                            value={purchaseForm.note}
+                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, note: e.target.value })}
+                                        />
+                                    </Grid>
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Date"
-                                        type="date"
-                                        value={purchaseForm.date}
-                                        onChange={(e) => setPurchaseForm({ ...purchaseForm, date: e.target.value })}
-                                        InputLabelProps={{ shrink: true }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Note"
-                                        multiline
-                                        rows={3}
-                                        value={purchaseForm.note}
-                                        onChange={(e) => setPurchaseForm({ ...purchaseForm, note: e.target.value })}
-                                    />
-                                </Grid>
-                            </Grid>
-                        </Box>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setPurchaseDialogOpen(false)}>Cancel</Button>
-                        <Button variant="contained" type="submit" disabled={!purchaseForm.totalAmount}>Successful</Button>
-                    </DialogActions>
-                </form>
-            </Dialog>
+                            </Box>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setPurchaseDialogOpen(false)}>Cancel</Button>
+                            <Button variant="contained" type="submit" disabled={!purchaseForm.totalAmount}>Successful</Button>
+                        </DialogActions>
+                    </form>
+                </Dialog>
+            </Box>
         </Box>
     );
 };

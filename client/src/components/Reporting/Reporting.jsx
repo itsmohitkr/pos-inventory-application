@@ -46,15 +46,14 @@ import LowStockReportPanel from "./LowStockReportPanel";
 import LooseSalesReportPanel from "./LooseSalesReportPanel";
 import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
 import {
-  Tabs,
-  Tab,
   Paper,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Divider as MuiDivider
+  Divider as MuiDivider,
+  Stack
 } from "@mui/material";
 
 const Reporting = ({ receiptSettings, shopMetadata }) => {
@@ -175,7 +174,8 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
     }
   }, [reportType]);
 
-  const handleTabChange = (event, newValue) => {
+  const handleTabChange = (event) => {
+    const newValue = event.target.value;
     setTabValue(newValue);
     if (newValue < 5) {
       const range = timeframes[newValue].getValue();
@@ -219,75 +219,72 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
             flexWrap: "wrap",
           }}
         >
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 800, letterSpacing: -0.5 }}
-          >
-            Reports & Analytics
-          </Typography>
-          <Box sx={{ minWidth: 280, display: "flex", justifyContent: "flex-end" }}>
-            {reportType !== 'low_stock' && (
-              <Tabs
-                value={tabValue}
-                onChange={handleTabChange}
-                variant="scrollable"
-                scrollButtons="auto"
-              >
-                {timeframes.map((tf, idx) => (
-                  <Tab key={idx} label={tf.label} />
-                ))}
-              </Tabs>
-            )}
-          </Box>
-        </Box>
-        {tabValue === 5 && reportType !== 'low_stock' && (
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              justifyContent: "flex-end",
-              mt: 2,
-              pt: 2,
-              borderTop: "1px solid #eee",
-              flexWrap: "wrap",
-            }}
-          >
-            <TextField
-              label="Start Date"
-              type="date"
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              value={dateRange.startDate.split("T")[0] || ""}
-              onChange={(e) =>
-                setDateRange({
-                  ...dateRange,
-                  startDate: new Date(e.target.value).toISOString(),
-                })
-              }
-            />
-            <TextField
-              label="End Date"
-              type="date"
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              value={dateRange.endDate.split("T")[0] || ""}
-              onChange={(e) =>
-                setDateRange({
-                  ...dateRange,
-                  endDate: new Date(e.target.value).toISOString(),
-                })
-              }
-            />
-            <Button
-              variant="contained"
-              onClick={handleApplyCustomRange}
-              startIcon={<CalendarIcon />}
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}
             >
-              Apply
-            </Button>
+              Reports & Analytics
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Gain insights into your sales, profits, and inventory trends.
+            </Typography>
           </Box>
-        )}
+          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+            {reportType !== 'low_stock' && (
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Time Frame</InputLabel>
+                <Select
+                  value={tabValue}
+                  label="Time Frame"
+                  onChange={handleTabChange}
+                >
+                  {timeframes.map((tf, idx) => (
+                    <MenuItem key={idx} value={idx}>{tf.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
+            {tabValue === 5 && reportType !== 'low_stock' && (
+              <>
+                <TextField
+                  label="Start Date"
+                  type="date"
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                  value={dateRange.startDate.split("T")[0] || ""}
+                  onChange={(e) =>
+                    setDateRange({
+                      ...dateRange,
+                      startDate: new Date(e.target.value).toISOString(),
+                    })
+                  }
+                />
+                <TextField
+                  label="End Date"
+                  type="date"
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                  value={dateRange.endDate.split("T")[0] || ""}
+                  onChange={(e) =>
+                    setDateRange({
+                      ...dateRange,
+                      endDate: new Date(e.target.value).toISOString(),
+                    })
+                  }
+                />
+                <Button
+                  variant="outlined"
+                  onClick={handleApplyCustomRange}
+                  sx={{ height: 40 }}
+                >
+                  Apply
+                </Button>
+              </>
+            )}
+          </Stack>
+        </Box>
       </Paper>
 
       <Container

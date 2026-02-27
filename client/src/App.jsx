@@ -353,14 +353,24 @@ const Inventory = () => {
   };
 
   return (
-    <Container maxWidth="100%" disableGutters sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', px: { xs: 1, md: 2 }, py: 2 }}>
+    <Box
+      sx={{
+        bgcolor: "background.default",
+        height: "100%",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2, md: 2.5 },
-          mb: 2,
-          borderRadius: 2,
-          background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
+          m: 3,
+          px: 4,
+          py: 2.5,
+          background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
+          borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -405,7 +415,7 @@ const Inventory = () => {
         </Stack>
       </Paper>
 
-      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0 }}>
+      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 3, pb: 3 }}>
         {showAddProduct ? (
           <Container maxWidth="md" sx={{ height: '100%', overflowY: 'auto' }}>
             <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
@@ -425,7 +435,7 @@ const Inventory = () => {
         onClose={() => setShowImport(false)}
         onImportComplete={handleImportComplete}
       />
-    </Container>
+    </Box>
   );
 };
 

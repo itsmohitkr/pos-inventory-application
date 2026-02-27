@@ -845,7 +845,7 @@ const exportProducts = async () => {
 
   const csvRows = [];
   csvRows.push(
-    "name,barcode,category,quantity,mrp,cost_price,selling_price,wholesale_price,wholesale_min_qty,wholesale_enabled,batch_code,expiry_date",
+    "name,barcode,category,quantity,mrp,cost_price,selling_price,wholesale_price,wholesale_min_qty,wholesale_enabled,batch_code,expiry_date"
   );
 
   for (const product of products) {
@@ -854,26 +854,25 @@ const exportProducts = async () => {
         csvRows.push(
           [
             escapeCSVValue(product.name),
-            product.barcode ? `"${product.barcode}"` : "", // Quote barcode to preserve as text
+            product.barcode ? `="${product.barcode}"` : "",
             escapeCSVValue(product.category),
             batch.quantity,
             batch.mrp,
             batch.costPrice,
+            batch.sellingPrice,
             batch.wholesalePrice || "",
             batch.wholesaleMinQty || "",
             batch.wholesaleEnabled ? "TRUE" : "FALSE",
             escapeCSVValue(batch.batchCode),
-            batch.expiryDate
-              ? batch.expiryDate.toISOString().split("T")[0]
-              : "",
-          ].join(","),
+            batch.expiryDate ? batch.expiryDate.toISOString().split("T")[0] : ""
+          ].join(",")
         );
       }
     } else {
       csvRows.push(
         [
           escapeCSVValue(product.name),
-          product.barcode ? `"${product.barcode}"` : "", // Quote barcode to preserve as text
+          product.barcode ? `="${product.barcode}"` : "",
           escapeCSVValue(product.category),
           0,
           0,
@@ -881,7 +880,10 @@ const exportProducts = async () => {
           0,
           "",
           "",
-        ].join(","),
+          "FALSE",
+          "",
+          ""
+        ].join(",")
       );
     }
   }
@@ -934,10 +936,17 @@ const importProducts = async (csvData) => {
 
       const name = row.name;
       let barcode = row.barcode ? row.barcode.trim() : null;
+
+      // Strip exactly ="[value]" format used to prevent Excel scientific notation
+      if (barcode && barcode.startsWith('="') && barcode.endsWith('"')) {
+        barcode = barcode.slice(2, -1);
+      }
+
       if (barcode && /^\d+\.00$/.test(barcode)) {
         barcode = barcode.replace(".00", "");
       }
 
+      // The headers are mapped to lowercase in importProducts
       const {
         category,
         quantity,

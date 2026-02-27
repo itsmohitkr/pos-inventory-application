@@ -59,33 +59,33 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
             fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
             divider: '2px solid black',
             itemDivider: '0.5px solid #eee',
-            headerWeight: 900,
-            textWeight: 600,
-            boldWeight: 800
+            headerWeight: 400,
+            textWeight: 400,
+            boldWeight: 400
         },
         Modern: {
             fontFamily: 'Outfit, Inter, sans-serif',
             divider: '1px solid black',
             itemDivider: 'none',
-            headerWeight: 800,
-            textWeight: 500,
-            boldWeight: 700
+            headerWeight: 400,
+            textWeight: 400,
+            boldWeight: 400
         },
         Classic: {
             fontFamily: '"Courier New", Courier, monospace',
             divider: '1px dashed black',
             itemDivider: '1px dashed #ccc',
-            headerWeight: 700,
+            headerWeight: 400,
             textWeight: 400,
-            boldWeight: 700
+            boldWeight: 400
         },
         Minimalist: {
             fontFamily: 'Inter, sans-serif',
             divider: '1px solid black',
             itemDivider: 'none',
-            headerWeight: 900,
+            headerWeight: 400,
             textWeight: 400,
-            boldWeight: 700
+            boldWeight: 400
         }
     };
 
@@ -120,7 +120,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                         <Typography
                             variant="h6"
                             sx={{
-                                fontWeight: theme.headerWeight,
+                                fontWeight: 900, // Explicitly Bold for Shop Name
                                 fontSize: '1.25em',
                                 color: '#000',
                                 letterSpacing: '-0.02em',
@@ -290,13 +290,13 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                 <Box sx={{ borderBottom: '1.5px solid black', my: 0.5 }} />
                 {config.totalValue && (
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.3 }}>
-                        <Typography variant="body2" sx={{ fontWeight: theme.headerWeight, fontSize: '1.1em' }}>GRAND TOTAL:</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: theme.headerWeight, fontSize: '1.25em' }}>₹{roundedTotal.toFixed(2)}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 900, fontSize: '1.1em' }}>GRAND TOTAL:</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 900, fontSize: '1.25em' }}>₹{roundedTotal.toFixed(2)}</Typography>
                     </Box>
                 )}
                 {config.totalSavings && (calculatedSavings > 0) && (
                     <Box sx={{ border: '2px solid black', p: 0.8, mt: 1, textAlign: 'center', color: '#000', borderRadius: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 900, fontSize: '1em', letterSpacing: '0.05em' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 400, fontSize: '1em', letterSpacing: '0.05em' }}>
                             TOTAL SAVINGS: ₹{(calculatedSavings - (config.roundOff ? roundOff : 0)).toFixed(2)}
                         </Typography>
                     </Box>
