@@ -1,5 +1,5 @@
 // Electron and core imports FIRST
-const { app, BrowserWindow, ipcMain, dialog, screen, shell, webContents } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, screen, shell, webContents } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
