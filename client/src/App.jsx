@@ -81,9 +81,11 @@ const DEFAULT_RECEIPT_SETTINGS = {
   customShopName: 'Bachat Bazaar',
   customHeader: '123 Business Street, City',
   customFooter: 'Thank You! Visit Again',
-  directPrint: false,
+  directPrint: true,
   printerType: '',
-  paperSize: '80mm'
+  paperSize: '72mm',
+  fontSize: 0.7,
+  itemFontSize: 0.7
 };
 
 const SAMPLE_SALE = {

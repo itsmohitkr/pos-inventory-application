@@ -56,16 +56,16 @@ const DEFAULT_RECEIPT_SETTINGS = {
     customHeader3: '',
     customFooter: 'Thank You! Visit Again',
     customFooter2: '',
-    directPrint: false,
+    directPrint: true,
     printerType: '',
-    paperSize: '80mm',
+    paperSize: '72mm',
     marginTop: 0,
     marginBottom: 0,
     marginSide: 4,
     roundOff: true,
     billFormat: 'Standard',
-    fontSize: 0.8,
-    itemFontSize: 0.8,
+    fontSize: 0.7,
+    itemFontSize: 0.7,
     lineHeight: 1.1,
     invoiceLabel: 'Tax Invoice',
     showBranding: false,
@@ -288,7 +288,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             // Persist to database
             await api.post('/api/settings', {
                 key: 'posReceiptSettings',
-                value: JSON.stringify(nextSettings)
+                value: nextSettings
             });
         } catch (error) {
             console.error('Failed to persist receipt settings:', error);

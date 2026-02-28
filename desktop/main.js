@@ -154,8 +154,8 @@ const getFileSize = (filePath) => {
 };
 
 // CRITICAL FIX: Only skip bootstrap if file exists AND is large enough to have a schema (~200KB expected)
-// If it's less than 50KB, it's likely an empty or fresh SQLite file and needs overwriting.
-const shouldBootstrap = !fs.existsSync(dbFile) || getFileSize(dbFile) < 50 * 1024;
+// If it's less than 5KB (was 50KB), it's likely an empty or fresh SQLite file and needs overwriting.
+const shouldBootstrap = !fs.existsSync(dbFile) || getFileSize(dbFile) < 5 * 1024;
 
 if (shouldBootstrap) {
   try {

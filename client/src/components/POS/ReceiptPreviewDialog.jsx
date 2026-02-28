@@ -121,8 +121,8 @@ const ReceiptPreviewDialog = ({
                                         size="small"
                                         type="number"
                                         fullWidth
-                                        value={receiptSettings.fontSize || 0.8}
-                                        onChange={(e) => onTextSettingChange('fontSize', parseFloat(e.target.value) || 0.8)}
+                                        value={receiptSettings.fontSize || 0.7}
+                                        onChange={(e) => onTextSettingChange('fontSize', parseFloat(e.target.value) || 0.7)}
                                         InputProps={{ inputProps: { min: 0.5, max: 2, step: 0.05 } }}
                                     />
                                     <TextField
@@ -130,8 +130,8 @@ const ReceiptPreviewDialog = ({
                                         size="small"
                                         type="number"
                                         fullWidth
-                                        value={receiptSettings.itemFontSize || 0.8}
-                                        onChange={(e) => onTextSettingChange('itemFontSize', parseFloat(e.target.value) || 0.8)}
+                                        value={receiptSettings.itemFontSize || 0.7}
+                                        onChange={(e) => onTextSettingChange('itemFontSize', parseFloat(e.target.value) || 0.7)}
                                         InputProps={{ inputProps: { min: 0.5, max: 2, step: 0.05 } }}
                                     />
                                 </Box>
