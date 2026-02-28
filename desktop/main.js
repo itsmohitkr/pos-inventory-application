@@ -78,10 +78,15 @@ ipcMain.handle('get-printers', async () => {
 ipcMain.on('print-manual', (event, { printerName }) => {
   if (!mainWindow) return;
   console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
+
+  // Optimize for thermal printer speed and reliability
   mainWindow.webContents.print({
     silent: true,
     deviceName: printerName || undefined,
-    printBackground: true
+    printBackground: true,
+    color: false, // Force monochrome for thermal speed
+    margins: { marginType: 'none' }, // Most thermal printers handle own margins
+    scaleFactor: 100
   }, (success, failureReason) => {
     if (!success) {
       console.error(`[PRINT ERROR] Failed to print: ${failureReason}`);

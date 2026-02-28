@@ -559,9 +559,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 setSelectedPaymentMethod(null);
             });
 
-            fetchProducts();
-
-            // Handle Printing
+            // Handle Printing IMMEDIATELY after state flush
             if (receiptSettings.directPrint) {
                 const rawPrinter = receiptSettings.printerType;
                 const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
@@ -575,6 +573,9 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             } else {
                 setShowReceipt(true);
             }
+
+            // Defer non-critical product refresh until after print handoff
+            fetchProducts();
             searchBarRef.current?.focus();
         } catch (error) {
             console.error(error);
