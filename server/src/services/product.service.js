@@ -278,9 +278,7 @@ const getAllProductsWithBatches = async ({
         },
       },
     });
-    // ...existing code...
   } catch (err) {
-    // ...existing code...
     throw err;
   }
 

@@ -115,6 +115,7 @@ const ProductList = () => {
     const [categoryDialogParent, setCategoryDialogParent] = useState(null);
     const [categoryDialogTarget, setCategoryDialogTarget] = useState(null);
     const [stockFilter, setStockFilter] = useState('all'); // 'all', 'low', 'zero'
+
     const productsRequestId = useRef(0);
     const summaryRequestId = useRef(0);
     const searchInputRef = useRef(null);
@@ -947,7 +948,8 @@ const ProductList = () => {
                                     '&:hover': {
                                         borderColor: 'rgba(31, 41, 55, 0.7)',
                                         bgcolor: 'rgba(31, 41, 55, 0.1)'
-                                    }
+                                    },
+                                    ml: 1
                                 }}
                             >
                                 Reset

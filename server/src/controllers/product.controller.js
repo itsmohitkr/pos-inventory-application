@@ -13,9 +13,7 @@ const getAllProducts = async (req, res) => {
         } = req.query;
 
         if (includeBatches === 'true') {
-            // ...existing code...
             const data = await productService.getAllProductsWithBatches({ search, category });
-            // ...existing code...
             return res.json({ data });
         }
 

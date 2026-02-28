@@ -47,6 +47,7 @@ import AddProductForm from './components/Inventory/AddProductForm';
 import ProductList from './components/Inventory/ProductList';
 import InventoryTree from './components/Inventory/InventoryTree';
 import BulkImportDialog from './components/Inventory/BulkImportDialog';
+import InventoryExcelView from './components/Inventory/InventoryExcelView';
 import POS from './components/POS/POS';
 import Reporting from './components/Reporting/Reporting';
 import ExpenseManagement from './components/Expenses/ExpenseManagement';
@@ -312,12 +313,13 @@ const Overview = ({ shopName, userRole }) => (
 );
 
 const Inventory = () => {
-  const { showError } = useCustomDialog();
+  const { showError, showSuccess } = useCustomDialog();
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [excelViewOpen, setExcelViewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [inventoryKey, setInventoryKey] = useState(0);
-  const inventoryRef = React.useRef();
+  const inventoryRef = React.useRef(null);
 
   const handleProductAdded = () => {
     setInventoryKey(prev => prev + 1);
@@ -406,6 +408,15 @@ const Inventory = () => {
             {exporting ? 'Exporting...' : 'Export CSV'}
           </Button>
           <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<InventoryIcon />}
+            onClick={() => setExcelViewOpen(true)}
+            sx={{ minWidth: 160 }}
+          >
+            Spreadsheet View
+          </Button>
+          <Button
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
@@ -436,6 +447,11 @@ const Inventory = () => {
         open={showImport}
         onClose={() => setShowImport(false)}
         onImportComplete={handleImportComplete}
+      />
+
+      <InventoryExcelView
+        open={excelViewOpen}
+        onClose={() => setExcelViewOpen(false)}
       />
     </Box>
   );
