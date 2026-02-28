@@ -457,7 +457,6 @@ function App() {
   const [passwordError, setPasswordError] = useState('');
   const [uiZoom, setUiZoom] = useState(() => Number(localStorage.getItem('posUiZoom')) || 100);
   const [monochromeMode, setMonochromeMode] = useState(() => localStorage.getItem('posMonochromeMode') === 'true');
-  const [updateNotification, setUpdateNotification] = useState({ open: false, message: '', severity: 'info', showAction: false });
   const [printers, setPrinters] = useState([]);
   const [defaultPrinter, setDefaultPrinter] = useState(null);
 
@@ -537,45 +536,6 @@ function App() {
   }, [uiZoom, monochromeMode]);
 
   useEffect(() => {
-    if (!window.electron) return;
-
-    const handleUpdateAvailable = () => {
-      setUpdateNotification({
-        open: true,
-        message: 'New update available! Downloading in background...',
-        severity: 'info',
-        showAction: false
-      });
-    };
-
-    const handleUpdateDownloaded = () => {
-      setUpdateNotification({
-        open: true,
-        message: 'Update downloaded successfully! Restart the app to apply.',
-        severity: 'success',
-        showAction: true
-      });
-    };
-
-    const handleUpdateError = (event, message) => {
-      console.error('Auto-update error:', message);
-      // Don't disturb user with snackbar for simple check errors unless they requested it
-    };
-
-    const onNotAvailable = () => {
-      setUpdateNotification({
-        open: true,
-        message: 'You are on the latest version!',
-        severity: 'success',
-        showAction: false
-      });
-    };
-
-    window.electron.ipcRenderer.on('update-available', handleUpdateAvailable);
-    window.electron.ipcRenderer.on('update-downloaded', handleUpdateDownloaded);
-    window.electron.ipcRenderer.on('update-error', handleUpdateError);
-    window.electron.ipcRenderer.on('update-not-available', onNotAvailable);
-
     // Fetch system printers
     const fetchPrinters = async () => {
       try {
@@ -590,21 +550,10 @@ function App() {
         setPrinters([]);
       }
     };
-    fetchPrinters();
-
-    return () => {
-      window.electron.ipcRenderer.off('update-available', handleUpdateAvailable);
-      window.electron.ipcRenderer.off('update-downloaded', handleUpdateDownloaded);
-      window.electron.ipcRenderer.off('update-error', handleUpdateError);
-      window.electron.ipcRenderer.off('update-not-available', onNotAvailable);
-    };
+    if (window.electron) fetchPrinters();
   }, []);
 
-  const handleRestartApp = () => {
-    if (window.electron) {
-      window.electron.ipcRenderer.send('restart-app');
-    }
-  };
+
 
   const handleLogin = (user) => {
     setCurrentUser(user);
@@ -968,29 +917,7 @@ function App() {
         />
         <CustomDialog {...dialogState} onClose={closeDialog} />
       </Box>
-      {/* Auto-Update Notifications */}
-      <Snackbar
-        open={updateNotification.open}
-        autoHideDuration={updateNotification.showAction ? null : 6000}
-        onClose={() => setUpdateNotification(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setUpdateNotification(prev => ({ ...prev, open: false }))}
-          severity={updateNotification.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-          action={
-            updateNotification.showAction ? (
-              <Button color="inherit" size="small" onClick={handleRestartApp}>
-                RESTART NOW
-              </Button>
-            ) : null
-          }
-        >
-          {updateNotification.message}
-        </Alert>
-      </Snackbar>
+
     </Router>
   );
 }

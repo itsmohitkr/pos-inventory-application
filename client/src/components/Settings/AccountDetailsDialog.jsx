@@ -28,6 +28,7 @@ import {
   PhotoCamera as PhotoCameraIcon,
   Payment as PaymentIcon,
   DisplaySettings as DisplayIcon,
+  SystemUpdate as UpdateIcon,
 } from "@mui/icons-material";
 import CustomDialog from "../common/CustomDialog";
 import useCustomDialog from "../../hooks/useCustomDialog";
@@ -66,7 +67,8 @@ const AccountDetailsDialog = ({
   const [logoUrl, setLogoUrl] = useState(shopMetadata.shopLogo);
   const [updateStatus, setUpdateStatus] = useState(null);
   const [updateMessage, setUpdateMessage] = useState("");
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [appMetadata, setAppMetadata] = useState({ version: 'Unknown', lastUpdate: 'Unknown' });
   // Add missing state variables
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipePassword, setWipePassword] = useState("");
@@ -109,37 +111,44 @@ const AccountDetailsDialog = ({
 
   useEffect(() => {
     if (window.electron && window.electron.ipcRenderer) {
+      // Fetch metadata
+      window.electron.ipcRenderer.invoke('get-app-metadata').then(data => {
+        setAppMetadata(data);
+      });
+
       const onAvailable = () => {
-        setUpdateStatus("info");
-        setUpdateMessage("A new update is available. Downloading...");
-        setSnackbarOpen(true);
+        setUpdateStatus("available");
+        setUpdateMessage("New update available!");
       };
       const onDownloaded = () => {
-        setUpdateStatus("success");
-        setUpdateMessage("Update downloaded! Restart the app to apply.");
-        setSnackbarOpen(true);
+        setUpdateStatus("downloaded");
+        setUpdateMessage("Update downloaded!");
       };
       const onError = (_event, msg) => {
         setUpdateStatus("error");
         setUpdateMessage("Update error: " + msg);
-        setSnackbarOpen(true);
       };
       const onNotAvailable = () => {
-        setUpdateStatus("success");
+        setUpdateStatus("latest");
         setUpdateMessage("You are on the latest version!");
-        setSnackbarOpen(true);
+      };
+      const onProgress = (_event, percent) => {
+        setUpdateStatus("downloading");
+        setDownloadProgress(Math.round(percent));
       };
 
       window.electron.ipcRenderer.on("update-available", onAvailable);
       window.electron.ipcRenderer.on("update-downloaded", onDownloaded);
       window.electron.ipcRenderer.on("update-error", onError);
       window.electron.ipcRenderer.on("update-not-available", onNotAvailable);
+      window.electron.ipcRenderer.on("download-progress", onProgress);
 
       return () => {
         window.electron.ipcRenderer.off("update-available", onAvailable);
         window.electron.ipcRenderer.off("update-downloaded", onDownloaded);
         window.electron.ipcRenderer.off("update-error", onError);
         window.electron.ipcRenderer.off("update-not-available", onNotAvailable);
+        window.electron.ipcRenderer.off("download-progress", onProgress);
       };
     }
   }, []);
@@ -259,9 +268,21 @@ const AccountDetailsDialog = ({
   const handleCheckForUpdates = () => {
     if (window.electron && window.electron.ipcRenderer) {
       window.electron.ipcRenderer.send("check-for-updates");
-      setUpdateStatus("info");
-      setUpdateMessage("Checking for updates...");
-      setSnackbarOpen(true);
+      setUpdateStatus("checking");
+      setUpdateMessage("Checking...");
+    }
+  };
+
+  const handleStartDownload = () => {
+    if (window.electron && window.electron.ipcRenderer) {
+      window.electron.ipcRenderer.send("start-download");
+      setUpdateStatus("downloading");
+    }
+  };
+
+  const handleRestartApp = () => {
+    if (window.electron && window.electron.ipcRenderer) {
+      window.electron.ipcRenderer.send("restart-app");
     }
   };
 
@@ -428,15 +449,75 @@ const AccountDetailsDialog = ({
                     placeholder="22AAAAA0000A1Z5"
                   />
                 </Stack>
+              </Paper>
 
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={handleCheckForUpdates}
-                  sx={{ mt: 2 }}
+              <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ display: "flex", alignItems: "center", gap: 1 }}
                 >
-                  Check for Updates
-                </Button>
+                  <UpdateIcon fontSize="small" color="primary" />
+                  Application Updates
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={handleCheckForUpdates}
+                    disabled={updateStatus === "checking" || updateStatus === "downloading"}
+                    size="small"
+                  >
+                    {updateStatus === "checking" ? "Checking..." : "Check for Updates"}
+                  </Button>
+
+                  {updateStatus === 'available' && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleStartDownload}
+                      size="small"
+                    >
+                      Update Now
+                    </Button>
+                  )}
+
+                  {updateStatus === 'downloaded' && (
+                    <Button
+                      variant="contained"
+                      color="success"
+                      onClick={handleRestartApp}
+                      size="small"
+                    >
+                      Restart Now
+                    </Button>
+                  )}
+
+                  {updateStatus && (
+                    <Typography variant="body2" sx={{
+                      color: updateStatus === 'error' ? 'error.main' :
+                        updateStatus === 'available' ? 'info.main' :
+                          updateStatus === 'downloaded' ? 'success.main' :
+                            'text.secondary',
+                      fontWeight: 500
+                    }}>
+                      {updateStatus === 'downloading' ? `Downloading: ${downloadProgress}%` : updateMessage}
+                    </Typography>
+                  )}
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 4 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Current Version</Typography>
+                    <Typography variant="body2" fontWeight={700} sx={{ color: 'primary.main' }}>{appMetadata.version}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Last System Update</Typography>
+                    <Typography variant="body2" fontWeight={700} sx={{ color: 'primary.main' }}>{appMetadata.lastUpdate}</Typography>
+                  </Box>
+                </Box>
               </Paper>
 
               {/* Database Settings Section - Admin Only */}
@@ -875,19 +956,6 @@ const AccountDetailsDialog = ({
         </DialogActions>
       </Dialog>
       <CustomDialog {...dialogState} onClose={closeDialog} />
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-      >
-        <MuiAlert
-          onClose={() => setSnackbarOpen(false)}
-          severity={updateStatus}
-          sx={{ width: "100%" }}
-        >
-          {updateMessage}
-        </MuiAlert>
-      </Snackbar>
     </>
   );
 };

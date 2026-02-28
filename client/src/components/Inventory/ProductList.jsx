@@ -1111,7 +1111,7 @@ const ProductList = () => {
                                 const stockStatus = getStockStatus(product);
                                 const statusColor = stockStatus === 'zero' ? '#ef4444' :
                                     stockStatus === 'low' ? '#7c3aed' :
-                                        '#3b82f6';
+                                        '#10b981';
                                 return (
                                     <TableRow
                                         key={product.id}

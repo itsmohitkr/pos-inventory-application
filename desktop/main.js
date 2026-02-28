@@ -31,6 +31,11 @@ app.on('ready', async () => {
         mainWindow.webContents.send('update-error', err.message);
       }
     });
+    autoUpdater.on('download-progress', (progressObj) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('download-progress', progressObj.percent);
+      }
+    });
   } catch (error) {
     console.error('Failed to start auto-update setup:', error);
   }
@@ -38,9 +43,25 @@ app.on('ready', async () => {
 
 // IPC handlers
 ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('get-app-metadata', () => {
+  const version = app.getVersion();
+  // Get last modified time of the executable or app bundle
+  let lastUpdate = 'Unknown';
+  try {
+    const exePath = app.getPath('exe');
+    const stats = fs.statSync(exePath);
+    lastUpdate = stats.mtime.toLocaleDateString();
+  } catch (e) {
+    console.error('Failed to get last update date:', e);
+  }
+  return { version, lastUpdate };
+});
 ipcMain.handle('get-app-path', () => appDataPath);
 ipcMain.on('check-for-updates', () => {
   autoUpdater.checkForUpdates();
+});
+ipcMain.on('start-download', () => {
+  autoUpdater.downloadUpdate();
 });
 
 ipcMain.on('restart-app', () => {
