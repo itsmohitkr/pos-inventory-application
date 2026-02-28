@@ -471,7 +471,7 @@ function App() {
     shopLogo: ''
   });
 
-  const fetchSettings = async () => {
+  const fetchSettings = async (retries = 3) => {
     try {
       const res = await api.get('/api/settings');
       const settings = res.data.data;
@@ -489,7 +489,10 @@ function App() {
         shopLogo: settings.shopLogo || ''
       });
     } catch (error) {
-      console.error('Failed to fetch settings:', error);
+      console.error(`Failed to fetch settings (remaining retries: ${retries}):`, error);
+      if (retries > 0) {
+        setTimeout(() => fetchSettings(retries - 1), 1000);
+      }
     }
   };
 

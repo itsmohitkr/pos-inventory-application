@@ -165,7 +165,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         if (propShopMetadata) setShopMetadata(propShopMetadata);
     }, [propShopMetadata]);
 
-    const refreshSettings = useCallback(async () => {
+    const refreshSettings = useCallback(async (retries = 3) => {
         try {
             const res = await api.get('/api/settings');
             const sett = res.data.data;
@@ -182,7 +182,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 shopLogo: sett.shopLogo || ''
             });
         } catch (error) {
-            console.error('Failed to refresh POS settings:', error);
+            console.error(`Failed to refresh POS settings (remaining retries: ${retries}):`, error);
+            if (retries > 0) {
+                setTimeout(() => refreshSettings(retries - 1), 1000);
+            }
         }
     }, []);
 
@@ -263,20 +266,24 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
     // ===== All Functions Declared BEFORE useEffect =====
 
-    const fetchProducts = async () => {
+    const fetchProducts = async (retries = 3) => {
         try {
             const res = await api.get('/api/products', {
                 params: { includeBatches: true }
             });
             setProducts(res.data.data);
         } catch (err) {
-            console.error("Error fetching products:", err);
-            setNotification({
-                open: true,
-                message: `Unable to connect to POS server. ${err.message}`,
-                severity: 'error',
-                duration: 5000
-            });
+            console.error(`Error fetching products (remaining retries: ${retries}):`, err);
+            if (retries > 0) {
+                setTimeout(() => fetchProducts(retries - 1), 1000);
+            } else {
+                setNotification({
+                    open: true,
+                    message: `Unable to connect to POS server. ${err.message}`,
+                    severity: 'error',
+                    duration: 5000
+                });
+            }
         }
     };
 

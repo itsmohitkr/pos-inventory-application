@@ -1,10 +1,11 @@
 // Electron and core imports FIRST
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, screen, shell, webContents } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const url = require('url');
+const net = require('net');
 
 // Auto-update setup
 app.on('ready', async () => {
@@ -327,8 +328,35 @@ const createWindow = () => {
     });
 };
 
+const checkPort = (port) => {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    const onError = () => {
+      socket.destroy();
+      resolve(false);
+    };
+    socket.setTimeout(200);
+    socket.once('error', onError);
+    socket.once('timeout', onError);
+    socket.connect(port, '127.0.0.1', () => {
+      socket.destroy();
+      resolve(true);
+    });
+  });
+};
+
+const waitForServer = async (port, timeout = 15000) => {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    const isReady = await checkPort(port);
+    if (isReady) return true;
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return false;
+};
+
 const startServer = () => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       // Set server port and environment
       process.env.PORT = SERVER_PORT;
@@ -355,10 +383,15 @@ const startServer = () => {
       try {
         require(wrapperPath);
 
-        // Wait a tiny bit for server to start listening
-        setTimeout(() => {
+        // Wait for server to actually start listening
+        console.log(`Polling port ${SERVER_PORT}...`);
+        const ready = await waitForServer(SERVER_PORT);
+        if (ready) {
+          console.log(`Server is ready on port ${SERVER_PORT}`);
           resolve();
-        }, 500);
+        } else {
+          reject(new Error(`Server timed out after waiting for port ${SERVER_PORT}`));
+        }
       } catch (error) {
         console.error('Failed to start server:', error);
         reject(error);
