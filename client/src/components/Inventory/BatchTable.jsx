@@ -7,37 +7,37 @@ const ShortBatchCode = ({ batchCode }) => {
     if (!batchCode || batchCode === 'N/A') {
         return <span style={{ color: '#999' }}>N/A</span>;
     }
-    
+
     // If batch code is short (<=8 chars), display it normally
     if (batchCode.length <= 8) {
         return (
-            <Chip 
-                label={batchCode} 
-                size="small" 
+            <Chip
+                label={batchCode}
+                size="small"
                 variant="outlined"
-                sx={{ 
-                    fontFamily: 'monospace', 
+                sx={{
+                    fontFamily: 'monospace',
                     fontSize: '0.75rem',
                     height: '22px'
-                }} 
+                }}
             />
         );
     }
-    
+
     // For longer codes, show first 6 chars + "..."
     const shortCode = batchCode.substring(0, 6) + '...';
     return (
         <Tooltip title={batchCode} arrow placement="top">
-            <Chip 
-                label={shortCode} 
-                size="small" 
+            <Chip
+                label={shortCode}
+                size="small"
                 variant="outlined"
-                sx={{ 
-                    fontFamily: 'monospace', 
+                sx={{
+                    fontFamily: 'monospace',
                     fontSize: '0.75rem',
                     height: '22px',
                     cursor: 'help'
-                }} 
+                }}
             />
         </Tooltip>
     );
@@ -66,6 +66,7 @@ const BatchTable = ({ batches, onEditBatch, onBatchUpdated, productName }) => {
                         <TableCell align="right" sx={{ fontWeight: 'bold' }}>Cost Price (CP)</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 'bold' }}>Selling Price (SP)</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 'bold' }}>MRP</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>Disc %</TableCell>
                         <TableCell align="center" sx={{ fontWeight: 'bold' }}>Margin</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 'bold' }}>Expiry Date</TableCell>
                         <TableCell align="center" sx={{ fontWeight: 'bold' }}>Action</TableCell>
@@ -77,6 +78,10 @@ const BatchTable = ({ batches, onEditBatch, onBatchUpdated, productName }) => {
                             ? (((batch.sellingPrice - batch.costPrice) / batch.sellingPrice) * 100).toFixed(1)
                             : 0;
 
+                        const discount = batch.mrp > 0
+                            ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1)
+                            : 0;
+
                         return (
                             <TableRow key={batch.id}>
                                 <TableCell component="th" scope="row"><ShortBatchCode batchCode={batch.batchCode} /></TableCell>
@@ -84,6 +89,14 @@ const BatchTable = ({ batches, onEditBatch, onBatchUpdated, productName }) => {
                                 <TableCell align="right">₹{batch.costPrice}</TableCell>
                                 <TableCell align="right">₹{batch.sellingPrice}</TableCell>
                                 <TableCell align="right">₹{batch.mrp}</TableCell>
+                                <TableCell align="center">
+                                    <Box sx={{
+                                        color: 'primary.main',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {discount}%
+                                    </Box>
+                                </TableCell>
                                 <TableCell align="center">
                                     <Box sx={{
                                         color: margin > 20 ? 'success.main' : margin > 10 ? 'warning.main' : 'error.main',

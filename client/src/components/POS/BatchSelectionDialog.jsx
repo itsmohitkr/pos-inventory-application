@@ -140,6 +140,9 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
                                             <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 700 }}>
                                                 <strong>Qty:</strong> {batch.quantity}
                                             </Typography>
+                                            <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 700 }}>
+                                                <strong>Disc:</strong> {batch.mrp > 0 ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1) : 0}%
+                                            </Typography>
                                             <Typography variant="body2" sx={{ color: batch.expiryDate ? 'error.main' : 'text.disabled' }}>
                                                 <strong>Exp:</strong> {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A'}
                                             </Typography>

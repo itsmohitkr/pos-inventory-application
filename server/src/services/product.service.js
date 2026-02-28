@@ -241,7 +241,7 @@ const getAllProducts = async ({
       ...row,
       total_stock: Number(row.total_stock || 0),
       total_cost: Number(row.total_cost || 0),
-      total_selling: Number(row.total_selling || 0),
+      total_selling: Number(row.total_selling || 0)
     })),
     total,
   };

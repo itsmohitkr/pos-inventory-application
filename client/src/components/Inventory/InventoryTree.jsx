@@ -341,6 +341,7 @@ const InventoryTree = forwardRef((props, ref) => {
                                 const maxSelling = Math.max(...product.batches.map(b => b.sellingPrice), 0);
                                 const maxCost = Math.max(...product.batches.map(b => b.costPrice), 0);
                                 const margin = maxSelling > 0 ? ((maxSelling - maxCost) / maxSelling * 100).toFixed(1) : 0;
+                                const maxDiscount = maxMrp > 0 ? ((maxMrp - maxSelling) / maxMrp * 100).toFixed(1) : 0;
 
                                 return (
                                     <Grid item xs={12} sm={6} lg={4} key={product.id}>
@@ -412,9 +413,16 @@ const InventoryTree = forwardRef((props, ref) => {
                                                             <Typography variant="body2" sx={{ fontWeight: 500 }}>₹{maxCost.toFixed(2)}</Typography>
                                                         </Box>
                                                         <Divider sx={{ my: 0.5 }} />
-                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: 'rgba(31, 138, 91, 0.1)', p: 1, borderRadius: 1 }}>
-                                                            <Typography variant="caption" sx={{ fontWeight: 600 }}>Margin:</Typography>
-                                                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#1f8a5b' }}>{margin}%</Typography>
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: 'rgba(31, 138, 91, 0.05)', p: 1, borderRadius: 1, gap: 1 }}>
+                                                            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'space-between' }}>
+                                                                <Typography variant="caption" sx={{ fontWeight: 600 }}>Disc:</Typography>
+                                                                <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>{maxDiscount}%</Typography>
+                                                            </Box>
+                                                            <Divider orientation="vertical" flexItem />
+                                                            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'space-between' }}>
+                                                                <Typography variant="caption" sx={{ fontWeight: 600 }}>Margin:</Typography>
+                                                                <Typography variant="body2" sx={{ fontWeight: 700, color: '#1f8a5b' }}>{margin}%</Typography>
+                                                            </Box>
                                                         </Box>
                                                     </Stack>
                                                 </Box>

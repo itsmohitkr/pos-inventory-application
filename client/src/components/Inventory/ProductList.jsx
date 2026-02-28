@@ -1094,6 +1094,7 @@ const ProductList = () => {
                                         Barcode
                                     </TableSortLabel>
                                 </TableCell>
+
                                 <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
                                     <TableSortLabel
                                         active={sortBy === 'stock'}
@@ -1143,6 +1144,7 @@ const ProductList = () => {
                                         <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
                                             {renderBarcodeChips(product.barcode, 'small')}
                                         </TableCell>
+
                                         <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
                                             <Typography variant="body1">{product.total_stock}</Typography>
                                         </TableCell>
@@ -1350,6 +1352,7 @@ const ProductList = () => {
                                                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>MRP</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>Cost</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>Selling</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Disc %</TableCell>
                                                 <TableCell align="center" sx={{ fontWeight: 'bold' }}>Margin</TableCell>
                                                 {displayProduct.batchTrackingEnabled && <TableCell align="right" sx={{ fontWeight: 'bold' }}>Expiry</TableCell>}
                                                 <TableCell align="center" sx={{ fontWeight: 'bold' }}>Action</TableCell>
@@ -1360,6 +1363,9 @@ const ProductList = () => {
                                                 const margin = batch.sellingPrice > 0
                                                     ? (((batch.sellingPrice - batch.costPrice) / batch.sellingPrice) * 100).toFixed(1)
                                                     : 0;
+                                                const discount = batch.mrp > 0
+                                                    ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1)
+                                                    : 0;
                                                 return (
                                                     <TableRow key={batch.id}>
                                                         {displayProduct.batchTrackingEnabled && <TableCell>{batch.batchCode || 'N/A'}</TableCell>}
@@ -1367,6 +1373,11 @@ const ProductList = () => {
                                                         <TableCell align="right">₹{batch.mrp}</TableCell>
                                                         <TableCell align="right">₹{batch.costPrice}</TableCell>
                                                         <TableCell align="right">₹{batch.sellingPrice}</TableCell>
+                                                        <TableCell align="center">
+                                                            <Box sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+                                                                {discount}%
+                                                            </Box>
+                                                        </TableCell>
                                                         <TableCell align="center">
                                                             <Box sx={{
                                                                 color: margin > 20 ? 'success.main' : margin > 10 ? 'warning.main' : 'error.main',

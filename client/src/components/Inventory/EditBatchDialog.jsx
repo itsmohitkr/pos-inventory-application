@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, Grid, TextField, InputAdornment, Box, Typography, DialogActions, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, Grid, TextField, InputAdornment, Box, Typography, DialogActions, Button, Divider } from '@mui/material';
 import api from '../../api';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
@@ -200,20 +200,31 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                         </Grid>
                         <Grid item xs={12}>
                             <Box sx={{
-                                p: 2,
+                                p: 1.5,
                                 bgcolor: '#f0f7ff',
                                 borderRadius: 1,
                                 display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                gap: 2,
                                 border: '1px solid #cce3ff'
                             }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#0059b2' }}>Calculated Margin:</Typography>
-                                <Typography variant="h6" sx={{ fontWeight: '800', color: '#0059b2' }}>
-                                    {sellingPrice > 0
-                                        ? (((sellingPrice - costPrice) / sellingPrice) * 100).toFixed(1)
-                                        : 0}%
-                                </Typography>
+                                <Box sx={{ flex: 1, minWidth: '140px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#0059b2' }}>Margin:</Typography>
+                                    <Typography variant="h6" sx={{ fontWeight: '800', color: '#0059b2' }}>
+                                        {sellingPrice > 0
+                                            ? (((sellingPrice - costPrice) / sellingPrice) * 100).toFixed(1)
+                                            : 0}%
+                                    </Typography>
+                                </Box>
+                                <Divider orientation="vertical" flexItem sx={{ borderRightWidth: 1.5, borderColor: '#cce3ff', display: { xs: 'none', sm: 'block' } }} />
+                                <Box sx={{ flex: 1, minWidth: '140px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1976d2' }}>Discount:</Typography>
+                                    <Typography variant="h6" sx={{ fontWeight: '800', color: '#1976d2' }}>
+                                        {mrp > 0
+                                            ? (((mrp - sellingPrice) / mrp) * 100).toFixed(1)
+                                            : 0}%
+                                    </Typography>
+                                </Box>
                             </Box>
                         </Grid>
                     </Grid>
