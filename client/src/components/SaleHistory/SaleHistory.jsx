@@ -255,6 +255,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
     >
       <Paper
         elevation={0}
+        className="no-print"
         sx={{
           m: 3,
           px: 4,
@@ -366,6 +367,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
             container
             spacing={3}
             wrap="nowrap"
+            className="no-print"
             sx={{ flex: 1, minHeight: 0, overflow: "hidden", flexWrap: "nowrap" }}
           >
             {/* Left Panel: Sales List */}

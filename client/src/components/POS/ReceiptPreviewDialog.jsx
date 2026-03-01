@@ -43,7 +43,7 @@ const ReceiptPreviewDialog = ({
             fullWidth
             onKeyDown={handleKeyDown}
         >
-            <DialogTitle sx={{ borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <DialogTitle className="no-print" sx={{ borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 Bill Preview & Settings
                 <IconButton onClick={onClose} size="small">
                     <CancelIcon />
@@ -53,7 +53,7 @@ const ReceiptPreviewDialog = ({
                 <Grid container sx={{ height: '70vh' }}>
                     {/* Settings Sidebar - Admin Only */}
                     {isAdmin && (
-                        <Grid item xs={12} sm={4} sx={{ borderRight: '1px solid #eee', p: 2, overflowY: 'auto', bgcolor: '#f8f9fa' }}>
+                        <Grid item xs={12} sm={4} className="no-print" sx={{ borderRight: '1px solid #eee', p: 2, overflowY: 'auto', bgcolor: '#f8f9fa' }}>
                             <Typography variant="subtitle2" fontWeight="bold" gutterBottom>Receipt Content Settings</Typography>
 
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -338,7 +338,7 @@ const ReceiptPreviewDialog = ({
                     </Grid>
                 </Grid>
             </DialogContent>
-            <DialogActions sx={{ p: 2, borderTop: '1px solid #eee' }}>
+            <DialogActions className="no-print" sx={{ p: 2, borderTop: '1px solid #eee' }}>
                 <Box sx={{ flexGrow: 1, display: 'flex', gap: 1 }}>
                     <Button variant="outlined" onClick={onClose}>Close</Button>
                     <Button
