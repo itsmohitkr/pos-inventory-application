@@ -152,9 +152,9 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const [looseSaleEnabled, setLooseSaleEnabled] = useState(() => localStorage.getItem('posLooseSaleEnabled') !== 'false');
     const [promoSettings, setPromoSettings] = useState({
         enabled: false,
-        thresholds: [],
-        profitPercentage: 20
+        config: []
     });
+    const [showPromoGifts, setShowPromoGifts] = useState(false);
     const [shopMetadata, setShopMetadata] = useState(() => propShopMetadata || {
         shopMobile: '',
         shopMobile2: '',
@@ -175,12 +175,17 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
     const refreshSettings = useCallback(async (retries = 3) => {
         try {
-            const res = await api.get('/api/settings');
-            const sett = res.data.data;
+            const [settingsRes, statsRes] = await Promise.all([
+                api.get('/api/settings'),
+                api.get('/api/reports/top-selling')
+            ]);
+
+            const sett = settingsRes.data.data;
             if (sett.posReceiptSettings) setReceiptSettings(sett.posReceiptSettings);
             if (sett.posPaymentSettings) setPaymentSettings(sett.posPaymentSettings);
             if (sett.posEnableExtraDiscount !== undefined) setExtraDiscountEnabled(sett.posEnableExtraDiscount);
             if (sett.posNotificationDuration !== undefined) setNotificationDuration(sett.posNotificationDuration);
+            setProductSales(statsRes.data || {});
             setShopMetadata({
                 shopMobile: sett.shopMobile || '',
                 shopMobile2: sett.shopMobile2 || '',
@@ -191,7 +196,26 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             });
 
             if (sett.promotion_buy_x_get_free) {
-                setPromoSettings(sett.promotion_buy_x_get_free);
+                const data = sett.promotion_buy_x_get_free;
+                if (data.thresholds && !data.config) {
+                    const migratedConfig = data.thresholds.map(t => ({
+                        threshold: t,
+                        profitPercentage: data.profitPercentage || 20,
+                        minCostPrice: data.minCostPrice || 0,
+                        maxCostPrice: data.maxCostPrice || null,
+                        sortBySales: data.sortBySales || 'none',
+                        maxGiftsToShow: data.maxGiftsToShow || 5
+                    }));
+                    setPromoSettings({
+                        enabled: data.enabled || false,
+                        config: migratedConfig
+                    });
+                } else {
+                    setPromoSettings({
+                        enabled: data.enabled || false,
+                        config: data.config || []
+                    });
+                }
             }
         } catch (error) {
             console.error(`Failed to refresh POS settings (remaining retries: ${retries}):`, error);
@@ -275,6 +299,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0] || { id: 1, name: 'Order 1', cart: [], discount: 0 };
     const cart = activeTab.cart || [];
     const discount = activeTab.discount || 0;
+    const [productSales, setProductSales] = useState({});
 
     // ===== All Functions Declared BEFORE useEffect =====
 
@@ -686,35 +711,54 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const baseTotalAmount = Math.max(0, subTotal - discount);
     const totalProfit = useMemo(() => {
         return cart.reduce((sum, item) => {
+            if (item.isFree) return sum; // Exclude free items from profit generation
             const profitPerUnit = (item.price || 0) - (item.costPrice || 0);
             return sum + (profitPerUnit * item.quantity);
         }, 0);
     }, [cart]);
 
-    const activeThreshold = useMemo(() => {
-        if (!promoSettings?.enabled || !promoSettings?.thresholds?.length) return null;
-        // Find the highest threshold met
-        const metThresholds = promoSettings.thresholds.filter(t => baseTotalAmount >= t);
-        return metThresholds.length > 0 ? Math.max(...metThresholds) : null;
+    const activeConfig = useMemo(() => {
+        if (!promoSettings?.enabled || !promoSettings?.config?.length) return null;
+        const metConfigs = promoSettings.config.filter(c => Number(baseTotalAmount) >= Number(c.threshold));
+        if (metConfigs.length === 0) return null;
+        return metConfigs.reduce((prev, curr) => (Number(curr.threshold) > Number(prev.threshold)) ? curr : prev);
     }, [baseTotalAmount, promoSettings]);
 
     const alreadyHasFreeProduct = useMemo(() => cart.some(item => item.isFree), [cart]);
 
     const eligibleFreeProducts = useMemo(() => {
-        if (!activeThreshold || alreadyHasFreeProduct) return [];
-        const profitLimit = totalProfit * ((promoSettings.profitPercentage || 20) / 100);
-        const minCost = promoSettings.minCostPrice || 0;
-        const maxCost = Math.min(profitLimit, promoSettings.maxCostPrice || Infinity);
+        if (!activeConfig) return [];
 
-        return products.filter(p => {
-            // Check if ANY batch of this product has costPrice within range and <= maxCost
-            return p.batches && p.batches.some(b =>
-                b.costPrice >= minCost &&
-                b.costPrice <= maxCost &&
-                b.quantity > 0
-            );
+        // Reset toggle if threshold changed (optional, lets user know a new tier is hit)
+        // Note: Can't set state in useMemo, use useEffect instead
+
+        const profitLimit = Number(totalProfit) * (Number(activeConfig.profitPercentage || 20) / 100);
+        const minCost = Number(activeConfig.minCostPrice || 0);
+        const maxCost = activeConfig.maxCostPrice !== null ?
+            Number(activeConfig.maxCostPrice) :
+            profitLimit;
+
+        const filtered = products.filter(p => {
+            return p.batches && p.batches.some(b => {
+                const cp = Number(b.costPrice);
+                return cp >= minCost &&
+                    cp <= (maxCost + 0.001) &&
+                    b.quantity > 0;
+            });
         });
-    }, [activeThreshold, totalProfit, promoSettings, products, alreadyHasFreeProduct]);
+
+        // Sorting based on sales count
+        let finalGifts = filtered;
+        if (activeConfig.sortBySales === 'most') {
+            finalGifts = [...filtered].sort((a, b) => (productSales[b.id] || 0) - (productSales[a.id] || 0));
+        } else if (activeConfig.sortBySales === 'least') {
+            finalGifts = [...filtered].sort((a, b) => (productSales[a.id] || 0) - (productSales[b.id] || 0));
+        }
+
+        // Apply max gifts limit
+        const limit = activeConfig.maxGiftsToShow !== undefined ? activeConfig.maxGiftsToShow : 5;
+        return finalGifts.slice(0, limit);
+    }, [activeConfig, totalProfit, products, alreadyHasFreeProduct, productSales]);
 
     // Auto-remove free product if threshold is lost or profit limit changes
     useEffect(() => {
@@ -722,44 +766,56 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             const freeItem = cart.find(item => item.isFree);
             if (!freeItem) return;
 
-            const profitLimit = totalProfit * ((promoSettings.profitPercentage || 20) / 100);
-            const minCost = promoSettings.minCostPrice || 0;
-            const maxCost = Math.min(profitLimit, promoSettings.maxCostPrice || Infinity);
+            if (!activeConfig) {
+                removeFromCart(freeItem.cartId);
+                return;
+            }
 
-            const isStillEligible = activeThreshold &&
-                freeItem.costPrice >= minCost &&
-                freeItem.costPrice <= maxCost;
+            const profitLimit = Number(totalProfit) * (Number(activeConfig.profitPercentage || 20) / 100);
+            const minCost = Number(activeConfig.minCostPrice || 0);
+            const maxCost = activeConfig.maxCostPrice !== null ?
+                Number(activeConfig.maxCostPrice) :
+                profitLimit;
+            const cp = Number(freeItem.costPrice);
+
+            const isStillEligible = cp >= minCost && cp <= (maxCost + 0.001);
 
             if (!isStillEligible) {
-                setCart(prev => prev.filter(item => !item.isFree));
-                setNotification({ open: true, message: 'Free gift removed as eligibility criteria changed.', severity: 'info' });
+                removeFromCart(freeItem.cartId);
             }
         }
-    }, [activeThreshold, totalProfit, promoSettings, alreadyHasFreeProduct, cart]);
+    }, [activeConfig, totalProfit, cart, alreadyHasFreeProduct]);
+
+    // Ensure toggle is only shown when relevant
+    useEffect(() => {
+        if (!activeConfig) {
+            setShowPromoGifts(false);
+        }
+    }, [activeConfig]);
 
     const addFreeProduct = (product) => {
-        if (alreadyHasFreeProduct) {
-            setNotification({ open: true, message: 'Only one free product allowed per sale.', severity: 'warning' });
-            return;
-        }
+        if (!activeConfig) return;
 
-        const profitLimit = totalProfit * ((promoSettings.profitPercentage || 20) / 100);
-        const minCost = promoSettings.minCostPrice || 0;
-        const maxCost = Math.min(profitLimit, promoSettings.maxCostPrice || Infinity);
+        const profitLimit = Number(totalProfit) * (Number(activeConfig.profitPercentage || 20) / 100);
+        const minCost = Number(activeConfig.minCostPrice || 0);
+        const maxCost = activeConfig.maxCostPrice !== null ?
+            Number(activeConfig.maxCostPrice) :
+            profitLimit;
 
         // Find the best batch (one that fits the cost limits and has stock)
-        const batch = product.batches.find(b =>
-            b.costPrice >= minCost &&
-            b.costPrice <= maxCost &&
-            b.quantity > 0
-        );
+        const batch = product.batches.find(b => {
+            const cp = Number(b.costPrice);
+            return cp >= minCost &&
+                cp <= (maxCost + 0.001) &&
+                b.quantity > 0;
+        });
 
         if (!batch) {
             setNotification({ open: true, message: 'No eligible batch found for this free product.', severity: 'error' });
             return;
         }
 
-        setCart(prev => [...prev, {
+        const newFreeItem = {
             product_id: product.id,
             batch_id: batch.id,
             name: `(FREE) ${product.name}`,
@@ -776,9 +832,18 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             promoPrice: null,
             costPrice: batch.costPrice,
             isFree: true
-        }]);
+        };
 
-        setNotification({ open: true, message: `${product.name} added as a free gift!`, severity: 'success' });
+        if (alreadyHasFreeProduct) {
+            setCart(prev => {
+                const filtered = prev.filter(item => !item.isFree);
+                return [...filtered, newFreeItem];
+            });
+            setNotification({ open: true, message: `Gift swapped to ${product.name}!`, severity: 'success' });
+        } else {
+            setCart(prev => [...prev, newFreeItem]);
+            setNotification({ open: true, message: `${product.name} added as a free gift!`, severity: 'success' });
+        }
     };
 
     const totalAmount = receiptSettings.roundOff ? Math.round(baseTotalAmount) : baseTotalAmount;
@@ -906,11 +971,52 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                         lastAddedItemId={lastAddedItemId}
                     />
 
-                    {eligibleFreeProducts.length > 0 && (
+                    {activeConfig && !showPromoGifts && (
+                        <Box sx={{ p: 1, display: 'flex', justifyContent: 'center', bgcolor: '#f0fff4', borderTop: '1px solid #c6f6d5' }}>
+                            <Chip
+                                icon={<PromoIcon />}
+                                label="View Eligible Offers"
+                                onClick={() => setShowPromoGifts(true)}
+                                color="primary"
+                                sx={{
+                                    fontWeight: 800,
+                                    bgcolor: '#22ab7dff',
+                                    '&:hover': { bgcolor: '#059669' },
+                                    px: 2,
+                                    height: 36,
+                                    borderRadius: 2
+                                }}
+                            />
+                        </Box>
+                    )}
+
+                    {showPromoGifts && eligibleFreeProducts.length > 0 && (
                         <Box sx={{ p: 1.5, borderTop: '2px dashed #22ab7dff', bgcolor: '#f0fff4', flexShrink: 0 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#065f46', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <PromoIcon fontSize="small" /> Eligible Free Gifts (Order &gt; ₹{activeThreshold})
-                            </Typography>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#065f46', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <PromoIcon fontSize="small" /> Eligible Free Gifts
+                                    </Typography>
+                                    <Chip
+                                        label="Hide"
+                                        size="small"
+                                        onClick={() => setShowPromoGifts(false)}
+                                        sx={{ height: 20, fontSize: '0.7rem', cursor: 'pointer' }}
+                                    />
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700, display: 'block' }}>
+                                        PROMOTION DEBUG (Threshold: ₹{activeConfig?.threshold || 'N/A'})
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                                        Total Profit: ₹{totalProfit.toFixed(2)} |
+                                        {activeConfig ? ` ${activeConfig.profitPercentage}% Limit: ₹${(Number(totalProfit) * (Number(activeConfig.profitPercentage) / 100)).toFixed(2)}` : ' No Threshold Met'}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Cost Range: ₹{activeConfig?.minCostPrice || 0} - ₹{activeConfig?.maxCostPrice || 'Auto'}
+                                    </Typography>
+                                </Box>
+                            </Box>
                             <Box sx={{
                                 display: 'flex',
                                 gap: 1.5,
@@ -919,51 +1025,76 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                                 '&::-webkit-scrollbar': { height: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e0', borderRadius: '3px' }
                             }}>
-                                {eligibleFreeProducts.map(p => (
-                                    <ButtonBase
-                                        key={p.id}
-                                        onClick={() => addFreeProduct(p)}
-                                        sx={{
-                                            flexShrink: 0,
-                                            p: 1.5,
-                                            width: 140,
-                                            bgcolor: 'white',
-                                            border: '1px solid #c6f6d5',
-                                            borderRadius: 2,
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            gap: 0.5,
-                                            transition: 'all 0.2s',
-                                            '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(6, 95, 70, 0.1)' }
-                                        }}
-                                    >
-                                        <Typography variant="body2" sx={{
-                                            fontWeight: 700,
-                                            textAlign: 'center',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            display: '-webkit-box',
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: 'vertical',
-                                            height: 40,
-                                            lineHeight: 1.2
-                                        }}>
-                                            {p.name}
-                                        </Typography>
-                                        <Chip
-                                            label="FREE"
-                                            size="small"
+                                {eligibleFreeProducts.map((product) => {
+                                    const profitLimit = totalProfit * ((activeConfig.profitPercentage || 20) / 100);
+                                    const minCost = activeConfig.minCostPrice || 0;
+                                    const maxCost = activeConfig.maxCostPrice !== null ? activeConfig.maxCostPrice : profitLimit;
+                                    const bestBatch = product.batches.find(b => b.costPrice >= minCost && b.costPrice <= maxCost && b.quantity > 0);
+                                    const isSelected = cart.find(item => item.isFree && item.product_id === product.id);
+
+                                    return (
+                                        <ButtonBase
+                                            key={product.id}
+                                            onClick={() => addFreeProduct(product)}
                                             sx={{
-                                                height: 20,
-                                                bgcolor: '#22ab7dff',
-                                                color: 'white',
-                                                fontWeight: 900,
-                                                fontSize: '0.65rem'
+                                                flexShrink: 0,
+                                                p: 1.75,
+                                                width: 160,
+                                                bgcolor: isSelected ? '#ccfbf1' : 'white',
+                                                border: isSelected ? '2px solid #22ab7dff' : '1px solid #c6f6d5',
+                                                borderRadius: 2.5,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: 0.75,
+                                                transition: 'all 0.2s',
+                                                boxShadow: isSelected ? '0 4px 12px rgba(34, 171, 125, 0.15)' : '0 2px 6px rgba(34, 171, 125, 0.08)',
+                                                '&:hover': {
+                                                    transform: 'translateY(-3px)',
+                                                    boxShadow: '0 6px 12px rgba(6, 95, 70, 0.1)',
+                                                    borderColor: '#22ab7dff'
+                                                }
                                             }}
-                                        />
-                                    </ButtonBase>
-                                ))}
+                                        >
+                                            <Typography variant="body2" sx={{
+                                                fontWeight: 600,
+                                                fontSize: '0.8rem',
+                                                textAlign: 'center',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical',
+                                                height: 38,
+                                                lineHeight: 1.2,
+                                                color: '#0b1d39'
+                                            }}>
+                                                {product.name}
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                                                <Chip
+                                                    label="FREE"
+                                                    size="small"
+                                                    sx={{
+                                                        height: 18,
+                                                        bgcolor: '#22ab7dff',
+                                                        color: 'white',
+                                                        fontWeight: 900,
+                                                        fontSize: '0.6rem'
+                                                    }}
+                                                />
+                                                {bestBatch && (
+                                                    <Chip
+                                                        label={`CP: ₹${bestBatch.costPrice}`}
+                                                        size="small"
+                                                        variant="outlined"
+                                                        sx={{ height: 18, fontSize: '0.6rem', color: '#065f46', borderColor: '#c6f6d5' }}
+                                                    />
+                                                )}
+                                            </Box>
+                                        </ButtonBase>
+                                    );
+                                })}
                             </Box>
                         </Box>
                     )}

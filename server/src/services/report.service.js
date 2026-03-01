@@ -229,9 +229,35 @@ const getMonthlySales = async ({ year }) => {
     return monthlyData;
 };
 
+const getTopSellingProducts = async ({ limit = 100 } = {}) => {
+    const saleItems = await prisma.saleItem.groupBy({
+        by: ['batchId'],
+        _sum: {
+            quantity: true
+        }
+    });
+
+    const batchIds = saleItems.map(si => si.batchId);
+    const batches = await prisma.batch.findMany({
+        where: { id: { in: batchIds } },
+        select: { id: true, productId: true }
+    });
+
+    const productSales = {};
+    saleItems.forEach(si => {
+        const batch = batches.find(b => b.id === si.batchId);
+        if (batch) {
+            productSales[batch.productId] = (productSales[batch.productId] || 0) + si._sum.quantity;
+        }
+    });
+
+    return productSales;
+};
+
 module.exports = {
     getReports,
     getExpiryReport,
     getLowStockReport,
-    getMonthlySales
+    getMonthlySales,
+    getTopSellingProducts
 };

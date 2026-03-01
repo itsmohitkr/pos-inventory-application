@@ -39,9 +39,19 @@ const getMonthlySales = async (req, res) => {
     }
 };
 
+const getTopSellingProducts = async (req, res) => {
+    try {
+        const stats = await reportService.getTopSellingProducts();
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getReports,
     getExpiryReport,
     getLowStockReport,
-    getMonthlySales
+    getMonthlySales,
+    getTopSellingProducts
 };

@@ -63,10 +63,7 @@ const PromotionManagement = () => {
 
     const [promoSettings, setPromoSettings] = useState({
         enabled: false,
-        thresholds: [499],
-        profitPercentage: 20,
-        minCostPrice: 0,
-        maxCostPrice: 1000
+        config: [] // Array of { threshold, profitPercentage, minCostPrice, maxCostPrice, sortBySales, maxGiftsToShow }
     });
     const [newThreshold, setNewThreshold] = useState('');
 
@@ -81,7 +78,27 @@ const PromotionManagement = () => {
             const res = await api.get('/api/settings');
             const settings = res.data.data;
             if (settings.promotion_buy_x_get_free) {
-                setPromoSettings(settings.promotion_buy_x_get_free);
+                const data = settings.promotion_buy_x_get_free;
+                // Migration: If old format (thresholds array) exists but not new config array
+                if (data.thresholds && !data.config) {
+                    const migratedConfig = data.thresholds.map(t => ({
+                        threshold: t,
+                        profitPercentage: data.profitPercentage || 20,
+                        minCostPrice: data.minCostPrice || 0,
+                        maxCostPrice: data.maxCostPrice || null,
+                        sortBySales: data.sortBySales || 'none',
+                        maxGiftsToShow: data.maxGiftsToShow || 5
+                    }));
+                    setPromoSettings({
+                        enabled: data.enabled || false,
+                        config: migratedConfig
+                    });
+                } else {
+                    setPromoSettings({
+                        enabled: data.enabled || false,
+                        config: data.config || []
+                    });
+                }
             }
         } catch (error) {
             console.error('Failed to fetch promotion settings:', error);
@@ -104,10 +121,22 @@ const PromotionManagement = () => {
     const handleAddThreshold = () => {
         const val = parseInt(newThreshold);
         if (isNaN(val) || val <= 0) return;
-        if (promoSettings.thresholds.includes(val)) return;
+
+        const currentConfig = promoSettings.config || [];
+        if (currentConfig.some(c => c.threshold === val)) return;
+
+        const newEntry = {
+            threshold: val,
+            profitPercentage: 20,
+            minCostPrice: 0,
+            maxCostPrice: null,
+            sortBySales: 'none',
+            maxGiftsToShow: 5
+        };
+
         setPromoSettings(prev => ({
             ...prev,
-            thresholds: [...prev.thresholds, val].sort((a, b) => a - b)
+            config: [...(prev.config || []), newEntry].sort((a, b) => a.threshold - b.threshold)
         }));
         setNewThreshold('');
     };
@@ -115,7 +144,16 @@ const PromotionManagement = () => {
     const handleRemoveThreshold = (threshold) => {
         setPromoSettings(prev => ({
             ...prev,
-            thresholds: prev.thresholds.filter(t => t !== threshold)
+            config: (prev.config || []).filter(c => c.threshold !== threshold)
+        }));
+    };
+
+    const handleUpdateConfig = (threshold, field, value) => {
+        setPromoSettings(prev => ({
+            ...prev,
+            config: prev.config.map(c =>
+                c.threshold === threshold ? { ...c, [field]: value } : c
+            )
         }));
     };
 
@@ -327,8 +365,8 @@ const PromotionManagement = () => {
                                 Order Threshold Promotions (Buy X Get 1 Free)
                             </Typography>
                         </Box>
-                        <Grid container spacing={4}>
-                            <Grid item xs={12} md={4}>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={9}>
                                 <FormControlLabel
                                     control={
                                         <Switch
@@ -337,53 +375,13 @@ const PromotionManagement = () => {
                                             color="primary"
                                         />
                                     }
-                                    label={<Typography sx={{ fontWeight: 600 }}>Enable This Feature</Typography>}
+                                    label={<Typography sx={{ fontWeight: 600 }}>Enable Threshold Promotions</Typography>}
                                 />
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                    If enabled, customers receive a free product when their order total meets set thresholds.
+                                <Typography variant="body2" color="text.secondary">
+                                    Customers receive a free product when their order total meets the thresholds defined in the table below.
                                 </Typography>
                             </Grid>
-                            <Grid item xs={12} md={3}>
-                                <TextField
-                                    fullWidth
-                                    label="Profit Percentage Limit"
-                                    type="number"
-                                    value={promoSettings.profitPercentage}
-                                    onChange={(e) => setPromoSettings({ ...promoSettings, profitPercentage: parseFloat(e.target.value) || 0 })}
-                                    InputProps={{
-                                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                                        sx: { borderRadius: 2 }
-                                    }}
-                                    helperText="Max cost price = Net Profit * this %"
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={2}>
-                                <TextField
-                                    fullWidth
-                                    label="Min Item Cost"
-                                    type="number"
-                                    value={promoSettings.minCostPrice}
-                                    onChange={(e) => setPromoSettings({ ...promoSettings, minCostPrice: parseFloat(e.target.value) || 0 })}
-                                    InputProps={{
-                                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                        sx: { borderRadius: 2 }
-                                    }}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={2}>
-                                <TextField
-                                    fullWidth
-                                    label="Max Item Cost"
-                                    type="number"
-                                    value={promoSettings.maxCostPrice}
-                                    onChange={(e) => setPromoSettings({ ...promoSettings, maxCostPrice: parseFloat(e.target.value) || 0 })}
-                                    InputProps={{
-                                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                        sx: { borderRadius: 2 }
-                                    }}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={2} sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start' }}>
+                            <Grid item xs={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                                 <Button
                                     variant="contained"
                                     startIcon={<SaveIcon />}
@@ -399,46 +397,122 @@ const PromotionManagement = () => {
                             </Grid>
 
                             <Grid item xs={12}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-                                    Minimum Order Value Thresholds (₹)
-                                </Typography>
-                                <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
-                                    <TextField
-                                        label="Add New Threshold"
-                                        size="small"
-                                        type="number"
-                                        value={newThreshold}
-                                        onChange={(e) => setNewThreshold(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleAddThreshold()}
-                                        sx={{ width: 220 }}
-                                        InputProps={{ sx: { borderRadius: 2 } }}
-                                    />
-                                    <Button
-                                        variant="outlined"
-                                        startIcon={<AddIcon />}
-                                        onClick={handleAddThreshold}
-                                        sx={{ borderRadius: 2 }}
-                                    >
-                                        Add
-                                    </Button>
-                                </Box>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                                    {promoSettings.thresholds.map((threshold) => (
-                                        <Chip
-                                            key={threshold}
-                                            label={`₹${threshold}`}
-                                            onDelete={() => handleRemoveThreshold(threshold)}
-                                            color="primary"
-                                            variant="outlined"
-                                            sx={{ fontWeight: 700, borderRadius: 1.5, px: 1 }}
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                        Threshold Configuration Table
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                        <TextField
+                                            placeholder="Min Order Value (₹)"
+                                            size="small"
+                                            type="number"
+                                            value={newThreshold}
+                                            onChange={(e) => setNewThreshold(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleAddThreshold()}
+                                            sx={{ width: 180 }}
+                                            InputProps={{ sx: { borderRadius: 2 } }}
                                         />
-                                    ))}
-                                    {promoSettings.thresholds.length === 0 && (
-                                        <Typography variant="body2" color="text.secondary">
-                                            No thresholds set. Add one to activate.
-                                        </Typography>
-                                    )}
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={<AddIcon />}
+                                            onClick={handleAddThreshold}
+                                            sx={{ borderRadius: 2 }}
+                                        >
+                                            Add Row
+                                        </Button>
+                                    </Box>
                                 </Box>
+
+                                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                                    <Table size="small">
+                                        <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                                            <TableRow>
+                                                <TableCell sx={{ fontWeight: 700, width: '15%' }}>Min Order (₹)</TableCell>
+                                                <TableCell sx={{ fontWeight: 700, width: '15%' }}>Profit % Limit</TableCell>
+                                                <TableCell sx={{ fontWeight: 700, width: '15%' }}>Min Item CP</TableCell>
+                                                <TableCell sx={{ fontWeight: 700, width: '15%' }}>Max Item CP</TableCell>
+                                                <TableCell sx={{ fontWeight: 700, width: '15%' }}>Max Gifts</TableCell>
+                                                <TableCell sx={{ fontWeight: 700, width: '15%' }}>Sort By</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, width: '10%' }}>Actions</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {(promoSettings.config || []).map((config) => (
+                                                <TableRow key={config.threshold} hover>
+                                                    <TableCell sx={{ fontWeight: 800, color: '#0b1d39' }}>₹{config.threshold}</TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            size="small"
+                                                            type="number"
+                                                            value={config.profitPercentage}
+                                                            onChange={(e) => handleUpdateConfig(config.threshold, 'profitPercentage', parseFloat(e.target.value) || 0)}
+                                                            InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment>, sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            size="small"
+                                                            type="number"
+                                                            value={config.minCostPrice}
+                                                            onChange={(e) => handleUpdateConfig(config.threshold, 'minCostPrice', parseFloat(e.target.value) || 0)}
+                                                            InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            size="small"
+                                                            type="number"
+                                                            placeholder="Auto (% Profit)"
+                                                            value={config.maxCostPrice === null ? '' : config.maxCostPrice}
+                                                            onChange={(e) => handleUpdateConfig(config.threshold, 'maxCostPrice', e.target.value === '' ? null : parseFloat(e.target.value))}
+                                                            InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            size="small"
+                                                            type="number"
+                                                            value={config.maxGiftsToShow}
+                                                            onChange={(e) => handleUpdateConfig(config.threshold, 'maxGiftsToShow', parseInt(e.target.value) || 0)}
+                                                            InputProps={{ sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            select
+                                                            size="small"
+                                                            fullWidth
+                                                            value={config.sortBySales || 'none'}
+                                                            onChange={(e) => handleUpdateConfig(config.threshold, 'sortBySales', e.target.value)}
+                                                            SelectProps={{ native: true, sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
+                                                        >
+                                                            <option value="none">Default</option>
+                                                            <option value="most">Most</option>
+                                                            <option value="least">Least</option>
+                                                        </TextField>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <IconButton
+                                                            size="small"
+                                                            color="error"
+                                                            onClick={() => handleRemoveThreshold(config.threshold)}
+                                                            sx={{ bgcolor: '#fff1f2', '&:hover': { bgcolor: '#ffe4e6' } }}
+                                                        >
+                                                            <DeleteIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {(promoSettings.config || []).length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                                                        No thresholds defined. Add a minimum order value above to start.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
                             </Grid>
                         </Grid>
                     </Paper>
