@@ -82,6 +82,7 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
                                     <TableCell>
                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
                                             <Typography variant="subtitle2" fontWeight="600">{item.name}</Typography>
+                                            {item.isFree && <Chip label="GIFT" size="small" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 900, bgcolor: '#22ab7dff', color: 'white' }} />}
                                             {item.isOnSale && <Chip label="SALE" size="small" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#7c3aed', color: 'white' }} />}
                                             {item.wholesaleEnabled && (
                                                 <Tooltip title={`Wholesale: ₹${item.wholesalePrice} for ${item.wholesaleMinQty}+ units`} arrow>
@@ -126,35 +127,39 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
                                         </Box>
                                     </TableCell>
                                     <TableCell align="center">
-                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 1, width: 'fit-content', mx: 'auto' }}>
-                                            <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, -1)} color="primary">
-                                                <RemoveIcon fontSize="small" />
-                                            </IconButton>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 1, width: 'fit-content', mx: 'auto', opacity: item.isFree ? 0.6 : 1 }}>
+                                            {!item.isFree && (
+                                                <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, -1)} color="primary">
+                                                    <RemoveIcon fontSize="small" />
+                                                </IconButton>
+                                            )}
                                             <Typography
                                                 variant="body2"
                                                 fontWeight="bold"
                                                 sx={{
                                                     minWidth: 35,
                                                     textAlign: 'center',
-                                                    cursor: 'pointer',
+                                                    cursor: item.isFree ? 'default' : 'pointer',
                                                     px: 1,
                                                     py: 0.2,
                                                     borderRadius: 1,
                                                     color: 'primary.main',
                                                     bgcolor: 'rgba(26, 115, 232, 0.05)',
                                                     transition: 'all 0.2s',
-                                                    '&:hover': {
+                                                    '&:hover': !item.isFree ? {
                                                         bgcolor: 'rgba(26, 115, 232, 0.15)',
                                                         transform: 'scale(1.1)'
-                                                    }
+                                                    } : {}
                                                 }}
-                                                onClick={() => onQuantityClick?.(item)}
+                                                onClick={() => !item.isFree && onQuantityClick?.(item)}
                                             >
                                                 {item.quantity}
                                             </Typography>
-                                            <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, 1)} color="primary">
-                                                <AddIcon fontSize="small" />
-                                            </IconButton>
+                                            {!item.isFree && (
+                                                <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, 1)} color="primary">
+                                                    <AddIcon fontSize="small" />
+                                                </IconButton>
+                                            )}
                                         </Box>
                                     </TableCell>
                                     <TableCell align="right">

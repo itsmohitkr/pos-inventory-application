@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api';
@@ -12,11 +12,14 @@ import {
     Button,
     Typography,
     IconButton,
-    Tooltip
+    Tooltip,
+    Chip,
+    ButtonBase
 } from '@mui/material';
 import {
     Fullscreen as FullscreenIcon,
-    FullscreenExit as FullscreenExitIcon
+    FullscreenExit as FullscreenExitIcon,
+    LocalOffer as PromoIcon
 } from '@mui/icons-material';
 
 import POSSearchBar from './POSSearchBar';
@@ -147,6 +150,11 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const searchBarRef = useRef(null);
     const [showLooseSaleDialog, setShowLooseSaleDialog] = useState(false);
     const [looseSaleEnabled, setLooseSaleEnabled] = useState(() => localStorage.getItem('posLooseSaleEnabled') !== 'false');
+    const [promoSettings, setPromoSettings] = useState({
+        enabled: false,
+        thresholds: [],
+        profitPercentage: 20
+    });
     const [shopMetadata, setShopMetadata] = useState(() => propShopMetadata || {
         shopMobile: '',
         shopMobile2: '',
@@ -181,6 +189,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 shopGST: sett.shopGST || '',
                 shopLogo: sett.shopLogo || ''
             });
+
+            if (sett.promotion_buy_x_get_free) {
+                setPromoSettings(sett.promotion_buy_x_get_free);
+            }
         } catch (error) {
             console.error(`Failed to refresh POS settings (remaining retries: ${retries}):`, error);
             if (retries > 0) {
@@ -396,7 +408,9 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 wholesalePrice: batch.wholesalePrice,
                 wholesaleMinQty: batch.wholesaleMinQty,
                 isOnSale: product.isOnSale && product.promoPrice < batch.sellingPrice,
-                promoPrice: product.promoPrice
+                promoPrice: product.promoPrice,
+                costPrice: batch.costPrice,
+                isFree: false
             }];
         });
 
@@ -415,6 +429,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const updateQuantity = (batchId, change) => {
         setCart(prev => prev.map(item => {
             if (item.batch_id === batchId) {
+                if (item.isFree) return item; // Disable adjustments for free items
                 const newQty = item.quantity + change;
                 if (newQty < 1) return item;
 
@@ -436,6 +451,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         if (quantity < 1) return;
         setCart(prev => prev.map(item => {
             if (item.batch_id === batchId) {
+                if (item.isFree) return item; // Disable adjustments for free items
                 // Recalculate price based on new quantity
                 let newPrice = item.sellingPrice;
                 if (item.wholesaleEnabled && item.wholesaleMinQty && quantity >= item.wholesaleMinQty) {
@@ -512,7 +528,12 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         }
 
         try {
-            const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
+            const items = cart.map(item => ({
+                batch_id: item.batch_id,
+                quantity: item.quantity,
+                sellingPrice: item.price,
+                isFree: item.isFree
+            }));
             const res = await api.post('/api/sale', {
                 items,
                 discount: 0,
@@ -544,7 +565,12 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         }
 
         try {
-            const items = cart.map(item => ({ batch_id: item.batch_id, quantity: item.quantity }));
+            const items = cart.map(item => ({
+                batch_id: item.batch_id,
+                quantity: item.quantity,
+                sellingPrice: item.price,
+                isFree: item.isFree
+            }));
             const res = await api.post('/api/sale', {
                 items,
                 discount: 0,
@@ -658,6 +684,103 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const totalMrp = (cart || []).reduce((sum, item) => sum + ((item?.mrp || 0) * (item?.quantity || 0)), 0);
     const totalQty = (cart || []).reduce((sum, item) => sum + (item?.quantity || 0), 0);
     const baseTotalAmount = Math.max(0, subTotal - discount);
+    const totalProfit = useMemo(() => {
+        return cart.reduce((sum, item) => {
+            const profitPerUnit = (item.price || 0) - (item.costPrice || 0);
+            return sum + (profitPerUnit * item.quantity);
+        }, 0);
+    }, [cart]);
+
+    const activeThreshold = useMemo(() => {
+        if (!promoSettings?.enabled || !promoSettings?.thresholds?.length) return null;
+        // Find the highest threshold met
+        const metThresholds = promoSettings.thresholds.filter(t => baseTotalAmount >= t);
+        return metThresholds.length > 0 ? Math.max(...metThresholds) : null;
+    }, [baseTotalAmount, promoSettings]);
+
+    const alreadyHasFreeProduct = useMemo(() => cart.some(item => item.isFree), [cart]);
+
+    const eligibleFreeProducts = useMemo(() => {
+        if (!activeThreshold || alreadyHasFreeProduct) return [];
+        const profitLimit = totalProfit * ((promoSettings.profitPercentage || 20) / 100);
+        const minCost = promoSettings.minCostPrice || 0;
+        const maxCost = Math.min(profitLimit, promoSettings.maxCostPrice || Infinity);
+
+        return products.filter(p => {
+            // Check if ANY batch of this product has costPrice within range and <= maxCost
+            return p.batches && p.batches.some(b =>
+                b.costPrice >= minCost &&
+                b.costPrice <= maxCost &&
+                b.quantity > 0
+            );
+        });
+    }, [activeThreshold, totalProfit, promoSettings, products, alreadyHasFreeProduct]);
+
+    // Auto-remove free product if threshold is lost or profit limit changes
+    useEffect(() => {
+        if (alreadyHasFreeProduct) {
+            const freeItem = cart.find(item => item.isFree);
+            if (!freeItem) return;
+
+            const profitLimit = totalProfit * ((promoSettings.profitPercentage || 20) / 100);
+            const minCost = promoSettings.minCostPrice || 0;
+            const maxCost = Math.min(profitLimit, promoSettings.maxCostPrice || Infinity);
+
+            const isStillEligible = activeThreshold &&
+                freeItem.costPrice >= minCost &&
+                freeItem.costPrice <= maxCost;
+
+            if (!isStillEligible) {
+                setCart(prev => prev.filter(item => !item.isFree));
+                setNotification({ open: true, message: 'Free gift removed as eligibility criteria changed.', severity: 'info' });
+            }
+        }
+    }, [activeThreshold, totalProfit, promoSettings, alreadyHasFreeProduct, cart]);
+
+    const addFreeProduct = (product) => {
+        if (alreadyHasFreeProduct) {
+            setNotification({ open: true, message: 'Only one free product allowed per sale.', severity: 'warning' });
+            return;
+        }
+
+        const profitLimit = totalProfit * ((promoSettings.profitPercentage || 20) / 100);
+        const minCost = promoSettings.minCostPrice || 0;
+        const maxCost = Math.min(profitLimit, promoSettings.maxCostPrice || Infinity);
+
+        // Find the best batch (one that fits the cost limits and has stock)
+        const batch = product.batches.find(b =>
+            b.costPrice >= minCost &&
+            b.costPrice <= maxCost &&
+            b.quantity > 0
+        );
+
+        if (!batch) {
+            setNotification({ open: true, message: 'No eligible batch found for this free product.', severity: 'error' });
+            return;
+        }
+
+        setCart(prev => [...prev, {
+            product_id: product.id,
+            batch_id: batch.id,
+            name: `(FREE) ${product.name}`,
+            price: 0,
+            quantity: 1,
+            batch_code: batch.batchCode,
+            mrp: batch.mrp,
+            max_quantity: batch.quantity,
+            sellingPrice: batch.sellingPrice,
+            wholesaleEnabled: false,
+            wholesalePrice: null,
+            wholesaleMinQty: null,
+            isOnSale: false,
+            promoPrice: null,
+            costPrice: batch.costPrice,
+            isFree: true
+        }]);
+
+        setNotification({ open: true, message: `${product.name} added as a free gift!`, severity: 'success' });
+    };
+
     const totalAmount = receiptSettings.roundOff ? Math.round(baseTotalAmount) : baseTotalAmount;
     const totalSavings = totalMrp - totalAmount;
 
@@ -782,6 +905,68 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                         onQuantityClick={setManualQuantityItem}
                         lastAddedItemId={lastAddedItemId}
                     />
+
+                    {eligibleFreeProducts.length > 0 && (
+                        <Box sx={{ p: 1.5, borderTop: '2px dashed #22ab7dff', bgcolor: '#f0fff4', flexShrink: 0 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#065f46', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <PromoIcon fontSize="small" /> Eligible Free Gifts (Order &gt; ₹{activeThreshold})
+                            </Typography>
+                            <Box sx={{
+                                display: 'flex',
+                                gap: 1.5,
+                                overflowX: 'auto',
+                                pb: 1,
+                                '&::-webkit-scrollbar': { height: '6px' },
+                                '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e0', borderRadius: '3px' }
+                            }}>
+                                {eligibleFreeProducts.map(p => (
+                                    <ButtonBase
+                                        key={p.id}
+                                        onClick={() => addFreeProduct(p)}
+                                        sx={{
+                                            flexShrink: 0,
+                                            p: 1.5,
+                                            width: 140,
+                                            bgcolor: 'white',
+                                            border: '1px solid #c6f6d5',
+                                            borderRadius: 2,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: 0.5,
+                                            transition: 'all 0.2s',
+                                            '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(6, 95, 70, 0.1)' }
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{
+                                            fontWeight: 700,
+                                            textAlign: 'center',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical',
+                                            height: 40,
+                                            lineHeight: 1.2
+                                        }}>
+                                            {p.name}
+                                        </Typography>
+                                        <Chip
+                                            label="FREE"
+                                            size="small"
+                                            sx={{
+                                                height: 20,
+                                                bgcolor: '#22ab7dff',
+                                                color: 'white',
+                                                fontWeight: 900,
+                                                fontSize: '0.65rem'
+                                            }}
+                                        />
+                                    </ButtonBase>
+                                ))}
+                            </Box>
+                        </Box>
+                    )}
                 </Paper>
 
                 {/* Vertical Resizer Slider */}

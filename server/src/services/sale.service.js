@@ -58,16 +58,22 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
 
             // Determine effective price
             let effectivePrice = batch.sellingPrice;
+            let isWholesaleItem = false;
 
-            const isWholesaleItem = batch.wholesaleEnabled && batch.wholesaleMinQty && item.quantity >= batch.wholesaleMinQty;
+            // 0. Check if explicitly free (price is 0 or marked isFree)
+            if (item.sellingPrice === 0 || item.isFree) {
+                effectivePrice = 0;
+            } else {
+                isWholesaleItem = !!(batch.wholesaleEnabled && batch.wholesaleMinQty && item.quantity >= batch.wholesaleMinQty);
 
-            // 1. Check Wholesale (highest priority if applicable)
-            if (isWholesaleItem) {
-                effectivePrice = batch.wholesalePrice;
-            }
-            // 2. Check Promotion
-            else if (promoPrice !== null && promoPrice < batch.sellingPrice) {
-                effectivePrice = promoPrice;
+                // 1. Check Wholesale (highest priority if applicable)
+                if (isWholesaleItem) {
+                    effectivePrice = batch.wholesalePrice;
+                }
+                // 2. Check Promotion
+                else if (promoPrice !== null && promoPrice < batch.sellingPrice) {
+                    effectivePrice = promoPrice;
+                }
             }
 
             totalAmount += effectivePrice * item.quantity;

@@ -162,44 +162,47 @@ const POSSearchBar = React.forwardRef(({ products, searchQuery, onSearchInputCha
                         }}
                     />
                 )}
-                renderOption={(props, option) => (
-                    <li {...props}>
-                        <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography variant="body1" fontWeight="bold">{option.name}</Typography>
-                                    {option.isOnSale && <Chip label="SALE" size="small" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 900, bgcolor: '#7c3aed', color: 'white' }} />}
+                renderOption={(props, option) => {
+                    const { key, ...optionProps } = props;
+                    return (
+                        <li key={key} {...optionProps}>
+                            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography variant="body1" fontWeight="bold">{option.name}</Typography>
+                                        {option.isOnSale && <Chip label="SALE" size="small" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 900, bgcolor: '#7c3aed', color: 'white' }} />}
+                                    </Box>
+                                    <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                                        {option.batches.map(b => {
+                                            const isPromoActive = option.isOnSale && option.promoPrice < b.sellingPrice;
+                                            return (
+                                                <Box key={b.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                    {isPromoActive && (
+                                                        <Typography variant="caption" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontSize: '0.7rem' }}>
+                                                            ₹{b.sellingPrice}
+                                                        </Typography>
+                                                    )}
+                                                    <Chip
+                                                        label={`₹${isPromoActive ? option.promoPrice : b.sellingPrice}`}
+                                                        size="small"
+                                                        variant={isPromoActive ? "filled" : "outlined"}
+                                                        color="success"
+                                                        sx={{
+                                                            height: 20,
+                                                            fontSize: '0.75rem',
+                                                            ...(isPromoActive ? { bgcolor: '#1f8a5b', color: 'white', fontWeight: 700 } : {})
+                                                        }}
+                                                    />
+                                                </Box>
+                                            );
+                                        })}
+                                    </Box>
                                 </Box>
-                                <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                                    {option.batches.map(b => {
-                                        const isPromoActive = option.isOnSale && option.promoPrice < b.sellingPrice;
-                                        return (
-                                            <Box key={b.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                {isPromoActive && (
-                                                    <Typography variant="caption" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontSize: '0.7rem' }}>
-                                                        ₹{b.sellingPrice}
-                                                    </Typography>
-                                                )}
-                                                <Chip
-                                                    label={`₹${isPromoActive ? option.promoPrice : b.sellingPrice}`}
-                                                    size="small"
-                                                    variant={isPromoActive ? "filled" : "outlined"}
-                                                    color="success"
-                                                    sx={{
-                                                        height: 20,
-                                                        fontSize: '0.75rem',
-                                                        ...(isPromoActive ? { bgcolor: '#1f8a5b', color: 'white', fontWeight: 700 } : {})
-                                                    }}
-                                                />
-                                            </Box>
-                                        );
-                                    })}
-                                </Box>
+                                {option.barcode && <Typography variant="caption" color="text.secondary">{option.barcode}</Typography>}
                             </Box>
-                            {option.barcode && <Typography variant="caption" color="text.secondary">{option.barcode}</Typography>}
-                        </Box>
-                    </li>
-                )}
+                        </li>
+                    );
+                }}
             />
             {looseSaleEnabled && (
                 <Button
