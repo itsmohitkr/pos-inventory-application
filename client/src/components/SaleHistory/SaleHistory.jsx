@@ -960,8 +960,24 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           </Grid>
         )}
 
-        {/* Hidden receipt for thermal printing - Always present for Electron but hidden from view */}
-        <Box sx={{ display: 'none', displayPrint: 'block' }}>
+        {/* Hidden Print Container for Direct Printing in Sale History */}
+        <Box sx={{
+          position: 'absolute',
+          left: '-9999px',
+          top: '-9999px',
+          height: 0,
+          overflow: 'hidden',
+          '@media print': {
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: 'auto',
+            overflow: 'visible',
+            display: 'block',
+            zIndex: 9999
+          }
+        }}>
           <div id="thermal-receipt-print">
             {selectedSale && (
               <Receipt
