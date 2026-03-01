@@ -361,8 +361,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                     margin: 0;
                     padding: 0;
                     background: white;
-                    display: flex;
-                    justify-content: center;
+                    display: block; // Changed from flex to block
                   }
                   body * {
                     visibility: hidden;
@@ -372,13 +371,11 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                     visibility: visible;
                   }
                   #receipt-container {
-                    position: absolute;
+                    position: relative; // Changed from absolute
                     left: 0;
                     top: 0;
-                    width: 100%;
-                    display: flex !important;
-                    justify-content: center !important;
-                    align-items: flex-start !important;
+                    width: auto; // Changed from 100%
+                    display: block !important; // Changed from flex
                   }
                   #receipt-content {
                     width: ${printableWidth} !important;

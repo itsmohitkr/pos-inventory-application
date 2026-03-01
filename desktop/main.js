@@ -84,8 +84,8 @@ ipcMain.on('print-manual', (event, { printerName }) => {
     silent: true,
     deviceName: printerName || undefined,
     printBackground: true,
-    color: true, // Reverted to true to prevent blank pages on some drivers
-    margins: { marginType: 'default' }, // Use default margins to prevent clipping
+    color: true,
+    margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
     scaleFactor: 100
   }, (success, failureReason) => {
     if (!success) {

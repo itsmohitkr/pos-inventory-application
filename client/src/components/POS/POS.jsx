@@ -908,11 +908,11 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 overflow: 'hidden',
                 '@media print': {
                     position: 'static',
-                    left: 'auto',
-                    top: 'auto',
                     height: 'auto',
                     overflow: 'visible',
-                    display: 'block'
+                    display: 'block',
+                    margin: 0,
+                    padding: 0
                 }
             }}>
                 <div id="thermal-receipt-print">
