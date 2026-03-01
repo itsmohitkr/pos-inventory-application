@@ -80,7 +80,7 @@ const POSSearchBar = React.forwardRef(({ products, searchQuery, onSearchInputCha
                     setTypewriterBarcode('');
                     setPendingBarcode('');
                     onSearchInputChange('');
-                }, 30); // instant
+                }, 10); // Ultra-fast turnaround
             } else {
                 // No product found: show notification and clear search
                 if (window && window.dispatchEvent) {

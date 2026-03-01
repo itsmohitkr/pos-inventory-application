@@ -94,7 +94,14 @@ const getStoredReceiptSettings = () => {
 const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetadata, printers = [], defaultPrinter = null }) => {
     const navigate = useNavigate();
     const { dialogState, showError, showWarning, showConfirm, closeDialog } = useCustomDialog();
-    const [products, setProducts] = useState([]);
+    const [products, setProducts] = useState(() => {
+        try {
+            const cached = localStorage.getItem('posCachedProducts');
+            return cached ? JSON.parse(cached) : [];
+        } catch {
+            return [];
+        }
+    });
     const [currentUser] = useState(() => {
         try {
             return JSON.parse(localStorage.getItem('posCurrentUser'));
@@ -308,7 +315,15 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             const res = await api.get('/api/products', {
                 params: { includeBatches: true }
             });
-            setProducts(res.data.data);
+            const data = res.data.data;
+            setProducts(data);
+
+            // Cache to localStorage for instant load next time
+            try {
+                localStorage.setItem('posCachedProducts', JSON.stringify(data));
+            } catch (e) {
+                console.warn('Failed to cache products:', e);
+            }
         } catch (err) {
             console.error(`Error fetching products (remaining retries: ${retries}):`, err);
             if (retries > 0) {
@@ -726,6 +741,19 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
     const alreadyHasFreeProduct = useMemo(() => cart.some(item => item.isFree), [cart]);
 
+    // O(1) Barcode Lookup Map for Instant Scanning
+    const barcodeMap = useMemo(() => {
+        const map = new Map();
+        products.forEach(p => {
+            if (p.barcode) {
+                // Handle multiple barcodes (pipe separated)
+                const barcodes = p.barcode.split('|').map(b => b.trim()).filter(Boolean);
+                barcodes.forEach(b => map.set(b.toLowerCase(), p));
+            }
+        });
+        return map;
+    }, [products]);
+
     const eligibleFreeProducts = useMemo(() => {
         if (!activeConfig) return [];
 
@@ -853,17 +881,37 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         const normalizedInput = inputValue.trim().toLowerCase();
         if (!normalizedInput) return [];
 
-        return options.filter((option) => {
-            if (!option) return false;
-            const nameValue = option.name ? String(option.name).toLowerCase() : '';
-            const barcodeValue = option.barcode ? String(option.barcode).toLowerCase() : '';
-            const nameMatch = nameValue.includes(normalizedInput);
-            const barcodeMatch = barcodeValue.includes(normalizedInput);
-            const priceMatch = (option.batches || []).some((batch) =>
-                batch && String(batch.sellingPrice || '').includes(normalizedInput)
-            );
-            return nameMatch || barcodeMatch || priceMatch;
-        });
+        // 1. FAST PATH: Check for exact barcode match using Map
+        const exactMatch = barcodeMap.get(normalizedInput);
+
+        const filtered = [];
+        if (exactMatch) {
+            filtered.push(exactMatch);
+        }
+
+        // 2. SEARCH PATH: filter remaining options with a limit
+        for (const option of options) {
+            if (!option || option === exactMatch) continue;
+
+            // Optimization: Memoize strings if needed, but for now just standard check
+            const nameMatch = (option._searchName || (option._searchName = String(option.name || '').toLowerCase())).includes(normalizedInput);
+            const barcodeMatch = (option._searchBarcode || (option._searchBarcode = String(option.barcode || '').toLowerCase())).includes(normalizedInput);
+
+            if (nameMatch || barcodeMatch) {
+                filtered.push(option);
+            } else {
+                // Price check is more expensive, do it last
+                const priceMatch = (option.batches || []).some((batch) =>
+                    batch && (batch._searchPrice || (batch._searchPrice = String(batch.sellingPrice || ''))).includes(normalizedInput)
+                );
+                if (priceMatch) filtered.push(option);
+            }
+
+            // Performance limit: stop at 50 results to keep UI snappy
+            if (filtered.length >= 50) break;
+        }
+
+        return filtered;
     };
 
     // Global focus protection
