@@ -4,7 +4,13 @@ const { Prisma } = require("@prisma/client");
 const normalizeCategory = (value) => {
   if (value === null || value === undefined) return null;
   const trimmed = String(value).trim();
-  return trimmed ? trimmed : null;
+  if (!trimmed) return null;
+  // Standardize slashes: trim spaces around slashes
+  return trimmed
+    .split("/")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join("/");
 };
 
 const normalizeSearch = (value) => {
@@ -341,7 +347,7 @@ const getProductSummary = async ({ search = "", category = "all" } = {}) => {
   const categoryCounts = categories.reduce((acc, product) => {
     const normalizedCategory = normalizeCategory(product.category);
     if (!normalizedCategory) return acc;
-    const parts = normalizedCategory.split("/").filter(Boolean);
+    const parts = normalizedCategory.split("/");
     let path = "";
     parts.forEach((part) => {
       path = path ? `${path}/${part}` : part;

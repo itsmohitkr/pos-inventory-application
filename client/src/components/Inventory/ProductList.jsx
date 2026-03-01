@@ -160,7 +160,7 @@ const ProductList = () => {
                 }),
                 api.get('/api/products/summary', {
                     params: {
-                        search: debouncedSearch,
+                        search: '',
                         category: 'all'
                     }
                 })

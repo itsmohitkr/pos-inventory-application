@@ -50,7 +50,7 @@ const ensureCategoriesFromProducts = async () => {
 
     for (const product of products) {
         if (!product.category) continue;
-        const parts = product.category.split('/').filter(Boolean);
+        const parts = product.category.split('/').map(p => p.trim()).filter(Boolean);
         let parentId = null;
         for (const part of parts) {
             const existing = await prisma.category.findFirst({
@@ -76,22 +76,24 @@ const getCategoryTree = async () => {
 };
 
 const createCategory = async ({ name, parentId }) => {
-    if (!name || name.includes('/')) {
+    const trimmedName = name?.trim();
+    if (!trimmedName || trimmedName.includes('/')) {
         throw new Error('Invalid category name');
     }
     const exists = await prisma.category.findFirst({
-        where: { name, parentId: parentId || null }
+        where: { name: trimmedName, parentId: parentId || null }
     });
     if (exists) {
         return exists;
     }
     return prisma.category.create({
-        data: { name, parentId: parentId || null }
+        data: { name: trimmedName, parentId: parentId || null }
     });
 };
 
 const updateCategory = async (id, { name }) => {
-    if (!name || name.includes('/')) {
+    const trimmedName = name?.trim();
+    if (!trimmedName || trimmedName.includes('/')) {
         throw new Error('Invalid category name');
     }
     const categories = await prisma.category.findMany();
@@ -103,11 +105,11 @@ const updateCategory = async (id, { name }) => {
 
     const updated = await prisma.category.update({
         where: { id: Number(id) },
-        data: { name }
+        data: { name: trimmedName }
     });
 
     const oldParts = oldPath.split('/');
-    oldParts[oldParts.length - 1] = name;
+    oldParts[oldParts.length - 1] = trimmedName;
     const newPath = oldParts.join('/');
 
     const productsToUpdate = await prisma.product.findMany({
