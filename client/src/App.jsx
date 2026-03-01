@@ -729,7 +729,7 @@ function App() {
           flexDirection: 'column'
         }}
       >
-        <AppBar position="sticky" elevation={0}>
+        <AppBar position="sticky" elevation={0} className="no-print">
           <Toolbar sx={{ gap: 2 }}>
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>

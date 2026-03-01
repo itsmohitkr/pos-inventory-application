@@ -356,36 +356,33 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                 </Box>
 
                 <style>{`
+                /* Global print helper */
                 @media print {
-                  body {
-                    margin: 0;
-                    padding: 0;
-                    background: white;
-                    display: block; // Changed from flex to block
+                  .no-print {
+                    display: none !important;
                   }
-                  body * {
-                    visibility: hidden;
-                    margin: 0;
+                  
+                  html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: ${paperSize} !important;
+                    background: white !important;
                   }
-                  #receipt-container, #receipt-container * {
-                    visibility: visible;
-                  }
+
                   #receipt-container {
-                    position: relative; // Changed from absolute
-                    left: 0;
-                    top: 0;
-                    width: auto; // Changed from 100%
-                    display: block !important; // Changed from flex
-                  }
-                  #receipt-content {
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
                     width: ${printableWidth} !important;
-                    max-width: ${printableWidth} !important;
-                    box-sizing: border-box;
-                    padding: ${marginTop} ${config.marginSide || 2}mm ${marginBottom} ${config.marginSide || 2}mm;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    display: block !important;
                   }
-                  @page {
-                    size: auto;
-                    margin: 0;
+                  
+                  /* Ensure background colors/images print */
+                  * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
                   }
                 }
             `}</style>

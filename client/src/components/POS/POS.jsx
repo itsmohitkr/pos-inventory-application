@@ -709,6 +709,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 duration={notification.duration || notificationDuration}
             />
             <Box
+                className="no-print"
                 sx={{
                     display: 'flex',
                     flexDirection: { xs: 'column', lg: 'row' },
@@ -907,12 +908,14 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 height: 0,
                 overflow: 'hidden',
                 '@media print': {
-                    position: 'static',
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width: '100%',
                     height: 'auto',
                     overflow: 'visible',
                     display: 'block',
-                    margin: 0,
-                    padding: 0
+                    zIndex: 9999
                 }
             }}>
                 <div id="thermal-receipt-print">
