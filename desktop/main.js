@@ -84,8 +84,8 @@ ipcMain.on('print-manual', (event, { printerName }) => {
     silent: true,
     deviceName: printerName || undefined,
     printBackground: true,
-    color: false, // Force monochrome for thermal speed
-    margins: { marginType: 'none' }, // Most thermal printers handle own margins
+    color: true, // Reverted to true to prevent blank pages on some drivers
+    margins: { marginType: 'default' }, // Use default margins to prevent clipping
     scaleFactor: 100
   }, (success, failureReason) => {
     if (!success) {

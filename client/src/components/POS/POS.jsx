@@ -468,8 +468,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         const isBarcodeScanned = searchQuery.trim() && product.barcode && searchQuery.trim() === product.barcode.trim();
 
         if (!isBatchTracked) {
-            if (batches.length === 1 || isBarcodeScanned) {
-                // Auto-add first batch if barcode scanned or only one batch available
+            if (batches.length === 1) {
+                // Auto-add only if single batch available
                 addToCart(product, batches[0]);
             } else {
                 setScannedProduct({ product, batches, mode: 'price' });
@@ -477,8 +477,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             return;
         }
 
-        if (batches.length === 1 || isBarcodeScanned) {
-            // Auto-add first batch if barcode scanned or only one batch available
+        if (batches.length === 1) {
+            // Auto-add only if single batch available
             addToCart(product, batches[0]);
         } else {
             setScannedProduct({ product, batches, mode: 'batch' });
@@ -900,9 +900,23 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             />
 
             {/* Hidden Print Container for Direct Printing */}
-            <Box sx={{ display: 'none', displayPrint: 'block' }}>
+            <Box sx={{
+                position: 'absolute',
+                left: '-9999px',
+                top: '-9999px',
+                height: 0,
+                overflow: 'hidden',
+                '@media print': {
+                    position: 'static',
+                    left: 'auto',
+                    top: 'auto',
+                    height: 'auto',
+                    overflow: 'visible',
+                    display: 'block'
+                }
+            }}>
                 <div id="thermal-receipt-print">
-                    {lastSale && <Receipt sale={lastSale} settings={receiptSettings} />}
+                    {lastSale && <Receipt sale={lastSale} settings={receiptSettings} shopMetadata={shopMetadata} />}
                 </div>
             </Box>
         </>

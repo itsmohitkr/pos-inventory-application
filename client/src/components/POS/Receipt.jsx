@@ -128,19 +128,17 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                 fontFamily: theme.fontFamily,
                 fontSize: `${config.fontSize || 0.8}rem`,
                 lineHeight: config.lineHeight || 1.1,
-                // Thermal Printer Sharpness Hacks
-                '-webkit-font-smoothing': 'none',
-                'font-smooth': 'never',
-                'text-rendering': 'optimizeSpeed',
+                // Relaxed Thermal Printer Sharpness Hacks
                 '& *': {
                     color: '#000000 !important',
                     textShadow: 'none !important',
                     '-webkit-print-color-adjust': 'exact',
                 },
                 '@media print': {
+                    display: 'block !important',
                     width: printableWidth,
                     maxWidth: printableWidth,
-                    margin: '0 auto', // Center it on the physical paper
+                    margin: '0 auto',
                     boxSizing: 'border-box',
                 }
             }}>
