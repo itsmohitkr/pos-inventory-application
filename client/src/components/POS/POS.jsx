@@ -19,7 +19,8 @@ import {
 import {
     Fullscreen as FullscreenIcon,
     FullscreenExit as FullscreenExitIcon,
-    LocalOffer as PromoIcon
+    LocalOffer as PromoIcon,
+    Close as CloseIcon
 } from '@mui/icons-material';
 
 import POSSearchBar from './POSSearchBar';
@@ -1068,16 +1069,32 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                                     <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#065f46', display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <PromoIcon fontSize="small" /> Eligible Free Gifts
                                     </Typography>
-                                    <Chip
-                                        label="Hide"
-                                        size="small"
-                                        onClick={() => setShowPromoGifts(false)}
-                                        sx={{ height: 20, fontSize: '0.7rem', cursor: 'pointer' }}
-                                    />
+                                    {activeConfig && (
+                                        <Chip
+                                            label={`Min. Order: ≥ ₹${activeConfig.threshold}`}
+                                            color="primary"
+                                            size="small"
+                                            sx={{
+                                                fontWeight: 800,
+                                                height: 24,
+                                                fontSize: '0.75rem',
+                                                bgcolor: 'primary.main',
+                                                color: 'white',
+                                                px: 0.5
+                                            }}
+                                        />
+                                    )}
                                 </Box>
-                                <Box sx={{ flex: 1 }}>
-                                    {/* Promotion Title/Context could go here if needed in future */}
-                                </Box>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => setShowPromoGifts(false)}
+                                    sx={{
+                                        color: '#065f46',
+                                        '&:hover': { bgcolor: 'rgba(6, 95, 70, 0.1)' }
+                                    }}
+                                >
+                                    <CloseIcon fontSize="small" />
+                                </IconButton>
                             </Box>
                             <Box sx={{
                                 display: 'flex',
