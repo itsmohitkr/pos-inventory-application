@@ -9,6 +9,7 @@ router.get('/products', productController.getAllProducts);
 router.get('/products/summary', productController.getProductSummary);
 router.get('/products/export', productController.exportProducts);
 router.post('/products/import', upload.single('file'), productController.importProducts);
+router.post('/products/bulk', productController.bulkCreateProducts);
 router.post('/products/validate-barcodes', productController.validateBarcodes);
 router.get('/products/id/:id', productController.getProductById);
 router.get('/products/:id/history', productController.getProductHistory);

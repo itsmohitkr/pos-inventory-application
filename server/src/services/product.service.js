@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const { getDateRange } = require('../utils/dateUtils');
 const { Prisma } = require("@prisma/client");
 
 const normalizeCategory = (value) => {
@@ -1134,30 +1135,11 @@ const validateBarcodes = async (barcodes) => {
 };
 
 const buildHistoryRange = ({ range, startDate, endDate }) => {
-  if (startDate && endDate) {
-    return {
-      from: new Date(startDate),
-      to: new Date(endDate),
-    };
-  }
-
-  const now = new Date();
-  const from = new Date(now);
-  if (range === "today") {
-    from.setHours(0, 0, 0, 0);
-    return { from, to: now };
-  }
-  if (range === "week") {
-    from.setDate(from.getDate() - 6);
-    from.setHours(0, 0, 0, 0);
-    return { from, to: now };
-  }
-  if (range === "month") {
-    from.setDate(from.getDate() - 29);
-    from.setHours(0, 0, 0, 0);
-    return { from, to: now };
-  }
-  return { from: null, to: null };
+  const { start, end } = getDateRange(range, startDate, endDate);
+  return {
+    from: start ? new Date(start) : null,
+    to: end ? new Date(end) : null,
+  };
 };
 
 const getProductHistory = async (
@@ -1253,6 +1235,111 @@ const getProductHistory = async (
   };
 };
 
+const bulkCreateProducts = async (products) => {
+  return await prisma.$transaction(async (tx) => {
+    const results = {
+      success: true,
+      count: 0,
+      errors: []
+    };
+
+    for (let i = 0; i < products.length; i++) {
+      const prodData = products[i];
+      try {
+        const {
+          name,
+          barcode,
+          category,
+          initialBatch,
+          enableBatchTracking,
+          lowStockWarningEnabled,
+          lowStockThreshold,
+        } = prodData;
+
+        // Validate barcode uniqueness
+        if (barcode && barcode.trim()) {
+          await _validateBarcodesUniqueness(tx, barcode);
+        }
+
+        const product = await tx.product.create({
+          data: {
+            name,
+            barcode: barcode && barcode.trim() ? barcode : null,
+            category: normalizeCategory(category),
+            batchTrackingEnabled: enableBatchTracking === true,
+            lowStockWarningEnabled: lowStockWarningEnabled === true,
+            lowStockThreshold: lowStockWarningEnabled
+              ? parseInt(lowStockThreshold) || 0
+              : 0,
+          }
+        });
+
+        if (initialBatch) {
+          const {
+            quantity,
+            mrp,
+            cost_price,
+            selling_price,
+            batch_code,
+            expiryDate,
+          } = initialBatch;
+          const qtyToAdd = parseInt(quantity) || 0;
+          const mrpValue = parseFloat(mrp) || 0;
+          const costValue = parseFloat(cost_price) || 0;
+          const sellingValue = parseFloat(selling_price) || 0;
+
+          validatePricing({
+            mrp: mrpValue,
+            costPrice: costValue,
+            sellingPrice: sellingValue,
+          });
+
+          const finalBatchCode =
+            product.batchTrackingEnabled && (!batch_code || !batch_code.trim())
+              ? generateBatchCode()
+              : batch_code || null;
+
+          const createdBatch = await tx.batch.create({
+            data: {
+              productId: product.id,
+              batchCode: finalBatchCode,
+              quantity: qtyToAdd,
+              mrp: mrpValue,
+              costPrice: costValue,
+              sellingPrice: sellingValue,
+              wholesaleEnabled: initialBatch.wholesaleEnabled === true,
+              wholesalePrice: initialBatch.wholesalePrice
+                ? parseFloat(initialBatch.wholesalePrice)
+                : null,
+              wholesaleMinQty: initialBatch.wholesaleMinQty
+                ? parseInt(initialBatch.wholesaleMinQty)
+                : null,
+              expiryDate: expiryDate ? new Date(expiryDate) : null,
+            },
+          });
+
+          if (qtyToAdd > 0) {
+            await tx.stockMovement.create({
+              data: {
+                productId: product.id,
+                batchId: createdBatch.id,
+                type: "added",
+                quantity: qtyToAdd,
+                note: "Bulk Initial stock",
+              },
+            });
+          }
+        }
+        results.count++;
+      } catch (error) {
+        // If any product fails, we roll back the entire transaction by throwing
+        throw new Error(`Error at item ${i + 1} (${prodData.name || 'Unknown'}): ${error.message}`);
+      }
+    }
+    return results;
+  });
+};
+
 module.exports = {
   getAllProducts,
   getAllProductsWithBatches,
@@ -1269,4 +1356,5 @@ module.exports = {
   importProducts,
   validateBarcodes,
   getProductHistory,
+  bulkCreateProducts,
 };

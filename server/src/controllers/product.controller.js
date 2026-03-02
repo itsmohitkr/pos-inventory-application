@@ -197,6 +197,21 @@ const validateBarcodes = async (req, res) => {
     }
 };
 
+const bulkCreateProducts = async (req, res) => {
+    try {
+        const { products } = req.body;
+        if (!products || !Array.isArray(products)) {
+            return res.status(400).json({ error: 'Invalid request: products array required' });
+        }
+
+        const result = await productService.bulkCreateProducts(products);
+        res.json(result);
+    } catch (error) {
+        console.error("Error bulk creating products:", error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAllProducts,
     getProductSummary,
@@ -211,5 +226,6 @@ module.exports = {
     exportProducts,
     importProducts,
     validateBarcodes,
-    getProductHistory
+    getProductHistory,
+    bulkCreateProducts
 };

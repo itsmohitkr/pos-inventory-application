@@ -71,11 +71,14 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
   });
 
   const timeframes = [
-    { label: "Today", getValue: () => getRange("day") },
+    { label: "Today", getValue: () => getRange("today") },
     { label: "Yesterday", getValue: () => getRange("yesterday") },
-    { label: "This Week", getValue: () => getRange("week") },
-    { label: "This Month", getValue: () => getRange("month") },
-    { label: "Next 30 Days", getValue: () => getRange("next_month") },
+    { label: "This Week", getValue: () => getRange("thisWeek") },
+    { label: "Last Week", getValue: () => getRange("lastWeek") },
+    { label: "This Month", getValue: () => getRange("thisMonth") },
+    { label: "Last Month", getValue: () => getRange("lastMonth") },
+    { label: "This Year", getValue: () => getRange("thisYear") },
+    { label: "Last Year", getValue: () => getRange("lastYear") },
     { label: "Custom", getValue: () => null },
   ];
 
@@ -84,41 +87,61 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
     let start = new Date(now);
     let end = new Date(now);
 
+    const startOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
+    const endOfDay = (d) => { d.setHours(23, 59, 59, 999); return d; };
+
     switch (type) {
-      case "day":
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+      case "today":
+        startOfDay(start);
+        endOfDay(end);
         break;
       case "yesterday":
         start.setDate(now.getDate() - 1);
-        start.setHours(0, 0, 0, 0);
+        startOfDay(start);
         end.setDate(now.getDate() - 1);
-        end.setHours(23, 59, 59, 999);
+        endOfDay(end);
         break;
-      case "week": {
-        const dayOfWeek = now.getDay();
-        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        start.setDate(now.getDate() - diffToMonday);
-        start.setHours(0, 0, 0, 0);
-
-        // End of week (Sunday)
-        end.setDate(start.getDate() + 6);
-        end.setHours(23, 59, 59, 999);
+      case "thisWeek": {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        start.setDate(diff);
+        startOfDay(start);
+        endOfDay(end);
         break;
       }
-      case "month":
-        start.setDate(1);
-        start.setHours(0, 0, 0, 0);
-
-        // Last day of month
-        end.setMonth(now.getMonth() + 1);
-        end.setDate(0);
-        end.setHours(23, 59, 59, 999);
+      case "lastWeek": {
+        const day = now.getDay();
+        const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+        start.setDate(diffToMonday - 7);
+        startOfDay(start);
+        end.setDate(diffToMonday - 1);
+        endOfDay(end);
         break;
-      case "next_month":
-        start.setHours(0, 0, 0, 0);
-        end.setDate(now.getDate() + 30);
-        end.setHours(23, 59, 59, 999);
+      }
+      case "thisMonth":
+        start.setDate(1);
+        startOfDay(start);
+        endOfDay(end);
+        break;
+      case "lastMonth":
+        start.setMonth(now.getMonth() - 1);
+        start.setDate(1);
+        startOfDay(start);
+        end.setDate(0);
+        endOfDay(end);
+        break;
+      case "thisYear":
+        start.setMonth(0, 1);
+        startOfDay(start);
+        endOfDay(end);
+        break;
+      case "lastYear":
+        start.setFullYear(now.getFullYear() - 1);
+        start.setMonth(0, 1);
+        startOfDay(start);
+        end.setFullYear(now.getFullYear() - 1);
+        end.setMonth(11, 31);
+        endOfDay(end);
         break;
       default:
         break;
@@ -163,7 +186,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
     }
 
     let range;
-    if (tabValue < 5) {
+    if (tabValue < 8) {
       range = timeframes[tabValue].getValue();
     } else {
       range = { start: dateRange.startDate, end: dateRange.endDate };
@@ -177,7 +200,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
   const handleTabChange = (event) => {
     const newValue = event.target.value;
     setTabValue(newValue);
-    if (newValue < 5) {
+    if (newValue < 8) {
       const range = timeframes[newValue].getValue();
       fetchReports(range.start, range.end);
     }
@@ -246,7 +269,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
               </FormControl>
             )}
 
-            {tabValue === 5 && reportType !== 'low_stock' && (
+            {tabValue === 8 && reportType !== 'low_stock' && (
               <>
                 <TextField
                   label="Start Date"
@@ -493,13 +516,13 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                 <ExpiryReportPanel
                   data={expiryData}
                   loading={loading}
-                  timeframeLabel={tabValue === 5 ? 'Custom' : timeframes[tabValue].label}
+                  timeframeLabel={tabValue === 8 ? 'Custom' : timeframes[tabValue].label}
                 />
               ) : reportType === 'item_sales' ? (
                 <ItemSalesReportPanel
                   sales={reportData?.sales}
                   loading={loading}
-                  timeframeLabel={tabValue === 5 ? 'Custom' : timeframes[tabValue].label}
+                  timeframeLabel={tabValue === 8 ? 'Custom' : timeframes[tabValue].label}
                 />
               ) : reportType === 'low_stock' ? (
                 <LowStockReportPanel
@@ -510,7 +533,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                 <LooseSalesReportPanel
                   data={looseSalesData}
                   loading={loading}
-                  timeframeLabel={tabValue === 5 ? 'Custom' : timeframes[tabValue].label}
+                  timeframeLabel={tabValue === 8 ? 'Custom' : timeframes[tabValue].label}
                 />
               )}
             </Box>

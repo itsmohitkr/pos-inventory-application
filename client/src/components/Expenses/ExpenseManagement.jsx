@@ -84,39 +84,71 @@ const ExpenseManagement = () => {
     }, [dateFilter]);
 
     const getDateRange = () => {
-        if (dateFilter === 'custom') {
-            return {
-                startDate: customDates.start ? new Date(`${customDates.start}T00:00:00`).toISOString() : undefined,
-                endDate: customDates.end ? new Date(`${customDates.end}T23:59:59.999`).toISOString() : undefined
-            };
-        }
+        const now = new Date();
+        let start = new Date(now);
+        let end = new Date(now);
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const start = new Date(today);
-        const end = new Date(today);
-        end.setHours(23, 59, 59, 999);
+        const startOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
+        const endOfDay = (d) => { d.setHours(23, 59, 59, 999); return d; };
 
         switch (dateFilter) {
             case 'today':
+                startOfDay(start);
+                endOfDay(end);
                 break;
             case 'yesterday':
-                start.setDate(start.getDate() - 1);
-                end.setDate(end.getDate() - 1);
+                start.setDate(now.getDate() - 1);
+                startOfDay(start);
+                end.setDate(now.getDate() - 1);
+                endOfDay(end);
                 break;
-            case 'thisWeek':
-                const day = start.getDay();
-                // Monday as start of week
-                const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+            case 'thisWeek': {
+                const day = now.getDay();
+                const diff = now.getDate() - day + (day === 0 ? -6 : 1);
                 start.setDate(diff);
+                startOfDay(start);
+                endOfDay(end);
                 break;
+            }
+            case 'lastWeek': {
+                const day = now.getDay();
+                const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+                start.setDate(diffToMonday - 7);
+                startOfDay(start);
+                end.setDate(diffToMonday - 1);
+                endOfDay(end);
+                break;
+            }
             case 'thisMonth':
                 start.setDate(1);
+                startOfDay(start);
+                endOfDay(end);
+                break;
+            case 'lastMonth':
+                start.setMonth(now.getMonth() - 1);
+                start.setDate(1);
+                startOfDay(start);
+                end.setDate(0);
+                endOfDay(end);
                 break;
             case 'thisYear':
                 start.setMonth(0, 1);
+                startOfDay(start);
+                endOfDay(end);
                 break;
+            case 'lastYear':
+                start.setFullYear(now.getFullYear() - 1);
+                start.setMonth(0, 1);
+                startOfDay(start);
+                end.setFullYear(now.getFullYear() - 1);
+                end.setMonth(11, 31);
+                endOfDay(end);
+                break;
+            case 'custom':
+                return {
+                    startDate: customDates.start ? new Date(`${customDates.start}T00:00:00`).toISOString() : undefined,
+                    endDate: customDates.end ? new Date(`${customDates.end}T23:59:59.999`).toISOString() : undefined
+                };
             default:
                 return {};
         }
@@ -287,8 +319,11 @@ const ExpenseManagement = () => {
                                 <MenuItem value="today">Today</MenuItem>
                                 <MenuItem value="yesterday">Yesterday</MenuItem>
                                 <MenuItem value="thisWeek">This Week</MenuItem>
+                                <MenuItem value="lastWeek">Last Week</MenuItem>
                                 <MenuItem value="thisMonth">This Month</MenuItem>
+                                <MenuItem value="lastMonth">Last Month</MenuItem>
                                 <MenuItem value="thisYear">This Year</MenuItem>
+                                <MenuItem value="lastYear">Last Year</MenuItem>
                                 <MenuItem value="custom">Custom Date</MenuItem>
                             </Select>
                         </FormControl>

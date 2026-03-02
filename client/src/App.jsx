@@ -48,6 +48,7 @@ import ProductList from './components/Inventory/ProductList';
 import InventoryTree from './components/Inventory/InventoryTree';
 import BulkImportDialog from './components/Inventory/BulkImportDialog';
 import InventoryExcelView from './components/Inventory/InventoryExcelView';
+import BulkAddGrid from './components/Inventory/BulkAddGrid';
 import POS from './components/POS/POS';
 import Reporting from './components/Reporting/Reporting';
 import ExpenseManagement from './components/Expenses/ExpenseManagement';
@@ -315,6 +316,7 @@ const Overview = ({ shopName, userRole }) => (
 const Inventory = () => {
   const { showError, showSuccess } = useCustomDialog();
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showBulkAdd, setShowBulkAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [excelViewOpen, setExcelViewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -327,6 +329,7 @@ const Inventory = () => {
       inventoryRef.current.refresh();
     }
     setShowAddProduct(false);
+    setShowBulkAdd(false);
   };
 
   const handleImportComplete = () => {
@@ -417,6 +420,14 @@ const Inventory = () => {
             Spreadsheet View
           </Button>
           <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => setShowBulkAdd(true)}
+            sx={{ minWidth: 140 }}
+          >
+            Bulk Add
+          </Button>
+          <Button
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
@@ -429,7 +440,12 @@ const Inventory = () => {
       </Paper>
 
       <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 3, pb: 3 }}>
-        {showAddProduct ? (
+        {showBulkAdd ? (
+          <BulkAddGrid
+            onProductsAdded={handleProductAdded}
+            onCancel={() => setShowBulkAdd(false)}
+          />
+        ) : showAddProduct ? (
           <Container maxWidth="md" sx={{ height: '100%', overflowY: 'auto' }}>
             <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
