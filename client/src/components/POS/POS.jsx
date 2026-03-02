@@ -1076,16 +1076,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                                     />
                                 </Box>
                                 <Box sx={{ flex: 1 }}>
-                                    <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700, display: 'block' }}>
-                                        PROMOTION DEBUG (Threshold: ₹{activeConfig?.threshold || 'N/A'})
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                                        Total Profit: ₹{totalProfit.toFixed(2)} |
-                                        {activeConfig ? ` ${activeConfig.profitPercentage}% Limit: ₹${(Number(totalProfit) * (Number(activeConfig.profitPercentage) / 100)).toFixed(2)}` : ' No Threshold Met'}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Cost Range: ₹{activeConfig?.minCostPrice || 0} - ₹{activeConfig?.maxCostPrice || 'Auto'}
-                                    </Typography>
+                                    {/* Promotion Title/Context could go here if needed in future */}
                                 </Box>
                             </Box>
                             <Box sx={{
@@ -1154,14 +1145,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                                                         fontSize: '0.6rem'
                                                     }}
                                                 />
-                                                {bestBatch && (
-                                                    <Chip
-                                                        label={`CP: ₹${bestBatch.costPrice}`}
-                                                        size="small"
-                                                        variant="outlined"
-                                                        sx={{ height: 18, fontSize: '0.6rem', color: '#065f46', borderColor: '#c6f6d5' }}
-                                                    />
-                                                )}
+                                                {/* CP chip removed as per user request */}
                                             </Box>
                                         </ButtonBase>
                                     );
