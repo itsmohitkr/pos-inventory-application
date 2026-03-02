@@ -9,16 +9,21 @@ import ExportOptions from './ExportOptions';
 const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
 
     // Aggregate data by product
-    const aggregatedData = useMemo(() => {
-        if (!sales) return [];
+    const { aggregatedData, totals } = useMemo(() => {
+        if (!sales) return { aggregatedData: [], totals: { quantity: 0, revenue: 0, profit: 0, cost: 0 } };
 
         const itemsMap = {};
+        const sums = { quantity: 0, revenue: 0, profit: 0, cost: 0 };
 
         sales.forEach(sale => {
             sale.items.forEach(item => {
                 const productId = item.batch?.product?.id || 'unknown';
                 const productName = item.productName || 'Unknown Product';
                 const category = item.batch?.product?.category || 'Uncategorized';
+                const qty = (item.netQuantity || 0);
+                const rev = (item.sellingPrice * qty);
+                const prof = (item.profit || 0);
+                const cost = rev - prof;
 
                 if (!itemsMap[productId]) {
                     itemsMap[productId] = {
@@ -27,17 +32,27 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
                         category: category,
                         quantity: 0,
                         revenue: 0,
-                        profit: 0
+                        profit: 0,
+                        cost: 0
                     };
                 }
 
-                itemsMap[productId].quantity += (item.netQuantity || 0);
-                itemsMap[productId].revenue += (item.sellingPrice * (item.netQuantity || 0));
-                itemsMap[productId].profit += (item.profit || 0);
+                itemsMap[productId].quantity += qty;
+                itemsMap[productId].revenue += rev;
+                itemsMap[productId].profit += prof;
+                itemsMap[productId].cost += cost;
+
+                sums.quantity += qty;
+                sums.revenue += rev;
+                sums.profit += prof;
+                sums.cost += cost;
             });
         });
 
-        return Object.values(itemsMap).sort((a, b) => b.revenue - a.revenue);
+        return {
+            aggregatedData: Object.values(itemsMap).sort((a, b) => b.revenue - a.revenue),
+            totals: sums
+        };
     }, [sales]);
 
     const handleExportPDF = () => {
@@ -52,14 +67,26 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
         doc.text(`Timeframe: ${timeframeLabel}`, 14, 28);
         doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34);
 
-        const tableColumn = ["Product Name", "Category", "Quantity", "Revenue", "Profit", "Margin"];
+        const tableColumn = ["Product Name", "Category", "Quantity", "Cost", "Revenue", "Profit", "Margin"];
         const tableRows = aggregatedData.map(item => [
             item.name,
             item.category,
             item.quantity.toString(),
+            `Rs ${item.cost.toFixed(2)}`,
             `Rs ${item.revenue.toFixed(2)}`,
             `Rs ${item.profit.toFixed(2)}`,
             `${item.revenue > 0 ? ((item.profit / item.revenue) * 100).toFixed(2) : '0.00'}%`
+        ]);
+
+        // Add summary row to PDF
+        const avgMargin = totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(2) : '0.00';
+        tableRows.push([
+            { content: 'TOTAL SUMMARY', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+            { content: totals.quantity.toString(), styles: { fontStyle: 'bold', fillColor: [241, 245, 249], halign: 'center' } },
+            { content: `Rs ${totals.cost.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249], halign: 'right' } },
+            { content: `Rs ${totals.revenue.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249], halign: 'right' } },
+            { content: `Rs ${totals.profit.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249], halign: 'right' } },
+            { content: `${avgMargin}%`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249], halign: 'right' } }
         ]);
 
         autoTable(doc, {
@@ -97,7 +124,27 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
     }
 
     return (
-        <Box className="report-print-area" sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <Box className="report-print-area" sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            "@media print": {
+                p: 0,
+                "& .MuiTableContainer-root": {
+                    overflow: "visible !important",
+                    height: "auto !important",
+                },
+                "& .MuiTableRow-root": {
+                    pageBreakInside: "avoid",
+                    position: "static !important",
+                },
+                "& .MuiTableCell-root": {
+                    position: "static !important",
+                    borderBottom: "1px solid #eee !important",
+                }
+            }
+        }}>
             <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden' }}>
                 <Box className="no-print" sx={{ p: 3, flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                     <Box>
@@ -115,15 +162,16 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
                 </Box>
 
                 <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-                    <Table stickyHeader>
+                    <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>PRODUCT</TableCell>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>CATEGORY</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>QTY SOLD</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>REVENUE</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>PROFIT</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>MARGIN</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '25%' }}>PRODUCT</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '15%' }}>CATEGORY</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '10%' }}>QTY SOLD</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '15%' }}>COST</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '15%' }}>REVENUE</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '12%' }}>PROFIT</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '8%' }}>MARGIN</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -134,7 +182,8 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
                                         <TableCell sx={{ fontWeight: 600 }}>{item.name}</TableCell>
                                         <TableCell><Chip label={item.category} size="small" variant="outlined" /></TableCell>
                                         <TableCell align="center">{item.quantity}</TableCell>
-                                        <TableCell align="right">₹{item.revenue.toFixed(2)}</TableCell>
+                                        <TableCell align="right" sx={{ color: '#64748b' }}>₹{item.cost.toFixed(2)}</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 700 }}>₹{item.revenue.toFixed(2)}</TableCell>
                                         <TableCell align="right" sx={{ color: '#2e7d32', fontWeight: 700 }}>₹{item.profit.toFixed(2)}</TableCell>
                                         <TableCell align="right">
                                             <Chip
@@ -150,6 +199,28 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
                                     </TableRow>
                                 );
                             })}
+                            {aggregatedData.length > 0 && (
+                                <TableRow sx={{
+                                    position: "sticky",
+                                    bottom: 0,
+                                    zIndex: 2,
+                                    "&:hover": { bgcolor: "transparent" }
+                                }}>
+                                    <TableCell colSpan={2} sx={{ py: 2, fontWeight: 800, color: "#475569", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>TOTAL SUMMARY</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 800, color: "#0f172a", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>{totals.quantity}</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 800, color: "#64748b", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>₹{totals.cost.toFixed(2)}</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 800, color: "#0f172a", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>₹{totals.revenue.toFixed(2)}</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 800, color: "#16a34a", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>₹{totals.profit.toFixed(2)}</TableCell>
+                                    <TableCell align="right" sx={{ bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>
+                                        <Chip
+                                            label={`${totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : 0}%`}
+                                            size="small"
+                                            color="primary"
+                                            sx={{ fontWeight: 800 }}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>

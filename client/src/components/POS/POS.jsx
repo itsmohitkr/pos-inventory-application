@@ -762,15 +762,38 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
         const profitLimit = Number(totalProfit) * (Number(activeConfig.profitPercentage || 20) / 100);
         const minCost = Number(activeConfig.minCostPrice || 0);
-        const maxCost = activeConfig.maxCostPrice !== null ?
-            Number(activeConfig.maxCostPrice) :
+
+        // Max cost should be the minimum of:
+        // 1. User defined max cost (if any)
+        // 2. Profit based limit (percentage of total profit)
+        const effectiveMaxCost = activeConfig.maxCostPrice !== null && activeConfig.maxCostPrice !== undefined ?
+            Math.min(Number(activeConfig.maxCostPrice), profitLimit) :
             profitLimit;
 
         const filtered = products.filter(p => {
+            // Category checking: if allowedGroups is set, p.category must match/start with one of them
+            const allowedGroups = activeConfig.allowedGroups || [];
+            const productCategory = p.category || '';
+            if (allowedGroups.length > 0) {
+                const isAllowed = allowedGroups.some(group =>
+                    productCategory === group || productCategory.startsWith(`${group}/`)
+                );
+                if (!isAllowed) return false;
+            }
+
+            // Disallowed checking: if productCategory matches/starts with any disallowed group, exclude it
+            const disallowedGroups = activeConfig.disallowedGroups || [];
+            if (disallowedGroups.length > 0) {
+                const isDisallowed = disallowedGroups.some(group =>
+                    productCategory === group || productCategory.startsWith(`${group}/`)
+                );
+                if (isDisallowed) return false;
+            }
+
             return p.batches && p.batches.some(b => {
                 const cp = Number(b.costPrice);
                 return cp >= minCost &&
-                    cp <= (maxCost + 0.001) &&
+                    cp <= (effectiveMaxCost + 0.001) &&
                     b.quantity > 0;
             });
         });

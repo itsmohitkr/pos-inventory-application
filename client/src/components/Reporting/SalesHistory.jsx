@@ -21,6 +21,14 @@ import autoTable from 'jspdf-autotable';
 import ExportOptions from './ExportOptions';
 
 const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
+  const totals = React.useMemo(() => {
+    if (!sales || sales.length === 0) return { amount: 0, profit: 0, cost: 0 };
+    return sales.reduce((acc, sale) => ({
+      amount: acc.amount + (sale.netTotalAmount || 0),
+      profit: acc.profit + (sale.profit || 0),
+      cost: acc.cost + ((sale.netTotalAmount || 0) - (sale.profit || 0))
+    }), { amount: 0, profit: 0, cost: 0 });
+  }, [sales]);
 
   const handlePrint = () => {
     window.print();
@@ -38,23 +46,38 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
     doc.text(`Timeframe: ${timeframeLabel}`, 14, 28);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34);
 
-    const tableColumn = ["Date & Time", "Order ID", "Amount", "Profit", "Payment", "Status"];
+    const tableColumn = ["Date & Time", "Order ID", "Cost", "Amount", "Profit", "Margin", "Payment", "Status"];
     const tableRows = [];
 
     sales.forEach(sale => {
       const refundStatus = getRefundStatus(sale.items);
       const display = getStatusDisplay(refundStatus);
+      const cost = (sale.netTotalAmount || 0) - (sale.profit || 0);
+      const margin = sale.netTotalAmount > 0 ? ((sale.profit / sale.netTotalAmount) * 100).toFixed(1) : 0;
 
       const rowData = [
         sale.createdAt ? new Date(sale.createdAt).toLocaleString() : 'N/A',
         `#${sale.id}`,
+        `Rs ${cost.toFixed(2)}`,
         `Rs ${(sale.netTotalAmount || 0).toFixed(2)}`,
         `Rs ${(sale.profit || 0).toFixed(2)}`,
+        `${margin}%`,
         sale.paymentMethod || 'Cash',
         display.label
       ];
       tableRows.push(rowData);
     });
+
+    // Add summary row to PDF
+    const avgMargin = totals.amount > 0 ? ((totals.profit / totals.amount) * 100).toFixed(1) : 0;
+    tableRows.push([
+      { content: 'TOTAL SUMMARY', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: `Rs ${totals.cost.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: `Rs ${totals.amount.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: `Rs ${totals.profit.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: `${avgMargin}%`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      { content: '', colSpan: 2, styles: { fillColor: [241, 245, 249] } }
+    ]);
 
     autoTable(doc, {
       head: [tableColumn],
@@ -81,6 +104,22 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
         minHeight: 0,
         overflow: "hidden",
         borderRadius: 1,
+        "@media print": {
+          p: 0,
+          border: 'none',
+          "& .MuiTableContainer-root": {
+            overflow: "visible !important",
+            height: "auto !important",
+          },
+          "& .MuiTableRow-root": {
+            pageBreakInside: "avoid",
+            position: "static !important",
+          },
+          "& .MuiTableCell-root": {
+            position: "static !important",
+            borderBottom: "1px solid #eee !important",
+          }
+        },
       }}
     >
       <Box
@@ -126,7 +165,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   fontWeight: 800,
                   bgcolor: "#f8fafc",
                   color: "#64748b",
-                  width: "25%",
+                  width: "20%",
                   py: 2,
                 }}
               >
@@ -137,7 +176,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   fontWeight: 800,
                   bgcolor: "#f8fafc",
                   color: "#64748b",
-                  width: "12%",
+                  width: "8%",
                   py: 2,
                 }}
               >
@@ -149,7 +188,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   fontWeight: 800,
                   bgcolor: "#f8fafc",
                   color: "#64748b",
-                  width: "12%",
+                  width: "8%",
                   py: 2,
                 }}
               >
@@ -161,7 +200,19 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   fontWeight: 800,
                   bgcolor: "#f8fafc",
                   color: "#64748b",
-                  width: "18%",
+                  width: "10%",
+                  py: 2,
+                }}
+              >
+                COST
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{
+                  fontWeight: 800,
+                  bgcolor: "#f8fafc",
+                  color: "#64748b",
+                  width: "10%",
                   py: 2,
                 }}
               >
@@ -173,7 +224,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   fontWeight: 800,
                   bgcolor: "#f8fafc",
                   color: "#64748b",
-                  width: "18%",
+                  width: "10%",
                   py: 2,
                 }}
               >
@@ -185,7 +236,19 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   fontWeight: 800,
                   bgcolor: "#f8fafc",
                   color: "#64748b",
-                  width: "15%",
+                  width: "8%",
+                  py: 2,
+                }}
+              >
+                MARGIN
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{
+                  fontWeight: 800,
+                  bgcolor: "#f8fafc",
+                  color: "#64748b",
+                  width: "13%",
                   py: 2,
                 }}
               >
@@ -198,7 +261,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   fontWeight: 800,
                   bgcolor: "#f8fafc",
                   color: "#64748b",
-                  width: "12%",
+                  width: "13%",
                   py: 2,
                 }}
               >
@@ -238,6 +301,9 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                     }}
                   />
                 </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, color: "#64748b" }}>
+                  ₹{((sale?.netTotalAmount || 0) - (sale?.profit || 0)).toFixed(2)}
+                </TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700 }}>
                   ₹{(sale?.netTotalAmount || 0).toFixed(2)}
                 </TableCell>
@@ -245,6 +311,18 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   <Typography sx={{ color: "#2e7d32", fontWeight: 700 }}>
                     ₹{sale.profit.toFixed(2)}
                   </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Chip
+                    label={`${sale.netTotalAmount > 0 ? ((sale.profit / sale.netTotalAmount) * 100).toFixed(1) : 0}%`}
+                    size="small"
+                    sx={{
+                      fontWeight: 700,
+                      bgcolor: (sale.profit / sale.netTotalAmount) > 0.2 ? '#e8f5e9' : '#f8fafc',
+                      color: (sale.profit / sale.netTotalAmount) > 0.2 ? '#2e7d32' : '#64748b',
+                      fontSize: '0.7rem'
+                    }}
+                  />
                 </TableCell>
                 <TableCell align="center">
                   {(() => {
@@ -289,6 +367,36 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                 </TableCell>
               </TableRow>
             ))}
+            {sales && sales.length > 0 && (
+              <TableRow sx={{
+                position: "sticky",
+                bottom: 0,
+                zIndex: 2,
+                "&:hover": { bgcolor: "transparent" }
+              }}>
+                <TableCell colSpan={3} sx={{ py: 2, fontWeight: 800, color: "#475569", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>
+                  TOTAL SUMMARY
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, color: "#64748b", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>
+                  ₹{totals.cost.toFixed(2)}
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, color: "#0f172a", fontSize: '0.9rem', bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>
+                  ₹{totals.amount.toFixed(2)}
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, color: "#16a34a", fontSize: '0.9rem', bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>
+                  ₹{totals.profit.toFixed(2)}
+                </TableCell>
+                <TableCell align="center" sx={{ bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>
+                  <Chip
+                    label={`${totals.amount > 0 ? ((totals.profit / totals.amount) * 100).toFixed(1) : 0}%`}
+                    size="small"
+                    color="primary"
+                    sx={{ fontWeight: 800 }}
+                  />
+                </TableCell>
+                <TableCell colSpan={2} sx={{ bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}></TableCell>
+              </TableRow>
+            )}
             {(!sales || sales.length === 0) && (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 12 }}>

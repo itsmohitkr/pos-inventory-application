@@ -756,6 +756,19 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                                   gap: 1,
                                 }}
                               >
+                                {item.sellingPrice === 0 && (
+                                  <Chip
+                                    label="FREE"
+                                    size="small"
+                                    sx={{
+                                      bgcolor: "#e8f5e9",
+                                      color: "#2e7d32",
+                                      fontWeight: 800,
+                                      fontSize: "0.7rem",
+                                      height: 20
+                                    }}
+                                  />
+                                )}
                                 <span>{item.productName}</span>
                                 {returnedQty > 0 && (
                                   <Chip
@@ -857,11 +870,13 @@ const CategorySalesPanel = ({ sales }) => {
           acc[category] = {
             name: category,
             totalSales: 0,
+            totalCost: 0,
             totalProfit: 0,
             itemCount: 0
           };
         }
         acc[category].totalSales += (item.sellingPrice || 0) * (item.netQuantity || 0);
+        acc[category].totalCost += ((item.sellingPrice || 0) * (item.netQuantity || 0)) - (item.profit || 0);
         acc[category].totalProfit += (item.profit || 0);
         acc[category].itemCount += (item.netQuantity || 0);
       });
@@ -881,6 +896,15 @@ const CategorySalesPanel = ({ sales }) => {
     }
     return list.sort((a, b) => b.totalSales - a.totalSales);
   }, [categoryData, selectedCategory]);
+
+  const totals = React.useMemo(() => {
+    return categoryList.reduce((acc, cat) => ({
+      itemCount: acc.itemCount + (cat.itemCount || 0),
+      totalSales: acc.totalSales + (cat.totalSales || 0),
+      totalCost: acc.totalCost + (cat.totalCost || 0),
+      totalProfit: acc.totalProfit + (cat.totalProfit || 0)
+    }), { itemCount: 0, totalSales: 0, totalCost: 0, totalProfit: 0 });
+  }, [categoryList]);
 
   React.useEffect(() => {
     setSelectedIndex(0);
@@ -922,7 +946,23 @@ const CategorySalesPanel = ({ sales }) => {
           flexDirection: 'column',
           borderRadius: 2,
           border: '1px solid rgba(0,0,0,0.06)',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          "@media print": {
+            p: 0,
+            border: 'none',
+            "& .MuiTableContainer-root": {
+              overflow: "visible !important",
+              height: "auto !important",
+            },
+            "& .MuiTableRow-root": {
+              pageBreakInside: "avoid",
+              position: "static !important",
+            },
+            "& .MuiTableCell-root": {
+              position: "static !important",
+              borderBottom: "1px solid #eee !important",
+            }
+          },
         }}
       >
         <Box sx={{
@@ -955,14 +995,15 @@ const CategorySalesPanel = ({ sales }) => {
           </FormControl>
         </Box>
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader>
+          <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>CATEGORY NAME</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>ITEMS SOLD</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>TOTAL SALES</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>TOTAL PROFIT</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>AVG. MARGIN</TableCell>
+                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '30%' }}>CATEGORY NAME</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '12%' }}>ITEMS SOLD</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '18%' }}>TOTAL COST</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '18%' }}>TOTAL SALES</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '14%' }}>TOTAL PROFIT</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '8%' }}>AVG. MARGIN</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -980,6 +1021,7 @@ const CategorySalesPanel = ({ sales }) => {
                 >
                   <TableCell sx={{ fontWeight: 700 }}>{cat.name}</TableCell>
                   <TableCell align="center">{cat.itemCount}</TableCell>
+                  <TableCell align="right" sx={{ color: '#64748b' }}>₹{cat.totalCost.toFixed(2)}</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>₹{cat.totalSales.toFixed(2)}</TableCell>
                   <TableCell align="right" sx={{ color: '#2e7d32', fontWeight: 700 }}>₹{cat.totalProfit.toFixed(2)}</TableCell>
                   <TableCell align="right">
@@ -995,9 +1037,31 @@ const CategorySalesPanel = ({ sales }) => {
                   </TableCell>
                 </TableRow>
               ))}
+              {categoryList.length > 0 && (
+                <TableRow sx={{
+                  position: "sticky",
+                  bottom: 0,
+                  zIndex: 2,
+                  "&:hover": { bgcolor: "transparent" }
+                }}>
+                  <TableCell sx={{ fontWeight: 800, color: "#475569", py: 2, bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>TOTAL SUMMARY</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800, color: "#0f172a", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>{totals.itemCount}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800, color: "#64748b", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>₹{totals.totalCost.toFixed(2)}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800, color: "#0f172a", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>₹{totals.totalSales.toFixed(2)}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800, color: "#16a34a", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>₹{totals.totalProfit.toFixed(2)}</TableCell>
+                  <TableCell align="right" sx={{ bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>
+                    <Chip
+                      label={`${totals.totalSales > 0 ? ((totals.totalProfit / totals.totalSales) * 100).toFixed(1) : 0}%`}
+                      size="small"
+                      color="primary"
+                      sx={{ fontWeight: 800 }}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
               {categoryList.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                     <Typography color="text.secondary">No category data available for this period.</Typography>
                   </TableCell>
                 </TableRow>

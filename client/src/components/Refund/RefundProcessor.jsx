@@ -160,9 +160,24 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
                                     <TableCell>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                                             <Box>
-                                                <Typography variant="body2" fontWeight="bold">
-                                                    {item.batch?.product?.name || item.productName}
-                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    {item.sellingPrice === 0 && (
+                                                        <Chip
+                                                            label="FREE"
+                                                            size="small"
+                                                            sx={{
+                                                                bgcolor: "#e8f5e9",
+                                                                color: "#2e7d32",
+                                                                fontWeight: 800,
+                                                                fontSize: "0.65rem",
+                                                                height: 18
+                                                            }}
+                                                        />
+                                                    )}
+                                                    <Typography variant="body2" fontWeight="bold">
+                                                        {item.batch?.product?.name || item.productName}
+                                                    </Typography>
+                                                </Box>
                                                 {item.batch?.batchCode && (
                                                     <Typography variant="caption" color="text.secondary">
                                                         Batch: {item.batch.batchCode}
