@@ -41,7 +41,11 @@ import {
   Add as AddIcon,
   Warning as WarningIcon,
   DeleteForever as DeleteForeverIcon,
-  LocalOffer as PromoIcon
+  LocalOffer as PromoIcon,
+  FileUpload as UploadIcon,
+  FileDownload as DownloadIcon,
+  ViewList as ViewListIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import AddProductForm from './components/Inventory/AddProductForm';
 import ProductList from './components/Inventory/ProductList';
@@ -396,6 +400,7 @@ const Inventory = () => {
           <Button
             variant="outlined"
             color="primary"
+            startIcon={<UploadIcon />}
             onClick={() => setShowImport(true)}
             sx={{ minWidth: 120 }}
           >
@@ -404,6 +409,7 @@ const Inventory = () => {
           <Button
             variant="outlined"
             color="primary"
+            startIcon={<DownloadIcon />}
             onClick={handleExport}
             disabled={exporting}
             sx={{ minWidth: 120 }}
@@ -413,7 +419,7 @@ const Inventory = () => {
           <Button
             variant="outlined"
             color="primary"
-            startIcon={<InventoryIcon />}
+            startIcon={<ViewListIcon />}
             onClick={() => setExcelViewOpen(true)}
             sx={{ minWidth: 160 }}
           >
@@ -422,6 +428,7 @@ const Inventory = () => {
           <Button
             variant="outlined"
             color="primary"
+            startIcon={<AddIcon />}
             onClick={() => setShowBulkAdd(true)}
             sx={{ minWidth: 140 }}
           >
@@ -449,7 +456,13 @@ const Inventory = () => {
           <Container maxWidth="md" sx={{ height: '100%', overflowY: 'auto' }}>
             <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                <Button size="small" onClick={() => setShowAddProduct(false)}>Back to Inventory</Button>
+                <Button
+                  size="small"
+                  startIcon={<ArrowBackIcon />}
+                  onClick={() => setShowAddProduct(false)}
+                >
+                  Back to Inventory
+                </Button>
               </Box>
               <AddProductForm onProductAdded={handleProductAdded} />
             </Paper>

@@ -21,7 +21,8 @@ import {
     Delete as DeleteIcon,
     Add as AddIcon,
     Save as SaveIcon,
-    Clear as ClearIcon
+    Clear as ClearIcon,
+    ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { Autocomplete } from '@mui/material';
 import api from '../../api';
@@ -276,7 +277,14 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
             </TableContainer>
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', py: 1 }}>
-                <Button onClick={onCancel} variant="text" color="inherit">Back to Inventory</Button>
+                <Button
+                    onClick={onCancel}
+                    variant="text"
+                    color="inherit"
+                    startIcon={<ArrowBackIcon />}
+                >
+                    Back to Inventory
+                </Button>
             </Box>
         </Box>
     );

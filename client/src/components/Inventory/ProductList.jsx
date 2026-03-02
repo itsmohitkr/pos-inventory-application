@@ -22,7 +22,10 @@ import {
     Print as PrintIcon,
     Circle as CircleIcon,
     FilterList as FilterListIcon,
-    Clear as ClearIcon
+    Clear as ClearIcon,
+    Visibility as VisibilityIcon,
+    VisibilityOff as VisibilityOffIcon,
+    RestartAlt as RestartAltIcon
 } from '@mui/icons-material';
 
 import EditProductDialog from './EditProductDialog';
@@ -914,6 +917,7 @@ const ProductList = () => {
                             <Button
                                 size="small"
                                 variant="outlined"
+                                startIcon={showCategories ? <VisibilityOffIcon /> : <VisibilityIcon />}
                                 onClick={() => setShowCategories(prev => !prev)}
                                 sx={{
                                     color: '#1f2937',
@@ -931,6 +935,7 @@ const ProductList = () => {
                             <Button
                                 size="small"
                                 variant="outlined"
+                                startIcon={<RestartAltIcon />}
                                 onClick={() => {
                                     setCategoryFilter('all');
                                     setSortBy('name');
@@ -939,6 +944,7 @@ const ProductList = () => {
                                     setFilteredProducts(null);
                                     setSelectedProduct(null);
                                     setSelectedProductDetails(null);
+                                    setSelectedProductRefresh(0);
                                 }}
                                 sx={{
                                     color: '#1f2937',
@@ -948,8 +954,7 @@ const ProductList = () => {
                                     '&:hover': {
                                         borderColor: 'rgba(31, 41, 55, 0.7)',
                                         bgcolor: 'rgba(31, 41, 55, 0.1)'
-                                    },
-                                    ml: 1
+                                    }
                                 }}
                             >
                                 Reset

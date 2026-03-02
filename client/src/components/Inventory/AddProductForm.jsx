@@ -11,7 +11,8 @@ import {
     AddCircle as AddCircleIcon,
     Numbers as NumbersIcon,
     Refresh as RefreshIcon,
-    Close as CloseIcon
+    Close as CloseIcon,
+    Save as SaveIcon
 } from '@mui/icons-material';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
@@ -571,6 +572,7 @@ const AddProductForm = ({ onProductAdded }) => {
                             color="primary"
                             type="submit"
                             size="large"
+                            startIcon={<SaveIcon />}
                             disabled={barcodeChecking || Boolean(barcodeError)}
                             sx={{ px: 5, py: 1.5, fontWeight: 600 }}
                         >

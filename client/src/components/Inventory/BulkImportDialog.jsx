@@ -509,18 +509,18 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
         <DialogActions>
           {!result ? (
             <>
-              <Button onClick={handleClose}>Cancel</Button>
+              <Button onClick={handleClose} startIcon={<CloseIcon />}>Cancel</Button>
               <Button
                 onClick={handleImport}
                 variant="contained"
                 disabled={!file || importing || validating || hasErrors}
-                startIcon={hasErrors ? <ErrorIcon /> : undefined}
+                startIcon={hasErrors ? <ErrorIcon /> : <UploadIcon />}
               >
                 {hasErrors ? 'Fix Errors to Import' : 'Import All'}
               </Button>
             </>
           ) : (
-            <Button onClick={handleClose} variant="contained">
+            <Button onClick={handleClose} variant="contained" startIcon={<CloseIcon />}>
               Close
             </Button>
           )}
