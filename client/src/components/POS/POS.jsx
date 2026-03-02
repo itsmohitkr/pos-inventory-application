@@ -1078,7 +1078,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                                                 fontWeight: 800,
                                                 height: 24,
                                                 fontSize: '0.75rem',
-                                                bgcolor: 'primary.main',
+                                                bgcolor: 'success.main',
                                                 color: 'white',
                                                 px: 0.5
                                             }}
