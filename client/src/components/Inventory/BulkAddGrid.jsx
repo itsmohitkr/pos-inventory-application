@@ -23,6 +23,7 @@ import {
     Save as SaveIcon,
     Clear as ClearIcon
 } from '@mui/icons-material';
+import { Autocomplete } from '@mui/material';
 import api from '../../api';
 
 const INITIAL_ROW = {
@@ -38,9 +39,31 @@ const INITIAL_ROW = {
 
 const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
     const [rows, setRows] = useState([{ ...INITIAL_ROW, id: Date.now() }]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await api.get('/api/categories');
+            const flatten = (nodes) => {
+                let list = [];
+                nodes.forEach(node => {
+                    list.push(node.path);
+                    if (node.children) list.push(...flatten(node.children));
+                });
+                return list;
+            };
+            setCategories(flatten(res.data.data || []));
+        } catch (error) {
+            console.error('Failed to fetch categories:', error);
+        }
+    };
 
     const handleAddRow = () => {
         setRows([...rows, { ...INITIAL_ROW, id: Date.now() }]);
@@ -180,12 +203,24 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
                                     />
                                 </TableCell>
                                 <TableCell>
-                                    <TextField
-                                        fullWidth
-                                        size="small"
+                                    <Autocomplete
+                                        freeSolo
+                                        options={categories}
                                         value={row.category}
-                                        onChange={(e) => handleFieldChange(row.id, 'category', e.target.value)}
-                                        placeholder="Category path"
+                                        onInputChange={(event, newInputValue) => {
+                                            handleFieldChange(row.id, 'category', newInputValue);
+                                        }}
+                                        onChange={(event, newValue) => {
+                                            handleFieldChange(row.id, 'category', newValue || '');
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                fullWidth
+                                                size="small"
+                                                placeholder="Category path"
+                                            />
+                                        )}
                                     />
                                 </TableCell>
                                 <TableCell>
