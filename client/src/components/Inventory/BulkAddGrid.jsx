@@ -26,6 +26,8 @@ import {
 } from '@mui/icons-material';
 import { Autocomplete } from '@mui/material';
 import api from '../../api';
+import CustomDialog from '../common/CustomDialog';
+import useCustomDialog from '../../hooks/useCustomDialog';
 
 const INITIAL_ROW = {
     name: '',
@@ -39,6 +41,7 @@ const INITIAL_ROW = {
 };
 
 const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
+    const { dialogState, showConfirm, closeDialog } = useCustomDialog();
     const [rows, setRows] = useState([{ ...INITIAL_ROW, id: Date.now() }]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -124,8 +127,9 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
         }
     };
 
-    const handleClear = () => {
-        if (window.confirm('Are you sure you want to clear all rows?')) {
+    const handleClear = async () => {
+        const confirmed = await showConfirm('Are you sure you want to clear all rows? This action cannot be undone.');
+        if (confirmed) {
             setRows([{ ...INITIAL_ROW, id: Date.now() }]);
         }
     };
@@ -286,6 +290,8 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
                     Back to Inventory
                 </Button>
             </Box>
+            <Box sx={{ flexGrow: 1, height: '100%', minHeight: 0 }} />
+            <CustomDialog {...dialogState} onClose={closeDialog} />
         </Box>
     );
 };
