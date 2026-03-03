@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const createPurchase = async (data) => {
-    const { vendor, totalAmount, date, note, items = [] } = data;
+    const { vendor, totalAmount, date, note, paymentStatus, items = [] } = data;
 
     // Filter out invalid items (those without product IDs)
     const validItems = items.filter(item => item.productId && !isNaN(parseInt(item.productId)));
@@ -13,6 +13,7 @@ const createPurchase = async (data) => {
             totalAmount: parseFloat(totalAmount) || 0,
             date: date ? new Date(date) : new Date(),
             note,
+            paymentStatus: paymentStatus || 'Paid'
         };
 
         if (validItems.length > 0) {
@@ -72,7 +73,7 @@ const deletePurchase = async (id) => {
 };
 
 const updatePurchase = async (id, data) => {
-    const { vendor, totalAmount, date, note, items = [] } = data;
+    const { vendor, totalAmount, date, note, paymentStatus, items = [] } = data;
 
     // Filter out invalid items (those without product IDs)
     const validItems = items.filter(item => item.productId && !isNaN(parseInt(item.productId)));
@@ -83,6 +84,7 @@ const updatePurchase = async (id, data) => {
             totalAmount: parseFloat(totalAmount) || 0,
             date: date ? new Date(date) : new Date(),
             note,
+            paymentStatus: paymentStatus || 'Paid'
         };
 
         // If items are provided, delete old ones and create new ones

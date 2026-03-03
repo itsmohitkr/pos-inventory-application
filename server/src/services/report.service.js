@@ -97,26 +97,29 @@ const getReports = async ({ startDate, endDate }) => {
         };
     }
 
-    const [expenses, purchases] = await Promise.all([
+    const [expenses, purchases, looseSales] = await Promise.all([
         prisma.expense.findMany({ where: expenseWhere }),
-        prisma.purchase.findMany({ where: expenseWhere })
+        prisma.purchase.findMany({ where: expenseWhere }),
+        prisma.looseSale.findMany({ where })
     ]);
 
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalPurchases = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
+    const totalLooseSales = looseSales.reduce((sum, ls) => sum + ls.price, 0);
 
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalPurchases = purchases.reduce((sum, p) => sum + p.netAmount, 0);
     const netProfit = totalProfit - totalExpenses;
     const totalCashBalance = totalSales - totalExpenses - totalPurchases;
 
     return {
-        totalSales,
-        totalProfit,
-        netProfit,
-        totalCashBalance,
+        totalSales: totalSales + totalLooseSales,
+        totalProfit, // Loose sales profit not tracked for now as cost is unknown
+        netProfit: netProfit + totalLooseSales,
+        totalCashBalance: totalCashBalance + totalLooseSales,
         totalExpenses,
         totalPurchases,
         expenses,
         purchases,
+        looseSales,
         totalOrders: sales.length,
         salesCount: sales.length,
         sales: detailedSales
@@ -206,6 +209,15 @@ const getMonthlySales = async ({ year }) => {
         orderCount: 0
     }));
 
+    const looseSales = await prisma.looseSale.findMany({
+        where: {
+            createdAt: {
+                gte: startDate,
+                lte: endDate
+            }
+        }
+    });
+
     sales.forEach(sale => {
         const monthIndex = new Date(sale.createdAt).getMonth();
         let saleProfit = 0;
@@ -224,6 +236,12 @@ const getMonthlySales = async ({ year }) => {
         monthlyData[monthIndex].totalSales += finalSaleNetTotal;
         monthlyData[monthIndex].totalProfit += finalSaleProfit;
         monthlyData[monthIndex].orderCount += 1;
+    });
+
+    looseSales.forEach(ls => {
+        const monthIndex = new Date(ls.createdAt).getMonth();
+        monthlyData[monthIndex].totalSales += ls.price;
+        // profit not calculated for loose sales
     });
 
     return monthlyData;

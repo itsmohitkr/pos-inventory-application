@@ -37,12 +37,7 @@ const Dashboard = () => {
     const [tabValue, setTabValue] = useState(0);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-    const formatLocalDate = (date) => {
-        const tzOffset = date.getTimezoneOffset() * 60000;
-        return new Date(date.getTime() - tzOffset).toISOString().split('T')[0];
-    };
-
-    const localToday = formatLocalDate(new Date());
+    const localToday = new Date().toLocaleDateString('en-CA');
 
     const [dateRange, setDateRange] = useState({
         startDate: localToday,
@@ -63,40 +58,37 @@ const Dashboard = () => {
 
     const getRange = (type) => {
         const now = new Date();
-        let start = new Date();
-        let end = new Date();
+        let start = new Date(now);
+        let end = new Date(now);
+
+        const startOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
+        const endOfDay = (d) => { d.setHours(23, 59, 59, 999); return d; };
 
         switch (type) {
             case "day":
-                start.setHours(0, 0, 0, 0);
-                end.setHours(23, 59, 59, 999);
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                 break;
             case "yesterday":
-                start.setDate(now.getDate() - 1);
-                start.setHours(0, 0, 0, 0);
-                end.setDate(now.getDate() - 1);
-                end.setHours(23, 59, 59, 999);
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
                 break;
             case "week": {
                 const dayOfWeek = now.getDay();
                 const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-                start.setDate(now.getDate() - diffToMonday);
-                start.setHours(0, 0, 0, 0);
-                end.setHours(23, 59, 59, 999);
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                 break;
             }
             case "month":
-                start.setDate(1);
-                start.setHours(0, 0, 0, 0);
-                end.setHours(23, 59, 59, 999);
+                start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                 break;
             case "last_week": {
                 const dayOfWeek = now.getDay();
                 const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-                start.setDate(now.getDate() - diffToMonday - 7);
-                start.setHours(0, 0, 0, 0);
-                end.setDate(now.getDate() - diffToMonday - 1);
-                end.setHours(23, 59, 59, 999);
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday - 7, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday - 1, 23, 59, 59, 999);
                 break;
             }
             case "last_month":
@@ -105,7 +97,7 @@ const Dashboard = () => {
                 break;
             case "year":
                 start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-                end.setHours(23, 59, 59, 999);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                 break;
             case "last_year":
                 start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
@@ -117,8 +109,8 @@ const Dashboard = () => {
         return {
             start: start.toISOString(),
             end: end.toISOString(),
-            localStart: formatLocalDate(start),
-            localEnd: formatLocalDate(end)
+            localStart: start.toLocaleDateString('en-CA'),
+            localEnd: end.toLocaleDateString('en-CA')
         };
     };
 
@@ -178,10 +170,13 @@ const Dashboard = () => {
 
     const handleApplyCustomRange = () => {
         if (dateRange.startDate && dateRange.endDate) {
-            const start = new Date(dateRange.startDate);
-            start.setHours(0, 0, 0, 0);
-            const end = new Date(dateRange.endDate);
-            end.setHours(23, 59, 59, 999);
+            const [sy, sm, sd] = dateRange.startDate.split('-').map(Number);
+            const [ey, em, ed] = dateRange.endDate.split('-').map(Number);
+
+            const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+            const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
             fetchPeriodicData(start.toISOString(), end.toISOString());
         }
     };
@@ -189,18 +184,25 @@ const Dashboard = () => {
     // Calculate metrics for Periodic Reports section
     const periodicMetrics = useMemo(() => {
         const sales = report?.sales || [];
+        const looseSales = report?.looseSales || [];
         const totalSalesAmount = report?.totalSales || 0;
 
         const productTotals = new Map();
         const categoryTotals = new Map();
-        let totalCustomers = sales.length; // Approximate distinct walk-ins
+        const dailyAmtMap = new Map();
+        let totalCustomers = sales.length;
         let totalCostAmount = 0;
 
         const hourlySalesAmt = Array.from({ length: 24 }, () => 0);
 
+        // Process Regular Sales
         sales.forEach((sale) => {
-            const saleHour = new Date(sale.createdAt).getHours();
+            const saleDate = new Date(sale.createdAt);
+            const saleHour = saleDate.getHours();
+            const dateKey = saleDate.toLocaleDateString('en-CA');
+
             hourlySalesAmt[saleHour] += sale.netTotalAmount || 0;
+            dailyAmtMap.set(dateKey, (dailyAmtMap.get(dateKey) || 0) + (sale.netTotalAmount || 0));
 
             sale.items.forEach((item) => {
                 const qty = item.netQuantity ?? (item.quantity - item.returnedQuantity);
@@ -208,10 +210,16 @@ const Dashboard = () => {
                 const category = item.batch?.product?.category || 'Uncategorized';
 
                 productTotals.set(name, (productTotals.get(name) || 0) + (item.sellingPrice * qty));
-
                 categoryTotals.set(category, (categoryTotals.get(category) || 0) + (item.sellingPrice * qty));
                 totalCostAmount += (item.costPrice || 0) * qty;
             });
+        });
+
+        // Process Loose Sales
+        looseSales.forEach((ls) => {
+            const lsDate = new Date(ls.createdAt);
+            const dateKey = lsDate.toLocaleDateString('en-CA');
+            dailyAmtMap.set(dateKey, (dailyAmtMap.get(dateKey) || 0) + ls.price);
         });
 
         const topProducts = [...productTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -358,10 +366,11 @@ const Dashboard = () => {
                                                 sx={{
                                                     width: '100%',
                                                     height: `${hPct}%`,
-                                                    bgcolor: '#0b1d39',
+                                                    bgcolor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
                                                     borderRight: '1px solid #fff',
                                                     borderTopLeftRadius: 4,
                                                     borderTopRightRadius: 4,
+                                                    transition: 'height 0.3s ease'
                                                 }}
                                             />
                                         </Box>
@@ -392,7 +401,6 @@ const Dashboard = () => {
                             <Typography variant="h6" sx={{ color: '#38bdf8', fontWeight: 600 }}>{yearMetrics.topMonthVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
                         </Box>
                     </Paper>
-
                 </Box>
 
                 {/* PERIODIC REPORTS HEADER */}

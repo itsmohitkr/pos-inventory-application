@@ -151,6 +151,7 @@ model Purchase {
   totalAmount Float
   date        DateTime @default(now())
   note        String?
+  paymentStatus String   @default("Paid") // "Paid", "Unpaid"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   items       PurchaseItem[]

@@ -92,61 +92,52 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
 
     switch (type) {
       case "today":
-        startOfDay(start);
-        endOfDay(end);
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       case "yesterday":
-        start.setDate(now.getDate() - 1);
-        startOfDay(start);
-        end.setDate(now.getDate() - 1);
-        endOfDay(end);
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
         break;
       case "thisWeek": {
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        start.setDate(diff);
-        startOfDay(start);
-        endOfDay(end);
+        start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       }
       case "lastWeek": {
         const day = now.getDay();
         const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
-        start.setDate(diffToMonday - 7);
-        startOfDay(start);
-        end.setDate(diffToMonday - 1);
-        endOfDay(end);
+        start = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 7, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 1, 23, 59, 59, 999);
         break;
       }
       case "thisMonth":
-        start.setDate(1);
-        startOfDay(start);
-        endOfDay(end);
+        start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       case "lastMonth":
-        start.setMonth(now.getMonth() - 1);
-        start.setDate(1);
-        startOfDay(start);
-        end.setDate(0);
-        endOfDay(end);
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
         break;
       case "thisYear":
-        start.setMonth(0, 1);
-        startOfDay(start);
-        endOfDay(end);
+        start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       case "lastYear":
-        start.setFullYear(now.getFullYear() - 1);
-        start.setMonth(0, 1);
-        startOfDay(start);
-        end.setFullYear(now.getFullYear() - 1);
-        end.setMonth(11, 31);
-        endOfDay(end);
+        start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
         break;
       default:
         break;
     }
-    return { start: start.toISOString(), end: end.toISOString() };
+    return {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      localStart: start.toLocaleDateString('en-CA'),
+      localEnd: end.toLocaleDateString('en-CA')
+    };
   };
 
   const fetchReports = async (start, end) => {
@@ -188,8 +179,16 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
     let range;
     if (tabValue < 8) {
       range = timeframes[tabValue].getValue();
-    } else {
-      range = { start: dateRange.startDate, end: dateRange.endDate };
+    } else if (dateRange.startDate && dateRange.endDate) {
+      // For custom range, ensure we use inclusive local boundaries
+      const [sy, sm, sd] = dateRange.startDate.split('-').map(Number);
+      const [ey, em, ed] = dateRange.endDate.split('-').map(Number);
+
+      if (!isNaN(sy) && !isNaN(ey)) {
+        const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+        const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+        range = { start: start.toISOString(), end: end.toISOString() };
+      }
     }
 
     if (range && range.start && range.end) {
@@ -202,13 +201,24 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
     setTabValue(newValue);
     if (newValue < 8) {
       const range = timeframes[newValue].getValue();
+      setDateRange({
+        startDate: range.localStart,
+        endDate: range.localEnd
+      });
       fetchReports(range.start, range.end);
     }
   };
 
   const handleApplyCustomRange = () => {
     if (dateRange.startDate && dateRange.endDate) {
-      fetchReports(dateRange.startDate, dateRange.endDate);
+      const [sy, sm, sd] = dateRange.startDate.split('-').map(Number);
+      const [ey, em, ed] = dateRange.endDate.split('-').map(Number);
+
+      const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+      const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
+      fetchReports(start.toISOString(), end.toISOString());
     }
   };
 
@@ -276,11 +286,11 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                   type="date"
                   size="small"
                   InputLabelProps={{ shrink: true }}
-                  value={dateRange.startDate.split("T")[0] || ""}
+                  value={dateRange.startDate || ""}
                   onChange={(e) =>
                     setDateRange({
                       ...dateRange,
-                      startDate: new Date(e.target.value).toISOString(),
+                      startDate: e.target.value,
                     })
                   }
                 />
@@ -289,11 +299,11 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                   type="date"
                   size="small"
                   InputLabelProps={{ shrink: true }}
-                  value={dateRange.endDate.split("T")[0] || ""}
+                  value={dateRange.endDate || ""}
                   onChange={(e) =>
                     setDateRange({
                       ...dateRange,
-                      endDate: new Date(e.target.value).toISOString(),
+                      endDate: e.target.value,
                     })
                   }
                 />

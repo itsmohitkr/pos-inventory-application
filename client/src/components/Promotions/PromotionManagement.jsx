@@ -55,8 +55,8 @@ const PromotionManagement = () => {
     // Form state
     const [formData, setFormData] = useState({
         name: '',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0],
+        startDate: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD
+        endDate: new Date().toLocaleDateString('en-CA'),
         items: []
     });
 
@@ -205,8 +205,8 @@ const PromotionManagement = () => {
         setEditId(null);
         setFormData({
             name: '',
-            startDate: new Date().toISOString().split('T')[0],
-            endDate: new Date().toISOString().split('T')[0],
+            startDate: new Date().toLocaleDateString('en-CA'),
+            endDate: new Date().toLocaleDateString('en-CA'),
             items: []
         });
         setOpenDialog(true);
@@ -308,11 +308,33 @@ const PromotionManagement = () => {
     };
 
     const handleSubmit = async () => {
+        if (!formData.startDate || !formData.endDate) {
+            setSnackbar({ open: true, message: 'Please select both start and end dates', severity: 'error' });
+            return;
+        }
+
+        const [sy, sm, sd] = formData.startDate.split('-').map(Number);
+        const [ey, em, ed] = formData.endDate.split('-').map(Number);
+
+        const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+        const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            setSnackbar({ open: true, message: 'Invalid date format selected', severity: 'error' });
+            return;
+        }
+
         try {
+            const submissionData = {
+                ...formData,
+                startDate: start.toISOString(),
+                endDate: end.toISOString()
+            };
+
             if (isEditMode) {
-                await api.put(`/api/promotions/${editId}`, formData);
+                await api.put(`/api/promotions/${editId}`, submissionData);
             } else {
-                await api.post('/api/promotions', formData);
+                await api.post('/api/promotions', submissionData);
             }
             fetchPromotions();
             handleCloseDialog();

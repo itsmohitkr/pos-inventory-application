@@ -25,7 +25,8 @@ import {
     MenuItem,
     Alert,
     Stack,
-    Divider
+    Divider,
+    Chip
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -72,6 +73,7 @@ const ExpenseManagement = () => {
         totalAmount: '',
         date: getLocalTodayString(),
         note: '',
+        paymentStatus: 'Paid',
         items: []
     });
 
@@ -83,72 +85,63 @@ const ExpenseManagement = () => {
         }
     }, [dateFilter]);
 
-    const getDateRange = () => {
+    const getDateRange = (type) => {
         const now = new Date();
         let start = new Date(now);
         let end = new Date(now);
 
-        const startOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
-        const endOfDay = (d) => { d.setHours(23, 59, 59, 999); return d; };
-
-        switch (dateFilter) {
+        switch (type) {
             case 'today':
-                startOfDay(start);
-                endOfDay(end);
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                 break;
             case 'yesterday':
-                start.setDate(now.getDate() - 1);
-                startOfDay(start);
-                end.setDate(now.getDate() - 1);
-                endOfDay(end);
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
                 break;
             case 'thisWeek': {
                 const day = now.getDay();
                 const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-                start.setDate(diff);
-                startOfDay(start);
-                endOfDay(end);
+                start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                 break;
             }
             case 'lastWeek': {
                 const day = now.getDay();
                 const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
-                start.setDate(diffToMonday - 7);
-                startOfDay(start);
-                end.setDate(diffToMonday - 1);
-                endOfDay(end);
+                start = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 7, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 1, 23, 59, 59, 999);
                 break;
             }
             case 'thisMonth':
-                start.setDate(1);
-                startOfDay(start);
-                endOfDay(end);
+                start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                 break;
             case 'lastMonth':
-                start.setMonth(now.getMonth() - 1);
-                start.setDate(1);
-                startOfDay(start);
-                end.setDate(0);
-                endOfDay(end);
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
                 break;
             case 'thisYear':
-                start.setMonth(0, 1);
-                startOfDay(start);
-                endOfDay(end);
+                start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                 break;
             case 'lastYear':
-                start.setFullYear(now.getFullYear() - 1);
-                start.setMonth(0, 1);
-                startOfDay(start);
-                end.setFullYear(now.getFullYear() - 1);
-                end.setMonth(11, 31);
-                endOfDay(end);
+                start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+                end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
                 break;
-            case 'custom':
-                return {
-                    startDate: customDates.start ? new Date(`${customDates.start}T00:00:00`).toISOString() : undefined,
-                    endDate: customDates.end ? new Date(`${customDates.end}T23:59:59.999`).toISOString() : undefined
-                };
+            case 'custom': {
+                const start = customDates.start ? (() => {
+                    const [y, m, d] = customDates.start.split('-').map(Number);
+                    return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString();
+                })() : undefined;
+
+                const end = customDates.end ? (() => {
+                    const [y, m, d] = customDates.end.split('-').map(Number);
+                    return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
+                })() : undefined;
+
+                return { startDate: start, endDate: end };
+            }
             default:
                 return {};
         }
@@ -159,7 +152,8 @@ const ExpenseManagement = () => {
         setLoading(true);
         setError(null);
         try {
-            const { startDate, endDate } = getDateRange();
+            const range = getDateRange(dateFilter);
+            const { startDate, endDate } = range;
 
             let queryParams = '?';
             const params = new URLSearchParams();
@@ -186,7 +180,7 @@ const ExpenseManagement = () => {
     };
 
     const handleOpenPurchaseDialog = () => {
-        setPurchaseForm({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', items: [] });
+        setPurchaseForm({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', paymentStatus: 'Paid', items: [] });
         setPurchaseDialogOpen(true);
     };
 
@@ -208,6 +202,7 @@ const ExpenseManagement = () => {
             totalAmount: purchase.totalAmount,
             note: purchase.note || '',
             date: new Date(purchase.date).toISOString().split('T')[0],
+            paymentStatus: purchase.paymentStatus || 'Paid',
             items: purchase.items || []
         });
         setPurchaseDialogOpen(true);
@@ -415,11 +410,12 @@ const ExpenseManagement = () => {
                                                             Total Current Period
                                                         </Typography>
                                                     </TableCell>
-                                                    <TableCell align="right" colSpan={2} sx={{ py: 1.5 }}>
+                                                    <TableCell align="right" sx={{ py: 1.5 }}>
                                                         <Typography variant="h6" fontWeight="bold" color="primary.dark">
                                                             ₹{totalExpensesAmount.toLocaleString()}
                                                         </Typography>
                                                     </TableCell>
+                                                    <TableCell sx={{ py: 1.5 }} />
                                                 </TableRow>
                                             )}
                                         </TableBody>
@@ -444,7 +440,8 @@ const ExpenseManagement = () => {
                                                 <TableCell>Date</TableCell>
                                                 <TableCell>Vendor</TableCell>
                                                 <TableCell>Note</TableCell>
-                                                <TableCell align="right">Total Amount</TableCell>
+                                                <TableCell align="right">Amount</TableCell>
+                                                <TableCell align="center">Status</TableCell>
                                                 <TableCell align="right">Actions</TableCell>
                                             </TableRow>
                                         </TableHead>
@@ -455,6 +452,14 @@ const ExpenseManagement = () => {
                                                     <TableCell>{row.vendor || 'N/A'}</TableCell>
                                                     <TableCell>{row.note}</TableCell>
                                                     <TableCell align="right">₹{row.totalAmount.toLocaleString()}</TableCell>
+                                                    <TableCell align="center">
+                                                        <Chip
+                                                            label={row.paymentStatus || 'Paid'}
+                                                            size="small"
+                                                            color={row.paymentStatus === 'Unpaid' ? 'error' : 'success'}
+                                                            sx={{ fontWeight: 'bold', minWidth: 70 }}
+                                                        />
+                                                    </TableCell>
                                                     <TableCell align="right">
                                                         <IconButton size="small" color="primary" onClick={() => handleEditPurchase(row)}>
                                                             <EditIcon fontSize="small" />
@@ -467,7 +472,7 @@ const ExpenseManagement = () => {
                                             ))}
                                             {purchases.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} align="center">No purchases recorded for this period</TableCell>
+                                                    <TableCell colSpan={6} align="center">No purchases recorded for this period</TableCell>
                                                 </TableRow>
                                             )}
                                             {/* Highlighted Total Row */}
@@ -483,6 +488,7 @@ const ExpenseManagement = () => {
                                                             ₹{totalPurchasesAmount.toLocaleString()}
                                                         </Typography>
                                                     </TableCell>
+                                                    <TableCell colSpan={2} sx={{ py: 1.5 }} />
                                                 </TableRow>
                                             )}
                                         </TableBody>
@@ -585,6 +591,19 @@ const ExpenseManagement = () => {
                                             onChange={(e) => setPurchaseForm({ ...purchaseForm, date: e.target.value })}
                                             InputLabelProps={{ shrink: true }}
                                         />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            select
+                                            fullWidth
+                                            label="Payment Status"
+                                            value={purchaseForm.paymentStatus}
+                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, paymentStatus: e.target.value })}
+                                            SelectProps={{ native: true }}
+                                        >
+                                            <option value="Paid">Paid</option>
+                                            <option value="Unpaid">Unpaid</option>
+                                        </TextField>
                                     </Grid>
                                     <Grid item xs={12}>
                                         <TextField

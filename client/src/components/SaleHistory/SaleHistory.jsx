@@ -64,27 +64,23 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
 
     switch (type) {
       case "day":
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       case "yesterday":
-        start.setDate(now.getDate() - 1);
-        start.setHours(0, 0, 0, 0);
-        end.setDate(now.getDate() - 1);
-        end.setHours(23, 59, 59, 999);
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
         break;
       case "week": {
         const dayOfWeek = now.getDay();
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        start.setDate(now.getDate() - diffToMonday);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       }
       case "month":
-        start.setDate(1);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       default:
         break;
@@ -172,7 +168,14 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
 
   const handleApplyCustomRange = () => {
     if (dateRange.startDate && dateRange.endDate) {
-      fetchSales(dateRange.startDate, dateRange.endDate);
+      const [sy, sm, sd] = dateRange.startDate.split('-').map(Number);
+      const [ey, em, ed] = dateRange.endDate.split('-').map(Number);
+
+      const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+      const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
+      fetchSales(start.toISOString(), end.toISOString());
     }
   };
 
@@ -305,11 +308,11 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                   type="date"
                   size="small"
                   InputLabelProps={{ shrink: true }}
-                  value={dateRange.startDate.split("T")[0] || ""}
+                  value={dateRange.startDate || ""}
                   onChange={(e) =>
                     setDateRange({
                       ...dateRange,
-                      startDate: new Date(e.target.value).toISOString(),
+                      startDate: e.target.value,
                     })
                   }
                 />
@@ -318,11 +321,11 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                   type="date"
                   size="small"
                   InputLabelProps={{ shrink: true }}
-                  value={dateRange.endDate.split("T")[0] || ""}
+                  value={dateRange.endDate || ""}
                   onChange={(e) =>
                     setDateRange({
                       ...dateRange,
-                      endDate: new Date(e.target.value).toISOString(),
+                      endDate: e.target.value,
                     })
                   }
                 />
@@ -348,7 +351,9 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          p: 3,
+          pt: 0,
+          px: 3,
+          pb: 3,
         }}
       >
         {loading ? (
@@ -365,7 +370,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
         ) : (
           <Grid
             container
-            spacing={3}
+            spacing={2}
             wrap="nowrap"
             className="no-print"
             sx={{ flex: 1, minHeight: 0, overflow: "hidden", flexWrap: "nowrap" }}
