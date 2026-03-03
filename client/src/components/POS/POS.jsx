@@ -1153,6 +1153,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                                 display: 'flex',
                                 gap: 1.5,
                                 overflowX: 'auto',
+                                pt: 1,
                                 pb: 1,
                                 '&::-webkit-scrollbar': { height: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e0', borderRadius: '3px' }
@@ -1170,8 +1171,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                                             onClick={() => addFreeProduct(product)}
                                             sx={{
                                                 flexShrink: 0,
-                                                p: 1.75,
+                                                p: 2,
+                                                py: 2.25,
                                                 width: 160,
+                                                minHeight: 110,
                                                 bgcolor: isSelected ? '#ccfbf1' : 'white',
                                                 border: isSelected ? '2px solid #22ab7dff' : '1px solid #c6f6d5',
                                                 borderRadius: 2.5,
@@ -1215,7 +1218,11 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                                                         fontSize: '0.6rem'
                                                     }}
                                                 />
-                                                {/* CP chip removed as per user request */}
+                                                {bestBatch && (
+                                                    <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', ml: 0.5 }}>
+                                                        MRP: ₹{bestBatch.mrp}
+                                                    </Typography>
+                                                )}
                                             </Box>
                                         </ButtonBase>
                                     );
