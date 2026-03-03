@@ -113,7 +113,7 @@ const getReports = async ({ startDate, endDate }) => {
     return {
         totalSales: totalSales + totalLooseSales,
         totalProfit, // Loose sales profit not tracked for now as cost is unknown
-        netProfit: netProfit + totalLooseSales,
+        netProfit,
         totalCashBalance: totalCashBalance + totalLooseSales,
         totalExpenses,
         totalPurchases,
