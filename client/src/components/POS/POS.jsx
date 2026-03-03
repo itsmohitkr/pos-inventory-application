@@ -976,6 +976,32 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         return filtered;
     };
 
+    // Refocus search bar after fullscreen toggle (MUI/React can lose focus during layout shift)
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            // Wait for transition to complete
+            setTimeout(() => {
+                const anyDialogOpen = document.querySelector(
+                    '.MuiDialog-root[role="presentation"], .MuiBackdrop-root'
+                );
+                if (anyDialogOpen) return;
+
+                const activeElement = document.activeElement;
+                const isInput = activeElement.tagName === 'INPUT' ||
+                    activeElement.tagName === 'TEXTAREA' ||
+                    activeElement.tagName === 'SELECT' ||
+                    activeElement.isContentEditable;
+
+                if (!isInput && searchBarRef.current) {
+                    searchBarRef.current.focus();
+                }
+            }, 500); // 500ms delay to ensure transition is complete
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
     // Global focus protection — only refocus search bar if no dialog/modal is open
     // and the click was NOT on a button, link, or interactive MUI element
     useEffect(() => {
