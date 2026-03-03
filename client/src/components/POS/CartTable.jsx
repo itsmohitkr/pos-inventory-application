@@ -66,8 +66,8 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
     }, [lastAddedItemId]);
 
     return (
-        <Box ref={scrollContainerRef} sx={{ flexGrow: 1, overflowY: 'auto' }}>
-            <TableContainer sx={{ borderTop: '1px solid rgba(16, 24, 40, 0.06)' }}>
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <TableContainer ref={scrollContainerRef} sx={{ flexGrow: 1, overflowY: 'auto', borderTop: '1px solid rgba(16, 24, 40, 0.06)' }}>
                 <Table stickyHeader size="small">
                     <TableHead>
                         <TableRow>
