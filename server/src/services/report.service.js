@@ -106,7 +106,7 @@ const getReports = async ({ startDate, endDate }) => {
     const totalLooseSales = looseSales.reduce((sum, ls) => sum + ls.price, 0);
 
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalPurchases = purchases.reduce((sum, p) => sum + p.netAmount, 0);
+    const totalPurchases = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
     const netProfit = totalProfit - totalExpenses;
     const totalCashBalance = totalSales - totalExpenses - totalPurchases;
 
