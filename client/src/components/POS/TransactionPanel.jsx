@@ -413,6 +413,7 @@ const TransactionPanel = ({
                         className="pos-action-btn"
                         onClick={onVoid}
                         disabled={cart.length === 0}
+                        startIcon={<DeleteIcon />}
                         sx={{
                             flex: 1,
                             height: 64,
