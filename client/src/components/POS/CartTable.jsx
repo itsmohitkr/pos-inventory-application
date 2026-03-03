@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
     Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Typography, IconButton, Chip, Tooltip
@@ -51,8 +51,22 @@ const ShortBatchCode = ({ batchCode }) => {
 };
 
 const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, lastAddedItemId }) => {
+    const scrollContainerRef = useRef(null);
+
+    useEffect(() => {
+        if (lastAddedItemId) {
+            const rowElement = document.getElementById(`cart-row-${lastAddedItemId}`);
+            if (rowElement) {
+                rowElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest'
+                });
+            }
+        }
+    }, [lastAddedItemId]);
+
     return (
-        <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+        <Box ref={scrollContainerRef} sx={{ flexGrow: 1, overflowY: 'auto' }}>
             <TableContainer sx={{ borderTop: '1px solid rgba(16, 24, 40, 0.06)' }}>
                 <Table stickyHeader size="small">
                     <TableHead>
@@ -73,6 +87,7 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
                             return (
                                 <TableRow
                                     key={item.batch_id}
+                                    id={`cart-row-${item.batch_id}`}
                                     hover
                                     sx={{
                                         backgroundColor: item.batch_id === lastAddedItemId ? 'rgba(76, 175, 80, 0.15)' : 'inherit',
