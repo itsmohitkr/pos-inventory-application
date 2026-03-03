@@ -21,7 +21,9 @@ import {
     Autocomplete,
     Chip,
     Tooltip,
-    Divider
+    Divider,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -68,6 +70,7 @@ const PromotionManagement = () => {
         config: [] // Array of { threshold, profitPercentage, minCostPrice, maxCostPrice, sortBySales, maxGiftsToShow }
     });
     const [newThreshold, setNewThreshold] = useState('');
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
     useEffect(() => {
         fetchPromotions();
@@ -131,10 +134,10 @@ const PromotionManagement = () => {
                 key: 'promotion_buy_x_get_free',
                 value: promoSettings
             });
-            alert('Promotion settings saved successfully!');
+            setSnackbar({ open: true, message: 'Promotion settings saved successfully!', severity: 'success' });
         } catch (error) {
             console.error('Failed to save promotion settings:', error);
-            alert('Failed to save promotion settings');
+            setSnackbar({ open: true, message: 'Failed to save promotion settings', severity: 'error' });
         }
     };
 
@@ -899,6 +902,22 @@ const PromotionManagement = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity}
+                    variant="filled"
+                    sx={{ width: '100%', borderRadius: 2, fontWeight: 600 }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };

@@ -181,6 +181,44 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         if (propShopMetadata) setShopMetadata(propShopMetadata);
     }, [propShopMetadata]);
 
+    // Reliable focus management for POS Search Bar
+    useEffect(() => {
+        const refocusSearchBar = () => {
+            const timer = setTimeout(() => {
+                const activeElement = document.activeElement;
+                const isInput = activeElement.tagName === 'INPUT' ||
+                    activeElement.tagName === 'TEXTAREA' ||
+                    activeElement.tagName === 'SELECT' ||
+                    activeElement.isContentEditable;
+
+                // Only refocus if focus isn't already on an input
+                if (!isInput && searchBarRef.current) {
+                    searchBarRef.current.focus();
+                }
+            }, 300); // Settling time for transitions/mount
+            return timer;
+        };
+
+        // 1. Refocus on mount
+        const mountTimer = refocusSearchBar();
+
+        // 2. Refocus when window/app gains focus (fixes Windows Alt-Tab issue)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refocusSearchBar();
+            }
+        };
+
+        window.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', refocusSearchBar);
+
+        return () => {
+            clearTimeout(mountTimer);
+            window.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', refocusSearchBar);
+        };
+    }, []);
+
     const refreshSettings = useCallback(async (retries = 3) => {
         try {
             const [settingsRes, statsRes] = await Promise.all([
@@ -938,21 +976,38 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         return filtered;
     };
 
-    // Global focus protection
+    // Global focus protection — only refocus search bar if no dialog/modal is open
+    // and the click was NOT on a button, link, or interactive MUI element
     useEffect(() => {
         const handleGlobalMouseDown = (e) => {
-            // Give a tiny timeout to see if focus actually moves to another input
+            // Check if click was inside an interactive element we should NOT steal focus from
+            const isInteractive = e.target.closest(
+                'input, textarea, select, [contenteditable], ' +
+                'button, a, [role="button"], [role="link"], ' +
+                '[role="dialog"], [role="listbox"], [role="menu"], ' +
+                '.MuiDialog-root, .MuiAutocomplete-popper, .MuiPopover-root, .MuiMenu-root, .MuiDrawer-root, ' +
+                '.MuiButtonBase-root, .pos-action-btn'
+            );
+            if (isInteractive) return;
+
+            // If any MUI Dialog or modal is open, don't steal focus
+            const anyDialogOpen = document.querySelector(
+                '.MuiDialog-root[role="presentation"], .MuiBackdrop-root'
+            );
+            if (anyDialogOpen) return;
+
+            // Safe to refocus search bar after a settling delay
             setTimeout(() => {
                 const activeElement = document.activeElement;
                 const isInput = activeElement.tagName === 'INPUT' ||
                     activeElement.tagName === 'TEXTAREA' ||
+                    activeElement.tagName === 'SELECT' ||
                     activeElement.isContentEditable;
 
-                // If focus isn't on an input/editable and searchBar exists, refocus it
                 if (!isInput && searchBarRef.current) {
                     searchBarRef.current.focus();
                 }
-            }, 50);
+            }, 150);
         };
 
         window.addEventListener('mousedown', handleGlobalMouseDown);
@@ -978,9 +1033,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                     py: { xs: 2, md: 3 },
                     height: 'calc(100vh - 72px)',
                     overflow: 'hidden',
-                    position: 'relative',
-                    userSelect: 'none', // Prevent text selection stealing focus
-                    '& input, & textarea': { userSelect: 'auto' } // Re-enable for inputs
+                    position: 'relative'
                 }}
             >
                 {/* Fullscreen Toggle Button - Bottom Left */}

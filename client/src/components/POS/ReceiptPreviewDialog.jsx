@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, IconButton, Grid, TextField, Divider, Checkbox, Paper, Button,
-    FormControl, InputLabel, Select, MenuItem
+    FormControl, InputLabel, Select, MenuItem, Snackbar, Alert
 } from '@mui/material';
 import { Cancel as CancelIcon, Print as PrintIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import Receipt from './Receipt';
@@ -22,6 +22,7 @@ const ReceiptPreviewDialog = ({
     printers = [],
     defaultPrinter = null
 }) => {
+    const [snackbar, setSnackbar] = React.useState({ open: false, message: '', severity: 'info' });
     const handleKeyDown = (event) => {
         if (event.defaultPrevented) return;
         if (event.key !== 'Enter') return;
@@ -178,12 +179,12 @@ const ReceiptPreviewDialog = ({
                                             if (window.electron) {
                                                 try {
                                                     const list = await window.electron.ipcRenderer.invoke('get-printers');
-                                                    alert('Found printers: ' + (list ? list.length : 0));
+                                                    setSnackbar({ open: true, message: `Found ${list ? list.length : 0} printers`, severity: 'success' });
                                                 } catch (e) {
-                                                    alert('Error fetching printers: ' + e.message);
+                                                    setSnackbar({ open: true, message: `Error: ${e.message}`, severity: 'error' });
                                                 }
                                             } else {
-                                                alert('Not in Electron environment');
+                                                setSnackbar({ open: true, message: 'Not in Electron environment', severity: 'warning' });
                                             }
                                         }}
                                         sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0 }}
@@ -383,6 +384,22 @@ const ReceiptPreviewDialog = ({
                     </Button>
                 )}
             </DialogActions>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity}
+                    variant="filled"
+                    sx={{ width: '100%', borderRadius: 2, fontWeight: 600 }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Dialog>
     );
 };
