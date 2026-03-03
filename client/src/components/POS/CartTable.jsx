@@ -71,6 +71,7 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
                 <Table stickyHeader size="small">
                     <TableHead>
                         <TableRow>
+                            <TableCell width={40} sx={{ fontWeight: 'bold' }}>S.No</TableCell>
                             <TableCell sx={{ fontWeight: 'bold' }}>Item</TableCell>
                             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Qty</TableCell>
                             <TableCell align="right" sx={{ fontWeight: 'bold' }}>MRP</TableCell>
@@ -81,7 +82,7 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {cart.map((item) => {
+                        {cart.map((item, index) => {
                             const discountPerUnit = item.mrp - item.price;
                             const totalDiscount = discountPerUnit * item.quantity;
                             return (
@@ -94,6 +95,11 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
                                         transition: 'background-color 0.5s ease'
                                     }}
                                 >
+                                    <TableCell align="center">
+                                        <Typography variant="body2" fontWeight="600" color="text.secondary">
+                                            {index + 1}
+                                        </Typography>
+                                    </TableCell>
                                     <TableCell>
                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
                                             <Typography variant="subtitle2" fontWeight="600">{item.name}</Typography>
