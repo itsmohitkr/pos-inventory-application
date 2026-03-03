@@ -290,7 +290,6 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
                     Back to Inventory
                 </Button>
             </Box>
-            <Box sx={{ flexGrow: 1, height: '100%', minHeight: 0 }} />
             <CustomDialog {...dialogState} onClose={closeDialog} />
         </Box>
     );
