@@ -503,6 +503,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
     const removeFromCart = (batchId) => {
         setCart(prev => prev.filter(item => item.batch_id !== batchId));
+        searchBarRef.current?.focus();
     };
 
     const updateQuantity = (batchId, change) => {
