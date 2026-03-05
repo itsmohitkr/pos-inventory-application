@@ -240,7 +240,7 @@ const Overview = ({ shopName, userRole }) => (
               ? 'Process transactions quickly with our focused checkout interface.'
               : userRole === 'admin'
                 ? 'Complete control over inventory, sales, and user management.'
-                : 'Comprehensive sales and refund management capabilities.'}
+                : 'Comprehensive sales and return management capabilities.'}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5} flexWrap="wrap">
@@ -255,7 +255,7 @@ const Overview = ({ shopName, userRole }) => (
           )}
           {userRole === 'salesman' && (
             <>
-              <Chip label="Sales & refunds" sx={{ bgcolor: 'rgba(31, 138, 91, 0.2)', color: '#c7f0dc' }} />
+              <Chip label="Sales & returns" sx={{ bgcolor: 'rgba(31, 138, 91, 0.2)', color: '#c7f0dc' }} />
             </>
           )}
         </Stack>
@@ -298,7 +298,7 @@ const Overview = ({ shopName, userRole }) => (
       {(userRole === 'admin' || userRole === 'salesman') && (
         <DashboardCard
           to="/refund"
-          title="Refunds / Returns"
+          title="Returns"
           description="Handle returns confidently with guided workflows."
           icon={<ReplayIcon fontSize="medium" />}
           tone={{ bg: 'rgba(217, 119, 6, 0.18)', color: '#b45309' }}
@@ -527,6 +527,9 @@ function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [passwordData, setPasswordData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [passwordError, setPasswordError] = useState('');
+  const [showAdminLoginDialog, setShowAdminLoginDialog] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminLoginError, setAdminLoginError] = useState('');
   const [uiZoom, setUiZoom] = useState(() => Number(localStorage.getItem('posUiZoom')) || 100);
   const [monochromeMode, setMonochromeMode] = useState(() => localStorage.getItem('posMonochromeMode') === 'true');
   const [printers, setPrinters] = useState([]);
@@ -639,6 +642,47 @@ function App() {
     setCurrentUser(null);
     localStorage.removeItem('posCurrentUser');
     handleCloseSettingsMenu();
+  };
+
+  const handleAdminLogin = async () => {
+    setAdminLoginError('');
+    if (!adminPassword) {
+      setAdminLoginError('Password is required');
+      return;
+    }
+
+    try {
+      const res = await api.post('/api/auth/verify-admin', { password: adminPassword });
+      if (res.data.success) {
+        // Temporarily elevate role
+        const elevatedUser = {
+          ...currentUser,
+          originalRole: currentUser.role,
+          role: 'admin'
+        };
+        setCurrentUser(elevatedUser);
+        localStorage.setItem('posCurrentUser', JSON.stringify(elevatedUser));
+        setShowAdminLoginDialog(false);
+        setAdminPassword('');
+      }
+    } catch (error) {
+      setAdminLoginError(error.response?.data?.error || 'Invalid admin password');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    if (currentUser && currentUser.originalRole) {
+      const restoredUser = {
+        ...currentUser,
+        role: currentUser.originalRole
+      };
+      delete restoredUser.originalRole;
+
+      setCurrentUser(restoredUser);
+      localStorage.setItem('posCurrentUser', JSON.stringify(restoredUser));
+      // A small trick to trigger a render forcing user out of restricted tabs by
+      // allowing standard React Router Navigate to kick in if they are on a protected route.
+    }
   };
 
   const handleFullscreenToggle = async () => {
@@ -785,16 +829,31 @@ function App() {
       >
         <AppBar position="sticky" elevation={0} className="no-print">
           <Toolbar sx={{ gap: 2 }}>
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
-                <RouterLink to="/" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {shopName}
-                  <Box sx={{ width: 8, height: 8, bgcolor: '#4caf50', borderRadius: '50%', display: 'inline-block' }} />
-                </RouterLink>
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(248, 245, 240, 0.7)' }}>
-                {currentUser.username} • {currentUser.role}
-              </Typography>
+            <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+              <Box>
+                <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
+                  <RouterLink to="/" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {shopName}
+                    <Box sx={{ width: 8, height: 8, bgcolor: '#4caf50', borderRadius: '50%', display: 'inline-block' }} />
+                  </RouterLink>
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(248, 245, 240, 0.7)' }}>
+                  {currentUser.username} • {currentUser.role} {currentUser.originalRole && '(Elevated)'}
+                </Typography>
+              </Box>
+              {currentUser.originalRole && (
+                <Button
+                  onClick={handleAdminLogout}
+                  component={RouterLink}
+                  to="/"
+                  variant="contained"
+                  size="small"
+                  color="error"
+                  sx={{ ml: 3, fontWeight: 'bold' }}
+                >
+                  Log out Admin
+                </Button>
+              )}
             </Box>
             <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
               <NavButton to="/pos">POS</NavButton>
@@ -802,7 +861,7 @@ function App() {
               {canAccessInventory && <NavButton to="/inventory">Inventory</NavButton>}
               {canAccessReports && <NavButton to="/reports">Reports</NavButton>}
               {canAccessExpenses && <NavButton to="/expenses">Expenses</NavButton>}
-              {canAccessRefund && <NavButton to="/refund">Refund</NavButton>}
+              {canAccessRefund && <NavButton to="/refund">Returns</NavButton>}
               {canAccessPromotions && <NavButton to="/promotions">Promotions</NavButton>}
               {canAccessDashboard && <NavButton to="/dashboard">Dashboard</NavButton>}
               <IconButton
@@ -893,6 +952,18 @@ function App() {
               handleCloseSettingsMenu();
             }}>Change Password</ListItemText>
           </MenuItem>
+          {!currentUser.originalRole && currentUser.role !== 'admin' && <Divider />}
+          {!currentUser.originalRole && currentUser.role !== 'admin' && (
+            <MenuItem onClick={() => {
+              setShowAdminLoginDialog(true);
+              handleCloseSettingsMenu();
+            }}>
+              <ListItemIcon>
+                <LockIcon fontSize="small" sx={{ color: 'warning.main' }} />
+              </ListItemIcon>
+              <ListItemText sx={{ color: 'warning.main', fontWeight: 'bold' }}>Admin Login</ListItemText>
+            </MenuItem>
+          )}
           {isAdmin && <Divider />}
           {isAdmin && (
             <MenuItem onClick={() => {
@@ -991,6 +1062,49 @@ function App() {
           currentUser={currentUser}
         />
         <CustomDialog {...dialogState} onClose={closeDialog} />
+
+        <Dialog open={showAdminLoginDialog} onClose={() => {
+          setShowAdminLoginDialog(false);
+          setAdminPassword('');
+          setAdminLoginError('');
+        }} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LockIcon color="warning" /> Admin Elevation
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Enter the admin password to temporarily access administrative functions.
+            </Typography>
+            {adminLoginError && <Typography color="error" sx={{ mb: 2 }}>{adminLoginError}</Typography>}
+            <TextField
+              inputRef={(input) => {
+                if (input) setTimeout(() => input.focus(), 50);
+              }}
+              label="Admin Password"
+              type="password"
+              fullWidth
+              size="small"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAdminLogin();
+                }
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => {
+              setShowAdminLoginDialog(false);
+              setAdminPassword('');
+              setAdminLoginError('');
+            }}>Cancel</Button>
+            <Button onClick={handleAdminLogin} variant="contained" color="warning">
+              Elevate
+            </Button>
+          </DialogActions>
+        </Dialog>
+
       </Box>
 
     </Router>

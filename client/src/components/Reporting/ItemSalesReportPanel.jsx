@@ -5,6 +5,8 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from './ExportOptions';
+import useSortableTable from '../../hooks/useSortableTable';
+import SortableTableHead from './SortableTableHead';
 
 const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
 
@@ -50,10 +52,12 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
         });
 
         return {
-            aggregatedData: Object.values(itemsMap).sort((a, b) => b.revenue - a.revenue),
+            aggregatedData: Object.values(itemsMap),
             totals: sums
         };
     }, [sales]);
+
+    const { items: sortedData, requestSort, sortConfig } = useSortableTable(aggregatedData, { key: 'revenue', direction: 'desc' });
 
     const handleExportPDF = () => {
         if (aggregatedData.length === 0) return;
@@ -162,20 +166,22 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
                 </Box>
 
                 <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-                    <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '25%' }}>PRODUCT</TableCell>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '15%' }}>CATEGORY</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '10%' }}>QTY SOLD</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '15%' }}>COST</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '15%' }}>REVENUE</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '12%' }}>PROFIT</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '8%' }}>MARGIN</TableCell>
-                            </TableRow>
-                        </TableHead>
+                    <Table stickyHeader sx={{ minWidth: 900, tableLayout: 'fixed' }}>
+                        <SortableTableHead
+                            columns={[
+                                { id: 'name', label: 'PRODUCT', sx: { width: '25%' } },
+                                { id: 'category', label: 'CATEGORY', sx: { width: '15%' } },
+                                { id: 'quantity', label: 'QTY SOLD', align: 'center', sx: { width: '10%' } },
+                                { id: 'cost', label: 'COST', align: 'right', sx: { width: '15%' } },
+                                { id: 'revenue', label: 'REVENUE', align: 'right', sx: { width: '15%' } },
+                                { id: 'profit', label: 'PROFIT', align: 'right', sx: { width: '12%' } },
+                                { id: 'margin', label: 'MARGIN', align: 'right', sx: { width: '8%' }, getter: (item) => item.revenue > 0 ? (item.profit / item.revenue) * 100 : 0 }
+                            ]}
+                            sortConfig={sortConfig}
+                            requestSort={requestSort}
+                        />
                         <TableBody>
-                            {aggregatedData.map((item) => {
+                            {sortedData.map((item) => {
                                 const margin = item.revenue > 0 ? (item.profit / item.revenue) * 100 : 0;
                                 return (
                                     <TableRow key={item.id} hover>

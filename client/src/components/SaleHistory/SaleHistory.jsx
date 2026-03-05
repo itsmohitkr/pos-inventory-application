@@ -52,8 +52,12 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   const timeframes = [
     { label: "Today", getValue: () => getRange("day") },
     { label: "Yesterday", getValue: () => getRange("yesterday") },
-    { label: "This Week", getValue: () => getRange("week") },
-    { label: "This Month", getValue: () => getRange("month") },
+    { label: "This Week", getValue: () => getRange("this_week") },
+    { label: "Last Week", getValue: () => getRange("last_week") },
+    { label: "This Month", getValue: () => getRange("this_month") },
+    { label: "Last Month", getValue: () => getRange("last_month") },
+    { label: "This Year", getValue: () => getRange("this_year") },
+    { label: "Last Year", getValue: () => getRange("last_year") },
     { label: "Custom", getValue: () => null },
   ];
 
@@ -71,16 +75,35 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
         start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
         break;
-      case "week": {
+      case "this_week": {
         const dayOfWeek = now.getDay();
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       }
-      case "month":
+      case "last_week": {
+        const dayOfWeek = now.getDay();
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday - 7, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday - 1, 23, 59, 59, 999);
+        break;
+      }
+      case "this_month":
         start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        break;
+      case "last_month":
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        break;
+      case "this_year":
+        start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        break;
+      case "last_year":
+        start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
         break;
       default:
         break;
@@ -160,7 +183,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   const handleTabChange = (event) => {
     const newValue = event.target.value;
     setTabValue(newValue);
-    if (newValue < 4) {
+    if (newValue < 8) {
       const range = timeframes[newValue].getValue();
       fetchSales(range.start, range.end);
     }
@@ -201,7 +224,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
 
   const handleRefundSuccess = () => {
     // Refresh the sales list based on current timeframe
-    if (tabValue < 4) {
+    if (tabValue < 8) {
       const range = timeframes[tabValue].getValue();
       fetchSales(range.start, range.end);
     } else if (dateRange.startDate && dateRange.endDate) {
@@ -301,7 +324,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
               </Select>
             </FormControl>
 
-            {tabValue === 4 && (
+            {tabValue === 8 && (
               <>
                 <TextField
                   label="Start Date"
@@ -622,7 +645,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                                   <RefundIcon fontSize="small" />
                                 </IconButton>
                                 <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#d32f2f' }}>
-                                  Refund
+                                  Return
                                 </Typography>
                               </Box>
                             </Box>

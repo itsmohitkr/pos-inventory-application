@@ -5,8 +5,11 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from './ExportOptions';
+import useSortableTable from '../../hooks/useSortableTable';
+import SortableTableHead from './SortableTableHead';
 
 const ExpiryReportPanel = ({ data, loading, timeframeLabel }) => {
+    const { items: sortedData, requestSort, sortConfig } = useSortableTable(data || [], { key: 'expiryDate', direction: 'asc' });
 
     const handleExportPDF = () => {
         if (!data || data.length === 0) return;
@@ -87,18 +90,20 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }) => {
                 </Box>
 
                 <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-                    <Table stickyHeader>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>PRODUCT</TableCell>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>CATEGORY</TableCell>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>BATCH</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>QNTY LEFT</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>EXPIRY DATE</TableCell>
-                            </TableRow>
-                        </TableHead>
+                    <Table stickyHeader sx={{ minWidth: 800 }}>
+                        <SortableTableHead
+                            columns={[
+                                { id: 'productName', label: 'PRODUCT' },
+                                { id: 'category', label: 'CATEGORY' },
+                                { id: 'batchCode', label: 'BATCH' },
+                                { id: 'quantity', label: 'QNTY LEFT', align: 'center' },
+                                { id: 'expiryDate', label: 'EXPIRY DATE', align: 'right' }
+                            ]}
+                            sortConfig={sortConfig}
+                            requestSort={requestSort}
+                        />
                         <TableBody>
-                            {data.map((batch) => {
+                            {sortedData.map((batch) => {
                                 const daysUntilExpiry = Math.ceil((new Date(batch.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
                                 const isCritical = daysUntilExpiry <= 7;
 

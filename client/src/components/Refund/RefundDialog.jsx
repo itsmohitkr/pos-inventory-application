@@ -23,7 +23,7 @@ const RefundDialog = ({ open, onClose, sale, onRefundSuccess }) => {
         >
             <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2, flexShrink: 0 }}>
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                    Process Refund / Return - ORD-{sale.id}
+                    Process Return - ORD-{sale.id}
                 </Typography>
                 <IconButton onClick={onClose} size="small">
                     <CloseIcon />

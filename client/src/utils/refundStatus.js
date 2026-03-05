@@ -4,10 +4,10 @@
  */
 export const getRefundStatus = (items) => {
     if (!items || items.length === 0) return 'none';
-    
+
     const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
     const returnedQty = items.reduce((sum, item) => sum + (item.returnedQuantity || 0), 0);
-    
+
     if (returnedQty === 0) return 'none';
     if (returnedQty === totalQty) return 'full';
     return 'partial';
@@ -20,13 +20,13 @@ export const getStatusDisplay = (status) => {
     switch (status) {
         case 'full':
             return {
-                label: 'Refunded',
+                label: 'Fully Returned',
                 color: '#d32f2f',
                 bgcolor: '#ffebee'
             };
         case 'partial':
             return {
-                label: 'Partially Refunded',
+                label: 'Partially Returned',
                 color: '#ed6c02',
                 bgcolor: '#fff3e0'
             };

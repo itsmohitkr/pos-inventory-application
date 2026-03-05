@@ -11,5 +11,6 @@ router.put('/users/:id', authController.updateUser);
 router.delete('/users/:id', authController.deleteUser);
 router.put('/users/:id/change-password', authController.changePassword);
 router.post('/wipe-database', authController.wipeDatabase);
+router.post('/verify-admin', authController.verifyAdmin);
 
 module.exports = router;

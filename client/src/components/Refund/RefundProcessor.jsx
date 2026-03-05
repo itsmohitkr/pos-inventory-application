@@ -73,17 +73,17 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
             return;
         }
 
-        const confirmed = await showConfirm(`Are you sure you want to process this refund? Items will be returned to inventory.`);
+        const confirmed = await showConfirm(`Are you sure you want to process this return? Items will be returned to inventory.`);
         if (!confirmed) return;
 
         setSubmitting(true);
         try {
             await api.post(`/api/sale/${sale.id}/return`, { items: itemsToReturn });
-            showSuccess("Refund processed successfully!");
+            showSuccess("Return processed successfully!");
             setSelectedItems({});
             if (onRefundSuccess) onRefundSuccess();
         } catch (err) {
-            showError(err.response?.data?.error || "Failed to process refund");
+            showError(err.response?.data?.error || "Failed to process return");
         } finally {
             setSubmitting(false);
         }
@@ -186,7 +186,7 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
                                             </Box>
                                             {alreadyReturned > 0 && (
                                                 <Chip
-                                                    label={alreadyReturned === item.quantity ? 'Refunded' : 'Returned'}
+                                                    label={alreadyReturned === item.quantity ? 'Returned' : 'Partially Returned'}
                                                     size="small"
                                                     sx={{
                                                         bgcolor: alreadyReturned === item.quantity ? '#ffebee' : '#e8f5e9',

@@ -5,6 +5,8 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from './ExportOptions';
+import useSortableTable from '../../hooks/useSortableTable';
+import SortableTableHead from './SortableTableHead';
 
 const LowStockReportPanel = ({ data, loading }) => {
     const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -20,6 +22,8 @@ const LowStockReportPanel = ({ data, loading }) => {
         if (selectedCategory === "All Categories") return data;
         return data.filter(p => p.category === selectedCategory);
     }, [data, selectedCategory]);
+
+    const { items: sortedData, requestSort, sortConfig } = useSortableTable(filteredData, { key: 'totalQuantity', direction: 'asc' });
 
     const handleExportPDF = () => {
         if (filteredData.length === 0) return;
@@ -111,18 +115,20 @@ const LowStockReportPanel = ({ data, loading }) => {
                 </Box>
 
                 <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-                    <Table stickyHeader>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>PRODUCT</TableCell>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>CATEGORY</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>CURRENT STOCK</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>THRESHOLD</TableCell>
-                                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>STATUS</TableCell>
-                            </TableRow>
-                        </TableHead>
+                    <Table stickyHeader sx={{ minWidth: 800 }}>
+                        <SortableTableHead
+                            columns={[
+                                { id: 'name', label: 'PRODUCT' },
+                                { id: 'category', label: 'CATEGORY' },
+                                { id: 'totalQuantity', label: 'CURRENT STOCK', align: 'center' },
+                                { id: 'lowStockThreshold', label: 'THRESHOLD', align: 'center' },
+                                { id: 'status', label: 'STATUS', align: 'center', getter: (item) => item.totalQuantity === 0 ? "Out of Stock" : "Low Stock" }
+                            ]}
+                            sortConfig={sortConfig}
+                            requestSort={requestSort}
+                        />
                         <TableBody>
-                            {filteredData.map((item) => (
+                            {sortedData.map((item) => (
                                 <TableRow key={item.id} hover>
                                     <TableCell sx={{ fontWeight: 600 }}>{item.name}</TableCell>
                                     <TableCell><Chip label={item.category || 'Uncategorized'} size="small" variant="outlined" /></TableCell>

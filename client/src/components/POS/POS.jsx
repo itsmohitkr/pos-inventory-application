@@ -20,7 +20,8 @@ import {
     Fullscreen as FullscreenIcon,
     FullscreenExit as FullscreenExitIcon,
     LocalOffer as PromoIcon,
-    Close as CloseIcon
+    Close as CloseIcon,
+    Calculate as CalculateIcon
 } from '@mui/icons-material';
 
 import POSSearchBar from './POSSearchBar';
@@ -32,10 +33,11 @@ import QuantityDialog from './QuantityDialog';
 import LooseSaleDialog from './LooseSaleDialog';
 import POSTabs from './POSTabs';
 import Receipt from './Receipt';
+import Calculator from './Calculator';
 import CustomDialog from '../common/CustomDialog';
 import SuccessNotification from '../common/SuccessNotification';
 import useCustomDialog from '../../hooks/useCustomDialog';
-import { getStoredPaymentSettings, getFullscreenEnabled, getNotificationDuration, getExtraDiscountEnabled, getChangeCalculatorEnabled, setChangeCalculatorEnabled, getPaymentMethodsEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
+import { getStoredPaymentSettings, getFullscreenEnabled, getNotificationDuration, getExtraDiscountEnabled, getChangeCalculatorEnabled, setChangeCalculatorEnabled, getPaymentMethodsEnabled, getCalculatorEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
 
 const STORAGE_KEYS = {
     receipt: 'posReceiptSettings',
@@ -148,6 +150,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled);
     const [extraDiscountEnabled, setExtraDiscountEnabled] = useState(() => getExtraDiscountEnabled());
+    const [showCalculator, setShowCalculator] = useState(false);
+    const [isCalculatorEnabled, setIsCalculatorEnabled] = useState(getCalculatorEnabled);
     const [changeCalculatorEnabled, setChangeCalculatorEnabledState] = useState(getChangeCalculatorEnabled());
     const [paymentMethodsEnabled, setPaymentMethodsEnabled] = useState(getPaymentMethodsEnabled());
     const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
@@ -286,6 +290,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         const handleSettingsUpdated = () => {
             refreshSettings();
             setFullscreenEnabled(getFullscreenEnabled());
+            setIsCalculatorEnabled(getCalculatorEnabled());
         };
         window.addEventListener('pos-settings-updated', handleSettingsUpdated);
         return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
@@ -1122,6 +1127,37 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                         </IconButton>
                     </Tooltip>
                 )}
+
+                {/* Calculator Button - Bottom Left (above fullscreen) */}
+                {isCalculatorEnabled && (
+                    <Tooltip title="Open POS Calculator">
+                        <IconButton
+                            className="pos-action-btn"
+                            onClick={() => setShowCalculator(true)}
+                            size="large"
+                            sx={{
+                                position: 'fixed',
+                                bottom: fullscreenEnabled ? 86 : 20,
+                                left: 20,
+                                zIndex: 999,
+                                width: 56,
+                                height: 56,
+                                bgcolor: '#0284c7',
+                                color: 'white',
+                                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
+                                border: 'none',
+                                '&:hover': {
+                                    bgcolor: '#0369a1',
+                                    boxShadow: '0 6px 16px rgba(2, 132, 199, 0.5)'
+                                },
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <CalculateIcon sx={{ fontSize: '1.8rem' }} />
+                        </IconButton>
+                    </Tooltip>
+                )}
+
                 <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', mr: { lg: 2 } }}>
                     <POSTabs
                         tabs={tabs}
@@ -1423,6 +1459,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                     {lastSale && <Receipt sale={lastSale} settings={receiptSettings} shopMetadata={shopMetadata} />}
                 </div>
             </Box>
+
+            <Calculator open={showCalculator} onClose={() => setShowCalculator(false)} />
         </>
     );
 };

@@ -101,14 +101,41 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
     }, [products]);
 
     const filteredAndSortedData = useMemo(() => {
-        let filtered = flatData.filter(row =>
-            row.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            row.batchCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            row.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            row.barcode.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        if (!searchTerm || !searchTerm.trim()) {
+            return flatData.sort((a, b) => {
+                const isDesc = order === 'desc';
+                const valA = a[orderBy];
+                const valB = b[orderBy];
 
-        return filtered.sort((a, b) => {
+                if (valA < valB) return isDesc ? 1 : -1;
+                if (valA > valB) return isDesc ? -1 : 1;
+                return 0;
+            });
+        }
+
+        const query = searchTerm.toLowerCase().trim();
+
+        const namePrefix = [];
+        const barcodePrefix = [];
+        const nameContains = [];
+        const barcodeContains = [];
+
+        for (const row of flatData) {
+            const name = (row.name || '').toLowerCase();
+            const barcodes = row.barcode && row.barcode !== 'N/A' ? row.barcode.toLowerCase().split('|').map(b => b.trim()) : [];
+
+            if (name.startsWith(query)) {
+                namePrefix.push(row);
+            } else if (barcodes.some(b => b.startsWith(query))) {
+                barcodePrefix.push(row);
+            } else if (name.includes(query)) {
+                nameContains.push(row);
+            } else if (barcodes.some(b => b.includes(query))) {
+                barcodeContains.push(row);
+            }
+        }
+
+        const sortFn = (a, b) => {
             const isDesc = order === 'desc';
             const valA = a[orderBy];
             const valB = b[orderBy];
@@ -116,7 +143,19 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
             if (valA < valB) return isDesc ? 1 : -1;
             if (valA > valB) return isDesc ? -1 : 1;
             return 0;
-        });
+        };
+
+        namePrefix.sort(sortFn);
+        barcodePrefix.sort(sortFn);
+        nameContains.sort(sortFn);
+        barcodeContains.sort(sortFn);
+
+        return [
+            ...namePrefix,
+            ...barcodePrefix,
+            ...nameContains,
+            ...barcodeContains
+        ];
     }, [flatData, searchTerm, orderBy, order]);
 
     const totals = useMemo(() => {

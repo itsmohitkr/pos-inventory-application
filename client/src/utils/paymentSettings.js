@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
     enableExtraDiscount: 'posEnableExtraDiscount',
     enableChangeCalculator: 'posEnableChangeCalculator',
     enablePaymentMethods: 'posEnablePaymentMethods',
+    enableCalculator: 'posEnableCalculator',
     receipt: 'posReceiptSettings',
     shopName: 'posShopName'
 };
@@ -105,5 +106,23 @@ export const setPaymentMethodsEnabled = (enabled) => {
         window.dispatchEvent(new Event('pos-settings-updated'));
     } catch (error) {
         console.error('Failed to save payment methods setting:', error);
+    }
+};
+
+export const getCalculatorEnabled = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.enableCalculator);
+        return stored ? JSON.parse(stored) : true; // Default to true (enabled)
+    } catch {
+        return true;
+    }
+};
+
+export const setCalculatorEnabled = (enabled) => {
+    try {
+        localStorage.setItem(STORAGE_KEYS.enableCalculator, JSON.stringify(enabled));
+        window.dispatchEvent(new Event('pos-settings-updated'));
+    } catch (error) {
+        console.error('Failed to save calculator setting:', error);
     }
 };

@@ -9,16 +9,23 @@ import {
     Replay as ReplayIcon,
     Print as PrintIcon,
     Payment as PaymentIcon,
-    DeleteForever as DeleteIcon
+    DeleteForever as DeleteIcon,
+    Money as CashIcon,
+    QrCode2 as UpiIcon,
+    CreditCard as CardIcon,
+    AccountBalanceWallet as WalletIcon,
+    AccountBalance as BankIcon,
+    Description as ChequeIcon,
+    TagFaces as CustomIcon
 } from '@mui/icons-material';
 
 const PAYMENT_METHOD_OPTIONS = {
-    cash: { label: 'Cash', color: '#16a34a' },
-    upi: { label: 'UPI', color: '#0369a1' },
-    card: { label: 'Card', color: '#7c3aed' },
-    wallet: { label: 'Digital Wallet', color: '#ea580c' },
-    bank_transfer: { label: 'Bank Transfer', color: '#0891b2' },
-    cheque: { label: 'Cheque', color: '#64748b' }
+    cash: { label: 'Cash', color: '#16a34a', icon: <CashIcon /> },
+    upi: { label: 'UPI', color: '#0369a1', icon: <UpiIcon /> },
+    card: { label: 'Card', color: '#7c3aed', icon: <CardIcon /> },
+    wallet: { label: 'Digital Wallet', color: '#ea580c', icon: <WalletIcon /> },
+    bank_transfer: { label: 'Bank Transfer', color: '#0891b2', icon: <BankIcon /> },
+    cheque: { label: 'Cheque', color: '#64748b', icon: <ChequeIcon /> }
 };
 
 const TransactionPanel = ({
@@ -64,7 +71,8 @@ const TransactionPanel = ({
             methods.push({
                 id: m.id,
                 label: m.label,
-                color: '#64748b'
+                color: '#64748b',
+                icon: <CustomIcon />
             });
         });
 
@@ -277,6 +285,7 @@ const TransactionPanel = ({
                                             borderColor: 'primary.main'
                                         }
                                     }}
+                                    startIcon={method.icon}
                                 >
                                     {method.label}
                                 </Button>
@@ -403,7 +412,7 @@ const TransactionPanel = ({
                             }
                         }}
                     >
-                        Refund
+                        Return
                     </Button>
                     <Button
                         fullWidth

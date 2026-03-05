@@ -276,6 +276,36 @@ const wipeDatabase = async (req, res) => {
     }
 };
 
+const verifyAdmin = async (req, res) => {
+    try {
+        const { password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({ error: 'Admin password required' });
+        }
+
+        // Try to find ANY admin user that matches this password
+        const adminUser = await prisma.user.findFirst({
+            where: {
+                role: 'admin',
+                status: 'active',
+                password: password
+            }
+        });
+
+        if (!adminUser) {
+            return res.status(401).json({ error: 'Incorrect admin password' });
+        }
+
+        // We only care about verifying the password was valid for AN admin
+        res.json({ success: true, message: 'Admin verified' });
+
+    } catch (error) {
+        console.error('Verify admin error:', error);
+        res.status(500).json({ error: 'Failed to verify admin' });
+    }
+};
+
 module.exports = {
     login,
     getProfile,
@@ -284,5 +314,6 @@ module.exports = {
     updateUser,
     deleteUser,
     changePassword,
-    wipeDatabase
+    wipeDatabase,
+    verifyAdmin
 };

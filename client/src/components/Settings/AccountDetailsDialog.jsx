@@ -44,7 +44,9 @@ import {
   getNotificationDuration,
   setNotificationDuration,
   getExtraDiscountEnabled,
-  setExtraDiscountEnabled
+  setExtraDiscountEnabled,
+  getCalculatorEnabled,
+  setCalculatorEnabled
 } from "../../utils/paymentSettings";
 import { Snackbar, Alert as MuiAlert } from "@mui/material";
 
@@ -91,6 +93,7 @@ const AccountDetailsDialog = ({
   const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled());
   const [extraDiscountEnabled, setExtraDiscountEnabledState] = useState(getExtraDiscountEnabled());
   const [notificationDuration, setNotificationDurationState] = useState(() => getNotificationDuration() / 1000);
+  const [calculatorEnabled, setCalculatorEnabledState] = useState(getCalculatorEnabled());
   const [tabValue, setTabValue] = useState(0);
 
   // Sync with metadata prop changes
@@ -191,6 +194,7 @@ const AccountDetailsDialog = ({
 
     setChangeCalculatorEnabled(changeCalculatorEnabled);
     setPaymentMethodsEnabled(paymentMethodsEnabled);
+    setCalculatorEnabled(calculatorEnabled);
 
     const saveSettingsToServer = async () => {
       try {
@@ -823,6 +827,29 @@ const AccountDetailsDialog = ({
                     </Box>
 
                     <Divider sx={{ my: 2 }} />
+
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={calculatorEnabled}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setCalculatorEnabledState(val);
+                            setCalculatorEnabled(val);
+                          }}
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body1" fontWeight={600}>
+                            Enable POS Calculator
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Shows a calculator button on the POS screen for quick math.
+                          </Typography>
+                        </Box>
+                      }
+                    />
 
                     <FormControlLabel
                       control={

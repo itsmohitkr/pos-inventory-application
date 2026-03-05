@@ -44,6 +44,8 @@ import ExpiryReportPanel from "./ExpiryReportPanel";
 import ItemSalesReportPanel from "./ItemSalesReportPanel";
 import LowStockReportPanel from "./LowStockReportPanel";
 import LooseSalesReportPanel from "./LooseSalesReportPanel";
+import useSortableTable from "../../hooks/useSortableTable";
+import SortableTableHead from "./SortableTableHead";
 import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
 import {
   Paper,
@@ -927,8 +929,10 @@ const CategorySalesPanel = ({ sales }) => {
     if (selectedCategory !== "All Categories") {
       list = list.filter(cat => cat.name === selectedCategory);
     }
-    return list.sort((a, b) => b.totalSales - a.totalSales);
+    return list;
   }, [categoryData, selectedCategory]);
+
+  const { items: sortedData, requestSort, sortConfig } = useSortableTable(categoryList, { key: 'totalSales', direction: 'desc' });
 
   const totals = React.useMemo(() => {
     return categoryList.reduce((acc, cat) => ({
@@ -998,15 +1002,15 @@ const CategorySalesPanel = ({ sales }) => {
           },
         }}
       >
-        <Box sx={{
-          p: 4,
-          pb: 2,
+        <Box className="no-print" sx={{
+          p: 3,
           flexShrink: 0,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: 2,
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
+          borderBottom: '1px solid rgba(0,0,0,0.06)'
         }}>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Sales Performance by Category
@@ -1028,19 +1032,21 @@ const CategorySalesPanel = ({ sales }) => {
           </FormControl>
         </Box>
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ tableLayout: 'fixed' }}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '30%' }}>CATEGORY NAME</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '12%' }}>ITEMS SOLD</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '18%' }}>TOTAL COST</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '18%' }}>TOTAL SALES</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '14%' }}>TOTAL PROFIT</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', width: '8%' }}>AVG. MARGIN</TableCell>
-              </TableRow>
-            </TableHead>
+          <Table stickyHeader sx={{ minWidth: 800, tableLayout: 'fixed' }}>
+            <SortableTableHead
+              columns={[
+                { id: 'name', label: 'CATEGORY NAME', sx: { width: '30%' } },
+                { id: 'itemCount', label: 'ITEMS SOLD', align: 'center', sx: { width: '12%' } },
+                { id: 'totalCost', label: 'TOTAL COST', align: 'right', sx: { width: '18%' } },
+                { id: 'totalSales', label: 'TOTAL SALES', align: 'right', sx: { width: '18%' } },
+                { id: 'totalProfit', label: 'TOTAL PROFIT', align: 'right', sx: { width: '14%' } },
+                { id: 'margin', label: 'AVG. MARGIN', align: 'right', sx: { width: '8%' }, getter: (cat) => cat.totalSales > 0 ? (cat.totalProfit / cat.totalSales) * 100 : 0 }
+              ]}
+              sortConfig={sortConfig}
+              requestSort={requestSort}
+            />
             <TableBody>
-              {categoryList.map((cat, idx) => (
+              {sortedData.map((cat, idx) => (
                 <TableRow
                   key={cat.name}
                   id={`cat-row-${idx}`}

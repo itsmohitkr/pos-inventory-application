@@ -47,7 +47,7 @@ const Refund = () => {
                 }}
             >
                 <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
-                    Process Refund / Return
+                    Process Return
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                     Search an order and choose items to return with confidence.

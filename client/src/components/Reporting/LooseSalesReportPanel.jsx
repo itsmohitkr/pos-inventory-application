@@ -5,8 +5,11 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from './ExportOptions';
+import useSortableTable from '../../hooks/useSortableTable';
+import SortableTableHead from './SortableTableHead';
 
 const LooseSalesReportPanel = ({ data, loading, timeframeLabel }) => {
+    const { items: sortedData, requestSort, sortConfig } = useSortableTable(data || [], { key: 'createdAt', direction: 'desc' });
     const handleExportPDF = () => {
         if (!data || data.length === 0) return;
 
@@ -94,16 +97,18 @@ const LooseSalesReportPanel = ({ data, loading, timeframeLabel }) => {
                 </Box>
 
                 <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-                    <Table stickyHeader>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>DATE & TIME</TableCell>
-                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>ITEM NAME / NOTES</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>PRICE (₹)</TableCell>
-                            </TableRow>
-                        </TableHead>
+                    <Table stickyHeader sx={{ minWidth: 600 }}>
+                        <SortableTableHead
+                            columns={[
+                                { id: 'createdAt', label: 'DATE & TIME' },
+                                { id: 'itemName', label: 'ITEM NAME / NOTES' },
+                                { id: 'price', label: 'PRICE (₹)', align: 'right' }
+                            ]}
+                            sortConfig={sortConfig}
+                            requestSort={requestSort}
+                        />
                         <TableBody>
-                            {data.map((item) => (
+                            {sortedData.map((item) => (
                                 <TableRow key={item.id} hover>
                                     <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
                                     <TableCell sx={{ fontWeight: 600 }}>{item.itemName || 'Loose Item'}</TableCell>
