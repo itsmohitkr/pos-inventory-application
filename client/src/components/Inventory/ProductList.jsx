@@ -288,29 +288,58 @@ const ProductList = () => {
     // Filter products based on stock status
     // Filter products based on search term and stock status locally for instant reflection
     const displayedProducts = useMemo(() => {
-        let filtered = products;
+        let baseProducts = products;
 
-        // Local Search filtering
-        if (debouncedSearch) {
-            const query = debouncedSearch.toLowerCase();
-            filtered = filtered.filter(p =>
-                p.name.toLowerCase().includes(query) ||
-                (p.barcode && p.barcode.split('|').some(b => b.trim().includes(query)))
-            );
-        }
-
+        // Apply stock filters first to the pool of products
         if (stockFilter === 'low') {
-            filtered = filtered.filter(p =>
+            baseProducts = baseProducts.filter(p =>
                 p.lowStockWarningEnabled &&
                 p.total_stock > 0 &&
                 p.total_stock <= p.lowStockThreshold
             );
         } else if (stockFilter === 'zero') {
-            filtered = filtered.filter(p => p.total_stock === 0);
+            baseProducts = baseProducts.filter(p => p.total_stock === 0);
         }
 
-        // Limit to 250 for performance during active search/filtering
-        return filtered.slice(0, 250);
+        if (!debouncedSearch) {
+            return baseProducts.slice(0, 250);
+        }
+
+        const query = debouncedSearch.toLowerCase();
+
+        const namePrefix = [];
+        const barcodePrefix = [];
+        const nameContains = [];
+        const barcodeContains = [];
+
+        for (const p of baseProducts) {
+            const name = (p._searchName || (p._searchName = p.name.toLowerCase()));
+            const barcodes = (p._searchBarcodes || (p._searchBarcodes = p.barcode ? p.barcode.toLowerCase().split('|').map(b => b.trim()) : []));
+
+            if (name.startsWith(query)) {
+                namePrefix.push(p);
+            } else if (barcodes.some(b => b.startsWith(query))) {
+                barcodePrefix.push(p);
+            } else if (name.includes(query)) {
+                nameContains.push(p);
+            } else if (barcodes.some(b => b.includes(query))) {
+                barcodeContains.push(p);
+            }
+        }
+
+        // Within buckets, sort alphabetically for consistent display
+        const sortFn = (a, b) => (a.name || '').localeCompare(b.name || '');
+        namePrefix.sort(sortFn);
+        barcodePrefix.sort(sortFn);
+        nameContains.sort(sortFn);
+        barcodeContains.sort(sortFn);
+
+        return [
+            ...namePrefix,
+            ...barcodePrefix,
+            ...nameContains,
+            ...barcodeContains
+        ].slice(0, 250);
     }, [products, debouncedSearch, stockFilter]);
 
     const clearSearch = React.useCallback(() => {
