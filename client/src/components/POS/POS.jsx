@@ -947,34 +947,60 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         // 1. FAST PATH: Check for exact barcode match using Map
         const exactMatch = barcodeMap.get(normalizedInput);
 
-        const filtered = [];
+        // Buckets for categorization to ensure intuitive results
+        const namePrefix = [];
+        const barcodePrefix = [];
+        const nameContains = [];
+        const barcodeContains = [];
+        const priceMatches = [];
+
+        // If we have an exact barcode match, it's the highest possible priority
         if (exactMatch) {
-            filtered.push(exactMatch);
+            barcodePrefix.push(exactMatch);
         }
 
-        // 2. SEARCH PATH: filter remaining options with a limit
+        // 2. SEARCH PATH: Categorize all matches
         for (const option of options) {
             if (!option || option === exactMatch) continue;
 
-            // Optimization: Memoize strings if needed, but for now just standard check
-            const nameMatch = (option._searchName || (option._searchName = String(option.name || '').toLowerCase())).includes(normalizedInput);
-            const barcodeMatch = (option._searchBarcode || (option._searchBarcode = String(option.barcode || '').toLowerCase())).includes(normalizedInput);
+            const name = (option._searchName || (option._searchName = String(option.name || '').toLowerCase()));
+            const barcode = (option._searchBarcode || (option._searchBarcode = String(option.barcode || '').toLowerCase()));
 
-            if (nameMatch || barcodeMatch) {
-                filtered.push(option);
+            if (name.startsWith(normalizedInput)) {
+                namePrefix.push(option);
+            } else if (barcode.startsWith(normalizedInput)) {
+                barcodePrefix.push(option);
+            } else if (name.includes(normalizedInput)) {
+                nameContains.push(option);
+            } else if (barcode.includes(normalizedInput)) {
+                barcodeContains.push(option);
             } else {
-                // Price check is more expensive, do it last
+                // Price check
                 const priceMatch = (option.batches || []).some((batch) =>
                     batch && (batch._searchPrice || (batch._searchPrice = String(batch.sellingPrice || ''))).includes(normalizedInput)
                 );
-                if (priceMatch) filtered.push(option);
+                if (priceMatch) {
+                    priceMatches.push(option);
+                }
             }
-
-            // Performance limit: stop at 50 results to keep UI snappy
-            if (filtered.length >= 50) break;
         }
 
-        return filtered;
+        // Sort alphabetically within each bucket for consistency
+        const sortFn = (a, b) => (a.name || '').localeCompare(b.name || '');
+        namePrefix.sort(sortFn);
+        barcodePrefix.sort(sortFn);
+        nameContains.sort(sortFn);
+        barcodeContains.sort(sortFn);
+        priceMatches.sort(sortFn);
+
+        // Combine buckets in priority order and limit for performance
+        return [
+            ...namePrefix,
+            ...barcodePrefix,
+            ...nameContains,
+            ...barcodeContains,
+            ...priceMatches
+        ].slice(0, 50);
     };
 
     // Refocus search bar after fullscreen toggle (MUI/React can lose focus during layout shift)
