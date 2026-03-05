@@ -44,32 +44,69 @@ const buildTree = (categories, pathMap) => {
 };
 
 const ensureCategoriesFromProducts = async () => {
+    // 1. Get distinct category strings from products (fast with index)
     const products = await prisma.product.findMany({
+        where: { category: { not: null, not: "" } },
+        distinct: ['category'],
         select: { category: true }
     });
 
+    if (products.length === 0) return;
+
+    // 2. Fetch all existing categories once to build a path map
+    const existingCategories = await prisma.category.findMany();
+    const byId = new Map();
+    existingCategories.forEach(c => byId.set(c.id, c));
+
+    // Helper to get full path for a category ID
+    const getPath = (catId, cache = new Map()) => {
+        if (!catId) return "";
+        if (cache.has(catId)) return cache.get(catId);
+        const cat = byId.get(catId);
+        if (!cat) return "";
+        const parentPath = getPath(cat.parentId, cache);
+        const fullPath = parentPath ? `${parentPath}/${cat.name}` : cat.name;
+        cache.set(catId, fullPath);
+        return fullPath;
+    };
+
+    const pathCache = new Map();
+    const existingPaths = new Map(); // path -> id
+    existingCategories.forEach(c => {
+        const p = getPath(c.id, pathCache);
+        existingPaths.set(p, c.id);
+    });
+
+    // 3. Process each distinct category string from products
     for (const product of products) {
-        if (!product.category) continue;
-        const parts = product.category.split('/').map(p => p.trim()).filter(Boolean);
+        const fullCategoryString = product.category;
+        if (existingPaths.has(fullCategoryString)) continue;
+
+        // Missing path, create it segment by segment
+        const parts = fullCategoryString.split('/').map(p => p.trim()).filter(Boolean);
+        let currentPath = "";
         let parentId = null;
+
         for (const part of parts) {
-            const existing = await prisma.category.findFirst({
-                where: { name: part, parentId }
-            });
-            if (existing) {
-                parentId = existing.id;
-                continue;
+            currentPath = currentPath ? `${currentPath}/${part}` : part;
+            if (existingPaths.has(currentPath)) {
+                parentId = existingPaths.get(currentPath);
+            } else {
+                // Create missing segment
+                const created = await prisma.category.create({
+                    data: { name: part, parentId }
+                });
+                parentId = created.id;
+                existingPaths.set(currentPath, parentId);
+                // Also add to byId for getPath consistency if needed (though existingPaths is enough for this loop)
+                byId.set(parentId, { id: parentId, name: part, parentId: created.parentId });
             }
-            const created = await prisma.category.create({
-                data: { name: part, parentId }
-            });
-            parentId = created.id;
         }
     }
 };
 
 const getCategoryTree = async () => {
-    await ensureCategoriesFromProducts();
+    // Synchronous sync removed to make sidebar instant
     const categories = await prisma.category.findMany();
     const pathMap = buildPathMap(categories);
     return buildTree(categories, pathMap);
@@ -157,5 +194,6 @@ module.exports = {
     getCategoryTree,
     createCategory,
     updateCategory,
-    deleteCategory
+    deleteCategory,
+    ensureCategoriesFromProducts
 };

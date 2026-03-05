@@ -325,7 +325,22 @@ const Inventory = () => {
   const [excelViewOpen, setExcelViewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [inventoryKey, setInventoryKey] = useState(0);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isPending, startTransition] = React.useTransition();
   const inventoryRef = React.useRef(null);
+
+  const handleCategoryChange = (val) => {
+    startTransition(() => {
+      setCategoryFilter(val);
+    });
+  };
+
+  const handleSearchChange = (val) => {
+    startTransition(() => {
+      setDebouncedSearch(val);
+    });
+  };
 
   const handleProductAdded = () => {
     setInventoryKey(prev => prev + 1);
@@ -468,7 +483,15 @@ const Inventory = () => {
             </Paper>
           </Container>
         ) : (
-          <ProductList key={inventoryKey} ref={inventoryRef} />
+          <ProductList
+            key={inventoryKey}
+            ref={inventoryRef}
+            categoryFilter={categoryFilter}
+            onCategoryChange={handleCategoryChange}
+            debouncedSearch={debouncedSearch}
+            onSearchChange={handleSearchChange}
+            isPending={isPending}
+          />
         )}
       </Box>
 
@@ -481,6 +504,8 @@ const Inventory = () => {
       <InventoryExcelView
         open={excelViewOpen}
         onClose={() => setExcelViewOpen(false)}
+        categoryFilter={categoryFilter}
+        externalSearch={debouncedSearch}
       />
     </Box>
   );

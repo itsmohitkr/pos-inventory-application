@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const { getDateRange } = require('../utils/dateUtils');
 const { Prisma } = require("@prisma/client");
+const categoryService = require("./category.service");
 
 const normalizeCategory = (value) => {
   if (value === null || value === undefined) return null;
@@ -329,7 +330,8 @@ const getProductSummary = async ({ search = "", category = "all" } = {}) => {
             COUNT(DISTINCT p.id) as product_count,
             CAST(COALESCE(SUM(b.quantity), 0) AS INTEGER) as total_qty,
             CAST(COALESCE(SUM(b.quantity * b.costPrice), 0) AS REAL) as total_cost,
-            CAST(COALESCE(SUM(b.quantity * b.sellingPrice), 0) AS REAL) as total_selling
+            CAST(COALESCE(SUM(b.quantity * b.sellingPrice), 0) AS REAL) as total_selling,
+            CAST(COALESCE(SUM(b.quantity * b.mrp), 0) AS REAL) as total_mrp
         FROM Product p
         LEFT JOIN Batch b ON b.productId = p.id
         ${whereSql}
@@ -341,24 +343,37 @@ const getProductSummary = async ({ search = "", category = "all" } = {}) => {
     category === "uncategorized"
       ? buildWhereFilter({ search, category: "all" })
       : whereFilter;
-  const categories = await prisma.product.findMany({
+
+  // Optimized: use groupBy to get counts per category directly from DB
+  const categoryGroups = await prisma.product.groupBy({
+    by: ['category'],
     where: categorySourceFilter,
-    select: { category: true },
+    _count: {
+      id: true
+    }
   });
-  const categoryCounts = categories.reduce((acc, product) => {
-    const normalizedCategory = normalizeCategory(product.category);
-    if (!normalizedCategory) return acc;
+
+  const categoryCounts = {};
+  let uncategorizedCount = 0;
+  let totalCount = 0;
+
+  categoryGroups.forEach((group) => {
+    const count = group._count.id;
+    totalCount += count;
+    const normalizedCategory = normalizeCategory(group.category);
+
+    if (!normalizedCategory) {
+      uncategorizedCount += count;
+      return;
+    }
+
     const parts = normalizedCategory.split("/");
     let path = "";
     parts.forEach((part) => {
       path = path ? `${path}/${part}` : part;
-      acc[path] = (acc[path] || 0) + 1;
+      categoryCounts[path] = (categoryCounts[path] || 0) + count;
     });
-    return acc;
-  }, {});
-  const uncategorizedCount = categories.filter(
-    (product) => !normalizeCategory(product.category),
-  ).length;
+  });
 
   return {
     totals: {
@@ -366,10 +381,11 @@ const getProductSummary = async ({ search = "", category = "all" } = {}) => {
       totalQty: Number(summaryRow.total_qty || 0),
       totalCost: Number(summaryRow.total_cost || 0),
       totalSelling: Number(summaryRow.total_selling || 0),
+      totalMrp: Number(summaryRow.total_mrp || 0),
     },
     categoryCounts,
     uncategorizedCount,
-    totalCount: categories.length,
+    totalCount,
   };
 };
 
@@ -572,6 +588,8 @@ const createOrUpdateProduct = async ({
         }
       }
     }
+    // Background sync to ensure Category table reflects new strings
+    categoryService.ensureCategoriesFromProducts().catch(err => console.error("Category sync error:", err));
     return product;
   });
 };
@@ -1084,6 +1102,10 @@ const importProducts = async (csvData) => {
       }
     }
   });
+
+  // Background sync to ensure Category table reflects new strings
+  categoryService.ensureCategoriesFromProducts().catch(err => console.error("Category sync error:", err));
+
   results.success = true;
   return results;
 };

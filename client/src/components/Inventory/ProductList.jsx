@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import api from '../../api';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -62,12 +62,103 @@ const renderBarcodeChips = (barcode, size = 'small') => {
     );
 };
 
-const ProductList = () => {
+// Helper to get stock status
+const getStockStatus = (product) => {
+    if (product.total_stock === 0) return 'zero';
+    if (product.lowStockWarningEnabled && product.total_stock <= product.lowStockThreshold) return 'low';
+    return 'sufficient';
+};
+
+// Memoized individual row for high performance with 1,000+ items
+const ProductRow = React.memo(({ product, index, isSelected, onSelect, onEdit, onDelete }) => {
+    const stockStatus = getStockStatus(product);
+    const statusColor = stockStatus === 'zero' ? '#ef4444' :
+        stockStatus === 'low' ? '#7c3aed' :
+            '#10b981';
+
+    return (
+        <TableRow
+            hover
+            onClick={() => onSelect(product)}
+            sx={{
+                cursor: 'pointer',
+                bgcolor: isSelected ? 'rgba(11, 29, 57, 0.08)' : 'transparent',
+                '& td': { py: 0.5, px: 1.5 }
+            }}
+        >
+            <TableCell sx={{ py: 0.5, px: 1.5, fontWeight: 600, color: 'text.secondary', width: '30px' }}>
+                {index + 1}
+            </TableCell>
+            <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircleIcon sx={{ fontSize: 12, color: statusColor }} />
+                    <Box>
+                        <Typography variant="body1">{product.name}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            {product.category || 'Uncategorized'}
+                        </Typography>
+                    </Box>
+                    {product.batchTrackingEnabled && (
+                        <Chip label="Batch" size="small" variant="filled" sx={{ height: '20px' }} />
+                    )}
+                </Box>
+            </TableCell>
+            <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+                {renderBarcodeChips(product.barcode, 'small')}
+            </TableCell>
+            <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+                <Typography variant="body1">{product.total_stock}</Typography>
+            </TableCell>
+            <TableCell align="right" onClick={(e) => e.stopPropagation()} sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+                <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                        <IconButton
+                            size="small"
+                            onClick={() => onEdit(product)}
+                            sx={{
+                                bgcolor: 'rgba(31, 41, 55, 0.08)',
+                                color: '#1f2937',
+                                '&:hover': {
+                                    bgcolor: 'rgba(31, 41, 55, 0.15)'
+                                }
+                            }}
+                        >
+                            <EditIcon fontSize="small" />
+                        </IconButton>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}>
+                            Edit
+                        </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                        <IconButton
+                            size="small"
+                            onClick={() => onDelete(product.id)}
+                            sx={{
+                                bgcolor: 'rgba(239, 68, 68, 0.1)',
+                                color: '#ef4444',
+                                '&:hover': {
+                                    bgcolor: 'rgba(239, 68, 68, 0.2)'
+                                }
+                            }}
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ef4444' }}>
+                            Delete
+                        </Typography>
+                    </Box>
+                </Box>
+            </TableCell>
+        </TableRow>
+    );
+});
+
+const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSearch, onSearchChange, isPending }, ref) => {
     const [filteredProducts, setFilteredProducts] = useState(null); // null = show all
     const { dialogState, showError, showConfirm, closeDialog } = useCustomDialog();
     const [products, setProducts] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
+    // debouncedSearch is now a prop
     const [editOpen, setEditOpen] = useState(false);
     const [batchEditOpen, setBatchEditOpen] = useState(false);
     const [addStockOpen, setAddStockOpen] = useState(false);
@@ -83,7 +174,7 @@ const ProductList = () => {
     const [quickInventoryBatch, setQuickInventoryBatch] = useState(null);
     const [quickInventoryOpen, setQuickInventoryOpen] = useState(false);
     const [barcodePrintOpen, setBarcodePrintOpen] = useState(false);
-    const [categoryFilter, setCategoryFilter] = useState('all');
+    // categoryFilter is now a prop
     const [sortBy, setSortBy] = useState('name');
     const [sortOrder, setSortOrder] = useState('asc');
     // Pagination removed
@@ -104,7 +195,8 @@ const ProductList = () => {
         productCount: 0,
         totalQty: 0,
         totalCost: 0,
-        totalSelling: 0
+        totalSelling: 0,
+        totalMrp: 0
     });
     const [categoryCounts, setCategoryCounts] = useState({});
     const [uncategorizedCount, setUncategorizedCount] = useState(0);
@@ -124,18 +216,19 @@ const ProductList = () => {
     const searchInputRef = useRef(null);
     const searchTimerRef = useRef(null);
 
-    const fetchProducts = React.useCallback(async () => {
+    const fetchProducts = React.useCallback(async (signal) => {
         const requestId = ++productsRequestId.current;
         try {
             // Fetch everything for the current category once, then filter locally
             // This matches the high-performance behavior of the POS screen
             const resProd = await api.get('/api/products', {
                 params: {
-                    category: categoryFilter,
+                    category: 'all',
                     sortBy,
                     sortOrder,
                     pageSize: 10000 // Ensure we get the full list for local filtering
-                }
+                },
+                signal
             });
             const data = resProd.data.data || [];
             if (productsRequestId.current !== requestId) return;
@@ -147,37 +240,59 @@ const ProductList = () => {
                 if (refreshed) setSelectedProduct(refreshed);
             }
         } catch (error) {
+            if (error.name === 'CanceledError' || error.name === 'AbortError') return;
             console.error(error);
         }
-    }, [categoryFilter, sortBy, sortOrder]);
+    }, [sortBy, sortOrder]);
 
-    const fetchSummary = React.useCallback(async () => {
+    // Fix refresh bug in App.jsx
+    useImperativeHandle(ref, () => ({
+        refresh: () => {
+            fetchProducts();
+            fetchSummary();
+            fetchCategories();
+        }
+    }));
+
+    const fetchSummary = React.useCallback(async (signal) => {
         const requestId = ++summaryRequestId.current;
         try {
-            const [totalsRes, sidebarRes] = await Promise.all([
-                api.get('/api/products/summary', {
-                    params: {
-                        search: debouncedSearch,
-                        category: categoryFilter
-                    }
-                }),
-                api.get('/api/products/summary', {
-                    params: {
-                        search: '',
-                        category: 'all'
-                    }
-                })
-            ]);
+            const isAllNoSearch = (categoryFilter === 'all' || !categoryFilter) && !debouncedSearch;
 
-            const totalsData = totalsRes.data.data || {};
-            if (summaryRequestId.current !== requestId) return;
-            setSummaryTotals(totalsData.totals || { productCount: 0, totalQty: 0, totalCost: 0, totalSelling: 0 });
+            let totalsData, sidebarData;
 
-            const sidebarData = sidebarRes.data.data || {};
+            if (isAllNoSearch) {
+                // Only one call needed
+                const res = await api.get('/api/products/summary', {
+                    params: { search: '', category: 'all' },
+                    signal
+                });
+                if (summaryRequestId.current !== requestId) return;
+                totalsData = res.data.data || {};
+                sidebarData = totalsData;
+            } else {
+                // Two calls: one for current view totals, one for global sidebar counts
+                const [totalsRes, sidebarRes] = await Promise.all([
+                    api.get('/api/products/summary', {
+                        params: { search: debouncedSearch, category: categoryFilter },
+                        signal
+                    }),
+                    api.get('/api/products/summary', {
+                        params: { search: '', category: 'all' },
+                        signal
+                    })
+                ]);
+                if (summaryRequestId.current !== requestId) return;
+                totalsData = totalsRes.data.data || {};
+                sidebarData = sidebarRes.data.data || {};
+            }
+
+            setSummaryTotals(totalsData.totals || { productCount: 0, totalQty: 0, totalCost: 0, totalSelling: 0, totalMrp: 0 });
             setCategoryCounts(sidebarData.categoryCounts || {});
             setUncategorizedCount(sidebarData.uncategorizedCount || 0);
             setTotalCount(sidebarData.totalCount || 0);
         } catch (error) {
+            if (error.name === 'CanceledError' || error.name === 'AbortError') return;
             console.error(error);
         }
     }, [debouncedSearch, categoryFilter]);
@@ -207,11 +322,15 @@ const ProductList = () => {
     // Pagination removed
 
     useEffect(() => {
-        fetchProducts();
-    }, [categoryFilter, sortBy, sortOrder, fetchProducts]);
+        const controller = new AbortController();
+        fetchProducts(controller.signal);
+        return () => controller.abort();
+    }, [sortBy, sortOrder, fetchProducts]);
 
     useEffect(() => {
-        fetchSummary();
+        const controller = new AbortController();
+        fetchSummary(controller.signal);
+        return () => controller.abort();
     }, [debouncedSearch, categoryFilter, fetchSummary]);
 
     useEffect(() => {
@@ -290,6 +409,19 @@ const ProductList = () => {
     const displayedProducts = useMemo(() => {
         let baseProducts = products;
 
+        // Apply category filter locally
+        if (categoryFilter && categoryFilter !== 'all') {
+            if (categoryFilter === 'uncategorized') {
+                baseProducts = baseProducts.filter(p => !p.category || p.category.trim() === '');
+            } else {
+                // Hierarchical filtering: exact match or starts with category/
+                const prefix = `${categoryFilter}/`;
+                baseProducts = baseProducts.filter(p =>
+                    p.category === categoryFilter || (p.category && p.category.startsWith(prefix))
+                );
+            }
+        }
+
         // Apply stock filters first to the pool of products
         if (stockFilter === 'low') {
             baseProducts = baseProducts.filter(p =>
@@ -302,7 +434,7 @@ const ProductList = () => {
         }
 
         if (!debouncedSearch) {
-            return baseProducts.slice(0, 250);
+            return baseProducts.slice(0, 1000);
         }
 
         const query = debouncedSearch.toLowerCase();
@@ -339,23 +471,19 @@ const ProductList = () => {
             ...barcodePrefix,
             ...nameContains,
             ...barcodeContains
-        ].slice(0, 250);
-    }, [products, debouncedSearch, stockFilter]);
+        ].slice(0, 1000);
+    }, [products, debouncedSearch, stockFilter, categoryFilter]);
 
     const clearSearch = React.useCallback(() => {
         if (searchInputRef.current) searchInputRef.current.value = '';
         setSearchTerm('');
-        setDebouncedSearch('');
+        onSearchChange('');
         setFilteredProducts(null);
     }, []);
 
-    const getStockStatus = (product) => {
-        if (product.total_stock === 0) return 'zero';
-        if (product.lowStockWarningEnabled && product.total_stock <= product.lowStockThreshold) return 'low';
-        return 'sufficient';
-    };
 
-    const handleDelete = async (id) => {
+
+    const handleDelete = React.useCallback(async (id) => {
         const confirmed = await showConfirm('Deleting this product will also delete all associated batches and related data. This action cannot be undone. Are you sure you want to continue?');
         if (confirmed) {
             try {
@@ -367,12 +495,12 @@ const ProductList = () => {
                 showError('Failed to delete product: ' + (error.response?.data?.error || error.message));
             }
         }
-    };
+    }, [fetchProducts, fetchSummary, showConfirm, showError]);
 
-    const handleEditClick = (product) => {
+    const handleEditClick = React.useCallback((product) => {
         setCurrentProduct(product);
         setEditOpen(true);
-    };
+    }, []);
 
     const handleBatchEditClick = (batch) => {
         setCurrentBatch({
@@ -459,6 +587,13 @@ const ProductList = () => {
         }
         return '0.0';
     }, [summaryTotals.totalCost, summaryTotals.totalSelling]);
+
+    const averageDiscount = useMemo(() => {
+        if (summaryTotals.totalMrp > 0) {
+            return (((summaryTotals.totalMrp - summaryTotals.totalSelling) / summaryTotals.totalMrp) * 100).toFixed(1);
+        }
+        return '0.0';
+    }, [summaryTotals.totalMrp, summaryTotals.totalSelling]);
     const categoryLabel = categoryFilter === 'all'
         ? 'All Categories'
         : categoryFilter === 'uncategorized'
@@ -537,7 +672,7 @@ const ProductList = () => {
         try {
             await api.delete(`/api/categories/${category.id}`);
             if (categoryFilter === category.path || categoryFilter.startsWith(`${category.path}/`)) {
-                setCategoryFilter('all');
+                onCategoryChange('all');
                 setSelectedProduct(null);
                 setSelectedProductDetails(null);
             }
@@ -596,7 +731,7 @@ const ProductList = () => {
                 <ListItemButton
                     selected={isSelected}
                     onClick={() => {
-                        setCategoryFilter(node.path);
+                        onCategoryChange(node.path);
                         setSelectedProduct(null);
                         setSelectedProductDetails(null);
                     }}
@@ -690,7 +825,7 @@ const ProductList = () => {
                         <ListItemButton
                             selected={categoryFilter === 'all'}
                             onClick={() => {
-                                setCategoryFilter('all');
+                                onCategoryChange('all');
                                 setSelectedProduct(null);
                                 setSelectedProductDetails(null);
                             }}
@@ -709,7 +844,7 @@ const ProductList = () => {
                             <ListItemButton
                                 selected={categoryFilter === 'uncategorized'}
                                 onClick={() => {
-                                    setCategoryFilter('uncategorized');
+                                    onCategoryChange('uncategorized');
                                     setSelectedProduct(null);
                                     setSelectedProductDetails(null);
                                 }}
@@ -861,7 +996,7 @@ const ProductList = () => {
                                     const val = e.target.value;
                                     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
                                     searchTimerRef.current = setTimeout(() => {
-                                        setDebouncedSearch(val.trim());
+                                        onSearchChange(val.trim());
                                     }, 400);
                                 }}
                                 onKeyDown={async e => {
@@ -966,7 +1101,7 @@ const ProductList = () => {
                                 variant="outlined"
                                 startIcon={<RestartAltIcon />}
                                 onClick={() => {
-                                    setCategoryFilter('all');
+                                    onCategoryChange('all');
                                     setSortBy('name');
                                     setSortOrder('asc');
                                     setSearchTerm('');
@@ -993,7 +1128,7 @@ const ProductList = () => {
                                 exclusive
                                 onChange={(_, value) => {
                                     if (value) setStockFilter(value);
-                                    setCategoryFilter('all');
+                                    onCategoryChange('all');
                                 }}
                                 size="small"
                                 sx={{ ml: 1 }}
@@ -1106,12 +1241,34 @@ const ProductList = () => {
                                 {averageMargin}%
                             </Typography>
                         </Box>
+                        <Box sx={{
+                            border: '2px dotted #f43f5e',
+                            borderRadius: 1,
+                            p: 1.5,
+                            bgcolor: 'rgba(244, 63, 94, 0.08)',
+                            minWidth: 100,
+                            flex: '1 1 120px'
+                        }}>
+                            <Typography variant="caption" sx={{ color: '#e11d48', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.3px', fontWeight: 600 }}>
+                                Avg Discount
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: '#9f1239' }}>
+                                {averageDiscount}%
+                            </Typography>
+                        </Box>
                     </Box>
                 </Box>
-                <TableContainer sx={{ flex: 1, overflow: 'auto', overflowX: 'scroll' }}>
+                <TableContainer sx={{
+                    flex: 1,
+                    overflow: 'auto',
+                    overflowX: 'scroll',
+                    opacity: isPending ? 0.6 : 1, // Visual feedback during transition
+                    transition: 'opacity 0.2s ease'
+                }}>
                     <Table size="small" stickyHeader>
                         <TableHead>
                             <TableRow sx={{ bgcolor: 'background.default' }}>
+                                <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5, width: '50px', fontWeight: 'bold' }}>S.No.</TableCell>
                                 <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
                                     <TableSortLabel
                                         active={sortBy === 'name'}
@@ -1144,89 +1301,17 @@ const ProductList = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {displayedProducts.map((product) => {
-                                const stockStatus = getStockStatus(product);
-                                const statusColor = stockStatus === 'zero' ? '#ef4444' :
-                                    stockStatus === 'low' ? '#7c3aed' :
-                                        '#10b981';
-                                return (
-                                    <TableRow
-                                        key={product.id}
-                                        hover
-                                        onClick={() => setSelectedProduct(product)}
-                                        sx={{
-                                            cursor: 'pointer',
-                                            bgcolor: selectedProduct?.id === product.id ? 'rgba(11, 29, 57, 0.08)' : 'transparent',
-                                            '& td': { py: 0.5, px: 1.5 }
-                                        }}
-                                    >
-                                        <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <CircleIcon sx={{ fontSize: 12, color: statusColor }} />
-                                                <Box>
-                                                    <Typography variant="body1">{product.name}</Typography>
-                                                    <Typography
-                                                        variant="body2"
-                                                        color="text.secondary"
-                                                    >
-                                                        {product.category || 'Uncategorized'}
-                                                    </Typography>
-                                                </Box>
-                                                {product.batchTrackingEnabled && (
-                                                    <Chip label="Batch" size="small" variant="filled" sx={{ height: '20px' }} />
-                                                )}
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
-                                            {renderBarcodeChips(product.barcode, 'small')}
-                                        </TableCell>
-
-                                        <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
-                                            <Typography variant="body1">{product.total_stock}</Typography>
-                                        </TableCell>
-                                        <TableCell align="right" onClick={(e) => e.stopPropagation()} sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
-                                            <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
-                                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleEditClick(product)}
-                                                        sx={{
-                                                            bgcolor: 'rgba(31, 41, 55, 0.08)',
-                                                            color: '#1f2937',
-                                                            '&:hover': {
-                                                                bgcolor: 'rgba(31, 41, 55, 0.15)'
-                                                            }
-                                                        }}
-                                                    >
-                                                        <EditIcon fontSize="small" />
-                                                    </IconButton>
-                                                    <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}>
-                                                        Edit
-                                                    </Typography>
-                                                </Box>
-                                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleDelete(product.id)}
-                                                        sx={{
-                                                            bgcolor: 'rgba(239, 68, 68, 0.1)',
-                                                            color: '#ef4444',
-                                                            '&:hover': {
-                                                                bgcolor: 'rgba(239, 68, 68, 0.2)'
-                                                            }
-                                                        }}
-                                                    >
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                    <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ef4444' }}>
-                                                        Delete
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
+                            {displayedProducts.map((product, index) => (
+                                <ProductRow
+                                    key={product.id}
+                                    product={product}
+                                    index={index}
+                                    isSelected={selectedProduct?.id === product.id}
+                                    onSelect={setSelectedProduct}
+                                    onEdit={handleEditClick}
+                                    onDelete={handleDelete}
+                                />
+                            ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
@@ -1588,5 +1673,5 @@ const ProductList = () => {
             <CustomDialog {...dialogState} onClose={closeDialog} />
         </Box>
     );
-};
+});
 export default ProductList;

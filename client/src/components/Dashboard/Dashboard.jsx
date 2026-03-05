@@ -36,6 +36,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(false);
     const [tabValue, setTabValue] = useState(0);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [hourlyMetric, setHourlyMetric] = useState('amount'); // 'amount' or 'quantity'
 
     const localToday = new Date().toLocaleDateString('en-CA');
 
@@ -194,6 +195,7 @@ const Dashboard = () => {
         let totalCostAmount = 0;
 
         const hourlySalesAmt = Array.from({ length: 24 }, () => 0);
+        const hourlySalesQty = Array.from({ length: 24 }, () => 0);
 
         // Process Regular Sales
         sales.forEach((sale) => {
@@ -206,6 +208,8 @@ const Dashboard = () => {
 
             sale.items.forEach((item) => {
                 const qty = item.netQuantity ?? (item.quantity - item.returnedQuantity);
+                hourlySalesQty[saleHour] += qty;
+
                 const name = item.productName || item.batch?.product?.name || 'Unknown';
                 const category = item.batch?.product?.category || 'Uncategorized';
 
@@ -216,31 +220,64 @@ const Dashboard = () => {
         });
 
         // Process Loose Sales
-        looseSales.forEach((ls) => {
-            const lsDate = new Date(ls.createdAt);
-            const dateKey = lsDate.toLocaleDateString('en-CA');
-            dailyAmtMap.set(dateKey, (dailyAmtMap.get(dateKey) || 0) + ls.price);
+        let totalLooseSalesAmount = 0;
+        let firstHour = 24;
+        let lastHour = -1;
+
+        sales.forEach(sale => {
+            const h = new Date(sale.createdAt).getHours();
+            if (h < firstHour) firstHour = h;
+            if (h > lastHour) lastHour = h;
         });
 
-        const topProducts = [...productTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-        const topCategories = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1]);
-        const maxHourlySalesAmt = Math.max(...hourlySalesAmt, 0);
+        looseSales.forEach((ls) => {
+            const lsDate = new Date(ls.createdAt);
+            const lsHour = lsDate.getHours();
+            const dateKey = lsDate.toLocaleDateString('en-CA');
+            dailyAmtMap.set(dateKey, (dailyAmtMap.get(dateKey) || 0) + ls.price);
+            totalLooseSalesAmount += ls.price;
 
-        const avgSaleValue = totalCustomers > 0 ? totalSalesAmount / totalCustomers : 0;
-        const netProfitAmount = totalSalesAmount - totalCostAmount;
-        const netProfitMargin = totalSalesAmount > 0 ? (netProfitAmount / totalSalesAmount) * 100 : 0;
+            hourlySalesAmt[lsHour] += ls.price;
+            hourlySalesQty[lsHour] += 1; // 1 unit per loose sale
+
+            if (lsHour < firstHour) firstHour = lsHour;
+            if (lsHour > lastHour) lastHour = lsHour;
+        });
+
+        const startHour = lastHour === -1 ? 0 : Math.max(0, firstHour - 1);
+        const endHour = lastHour === -1 ? 23 : Math.min(23, lastHour + 1);
+
+        const topProducts = [...productTotals.entries()].sort((a, b) => b[1] - a[1]);
+        const topCategories = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1]);
+
+        const activeHourlyData = hourlyMetric === 'amount' ? hourlySalesAmt : hourlySalesQty;
+        const maxHourlyVal = Math.max(...activeHourlyData, 0);
+
+        const totalTransactions = totalCustomers + looseSales.length;
+        const avgSaleValue = totalTransactions > 0 ? totalSalesAmount / totalTransactions : 0;
+
+        // Net profit margin only for regular sales (exclude loose sales)
+        const regularSalesAmount = totalSalesAmount - totalLooseSalesAmount;
+        const regularProfitAmount = regularSalesAmount - totalCostAmount;
+        const netProfitMargin = regularSalesAmount > 0 ? (regularProfitAmount / regularSalesAmount) * 100 : 0;
 
         return {
             totalSalesAmount,
+            totalLooseSalesAmount,
             topProducts,
             topCategories,
             hourlySalesAmt,
-            maxHourlySalesAmt,
+            hourlySalesQty,
+            activeHourlyData,
+            maxHourlyVal,
+            startHour,
+            endHour,
             totalCustomers,
+            totalTransactions,
             avgSaleValue,
             netProfitMargin
         };
-    }, [report]);
+    }, [report, hourlyMetric]);
 
     // Calculate metrics for Top Monthly row
     const yearMetrics = useMemo(() => {
@@ -457,12 +494,12 @@ const Dashboard = () => {
                             <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600 }}>Top Products</Typography>
                         </Box>
 
-                        <TableContainer sx={{ flex: 1 }}>
-                            <Table size="small">
+                        <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
+                            <Table size="small" stickyHeader>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell sx={{ color: '#0b1d39', borderBottom: '2px solid #0b1d39', py: 0.5, px: 0 }}>Product</TableCell>
-                                        <TableCell align="right" sx={{ color: '#64748b', borderBottom: '1px solid #e2e8f0', py: 0.5, px: 0 }}>Total</TableCell>
+                                        <TableCell sx={{ color: '#0b1d39', borderBottom: '2px solid #0b1d39', py: 0.5, px: 0, bgcolor: 'white' }}>Product</TableCell>
+                                        <TableCell align="right" sx={{ color: '#64748b', borderBottom: '1px solid #e2e8f0', py: 0.5, px: 0, bgcolor: 'white' }}>Total</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -483,7 +520,16 @@ const Dashboard = () => {
                     <Paper elevation={0} sx={{ flex: '1 1 40%', p: 2, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                             <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600 }}>Hourly Sales</Typography>
-                            <Typography variant="caption" sx={{ color: '#64748b' }}>Amount ▼</Typography>
+                            <FormControl size="small" sx={{ minWidth: 100 }}>
+                                <Select
+                                    value={hourlyMetric}
+                                    onChange={(e) => setHourlyMetric(e.target.value)}
+                                    sx={{ height: 24, fontSize: '0.75rem', borderRadius: 1 }}
+                                >
+                                    <MenuItem value="amount" sx={{ fontSize: '0.75rem' }}>Amount</MenuItem>
+                                    <MenuItem value="quantity" sx={{ fontSize: '0.75rem' }}>Quantity</MenuItem>
+                                </Select>
+                            </FormControl>
                         </Box>
 
                         <Box sx={{ flex: 1, display: 'flex', alignItems: 'flex-end', position: 'relative' }}>
@@ -492,7 +538,7 @@ const Dashboard = () => {
                                 {[1, 0.8, 0.6, 0.4, 0.2, 0].map(tier => (
                                     <Box key={tier} sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                         <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#d1d5db', width: 30 }}>
-                                            {Math.round(periodicMetrics.maxHourlySalesAmt * tier)}
+                                            {Math.round(periodicMetrics.maxHourlyVal * tier)}
                                         </Typography>
                                         <Box sx={{ flex: 1, height: '1px', bgcolor: tier === 0 ? '#d1d5db' : '#f3f4f6' }} />
                                     </Box>
@@ -501,34 +547,46 @@ const Dashboard = () => {
 
                             {/* Bars */}
                             <Box sx={{ display: 'flex', ml: '30px', flex: 1, zIndex: 1, height: '100%', alignItems: 'flex-end' }}>
-                                {periodicMetrics.hourlySalesAmt.map((amt, idx) => {
-                                    // Extract visible trading hours (e.g., 9am to 9pm) or dynamic window
-                                    // For simplicity matching the graphic, we'll plot every hour but only values > 0 are visible
-                                    const hPct = periodicMetrics.maxHourlySalesAmt > 0 ? (amt / periodicMetrics.maxHourlySalesAmt) * 100 : 0;
-                                    const barColor = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+                                {periodicMetrics.activeHourlyData.slice(periodicMetrics.startHour, periodicMetrics.endHour + 1).map((val, idx) => {
+                                    const hPct = periodicMetrics.maxHourlyVal > 0 ? (val / periodicMetrics.maxHourlyVal) * 100 : 0;
+                                    const barColor = CATEGORY_COLORS[(idx + periodicMetrics.startHour) % CATEGORY_COLORS.length];
                                     return (
                                         <Box key={idx} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', px: '1px' }}>
-                                            {amt > 0 && (
+                                            {val > 0 && (
                                                 <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#fff', mb: 0.5, zIndex: 2, mt: '-12px' }}>
-                                                    {Math.round(amt)}
+                                                    {Math.round(val)}
                                                 </Typography>
                                             )}
-                                            {amt > 0 && <Box sx={{ width: '100%', height: `${hPct}%`, bgcolor: barColor, borderTopLeftRadius: 2, borderTopRightRadius: 2 }} />}
+                                            {val > 0 && <Box sx={{ width: '100%', height: `${hPct}%`, bgcolor: barColor, borderTopLeftRadius: 2, borderTopRightRadius: 2 }} />}
                                         </Box>
                                     );
                                 })}
                             </Box>
                         </Box>
-                        <Typography variant="caption" sx={{ textAlign: 'center', color: '#64748b', fontSize: '0.6rem', mt: 1 }}>Hour</Typography>
+                        <Box sx={{ display: 'flex', ml: '30px', borderTop: '1px solid #d1d5db' }}>
+                            {Array.from({ length: periodicMetrics.endHour - periodicMetrics.startHour + 1 }, (_, i) => i + periodicMetrics.startHour).map(h => (
+                                <Box key={h} sx={{ flex: 1, textAlign: 'center' }}>
+                                    <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#64748b' }}>
+                                        {h}:00
+                                    </Typography>
+                                </Box>
+                            ))}
+                        </Box>
+                        <Typography variant="caption" sx={{ textAlign: 'center', color: '#64748b', fontSize: '0.6rem', mt: 0.5 }}>Hour of Day</Typography>
                     </Paper>
 
                     {/* Total Sales (Period) */}
                     <Paper elevation={0} sx={{ flex: '1 1 30%', p: 2, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
                         <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600, mb: 1 }}>Total Sales (Amount)</Typography>
-                        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                             <Typography variant="h1" sx={{ fontWeight: 800, color: '#374151', letterSpacing: '-2px', textShadow: '2px 2px 0px #fff' }}>
                                 {formatShortNum(periodicMetrics.totalSalesAmount)}
                             </Typography>
+                            {periodicMetrics.totalLooseSalesAmount > 0 && (
+                                <Typography variant="caption" sx={{ color: '#94a3b8', mt: 1, fontSize: '0.7rem' }}>
+                                    (Includes ₹{periodicMetrics.totalLooseSalesAmount.toFixed(2)} loose sales)
+                                </Typography>
+                            )}
                         </Box>
                     </Paper>
 
@@ -554,8 +612,8 @@ const Dashboard = () => {
                                     <Box key={seg.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Box sx={{ width: 8, height: 16, bgcolor: seg.color }} />
-                                            <Typography variant="caption" sx={{ color: '#4b5563', fontSize: '0.65rem', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {seg.name}
+                                            <Typography variant="caption" sx={{ color: '#4b5563', fontSize: '0.65rem', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {seg.name} ({seg.percent.toFixed(0)}%)
                                             </Typography>
                                         </Box>
                                         <Typography variant="caption" sx={{ color: '#111827', fontSize: '0.65rem', fontWeight: 600 }}>
@@ -572,7 +630,7 @@ const Dashboard = () => {
                         {/* Avg Sale Value */}
                         <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
                             <Typography variant="h6" sx={{ color: '#64748b', fontWeight: 500, mb: 0 }}>Average Sale Value</Typography>
-                            <Typography variant="caption" sx={{ color: '#94a3b8', mb: 3 }}>Average order size across {periodicMetrics.totalCustomers} transactions</Typography>
+                            <Typography variant="caption" sx={{ color: '#94a3b8', mb: 3 }}>Across {periodicMetrics.totalTransactions} transactions (incl. loose sales)</Typography>
                             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <Typography variant="h2" sx={{ fontWeight: 800, color: '#0b1d39', letterSpacing: '-1px' }}>
                                     ₹{formatShortNum(periodicMetrics.avgSaleValue)}

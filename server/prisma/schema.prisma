@@ -43,6 +43,8 @@ model Product {
   batches                Batch[]
   promotions             PromotionItem[]
   movements              StockMovement[]
+
+  @@index([category])
 }
 
 model Batch {

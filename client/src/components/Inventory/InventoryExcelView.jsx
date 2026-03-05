@@ -17,7 +17,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
     return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const InventoryExcelView = ({ open, onClose }) => {
+const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSearch = '' }) => {
     const [loading, setLoading] = useState(false);
     const [products, setProducts] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -26,15 +26,20 @@ const InventoryExcelView = ({ open, onClose }) => {
 
     useEffect(() => {
         if (open) {
+            setSearchTerm(externalSearch);
             fetchData();
         }
-    }, [open]);
+    }, [open, categoryFilter, externalSearch]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
             const response = await api.get('/api/products', {
-                params: { includeBatches: 'true' }
+                params: {
+                    includeBatches: 'true',
+                    category: categoryFilter,
+                    search: externalSearch
+                }
             });
             setProducts(response.data.data || []);
         } catch (error) {
@@ -115,19 +120,21 @@ const InventoryExcelView = ({ open, onClose }) => {
     }, [flatData, searchTerm, orderBy, order]);
 
     const totals = useMemo(() => {
-        const count = filteredAndSortedData.length;
-        if (count === 0) return {};
+        const totalStock = filteredAndSortedData.reduce((sum, row) => sum + row.stock, 0);
+        const totalValueCost = filteredAndSortedData.reduce((sum, row) => sum + (row.stock * row.cp), 0);
+        const totalValueSelling = filteredAndSortedData.reduce((sum, row) => sum + (row.stock * row.sp), 0);
+        const totalValueMrp = filteredAndSortedData.reduce((sum, row) => sum + (row.stock * (row.mrp || row.sp)), 0);
 
         return {
-            totalStock: filteredAndSortedData.reduce((sum, row) => sum + row.stock, 0),
-            avgSp: filteredAndSortedData.reduce((sum, row) => sum + row.sp, 0) / count,
-            avgCp: filteredAndSortedData.reduce((sum, row) => sum + row.cp, 0) / count,
-            avgDiscRs: filteredAndSortedData.reduce((sum, row) => sum + row.discRs, 0) / count,
-            avgDiscPct: filteredAndSortedData.reduce((sum, row) => sum + row.discPct, 0) / count,
-            avgMargin: filteredAndSortedData.reduce((sum, row) => sum + row.marginPct, 0) / count,
-            avgWsPrice: filteredAndSortedData.reduce((sum, row) => sum + (row.wsPrice || 0), 0) / count,
-            totalValueCost: filteredAndSortedData.reduce((sum, row) => sum + (row.stock * row.cp), 0),
-            totalValueSelling: filteredAndSortedData.reduce((sum, row) => sum + (row.stock * row.sp), 0)
+            totalStock: totalStock,
+            avgSp: totalStock > 0 ? totalValueSelling / totalStock : 0,
+            avgCp: totalStock > 0 ? totalValueCost / totalStock : 0,
+            avgDiscRs: totalStock > 0 ? (totalValueMrp - totalValueSelling) / totalStock : 0,
+            avgDiscPct: totalValueMrp > 0 ? ((totalValueMrp - totalValueSelling) / totalValueMrp) * 100 : 0,
+            avgMargin: totalValueSelling > 0 ? ((totalValueSelling - totalValueCost) / totalValueSelling) * 100 : 0,
+            avgWsPrice: filteredAndSortedData.length > 0 ? filteredAndSortedData.reduce((sum, row) => sum + (row.wsPrice || 0), 0) / filteredAndSortedData.length : 0,
+            totalValueCost: totalValueCost,
+            totalValueSelling: totalValueSelling
         };
     }, [filteredAndSortedData]);
 
@@ -177,7 +184,83 @@ const InventoryExcelView = ({ open, onClose }) => {
             onClose={onClose}
             TransitionComponent={Transition}
         >
-            <AppBar sx={{ position: 'relative', bgcolor: '#1a237e' }}>
+            <style>
+                {`
+                @media print {
+                    @page {
+                        size: auto;
+                        margin: 10mm;
+                    }
+                    body {
+                        visibility: hidden !important;
+                        background: white !important;
+                    }
+                    .MuiDialog-root,
+                    .MuiDialog-root * {
+                        visibility: visible !important;
+                    }
+                    .no-print,
+                    .MuiAppBar-root,
+                    button,
+                    .MuiInputAdornment-root {
+                        display: none !important;
+                        visibility: hidden !important;
+                    }
+                    .MuiDialog-container,
+                    .MuiDialog-paper {
+                        display: block !important;
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 100% !important;
+                        overflow: visible !important;
+                        height: auto !important;
+                        box-shadow: none !important;
+                    }
+                    .MuiContainer-root {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        max-width: 100% !important;
+                        background: white !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                    }
+                    .MuiTableContainer-root {
+                        max-height: none !important;
+                        overflow: visible !important;
+                        height: auto !important;
+                        box-shadow: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
+                        table-layout: auto !important;
+                    }
+                    th, td {
+                        word-wrap: break-word !important;
+                        white-space: normal !important;
+                        font-size: 7.5pt !important;
+                        padding: 3px !important;
+                        border: 1px solid #000 !important;
+                        color: black !important;
+                    }
+                    th {
+                        background-color: #eee !important;
+                        -webkit-print-color-adjust: exact;
+                        font-weight: bold !important;
+                    }
+                    .MuiTableHead-root {
+                        display: table-header-group !important;
+                    }
+                    tr {
+                        page-break-inside: avoid !important;
+                    }
+                }
+                `}
+            </style>
+            <AppBar className="no-print" sx={{ position: 'relative', bgcolor: '#1a237e' }}>
                 <Toolbar variant="dense">
                     <IconButton edge="start" color="inherit" onClick={onClose} aria-label="close">
                         <CloseIcon />
@@ -204,7 +287,7 @@ const InventoryExcelView = ({ open, onClose }) => {
             </AppBar>
 
             <Container maxWidth={false} sx={{ py: 3, bgcolor: '#f8f9fa', minHeight: 'calc(100vh - 48px)' }}>
-                <Paper elevation={0} sx={{ p: 2, mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: 2, border: '1px solid #e0e0e0' }}>
+                <Paper className="no-print" elevation={0} sx={{ p: 2, mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: 2, border: '1px solid #e0e0e0' }}>
                     <TextField
                         size="small"
                         placeholder="Search name, category or barcode..."
@@ -220,8 +303,10 @@ const InventoryExcelView = ({ open, onClose }) => {
                         }}
                     />
                     <Box sx={{ display: 'flex', gap: 2 }}>
-                        <Chip label={`Total Rows: ${filteredAndSortedData.length}`} color="primary" variant="outlined" />
+                        <Chip label={`Rows: ${filteredAndSortedData.length}`} color="primary" variant="outlined" />
                         <Chip label={`Total Stock: ${totals.totalStock || 0}`} color="success" variant="outlined" />
+                        <Chip label={`Selling Value: ₹${(totals.totalValueSelling || 0).toLocaleString()}`} color="info" variant="outlined" />
+                        <Chip label={`Cost Value: ₹${(totals.totalValueCost || 0).toLocaleString()}`} color="warning" variant="outlined" />
                     </Box>
                 </Paper>
 
