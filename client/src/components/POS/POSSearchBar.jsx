@@ -96,14 +96,17 @@ const POSSearchBar = React.forwardRef(({ products, searchQuery, onSearchInputCha
     };
 
     return (
-        <Box sx={{
-            p: 2,
-            borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            display: 'flex',
-            gap: 2,
-            alignItems: 'center'
-        }}>
+        <Box
+            className="pos-search-bar"
+            sx={{
+                p: 2,
+                borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
+                bgcolor: 'rgba(255, 255, 255, 0.9)',
+                display: 'flex',
+                gap: 2,
+                alignItems: 'center'
+            }}
+        >
             <Autocomplete
                 id="pos-search"
                 sx={{ flex: 1 }}
@@ -216,10 +219,24 @@ const POSSearchBar = React.forwardRef(({ products, searchQuery, onSearchInputCha
                         borderRadius: 2,
                         border: '2px solid',
                         whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
                         '&:hover': { border: '2px solid', bgcolor: '#fff7ed' }
                     }}
                 >
                     + LOOSE SALE
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontWeight: 'bold',
+                            fontSize: '0.75rem',
+                            opacity: 0.6,
+                            textTransform: 'none'
+                        }}
+                    >
+                        [F8]
+                    </Typography>
                 </Button>
             )}
         </Box>

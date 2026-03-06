@@ -67,10 +67,49 @@ const Calculator = ({ open, onClose }) => {
         setExpression((prev) => prev.slice(0, -1));
     };
 
+    const handlePercentage = () => {
+        if (!expression) return;
+
+        // Find the last operator and the number before it
+        const parts = expression.split(/([+\-*/])/);
+        if (parts.length === 0) return;
+
+        const lastNumberStr = parts[parts.length - 1];
+        if (!lastNumberStr || isNaN(lastNumberStr)) return;
+
+        const lastNumber = parseFloat(lastNumberStr);
+
+        if (parts.length >= 3) {
+            // Case like "450 - 10" or "100 + 20 + 10"
+            const operator = parts[parts.length - 2];
+            const previousExpression = parts.slice(0, -2).join('');
+
+            try {
+                // eslint-disable-next-line no-new-func
+                const previousValue = new Function('return (' + previousExpression + ')')();
+                const percentageAmount = (previousValue * lastNumber) / 100;
+
+                // For + and -, we want to add/subtract the percentage of the previous value
+                if (operator === '+' || operator === '-') {
+                    setExpression(previousExpression + operator + percentageAmount);
+                } else {
+                    // For * or /, just treat it as (lastNumber / 100)
+                    setExpression(previousExpression + operator + (lastNumber / 100));
+                }
+            } catch (e) {
+                // Fallback: just divide last number by 100
+                setExpression(parts.slice(0, -1).join('') + (lastNumber / 100));
+            }
+        } else {
+            // Only one number, e.g., "50"
+            setExpression((lastNumber / 100).toString());
+        }
+    };
+
     const buttons = [
         { label: 'C', onClick: handleClear, color: 'error.main', bgColor: 'error.light' },
         { label: <BackspaceOutlinedIcon fontSize="small" />, onClick: handleDelete, color: 'warning.main', bgColor: 'warning.light' },
-        { label: '%', onClick: () => handleInput('/100*'), color: 'info.main', bgColor: 'info.light' },
+        { label: '%', onClick: handlePercentage, color: 'info.main', bgColor: 'info.light' },
         { label: '÷', onClick: () => handleInput('/'), color: 'info.main', bgColor: 'info.light' },
 
         { label: '7', onClick: () => handleInput('7') },
@@ -111,10 +150,13 @@ const Calculator = ({ open, onClose }) => {
             onKeyDown={(e) => {
                 const keyMap = {
                     'Enter': calculateResult,
+                    '=': calculateResult,
                     'Escape': onClose,
                     'Backspace': handleDelete,
                     'Delete': handleClear,
-                    'Clear': handleClear,
+                    'Delete': handleClear,
+                    'c': handleClear,
+                    'C': handleClear,
                 };
 
                 if (keyMap[e.key]) {
@@ -123,8 +165,14 @@ const Calculator = ({ open, onClose }) => {
                 } else if (/[0-9+\-*/.%]/.test(e.key)) {
                     e.preventDefault();
                     let val = e.key;
-                    if (e.key === 'x') val = '*';
-                    handleInput(val);
+                    if (val === '%') {
+                        handlePercentage();
+                    } else {
+                        handleInput(val);
+                    }
+                } else if (e.key.toLowerCase() === 'x') {
+                    e.preventDefault();
+                    handleInput('*');
                 }
             }}
         >

@@ -39,6 +39,18 @@ const getMonthlySales = async (req, res) => {
     }
 };
 
+const getDailySales = async (req, res) => {
+    const { year, month } = req.query;
+    try {
+        const parsedYear = year ? parseInt(year) : new Date().getFullYear();
+        const parsedMonth = month !== undefined ? parseInt(month) : new Date().getMonth();
+        const stats = await reportService.getDailySales({ year: parsedYear, month: parsedMonth });
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 const getTopSellingProducts = async (req, res) => {
     try {
         const stats = await reportService.getTopSellingProducts();
@@ -53,5 +65,6 @@ module.exports = {
     getExpiryReport,
     getLowStockReport,
     getMonthlySales,
+    getDailySales,
     getTopSellingProducts
 };

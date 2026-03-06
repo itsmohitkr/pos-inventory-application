@@ -17,7 +17,8 @@ import {
     TableRow,
     TableContainer,
     Button,
-    IconButton
+    IconButton,
+    CircularProgress
 } from '@mui/material';
 import {
     CalendarToday as CalendarIcon,
@@ -33,9 +34,14 @@ const FULL_MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JU
 const Dashboard = () => {
     const [report, setReport] = useState(null);
     const [monthlyData, setMonthlyData] = useState([]);
+    const [dailyData, setDailyData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [tabValue, setTabValue] = useState(0);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedDailyYear, setSelectedDailyYear] = useState(new Date().getFullYear());
+    const [selectedDailyMonth, setSelectedDailyMonth] = useState(new Date().getMonth()); // 0-11
+    const [isSyncingMonthly, setIsSyncingMonthly] = useState(false);
+    const [isSyncingDaily, setIsSyncingDaily] = useState(false);
     const [hourlyMetric, setHourlyMetric] = useState('amount'); // 'amount' or 'quantity'
 
     const localToday = new Date().toLocaleDateString('en-CA');
@@ -130,11 +136,32 @@ const Dashboard = () => {
     };
 
     const fetchMonthlyData = async (year) => {
+        setIsSyncingMonthly(true);
         try {
-            const res = await api.get('/api/reports/monthly', { params: { year: year || selectedYear } });
+            const [res] = await Promise.all([
+                api.get('/api/reports/monthly', { params: { year: year || selectedYear } }),
+                new Promise(resolve => setTimeout(resolve, 500)) // ensure spinner is visible 
+            ]);
             setMonthlyData(res.data || []);
         } catch (error) {
             console.error('Failed to load monthly sales data:', error);
+        } finally {
+            setIsSyncingMonthly(false);
+        }
+    };
+
+    const fetchDailyData = async (year, month) => {
+        setIsSyncingDaily(true);
+        try {
+            const [res] = await Promise.all([
+                api.get('/api/reports/daily', { params: { year, month } }),
+                new Promise(resolve => setTimeout(resolve, 500)) // ensure spinner is visible 
+            ]);
+            setDailyData(res.data || []);
+        } catch (error) {
+            console.error('Failed to load daily sales data:', error);
+        } finally {
+            setIsSyncingDaily(false);
         }
     };
 
@@ -142,6 +169,7 @@ const Dashboard = () => {
         const range = getRange("day");
         fetchPeriodicData(range.start, range.end);
         fetchMonthlyData(selectedYear);
+        fetchDailyData(selectedDailyYear, selectedDailyMonth);
     }, []);
 
     const handlePrevYear = () => {
@@ -154,6 +182,30 @@ const Dashboard = () => {
         const nextYear = selectedYear + 1;
         setSelectedYear(nextYear);
         fetchMonthlyData(nextYear);
+    };
+
+    const handlePrevDailyMonth = () => {
+        let newMonth = selectedDailyMonth - 1;
+        let newYear = selectedDailyYear;
+        if (newMonth < 0) {
+            newMonth = 11;
+            newYear -= 1;
+        }
+        setSelectedDailyMonth(newMonth);
+        setSelectedDailyYear(newYear);
+        fetchDailyData(newYear, newMonth);
+    };
+
+    const handleNextDailyMonth = () => {
+        let newMonth = selectedDailyMonth + 1;
+        let newYear = selectedDailyYear;
+        if (newMonth > 11) {
+            newMonth = 0;
+            newYear += 1;
+        }
+        setSelectedDailyMonth(newMonth);
+        setSelectedDailyYear(newYear);
+        fetchDailyData(newYear, newMonth);
     };
 
     const handleTabChange = (event) => {
@@ -305,6 +357,17 @@ const Dashboard = () => {
         };
     }, [monthlyData]);
 
+    const dailyMetrics = useMemo(() => {
+        if (!dailyData || dailyData.length === 0) return { maxDailyVal: 0 };
+        let maxDailyVal = 0;
+        dailyData.forEach(d => {
+            if (d.totalSales > maxDailyVal) {
+                maxDailyVal = d.totalSales;
+            }
+        });
+        return { maxDailyVal };
+    }, [dailyData]);
+
     const categoryMix = useMemo(() => {
         const entries = periodicMetrics.topCategories || [];
         const total = entries.reduce((sum, [, val]) => sum + val, 0) || 1;
@@ -357,21 +420,28 @@ const Dashboard = () => {
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Box>
                                     <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600, letterSpacing: '-0.5px' }}>
-                                        Monthly Sales - {selectedYear}
+                                        Monthly Sales
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: '#9ca3af' }}>Sales data grouped by month</Typography>
                                 </Box>
-                                <Box sx={{ display: 'flex', ml: 1 }}>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1, color: '#6b7280', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                     <IconButton size="small" onClick={handlePrevYear} sx={{ color: '#64748b' }}>
                                         <ChevronLeftIcon fontSize="small" />
                                     </IconButton>
+                                    <Typography variant="subtitle2" sx={{ color: '#0b1d39', fontWeight: 600, minWidth: '40px', textAlign: 'center' }}>
+                                        {selectedYear}
+                                    </Typography>
                                     <IconButton size="small" onClick={handleNextYear} sx={{ color: '#64748b' }}>
                                         <ChevronRightIcon fontSize="small" />
                                     </IconButton>
                                 </Box>
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 1, color: '#6b7280' }}>
-                                <SyncIcon fontSize="small" sx={{ cursor: 'pointer' }} onClick={() => fetchMonthlyData(selectedYear)} />
+                                {isSyncingMonthly ? (
+                                    <CircularProgress size={18} sx={{ ml: 1, color: '#6b7280' }} />
+                                ) : (
+                                    <SyncIcon fontSize="small" sx={{ cursor: 'pointer', ml: 1 }} onClick={() => fetchMonthlyData(selectedYear)} />
+                                )}
                             </Box>
                         </Box>
 
@@ -437,6 +507,90 @@ const Dashboard = () => {
                             <Typography variant="subtitle2" sx={{ color: '#e2e8f0', fontWeight: 600 }}>{yearMetrics.topMonthName}</Typography>
                             <Typography variant="h6" sx={{ color: '#38bdf8', fontWeight: 600 }}>{yearMetrics.topMonthVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
                         </Box>
+                    </Paper>
+                </Box>
+
+                {/* SECOND ROW: Daily Sales */}
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
+                    {/* Daily Sales Graph */}
+                    <Paper elevation={0} sx={{ flex: 1, p: 2, borderRadius: 2, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box>
+                                    <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600, letterSpacing: '-0.5px' }}>
+                                        Daily Sales
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#9ca3af' }}>Sales data grouped by day</Typography>
+                                </Box>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1, color: '#6b7280', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <IconButton size="small" onClick={handlePrevDailyMonth} sx={{ color: '#64748b' }}>
+                                        <ChevronLeftIcon fontSize="small" />
+                                    </IconButton>
+                                    <Typography variant="subtitle2" sx={{ color: '#0b1d39', fontWeight: 600, minWidth: '100px', textAlign: 'center' }}>
+                                        {FULL_MONTHS[selectedDailyMonth]} {selectedDailyYear}
+                                    </Typography>
+                                    <IconButton size="small" onClick={handleNextDailyMonth} sx={{ color: '#64748b' }}>
+                                        <ChevronRightIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                                {isSyncingDaily ? (
+                                    <CircularProgress size={18} sx={{ ml: 1, color: '#6b7280' }} />
+                                ) : (
+                                    <SyncIcon fontSize="small" sx={{ cursor: 'pointer', ml: 1 }} onClick={() => fetchDailyData(selectedDailyYear, selectedDailyMonth)} />
+                                )}
+                            </Box>
+                        </Box>
+
+                        <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'flex-end', height: 160, position: 'relative' }}>
+                            {/* Y-Axis scale lines */}
+                            <Box sx={{ position: 'absolute', top: 0, bottom: 20, left: 0, right: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 0 }}>
+                                {[1, 0.8, 0.6, 0.4, 0.2, 0].map(tier => (
+                                    <Box key={`daily-tier-${tier}`} sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                        <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#9ca3af', width: 30 }}>
+                                            {formatShortNum(dailyMetrics.maxDailyVal * tier)}
+                                        </Typography>
+                                        <Box sx={{ flex: 1, height: '1px', bgcolor: tier === 0 ? '#d1d5db' : '#f3f4f6' }} />
+                                    </Box>
+                                ))}
+                            </Box>
+
+                            {/* Bars */}
+                            <Box sx={{ display: 'flex', ml: '30px', flex: 1, zIndex: 1, height: '100%', alignItems: 'flex-end', gap: 0.5 }}>
+                                {dailyData.map((data, idx) => {
+                                    const hPct = dailyMetrics.maxDailyVal > 0 ? (data.totalSales / dailyMetrics.maxDailyVal) * 100 : 0;
+                                    return (
+                                        <Box key={`daily-bar-${idx}`} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                                            {data.totalSales > 0 && (
+                                                <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#fff', mb: 0.5, zIndex: 2, mt: '-15px', whiteSpace: 'nowrap', transform: 'rotate(-45deg)', transformOrigin: 'left bottom' }}>
+                                                    {formatShortNum(data.totalSales)}
+                                                </Typography>
+                                            )}
+                                            <Box
+                                                sx={{
+                                                    width: '100%',
+                                                    height: `${hPct}%`,
+                                                    bgcolor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
+                                                    borderRight: '1px solid #fff',
+                                                    borderTopLeftRadius: 2,
+                                                    borderTopRightRadius: 2,
+                                                    transition: 'height 0.3s ease'
+                                                }}
+                                            />
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', ml: '30px', borderTop: '1px solid #d1d5db', mt: 0.5 }}>
+                            {dailyData.map((data, idx) => (
+                                <Typography key={`daily-label-${idx}`} variant="caption" sx={{ flex: 1, textAlign: 'center', fontSize: '0.55rem', color: '#4b5563', mt: 0.5 }}>
+                                    {data.day}
+                                </Typography>
+                            ))}
+                        </Box>
+                        <Typography variant="caption" sx={{ textAlign: 'center', color: '#6b7280', fontSize: '0.6rem', mt: 0.5 }}>Day of Month</Typography>
                     </Paper>
                 </Box>
 

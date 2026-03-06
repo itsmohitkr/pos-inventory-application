@@ -22,11 +22,13 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
     const [price, setPrice] = useState('0');
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isNameFocused, setIsNameFocused] = useState(false);
 
     useEffect(() => {
         if (open) {
             setPrice('0');
             setName('');
+            setIsNameFocused(false);
         }
     }, [open]);
 
@@ -69,170 +71,186 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
         }
     };
 
-    // Standard Calculator Orientation
-    const numpadValues = [
-        7, 8, 9,
-        4, 5, 6,
-        1, 2, 3,
-        'C', 0, 'DEL'
+    // Keyboard support
+    useEffect(() => {
+        if (!open) return;
+
+        const handleKeyDown = (e) => {
+            // If typing in Name field, only handle Enter and Escape
+            if (isNameFocused) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    onClose();
+                }
+                return;
+            }
+
+            // Global/Price field shortcuts
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                handleNumberClick(e.key);
+            } else if (e.key === '.') {
+                e.preventDefault();
+                if (!price.includes('.')) {
+                    setPrice(prev => prev + '.');
+                }
+            } else if (e.key === 'Backspace') {
+                e.preventDefault();
+                handleBackspace();
+            } else if (e.key === 'Delete' || e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                handleClear();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [open, price, name, isNameFocused, onClose]);
+
+    const numpadRows = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+        ['Clear', 0, 'DEL']
     ];
 
     return (
         <Dialog
             open={open}
             onClose={onClose}
-            maxWidth="sm"
+            maxWidth="xs"
             fullWidth
             PaperProps={{
-                sx: { borderRadius: 2 }
+                sx: { borderRadius: 3, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }
             }}
         >
             <DialogTitle sx={{
                 m: 0,
-                p: 1.5,
+                p: 2,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                bgcolor: '#f8fafc',
-                borderBottom: '1px solid #e2e8f0'
+                bgcolor: 'primary.dark',
+                color: 'primary.contrastText'
             }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Loose Sale Entry</Typography>
-                <IconButton size="small" onClick={onClose}><CloseIcon fontSize="small" /></IconButton>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Loose Sale Entry</Typography>
+                <IconButton size="small" onClick={onClose} sx={{ color: 'inherit' }}>
+                    <CloseIcon />
+                </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ p: 4 }}>
-                <Grid
-                    container
-                    spacing={6} // Increased spacing between columns for breathing room
-                    justifyContent="center"
-                    alignItems="flex-start" // Align to top but with margin
-                    sx={{ mt: 2 }} // Significant top margin below header
-                >
-                    {/* Left Column: Input Details - Centered & Wide */}
-                    <Grid item xs={12} md={5.5}>
-                        <Box sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 3,
-                            height: '100%',
-                            width: '100%'
-                        }}>
-                            {/* Amount Box - Consistent Width */}
-                            <Box sx={{
-                                p: 2,
-                                border: '2px solid #e2e8f0',
+            <DialogContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 3 }}>
+                    {/* Row 1: Amount */}
+                    <TextField
+                        fullWidth
+                        value={price}
+                        InputProps={{
+                            readOnly: true,
+                            startAdornment: <Typography sx={{ mr: 1, fontWeight: '900', fontSize: '1.8rem', color: 'primary.main' }}>₹</Typography>
+                        }}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
                                 borderRadius: 2,
-                                bgcolor: '#f1f5f9',
-                                textAlign: 'right',
-                                width: '100%'
-                            }}>
-                                <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', fontSize: '0.8rem', letterSpacing: 1.5 }}>AMOUNT</Typography>
-                                <Typography variant="h3" sx={{ fontWeight: 900, color: '#1e293b' }}>
-                                    ₹{price}
-                                </Typography>
-                            </Box>
+                                bgcolor: 'rgba(0,0,0,0.06)',
+                                fontWeight: '900',
+                                fontSize: '2.5rem',
+                                color: 'primary.main',
+                                '& input': { caretColor: 'transparent', textAlign: 'center', py: 2 }
+                            }
+                        }}
+                    />
 
-                            {/* Item Name Input - Consistent Width */}
-                            <Box sx={{ width: '100%' }}>
-                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: '#475569' }}>
-                                    ITEM NAME / NOTES
-                                </Typography>
-                                <TextField
-                                    fullWidth
-                                    placeholder="Enter item details..."
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    multiline
-                                    rows={4}
-                                    variant="outlined"
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                                />
-                            </Box>
+                    {/* Row 2: Item Name */}
+                    <TextField
+                        placeholder="Item Name / Notes (Optional)"
+                        fullWidth
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onFocus={() => setIsNameFocused(true)}
+                        onBlur={() => setIsNameFocused(false)}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: 2,
+                                bgcolor: 'rgba(0,0,0,0.04)',
+                                '& input': { caretColor: 'transparent', textAlign: 'center' }
+                            }
+                        }}
+                        autoFocus
+                    />
 
-                            {/* Action Buttons - Consistent Width */}
-                            <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                <Button
-                                    fullWidth
-                                    variant="contained"
-                                    color="success"
-                                    size="large"
-                                    startIcon={<SaveIcon />}
-                                    disabled={loading || parseFloat(price) <= 0}
-                                    onClick={handleSubmit}
-                                    sx={{
-                                        height: 60,
-                                        fontSize: '1.1rem',
-                                        fontWeight: 800,
-                                        borderRadius: 2,
-                                        textTransform: 'none',
-                                        boxShadow: '0 8px 16px rgba(34, 197, 94, 0.15)'
-                                    }}
-                                >
-                                    {loading ? 'Processing...' : 'Complete Sale'}
-                                </Button>
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    color="inherit"
-                                    onClick={onClose}
-                                    sx={{
-                                        height: 48,
-                                        fontSize: '1rem',
-                                        fontWeight: 700,
-                                        borderRadius: 2,
-                                        textTransform: 'none',
-                                        color: '#64748b',
-                                        borderColor: '#e2e8f0',
-                                        '&:hover': {
-                                            bgcolor: '#f8fafc',
-                                            borderColor: '#cbd5e1'
-                                        }
-                                    }}
-                                >
-                                    Cancel
-                                </Button>
-                            </Box>
-                        </Box>
-                    </Grid>
+                    {/* Rows 2-5: Numpad */}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
+                        {numpadRows.flat().map((val, idx) => (
+                            <Button
+                                key={idx}
+                                variant="outlined"
+                                color={val === 'Clear' ? 'error' : 'inherit'}
+                                onClick={() => {
+                                    if (typeof val === 'number') handleNumberClick(val);
+                                    else if (val === 'Clear') handleClear();
+                                    else handleBackspace();
+                                }}
+                                sx={{
+                                    height: 70,
+                                    fontSize: val === 'Clear' ? '1.1rem' : '1.8rem',
+                                    fontWeight: 'bold',
+                                    borderRadius: 2,
+                                    borderColor: 'divider',
+                                    color: val === 'Clear' ? 'error.main' : 'text.primary',
+                                    '&:hover': { bgcolor: 'action.hover', filter: 'brightness(0.95)' }
+                                }}
+                            >
+                                {val === 'DEL' ? <BackspaceIcon /> : val}
+                            </Button>
+                        ))}
+                    </Box>
 
-                    {/* Right Column: Numpad Grid - Centered & Balanced */}
-                    <Grid item xs={12} md={5.5}>
-                        <Box sx={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(3, 1fr)',
-                            gap: 1.5,
-                            width: '100%'
-                        }}>
-                            {numpadValues.map((val) => (
-                                <Button
-                                    key={val}
-                                    variant="outlined"
-                                    onClick={() => {
-                                        if (typeof val === 'number') handleNumberClick(val);
-                                        else if (val === 'C') handleClear();
-                                        else handleBackspace();
-                                    }}
-                                    sx={{
-                                        height: 75,
-                                        fontSize: '1.75rem',
-                                        fontWeight: 900,
-                                        borderRadius: 2,
-                                        border: '1px solid #e2e8f0',
-                                        bgcolor: typeof val === 'number' ? 'white' : val === 'C' ? '#fee2e2' : '#f1f5f9',
-                                        color: typeof val === 'number' ? '#1e293b' : val === 'C' ? '#ef4444' : '#64748b',
-                                        '&:hover': {
-                                            bgcolor: typeof val === 'number' ? '#f8fafc' : val === 'C' ? '#fecaca' : '#e2e8f0',
-                                            borderColor: 'primary.main',
-                                            borderWidth: '1px'
-                                        }
-                                    }}
-                                >
-                                    {val === 'DEL' ? <BackspaceIcon /> : val}
-                                </Button>
-                            ))}
-                        </Box>
-                    </Grid>
-                </Grid>
+                    {/* Row 6: Actions */}
+                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            color="inherit"
+                            onClick={onClose}
+                            sx={{
+                                height: 60,
+                                fontSize: '1.1rem',
+                                fontWeight: 'bold',
+                                borderRadius: 2,
+                                textTransform: 'none'
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            color="success"
+                            onClick={handleSubmit}
+                            disabled={loading || parseFloat(price) <= 0}
+                            sx={{
+                                height: 60,
+                                fontSize: '1.1rem',
+                                fontWeight: 'bold',
+                                borderRadius: 2,
+                                textTransform: 'none',
+                                boxShadow: 3
+                            }}
+                        >
+                            {loading ? 'Processing...' : 'Complete Sale'}
+                        </Button>
+                    </Box>
+                </Box>
             </DialogContent>
         </Dialog>
     );

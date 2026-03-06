@@ -1,8 +1,7 @@
 import React from 'react';
 import {
-    Box, Typography, Grid, Paper, Divider, TextField, InputAdornment, Button, Stack, Card, CardContent
+    Box, Typography, Grid, Paper, Divider, TextField, InputAdornment, Button, Stack, Card, CardContent, Chip
 } from '@mui/material';
-import NumpadDialog from './NumpadDialog';
 import {
     ReceiptLong as ReceiptIcon,
     CheckCircle as CheckCircleIcon,
@@ -48,11 +47,12 @@ const TransactionPanel = ({
     changeCalculatorEnabled,
     paymentMethodsEnabled,
     onPrintLastReceipt,
-    hasLastSale
+    hasLastSale,
+    receivedAmount,
+    setReceivedAmount,
+    showNumpad,
+    setShowNumpad
 }) => {
-    const [receivedAmount, setReceivedAmount] = React.useState(0);
-    const [showNumpad, setShowNumpad] = React.useState(false);
-
     const changeDue = Math.max(0, receivedAmount - totalAmount);
 
     // Reset received amount when total amount changes significantly (new order)
@@ -177,9 +177,12 @@ const TransactionPanel = ({
                             bgcolor: 'rgba(0,0,0,0.01)'
                         }}
                     >
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 800, letterSpacing: '0.05em', mb: 1, display: 'block' }}>
-                            Change Calculator
-                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 800, letterSpacing: '0.05em' }}>
+                                Change Calculator
+                            </Typography>
+                            <Chip label="F9" size="small" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 900, bgcolor: 'primary.light', color: 'primary.contrastText' }} />
+                        </Box>
 
                         <Box sx={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', gap: 1.5 }}>
                             <Box
@@ -236,13 +239,6 @@ const TransactionPanel = ({
                     </Box>
                 )}
 
-                <NumpadDialog
-                    open={showNumpad}
-                    onClose={() => setShowNumpad(false)}
-                    initialValue={receivedAmount}
-                    onConfirm={(val) => setReceivedAmount(val)}
-                    title="Received Amount"
-                />
             </Box>
 
             {/* Actions Footer - Fixed at bottom */}
@@ -262,6 +258,7 @@ const TransactionPanel = ({
                                     className="pos-action-btn"
                                     onClick={() => onSelectPaymentMethod(method)}
                                     size="large"
+                                    disabled={cart.length === 0}
                                     sx={{
                                         textTransform: 'none',
                                         fontWeight: 700,
@@ -283,6 +280,10 @@ const TransactionPanel = ({
                                             bgcolor: selectedPaymentMethod?.id === method.id ? 'primary.main' : 'primary.light',
                                             color: 'primary.contrastText',
                                             borderColor: 'primary.main'
+                                        },
+                                        '&.Mui-disabled': {
+                                            bgcolor: 'rgba(0,0,0,0.04)',
+                                            borderColor: 'rgba(0,0,0,0.08)'
                                         }
                                     }}
                                     startIcon={method.icon}
@@ -321,13 +322,17 @@ const TransactionPanel = ({
                             bgcolor: 'success.light',
                             color: 'success.contrastText',
                             transition: 'background 0.2s, color 0.2s',
+                            position: 'relative',
                             '&:hover': {
                                 bgcolor: 'success.main',
                                 color: 'success.contrastText'
                             }
                         }}
                     >
-                        Pay
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <Typography variant="button" sx={{ fontWeight: 900 }}>Pay</Typography>
+                            <Typography variant="caption" sx={{ fontSize: '0.65rem', opacity: 0.8 }}>[F10]</Typography>
+                        </Box>
                     </Button>
                     <Button
                         fullWidth
@@ -347,13 +352,17 @@ const TransactionPanel = ({
                             bgcolor: 'info.light',
                             color: 'info.contrastText',
                             transition: 'background 0.2s, color 0.2s',
+                            position: 'relative',
                             '&:hover': {
                                 bgcolor: 'info.main',
                                 color: 'info.contrastText'
                             }
                         }}
                     >
-                        Pay & Print
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <Typography variant="button" sx={{ fontWeight: 900 }}>Pay & Print</Typography>
+                            <Typography variant="caption" sx={{ fontSize: '0.65rem', opacity: 0.8 }}>[F12]</Typography>
+                        </Box>
                     </Button>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>

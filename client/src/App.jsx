@@ -664,6 +664,7 @@ function App() {
         localStorage.setItem('posCurrentUser', JSON.stringify(elevatedUser));
         setShowAdminLoginDialog(false);
         setAdminPassword('');
+        window.dispatchEvent(new Event('pos-refocus'));
       }
     } catch (error) {
       setAdminLoginError(error.response?.data?.error || 'Invalid admin password');

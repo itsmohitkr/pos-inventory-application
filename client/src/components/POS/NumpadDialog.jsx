@@ -48,82 +48,133 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
         onClose();
     };
 
+    // Keyboard support
+    useEffect(() => {
+        if (!open) return;
+
+        const handleGlobalKeyDown = (e) => {
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                handleNumberClick(e.key);
+            } else if (e.key === '.') {
+                e.preventDefault();
+                handleDecimalClick();
+            } else if (e.key === 'Backspace') {
+                e.preventDefault();
+                handleBackspace();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                handleConfirm();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                onClose();
+            } else if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                handleClear();
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [open, value, onConfirm, onClose]);
+
     const buttons = [
-        '1', '2', '3',
-        '4', '5', '6',
-        '7', '8', '9',
-        '.', '0', 'clear'
+        { label: '1', action: () => handleNumberClick('1') },
+        { label: '2', action: () => handleNumberClick('2') },
+        { label: '3', action: () => handleNumberClick('3') },
+        { label: '4', action: () => handleNumberClick('4') },
+        { label: '5', action: () => handleNumberClick('5') },
+        { label: '6', action: () => handleNumberClick('6') },
+        { label: '7', action: () => handleNumberClick('7') },
+        { label: '8', action: () => handleNumberClick('8') },
+        { label: '9', action: () => handleNumberClick('9') },
+        { label: '.', action: handleDecimalClick },
+        { label: '0', action: () => handleNumberClick('0') },
+        { label: 'Clear', action: handleClear, color: 'error' },
     ];
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+                sx: {
+                    borderRadius: 3,
+                    boxShadow: '0 24px 48px rgba(0,0,0,0.2)'
+                }
+            }}
+        >
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1, bgcolor: 'primary.dark', color: 'primary.contrastText' }}>
                 <Typography variant="h6" fontWeight="bold">{title}</Typography>
-                <IconButton onClick={onClose} size="small">
+                <IconButton onClick={onClose} size="small" sx={{ color: 'inherit' }}>
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
-            <DialogContent>
+            <DialogContent sx={{ mt: 2 }}>
                 <Box sx={{
-                    bgcolor: 'action.hover',
-                    p: 2,
+                    bgcolor: '#1e293b',
+                    color: '#f8fafc',
+                    p: 3,
                     borderRadius: 2,
                     mb: 3,
                     textAlign: 'right',
-                    border: '2px solid',
-                    borderColor: 'primary.main'
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
                 }}>
-                    <Typography variant="h4" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
-                        ₹{value}
+                    <Typography variant="h3" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
+                        {value}
                     </Typography>
                 </Box>
-                <Grid container spacing={1.5}>
-                    {buttons.map((btn) => (
-                        <Grid item xs={4} key={btn}>
-                            {btn === 'clear' ? (
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    color="error"
-                                    onClick={handleClear}
-                                    sx={{ height: 60, fontSize: '1.2rem', fontWeight: 'bold' }}
-                                >
-                                    C
-                                </Button>
-                            ) : (
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    onClick={() => btn === '.' ? handleDecimalClick() : handleNumberClick(btn)}
-                                    sx={{ height: 60, fontSize: '1.5rem', fontWeight: 'bold' }}
-                                >
-                                    {btn}
-                                </Button>
-                            )}
-                        </Grid>
-                    ))}
-                    <Grid item xs={8}>
+                <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 1.5,
+                    mb: 1.5
+                }}>
+                    {buttons.map((btn, index) => (
                         <Button
-                            fullWidth
-                            variant="contained"
-                            color="primary"
-                            onClick={handleConfirm}
-                            sx={{ height: 60, fontSize: '1.2rem', fontWeight: 'bold' }}
-                        >
-                            Confirm
-                        </Button>
-                    </Grid>
-                    <Grid item xs={4}>
-                        <Button
+                            key={index}
                             fullWidth
                             variant="outlined"
-                            onClick={handleBackspace}
-                            sx={{ height: 60 }}
+                            color={btn.color || "inherit"}
+                            onClick={btn.action}
+                            sx={{
+                                height: 75,
+                                fontSize: typeof btn.label === 'string' && btn.label.length > 3 ? '1.1rem' : '1.8rem',
+                                fontWeight: 'bold',
+                                borderRadius: 2,
+                                color: btn.color ? `${btn.color}.main` : 'text.primary',
+                                borderColor: 'divider',
+                                '&:hover': {
+                                    bgcolor: 'action.hover',
+                                    filter: 'brightness(0.95)',
+                                    borderColor: btn.color ? `${btn.color}.main` : 'primary.main'
+                                }
+                            }}
                         >
-                            <BackspaceIcon />
+                            {btn.label}
                         </Button>
-                    </Grid>
-                </Grid>
+                    ))}
+                </Box>
+                <Button
+                    fullWidth
+                    variant="contained"
+                    color="primary"
+                    onClick={handleConfirm}
+                    sx={{
+                        height: 75,
+                        fontSize: '1.6rem',
+                        fontWeight: 'bold',
+                        borderRadius: 2,
+                        boxShadow: 4,
+                        bgcolor: 'primary.main',
+                        '&:hover': { bgcolor: 'primary.dark' }
+                    }}
+                >
+                    Enter
+                </Button>
             </DialogContent>
         </Dialog>
     );

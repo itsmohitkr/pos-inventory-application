@@ -247,6 +247,74 @@ const getMonthlySales = async ({ year }) => {
     return monthlyData;
 };
 
+const getDailySales = async ({ year, month }) => {
+    // Note: month is 0-indexed (0 = Jan, 11 = Dec)
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999); // Last day of the requested month
+
+    // Get the exact number of days in this month
+    const daysInMonth = endDate.getDate();
+
+    const sales = await prisma.sale.findMany({
+        where: {
+            createdAt: {
+                gte: startDate,
+                lte: endDate
+            }
+        },
+        include: {
+            items: true
+        }
+    });
+
+    const looseSales = await prisma.looseSale.findMany({
+        where: {
+            createdAt: {
+                gte: startDate,
+                lte: endDate
+            }
+        }
+    });
+
+    // Initialize array for each day (1 to daysInMonth)
+    // Array index 0 represents day 1. Length is `daysInMonth`.
+    const dailyData = Array.from({ length: daysInMonth }, (_, i) => ({
+        day: i + 1,
+        totalSales: 0,
+        totalProfit: 0,
+        orderCount: 0
+    }));
+
+    sales.forEach(sale => {
+        // Date.getDate() returns 1-31. We subtract 1 to get the 0-based array index.
+        const dayIndex = new Date(sale.createdAt).getDate() - 1;
+        let saleProfit = 0;
+        let saleNetTotal = 0;
+
+        sale.items.forEach(item => {
+            const netQuantity = item.quantity - item.returnedQuantity;
+            saleProfit += (item.sellingPrice - item.costPrice) * netQuantity;
+            saleNetTotal += item.sellingPrice * netQuantity;
+        });
+
+        const extraDiscount = sale.extraDiscount || 0;
+        const finalSaleNetTotal = saleNetTotal - sale.discount - extraDiscount;
+        const finalSaleProfit = saleProfit - sale.discount - extraDiscount;
+
+        dailyData[dayIndex].totalSales += finalSaleNetTotal;
+        dailyData[dayIndex].totalProfit += finalSaleProfit;
+        dailyData[dayIndex].orderCount += 1;
+    });
+
+    looseSales.forEach(ls => {
+        const dayIndex = new Date(ls.createdAt).getDate() - 1;
+        dailyData[dayIndex].totalSales += ls.price;
+        // profit not calculated for loose sales
+    });
+
+    return dailyData;
+};
+
 const getTopSellingProducts = async ({ limit = 100 } = {}) => {
     const saleItems = await prisma.saleItem.groupBy({
         by: ['batchId'],
@@ -277,5 +345,6 @@ module.exports = {
     getExpiryReport,
     getLowStockReport,
     getMonthlySales,
+    getDailySales,
     getTopSellingProducts
 };

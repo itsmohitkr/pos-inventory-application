@@ -34,6 +34,7 @@ import LooseSaleDialog from './LooseSaleDialog';
 import POSTabs from './POSTabs';
 import Receipt from './Receipt';
 import Calculator from './Calculator';
+import NumpadDialog from './NumpadDialog';
 import CustomDialog from '../common/CustomDialog';
 import SuccessNotification from '../common/SuccessNotification';
 import useCustomDialog from '../../hooks/useCustomDialog';
@@ -145,7 +146,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const [showReceipt, setShowReceipt] = useState(false);
     const [showPrintDialog, setShowPrintDialog] = useState(false);
     const [receiptSettings, setReceiptSettings] = useState(() => propReceiptSettings || getStoredReceiptSettings());
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState({ label: 'Cash', color: '#16a34a' });
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
     const [paymentSettings, setPaymentSettings] = useState(() => getStoredPaymentSettings());
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled);
@@ -166,6 +167,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         enabled: false,
         config: []
     });
+    const [receivedAmount, setReceivedAmount] = useState(0);
+    const [showNumpad, setShowNumpad] = useState(false);
     const [showPromoGifts, setShowPromoGifts] = useState(false);
     const [shopMetadata, setShopMetadata] = useState(() => propShopMetadata || {
         shopMobile: '',
@@ -186,42 +189,47 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     }, [propShopMetadata]);
 
     // Reliable focus management for POS Search Bar
+    const refocus = useCallback(() => {
+        const timer = setTimeout(() => {
+            const activeElement = document.activeElement;
+            const isInput = activeElement.tagName === 'INPUT' ||
+                activeElement.tagName === 'TEXTAREA' ||
+                activeElement.tagName === 'SELECT' ||
+                activeElement.isContentEditable;
+
+            // Only refocus if focus isn't already on an input
+            if (!isInput && searchBarRef.current) {
+                searchBarRef.current.focus();
+            }
+        }, 300); // Settling time for transitions/mount
+        return () => clearTimeout(timer);
+    }, []);
+
     useEffect(() => {
-        const refocusSearchBar = () => {
-            const timer = setTimeout(() => {
-                const activeElement = document.activeElement;
-                const isInput = activeElement.tagName === 'INPUT' ||
-                    activeElement.tagName === 'TEXTAREA' ||
-                    activeElement.tagName === 'SELECT' ||
-                    activeElement.isContentEditable;
-
-                // Only refocus if focus isn't already on an input
-                if (!isInput && searchBarRef.current) {
-                    searchBarRef.current.focus();
-                }
-            }, 300); // Settling time for transitions/mount
-            return timer;
-        };
-
         // 1. Refocus on mount
-        const mountTimer = refocusSearchBar();
+        const cleanup = refocus();
 
         // 2. Refocus when window/app gains focus (fixes Windows Alt-Tab issue)
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                refocusSearchBar();
+                refocus();
             }
         };
 
+        const handleFocus = () => refocus();
+        const handlePosRefocus = () => refocus();
+
         window.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('focus', refocusSearchBar);
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('pos-refocus', handlePosRefocus);
 
         return () => {
-            clearTimeout(mountTimer);
+            cleanup();
             window.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', refocusSearchBar);
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('pos-refocus', handlePosRefocus);
         };
-    }, []);
+    }, [refocus, activeTabId]);
 
     const refreshSettings = useCallback(async (retries = 3) => {
         try {
@@ -296,6 +304,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
     }, [refreshSettings]);
 
+
     // Resizable Layout State
     const [transactionPanelWidth, setTransactionPanelWidth] = useState(() => {
         return Number(localStorage.getItem('posTransactionPanelWidth')) || 450;
@@ -351,6 +360,18 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const cart = activeTab.cart || [];
     const discount = activeTab.discount || 0;
     const [productSales, setProductSales] = useState({});
+
+    // Auto-select Cash when cart gets items, clear when empty
+    useEffect(() => {
+        setSelectedPaymentMethod(prev => {
+            if (cart.length > 0 && !prev) {
+                return { id: 'cash', label: 'Cash', color: '#16a34a' };
+            } else if (cart.length === 0 && prev) {
+                return null;
+            }
+            return prev;
+        });
+    }, [cart.length]);
 
     // ===== All Functions Declared BEFORE useEffect =====
 
@@ -426,12 +447,14 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         const newTab = { id: newId, name: `Order ${newId}`, cart: [], discount: 0 };
         setTabs([...tabs, newTab]);
         setActiveTabId(newId);
+        refocus();
     };
 
     const handleCloseTab = (tabId) => {
         if (tabs.length === 1) {
             // If only one tab, just clear it
             updateTab(tabId, { cart: [], discount: 0 });
+            refocus();
             return;
         }
 
@@ -440,6 +463,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         if (activeTabId === tabId) {
             setActiveTabId(newTabs[newTabs.length - 1].id);
         }
+        refocus();
     };
 
     // Cart Actions (Wrapper to update active tab)
@@ -503,12 +527,12 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         // Clear search and close dialog immediately
         setSearchQuery('');
         setScannedProduct(null);
-        searchBarRef.current?.focus();
+        refocus();
     };
 
     const removeFromCart = (batchId) => {
         setCart(prev => prev.filter(item => item.batch_id !== batchId));
-        searchBarRef.current?.focus();
+        refocus();
     };
 
     const updateQuantity = (batchId, change) => {
@@ -591,7 +615,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
         if (confirmed) {
             updateTab(activeTabId, { cart: [], discount: 0 });
         }
-        searchBarRef.current?.focus();
+        refocus();
     };
 
     const handleSelectPaymentMethod = (method) => {
@@ -607,10 +631,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     };
 
     const handlePay = async () => {
-        if (!selectedPaymentMethod) {
-            showError('Please select a payment method');
-            return;
-        }
+        const methodToUse = selectedPaymentMethod || { id: 'cash', label: 'Cash' };
 
         try {
             const items = cart.map(item => ({
@@ -619,12 +640,13 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 sellingPrice: item.price,
                 isFree: item.isFree
             }));
+            const { icon, ...methodWithoutIcon } = methodToUse;
             const res = await api.post('/api/sale', {
                 items,
                 discount: 0,
                 extraDiscount: discount,
-                paymentMethod: selectedPaymentMethod.label || 'Cash',
-                paymentDetails: JSON.stringify({ method: selectedPaymentMethod })
+                paymentMethod: methodToUse.label,
+                paymentDetails: JSON.stringify({ method: methodWithoutIcon })
             });
             const detailedRes = await api.get(`/api/sale/${res.data.saleId}`);
             setLastSale(detailedRes.data);
@@ -635,7 +657,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
             // Show success notification
             showNotification('Sale Completed Successfully!');
-            searchBarRef.current?.focus();
+            refocus();
         } catch (error) {
             console.error(error);
             const msg = error.response?.data?.error || error.message || 'Payment failed';
@@ -644,10 +666,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     };
 
     const handlePayAndPrint = async () => {
-        if (!selectedPaymentMethod) {
-            showError('Please select a payment method');
-            return;
-        }
+        const methodToUse = selectedPaymentMethod || { id: 'cash', label: 'Cash' };
 
         try {
             const items = cart.map(item => ({
@@ -656,12 +675,13 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 sellingPrice: item.price,
                 isFree: item.isFree
             }));
+            const { icon, ...methodWithoutIcon } = methodToUse;
             const res = await api.post('/api/sale', {
                 items,
                 discount: 0,
                 extraDiscount: discount,
-                paymentMethod: selectedPaymentMethod.label || 'Cash',
-                paymentDetails: JSON.stringify({ method: selectedPaymentMethod })
+                paymentMethod: methodToUse.label,
+                paymentDetails: JSON.stringify({ method: methodWithoutIcon })
             });
 
             flushSync(() => {
@@ -687,13 +707,64 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
             // Defer non-critical product refresh until after print handoff
             fetchProducts();
-            searchBarRef.current?.focus();
+            refocus();
         } catch (error) {
             console.error(error);
             const msg = error.response?.data?.error || error.message || 'Payment failed';
             showError(`Payment failed: ${msg}`);
         }
     };
+
+    // Shortcut Keys (F9, F10, F12)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Don't trigger shortcuts if user is typing in an input/textarea
+            const isTyping = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
+
+            // F8: Loose Sale
+            if (e.key === 'F8') {
+                e.preventDefault();
+                setShowLooseSaleDialog(true);
+            }
+
+            // F9: Change Calculator
+            if (e.key === 'F9') {
+                e.preventDefault();
+                setShowNumpad(true);
+            }
+
+            // F10: Pay
+            if (e.key === 'F10') {
+                if (isTyping && e.target.closest('.pos-search-bar')) {
+                    // Allow F10 even if in search bar
+                } else if (isTyping) {
+                    return;
+                }
+                e.preventDefault();
+                const activeTab = tabs.find(t => t.id === activeTabId);
+                if (activeTab && activeTab.cart.length > 0) {
+                    handlePay();
+                }
+            }
+
+            // F12: Pay & Print
+            if (e.key === 'F12') {
+                if (isTyping && e.target.closest('.pos-search-bar')) {
+                    // Allow F12 even if in search bar
+                } else if (isTyping) {
+                    return;
+                }
+                e.preventDefault();
+                const activeTab = tabs.find(t => t.id === activeTabId);
+                if (activeTab && activeTab.cart.length > 0) {
+                    handlePayAndPrint();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [tabs, activeTabId, selectedPaymentMethod, handlePay, handlePayAndPrint]);
 
     const handleFullscreenToggle = async () => {
         if (!document.fullscreenElement) {
@@ -940,6 +1011,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             setCart(prev => [...prev, newFreeItem]);
             setNotification({ open: true, message: `${product.name} added as a free gift!`, severity: 'success' });
         }
+        refocus();
     };
 
     const totalAmount = receiptSettings.roundOff ? Math.round(baseTotalAmount) : baseTotalAmount;
@@ -1190,7 +1262,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                             <Chip
                                 icon={<PromoIcon />}
                                 label="View Eligible Offers"
-                                onClick={() => setShowPromoGifts(true)}
+                                onClick={() => {
+                                    setShowPromoGifts(true);
+                                    refocus();
+                                }}
                                 color="primary"
                                 sx={{
                                     fontWeight: 800,
@@ -1229,7 +1304,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                                 </Box>
                                 <IconButton
                                     size="small"
-                                    onClick={() => setShowPromoGifts(false)}
+                                    onClick={() => {
+                                        setShowPromoGifts(false);
+                                        refocus();
+                                    }}
                                     sx={{
                                         color: '#065f46',
                                         '&:hover': { bgcolor: 'rgba(6, 95, 70, 0.1)' }
@@ -1380,6 +1458,10 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                         paymentMethodsEnabled={paymentMethodsEnabled}
                         onPrintLastReceipt={handlePrintLastReceipt}
                         hasLastSale={!!lastSale}
+                        receivedAmount={receivedAmount}
+                        setReceivedAmount={setReceivedAmount}
+                        showNumpad={showNumpad}
+                        setShowNumpad={setShowNumpad}
                     />
                 </Box>
 
@@ -1410,8 +1492,15 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
                 <QuantityDialog
                     open={Boolean(manualQuantityItem)}
-                    onClose={() => setManualQuantityItem(null)}
-                    onConfirm={(qty) => handleSetQuantity(manualQuantityItem.batch_id, qty)}
+                    onClose={() => {
+                        setManualQuantityItem(null);
+                        refocus();
+                    }}
+                    onConfirm={(qty) => {
+                        handleSetQuantity(manualQuantityItem.batch_id, qty);
+                        setManualQuantityItem(null);
+                        refocus();
+                    }}
                     itemName={manualQuantityItem?.name}
                     initialValue={manualQuantityItem?.quantity || 1}
                 />
@@ -1420,11 +1509,11 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                     open={showLooseSaleDialog}
                     onClose={() => {
                         setShowLooseSaleDialog(false);
-                        searchBarRef.current?.focus();
+                        refocus();
                     }}
                     onComplete={() => {
                         setNotification({ open: true, message: 'Loose Sale Recorded Successfully!', severity: 'success' });
-                        searchBarRef.current?.focus();
+                        refocus();
                     }}
                 />
             </Box>
@@ -1460,7 +1549,21 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 </div>
             </Box>
 
-            <Calculator open={showCalculator} onClose={() => setShowCalculator(false)} />
+            <Calculator open={showCalculator} onClose={() => {
+                setShowCalculator(false);
+                refocus();
+            }} />
+
+            <NumpadDialog
+                open={showNumpad}
+                onClose={() => setShowNumpad(false)}
+                initialValue={receivedAmount}
+                onConfirm={(val) => {
+                    setReceivedAmount(val);
+                    setShowNumpad(false);
+                }}
+                title="Received Amount"
+            />
         </>
     );
 };

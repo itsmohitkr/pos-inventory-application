@@ -12,10 +12,10 @@ import BatchTable from './BatchTable';
 // Helper to render barcodes as chips
 const renderBarcodeChips = (barcode) => {
     if (!barcode) return <Typography variant="body2" color="text.secondary">—</Typography>;
-    
+
     const barcodes = barcode.split('|').map(b => b.trim()).filter(Boolean);
     if (barcodes.length === 0) return <Typography variant="body2" color="text.secondary">—</Typography>;
-    
+
     return (
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {barcodes.map((bc, idx) => (
