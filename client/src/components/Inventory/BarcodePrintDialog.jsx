@@ -3,7 +3,7 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button, Box,
     TextField, FormControl, InputLabel, Select, MenuItem, Typography,
     Grid, Divider, Checkbox, FormControlLabel, FormGroup, IconButton,
-    Paper, Stack, Chip, RadioGroup, Radio
+    Paper, Stack, Chip, RadioGroup, Radio, Snackbar, Alert
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -13,13 +13,24 @@ import {
 } from '@mui/icons-material';
 import Barcode from 'react-barcode';
 
+const DEFAULT_SIZES = {
+    '50x25': { id: '50x25', label: '50mm x 25mm (2-inch)', width: 2, height: 50, horizontal: 2, vertical: 2, cols: 1 },
+    '38x25': { id: '38x25', label: '38mm x 25mm (1.5-inch)', width: 1.6, height: 40, horizontal: 2, vertical: 2, cols: 1 },
+    '100x150': { id: '100x150', label: '100mm x 150mm (Shipping)', width: 3, height: 100, horizontal: 0, vertical: 0, cols: 1 },
+    'a4_sheet': { id: 'a4_sheet', label: 'A4 Sticky Sheet (3x8)', width: 1.8, height: 40, horizontal: 5, vertical: 5, cols: 3 }
+};
+
 const BarcodePrintDialog = ({ open, onClose, product }) => {
     const [quantity, setQuantity] = useState(1);
-    const [dimensions, setDimensions] = useState({
-        width: 2,
-        height: 50
-    });
     const [printMethod, setPrintMethod] = useState('a4'); // 'a4' or 'machine'
+    const [paperSize, setPaperSize] = useState('50x25');
+    const [customDimensions, setCustomDimensions] = useState({ width: 2, height: 50, cols: 1 });
+
+    // Printer Configuration
+    const [printers, setPrinters] = useState([]);
+    const [selectedPrinter, setSelectedPrinter] = useState('');
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
     const [margins, setMargins] = useState({
         top: 10,
         right: 10,
@@ -27,8 +38,8 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
         left: 10
     });
     const [spacing, setSpacing] = useState({
-        horizontal: 5,
-        vertical: 5
+        horizontal: 2,
+        vertical: 2
     });
     const [contentOptions, setContentOptions] = useState({
         productName: true,
@@ -37,9 +48,59 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
         discount: false,
         shopName: false
     });
-    const [textAlign, setTextAlign] = useState('center'); // 'left', 'center', 'right'
+    const [textAlign, setTextAlign] = useState('center');
     const [shopName, setShopName] = useState('My Store');
     const printRef = useRef();
+
+    // Load settings and printers on mount
+    React.useEffect(() => {
+        if (open) {
+            const loadSettings = async () => {
+                // Fetch printers if in Electron
+                if (window.electron) {
+                    try {
+                        const list = await window.electron.ipcRenderer.invoke('get-printers');
+                        if (list && Array.isArray(list)) {
+                            setPrinters(list);
+                        }
+                    } catch (e) {
+                        console.error('Failed to load printers:', e);
+                    }
+                }
+
+                // Load saved settings
+                const savedStr = localStorage.getItem('barcodePrinterSettings');
+                if (savedStr) {
+                    try {
+                        const saved = JSON.parse(savedStr);
+                        if (saved.printMethod) setPrintMethod(saved.printMethod);
+                        if (saved.paperSize) setPaperSize(saved.paperSize);
+                        if (saved.selectedPrinter) setSelectedPrinter(saved.selectedPrinter);
+                        if (saved.margins) setMargins(saved.margins);
+                        if (saved.spacing) setSpacing(saved.spacing);
+                        if (saved.contentOptions) setContentOptions(saved.contentOptions);
+                        if (saved.textAlign) setTextAlign(saved.textAlign);
+                        if (saved.shopName) setShopName(saved.shopName);
+                        if (saved.customDimensions) setCustomDimensions(saved.customDimensions);
+                    } catch (e) {
+                        console.error('Failed to parse barcode settings');
+                    }
+                }
+            };
+            loadSettings();
+        }
+    }, [open]);
+
+    // Save settings when they change
+    React.useEffect(() => {
+        if (open) {
+            const settingsToSave = {
+                printMethod, paperSize, selectedPrinter, margins, spacing,
+                contentOptions, textAlign, shopName, customDimensions
+            };
+            localStorage.setItem('barcodePrinterSettings', JSON.stringify(settingsToSave));
+        }
+    }, [printMethod, paperSize, selectedPrinter, margins, spacing, contentOptions, textAlign, shopName, customDimensions, open]);
 
     const handleContentChange = (field) => {
         setContentOptions(prev => ({
@@ -49,10 +110,9 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
     };
 
     const handlePrint = () => {
-        const printWindow = window.open('', '', 'width=800,height=600');
         const printContent = printRef.current.innerHTML;
-        
-        printWindow.document.write(`
+
+        const htmlDocument = `
             <html>
                 <head>
                     <title>Print Barcodes</title>
@@ -91,14 +151,31 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                     ${printContent}
                 </body>
             </html>
-        `);
-        
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 250);
+        `;
+
+        if (printMethod === 'machine' && window.electron && selectedPrinter) {
+            // Direct print to barcode machine
+            try {
+                window.electron.ipcRenderer.send('print-barcode', {
+                    html: htmlDocument,
+                    printerName: selectedPrinter
+                });
+                setSnackbar({ open: true, message: 'Print job sent successfully!', severity: 'success' });
+            } catch (error) {
+                console.error('Print failed:', error);
+                setSnackbar({ open: true, message: 'Failed to send print job.', severity: 'error' });
+            }
+        } else {
+            // Standard A4 Print Queue
+            const printWindow = window.open('', '', 'width=800,height=600');
+            printWindow.document.write(htmlDocument);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+        }
     };
 
     const renderBarcodePreview = () => {
@@ -107,19 +184,23 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
         const barcodes = product.barcode.split('|').map(b => b.trim()).filter(Boolean);
         const primaryBarcode = barcodes[0] || product.id.toString();
 
+        const activeDims = paperSize === 'custom' ? customDimensions : DEFAULT_SIZES[paperSize];
+        const activeCols = activeDims.cols || 1;
+
         return (
-            <Box 
+            <Box
                 className="barcode-container"
                 sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${activeCols}, 1fr)`,
                     gap: `${spacing.horizontal}mm`,
-                    rowGap: `${spacing.vertical}mm`
+                    rowGap: `${spacing.vertical}mm`,
+                    justifyContent: activeCols === 1 ? 'center' : 'start'
                 }}
             >
                 {Array.from({ length: quantity }).map((_, index) => (
-                    <Box 
-                        key={index} 
+                    <Box
+                        key={index}
                         className="barcode-item"
                         sx={{
                             display: 'flex',
@@ -128,19 +209,21 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                             border: '1px dashed #94a3b8',
                             borderRadius: 1,
                             padding: `${spacing.vertical}mm ${spacing.horizontal}mm`,
-                            bgcolor: '#ffffff'
+                            bgcolor: '#ffffff',
+                            width: activeCols === 1 ? 'auto' : '100%',
+                            boxSizing: 'border-box'
                         }}
                     >
                         <Barcode
                             value={primaryBarcode}
-                            width={dimensions.width}
-                            height={dimensions.height}
+                            width={activeDims.width}
+                            height={activeDims.height}
                             fontSize={12}
                             margin={0}
                         />
-                        <Box 
+                        <Box
                             className="barcode-info"
-                            sx={{ 
+                            sx={{
                                 textAlign: textAlign,
                                 width: '100%',
                                 mt: 0.5
@@ -212,57 +295,114 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                                 </Typography>
                                 <Stack spacing={2}>
                                     <TextField
-                                        label="Quantity"
+                                        label="Number of Labels"
                                         type="number"
                                         value={quantity}
                                         onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                                         fullWidth
                                         size="small"
-                                        inputProps={{ min: 1, max: 100 }}
+                                        inputProps={{ min: 1, max: 1000 }}
                                     />
                                     <FormControl fullWidth size="small">
-                                        <InputLabel>Print Method</InputLabel>
+                                        <InputLabel>Output Destination</InputLabel>
                                         <Select
                                             value={printMethod}
                                             onChange={(e) => setPrintMethod(e.target.value)}
-                                            label="Print Method"
+                                            label="Output Destination"
                                         >
-                                            <MenuItem value="a4">A4 Paper (210 x 297 mm)</MenuItem>
-                                            <MenuItem value="machine">Barcode Machine</MenuItem>
+                                            <MenuItem value="a4">Standard Printer (A4 Sheet)</MenuItem>
+                                            <MenuItem value="machine">Dedicated Barcode Printer</MenuItem>
                                         </Select>
                                     </FormControl>
+
+                                    {printMethod === 'machine' && window.electron && (
+                                        <FormControl fullWidth size="small">
+                                            <InputLabel>Printer Selection</InputLabel>
+                                            <Select
+                                                value={selectedPrinter}
+                                                onChange={(e) => setSelectedPrinter(e.target.value)}
+                                                label="Printer Selection"
+                                                displayEmpty
+                                            >
+                                                {printers && printers.length > 0 ? (
+                                                    printers.map((p, i) => (
+                                                        <MenuItem key={i} value={p.name}>
+                                                            {p.name} {p.isDefault ? '(Default)' : ''}
+                                                        </MenuItem>
+                                                    ))
+                                                ) : (
+                                                    <MenuItem value="" disabled>No printers found</MenuItem>
+                                                )}
+                                            </Select>
+                                        </FormControl>
+                                    )}
                                 </Stack>
                             </Paper>
 
-                            {/* Dimensions */}
+                            {/* Label Layout */}
                             <Paper elevation={0} sx={{ p: 2, bgcolor: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                                    Barcode Dimensions
+                                    Label Size & Layout
                                 </Typography>
-                                <Grid container spacing={2}>
-                                    <Grid item xs={6}>
-                                        <TextField
-                                            label="Width"
-                                            type="number"
-                                            value={dimensions.width}
-                                            onChange={(e) => setDimensions({ ...dimensions, width: parseFloat(e.target.value) || 2 })}
-                                            fullWidth
-                                            size="small"
-                                            inputProps={{ min: 1, max: 5, step: 0.1 }}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={6}>
-                                        <TextField
-                                            label="Height (px)"
-                                            type="number"
-                                            value={dimensions.height}
-                                            onChange={(e) => setDimensions({ ...dimensions, height: parseInt(e.target.value) || 50 })}
-                                            fullWidth
-                                            size="small"
-                                            inputProps={{ min: 30, max: 100 }}
-                                        />
-                                    </Grid>
-                                </Grid>
+                                <Stack spacing={2}>
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>Paper Size Preset</InputLabel>
+                                        <Select
+                                            value={paperSize}
+                                            onChange={(e) => {
+                                                setPaperSize(e.target.value);
+                                                if (e.target.value !== 'custom') {
+                                                    const p = DEFAULT_SIZES[e.target.value];
+                                                    setSpacing({ horizontal: p.horizontal, vertical: p.vertical });
+                                                }
+                                            }}
+                                            label="Paper Size Preset"
+                                        >
+                                            {Object.values(DEFAULT_SIZES).map(s => (
+                                                <MenuItem key={s.id} value={s.id}>{s.label}</MenuItem>
+                                            ))}
+                                            <MenuItem value="custom">Custom Size</MenuItem>
+                                        </Select>
+                                    </FormControl>
+
+                                    {paperSize === 'custom' && (
+                                        <Grid container spacing={2}>
+                                            <Grid item xs={4}>
+                                                <TextField
+                                                    label="Bar Width (px)"
+                                                    type="number"
+                                                    value={customDimensions.width}
+                                                    onChange={(e) => setCustomDimensions({ ...customDimensions, width: parseFloat(e.target.value) || 2 })}
+                                                    fullWidth
+                                                    size="small"
+                                                    inputProps={{ min: 1, max: 5, step: 0.1 }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={4}>
+                                                <TextField
+                                                    label="Height (px)"
+                                                    type="number"
+                                                    value={customDimensions.height}
+                                                    onChange={(e) => setCustomDimensions({ ...customDimensions, height: parseInt(e.target.value) || 50 })}
+                                                    fullWidth
+                                                    size="small"
+                                                    inputProps={{ min: 20, max: 200 }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={4}>
+                                                <TextField
+                                                    label="Columns"
+                                                    type="number"
+                                                    value={customDimensions.cols}
+                                                    onChange={(e) => setCustomDimensions({ ...customDimensions, cols: parseInt(e.target.value) || 1 })}
+                                                    fullWidth
+                                                    size="small"
+                                                    inputProps={{ min: 1, max: 10 }}
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    )}
+                                </Stack>
                             </Paper>
 
                             {/* Margins */}
@@ -393,20 +533,20 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                                         onChange={(e) => setTextAlign(e.target.value)}
                                         row
                                     >
-                                        <FormControlLabel 
-                                            value="left" 
-                                            control={<Radio size="small" />} 
-                                            label="Left" 
+                                        <FormControlLabel
+                                            value="left"
+                                            control={<Radio size="small" />}
+                                            label="Left"
                                         />
-                                        <FormControlLabel 
-                                            value="center" 
-                                            control={<Radio size="small" />} 
-                                            label="Center" 
+                                        <FormControlLabel
+                                            value="center"
+                                            control={<Radio size="small" />}
+                                            label="Center"
                                         />
-                                        <FormControlLabel 
-                                            value="right" 
-                                            control={<Radio size="small" />} 
-                                            label="Right" 
+                                        <FormControlLabel
+                                            value="right"
+                                            control={<Radio size="small" />}
+                                            label="Right"
                                         />
                                     </RadioGroup>
                                 </FormControl>
@@ -479,6 +619,22 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                     Print Barcodes
                 </Button>
             </DialogActions>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity}
+                    variant="filled"
+                    sx={{ width: '100%', borderRadius: 2, fontWeight: 600 }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Dialog>
     );
 };

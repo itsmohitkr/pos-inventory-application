@@ -105,7 +105,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
         start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        end = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
         break;
       }
       case "lastWeek": {
@@ -117,7 +117,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
       }
       case "thisMonth":
         start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         break;
       case "lastMonth":
         start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
@@ -125,7 +125,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
         break;
       case "thisYear":
         start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
         break;
       case "lastYear":
         start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
@@ -546,6 +546,20 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                   data={looseSalesData}
                   loading={loading}
                   timeframeLabel={tabValue === 8 ? 'Custom' : timeframes[tabValue].label}
+                  onRefresh={() => {
+                    if (dateRange.startDate && dateRange.endDate) {
+                      const [sy, sm, sd] = dateRange.startDate.split('-').map(Number);
+                      const [ey, em, ed] = dateRange.endDate.split('-').map(Number);
+                      const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+                      const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+                      fetchReports(start.toISOString(), end.toISOString());
+                    } else if (tabValue < 8) {
+                      const range = timeframes[tabValue].getValue();
+                      fetchReports(range.start, range.end);
+                    } else {
+                      fetchReports();
+                    }
+                  }}
                 />
               )}
             </Box>

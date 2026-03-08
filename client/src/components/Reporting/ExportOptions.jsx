@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Button, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Button, Menu, MenuItem, ListItemIcon, ListItemText, Badge } from '@mui/material';
 import {
     Download as DownloadIcon,
     Print as PrintIcon,
     PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
 
-const ExportOptions = ({ onExportPDF, onPrint }) => {
+const ExportOptions = ({ onExportPDF, onPrint, selectedCount = 0 }) => {
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
 
@@ -37,7 +37,18 @@ const ExportOptions = ({ onExportPDF, onPrint }) => {
                 onClick={handleClick}
                 sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
             >
-                Export / Print
+                <Badge
+                    badgeContent={selectedCount}
+                    color="error"
+                    sx={{
+                        '& .MuiBadge-badge': {
+                            right: -10,
+                            top: 0
+                        }
+                    }}
+                >
+                    {selectedCount > 0 ? 'Export Selected' : 'Export / Print'}
+                </Badge>
             </Button>
             <Menu
                 anchorEl={anchorEl}

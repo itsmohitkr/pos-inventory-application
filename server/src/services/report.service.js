@@ -2,11 +2,10 @@ const prisma = require('../config/prisma');
 
 const getReports = async ({ startDate, endDate }) => {
     const where = {};
-    if (startDate && endDate) {
-        where.createdAt = {
-            gte: new Date(startDate),
-            lte: new Date(endDate)
-        };
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = new Date(startDate);
+        if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
     const sales = await prisma.sale.findMany({
@@ -90,11 +89,10 @@ const getReports = async ({ startDate, endDate }) => {
 
     // Fetch Expenses and Purchases for the same period
     const expenseWhere = {};
-    if (startDate && endDate) {
-        expenseWhere.date = {
-            gte: new Date(startDate),
-            lte: new Date(endDate)
-        };
+    if (startDate || endDate) {
+        expenseWhere.date = {};
+        if (startDate) expenseWhere.date.gte = new Date(startDate);
+        if (endDate) expenseWhere.date.lte = new Date(endDate);
     }
 
     const [expenses, purchases, looseSales] = await Promise.all([
@@ -128,11 +126,10 @@ const getReports = async ({ startDate, endDate }) => {
 
 const getExpiryReport = async ({ startDate, endDate }) => {
     const where = {};
-    if (startDate && endDate) {
-        where.expiryDate = {
-            gte: new Date(startDate),
-            lte: new Date(endDate)
-        };
+    if (startDate || endDate) {
+        where.expiryDate = {};
+        if (startDate) where.expiryDate.gte = new Date(startDate);
+        if (endDate) where.expiryDate.lte = new Date(endDate);
     }
 
     const batches = await prisma.batch.findMany({
@@ -168,7 +165,8 @@ const getLowStockReport = async () => {
         include: {
             batches: {
                 select: {
-                    quantity: true
+                    quantity: true,
+                    mrp: true
                 }
             }
         }
@@ -177,9 +175,14 @@ const getLowStockReport = async () => {
     return products
         .map(product => {
             const totalQuantity = product.batches.reduce((sum, batch) => sum + batch.quantity, 0);
+
+            // Derive mrp from the most recently added batch if it exists
+            const mrp = product.batches.length > 0 ? product.batches[product.batches.length - 1].mrp : 0;
+
             return {
                 ...product,
-                totalQuantity
+                totalQuantity,
+                mrp
             };
         })
         .filter(product => product.totalQuantity <= product.lowStockThreshold);

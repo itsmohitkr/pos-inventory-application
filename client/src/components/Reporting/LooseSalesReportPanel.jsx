@@ -1,15 +1,31 @@
 import React from 'react';
 import {
-    Box, Typography, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody
+    Box, Typography, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, IconButton,
+    Dialog, DialogTitle, DialogContent, DialogActions, Button
 } from '@mui/material';
+import { DeleteOutline } from '@mui/icons-material';
+import api from '../../api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from './ExportOptions';
 import useSortableTable from '../../hooks/useSortableTable';
 import SortableTableHead from './SortableTableHead';
 
-const LooseSalesReportPanel = ({ data, loading, timeframeLabel }) => {
+const LooseSalesReportPanel = ({ data, loading, timeframeLabel, onRefresh }) => {
     const { items: sortedData, requestSort, sortConfig } = useSortableTable(data || [], { key: 'createdAt', direction: 'desc' });
+    const [deleteId, setDeleteId] = React.useState(null);
+
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        try {
+            await api.delete(`/api/loose-sales/${deleteId}`);
+            setDeleteId(null);
+            if (onRefresh) onRefresh();
+        } catch (error) {
+            console.error("Failed to delete loose sale:", error);
+            alert("Failed to delete loose sale.");
+        }
+    };
     const handleExportPDF = () => {
         if (!data || data.length === 0) return;
 
@@ -102,7 +118,8 @@ const LooseSalesReportPanel = ({ data, loading, timeframeLabel }) => {
                             columns={[
                                 { id: 'createdAt', label: 'DATE & TIME' },
                                 { id: 'itemName', label: 'ITEM NAME / NOTES' },
-                                { id: 'price', label: 'PRICE (₹)', align: 'right' }
+                                { id: 'price', label: 'PRICE (₹)', align: 'right' },
+                                { id: 'actions', label: '', align: 'right' }
                             ]}
                             sortConfig={sortConfig}
                             requestSort={requestSort}
@@ -113,12 +130,28 @@ const LooseSalesReportPanel = ({ data, loading, timeframeLabel }) => {
                                     <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
                                     <TableCell sx={{ fontWeight: 600 }}>{item.itemName || 'Loose Item'}</TableCell>
                                     <TableCell align="right" sx={{ fontWeight: 700 }}>₹{item.price.toFixed(2)}</TableCell>
+                                    <TableCell align="right">
+                                        <IconButton size="small" color="error" onClick={() => setDeleteId(item.id)}>
+                                            <DeleteOutline fontSize="small" />
+                                        </IconButton>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
             </Paper>
+
+            <Dialog open={Boolean(deleteId)} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth>
+                <DialogTitle sx={{ fontWeight: 700, color: '#b91c1c' }}>Delete Loose Sale</DialogTitle>
+                <DialogContent>
+                    <Typography>Are you sure you want to permanently delete this loose sale record?</Typography>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setDeleteId(null)} color="inherit">Cancel</Button>
+                    <Button onClick={handleDelete} color="error" variant="contained" sx={{ fontWeight: 600 }}>Delete</Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

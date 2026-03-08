@@ -13,6 +13,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableFooter,
 } from "@mui/material";
 import {
   TrendingUp as SalesIcon,
@@ -21,7 +22,11 @@ import {
   DateRange as DateIcon,
   BarChart as MarginIcon,
   LocalShipping as ShippingIcon,
+  MonetizationOn as ValueIcon,
+  PieChart as PieChartIcon
 } from "@mui/icons-material";
+
+const CATEGORY_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#64748b'];
 import StatCard from "./StatCard";
 
 const AnalyticsPanel = ({ reportData, loading }) => {
@@ -35,6 +40,24 @@ const AnalyticsPanel = ({ reportData, loading }) => {
   const totalExpenses = reportData?.totalExpenses || 0;
   const ownerPayout = (netProfit * ownerSharePercent) / 100;
 
+  // Combine and sort both expenses and purchases chronologically
+  const cashFlowItems = [
+    ...(reportData?.expenses || []).map(e => ({
+      id: `exp - ${e.id} `,
+      date: new Date(e.date),
+      type: 'Expense',
+      label: e.category || 'Misc',
+      amount: e.amount
+    })),
+    ...(reportData?.purchases || []).map(p => ({
+      id: `pur - ${p.id} `,
+      date: new Date(p.date),
+      type: 'Purchase',
+      label: p.vendor || 'Unknown Vendor',
+      amount: p.totalAmount
+    }))
+  ].sort((a, b) => b.date - a.date);
+
   // Group expenses by category
   const expenseBreakdown = (reportData?.expenses || []).reduce((acc, exp) => {
     const cat = exp.category || "Misc";
@@ -42,12 +65,45 @@ const AnalyticsPanel = ({ reportData, loading }) => {
     return acc;
   }, {});
 
+  // Calculate donught segments for Expenses
+  const expEntries = Object.entries(expenseBreakdown).sort((a, b) => b[1] - a[1]);
+  const totalExpPie = expEntries.reduce((sum, [, val]) => sum + val, 0);
+  const expenseSegments = expEntries.map(([name, val], idx) => ({
+    name,
+    value: val,
+    percent: totalExpPie > 0 ? (val / totalExpPie) * 100 : 0,
+    color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+  }));
+  let expCum = 0;
+  const expenseGradient = expenseSegments.map((stop) => {
+    const start = expCum;
+    expCum += stop.percent;
+    return `${stop.color} ${start}% ${expCum}%`;
+  }).join(', ');
+
   // Group purchases by vendor
   const purchaseBreakdown = (reportData?.purchases || []).reduce((acc, pur) => {
     const vendor = pur.vendor || "Unknown Vendor";
-    acc[vendor] = (acc[vendor] || 0) + pur.totalAmount;
+    acc[vendor] = (acc[vendor] || 0) + (pur.totalAmount || 0); // ensuring numeric
     return acc;
   }, {});
+
+  // Calculate donught segments for Purchases
+  const purEntries = Object.entries(purchaseBreakdown).sort((a, b) => b[1] - a[1]);
+  const totalPurPie = purEntries.reduce((sum, [, val]) => sum + val, 0);
+  const purchaseSegments = purEntries.map(([name, val], idx) => ({
+    name,
+    value: val,
+    percent: totalPurPie > 0 ? (val / totalPurPie) * 100 : 0,
+    color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+  }));
+  let purCum = 0;
+  const purchaseGradient = purchaseSegments.map((stop) => {
+    const start = purCum;
+    purCum += stop.percent;
+    return `${stop.color} ${start}% ${purCum}%`;
+  }).join(', ');
+
 
   if (loading) {
     return (
@@ -91,75 +147,73 @@ const AnalyticsPanel = ({ reportData, loading }) => {
             border: "1px solid #e2e8f0",
             borderRadius: 3,
             overflow: "hidden",
+            maxHeight: "400px",
+            overflowY: "auto"
           }}
         >
-          <Table>
+          <Table stickyHeader>
             <TableHead sx={{ bgcolor: "#f8fafc" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800, color: "#64748b" }}>
+                <TableCell sx={{ fontWeight: 800, color: "#64748b", bgcolor: '#f8fafc', top: 0, zIndex: 2 }}>
                   PARTICULARS
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ fontWeight: 800, color: "#64748b" }}
+                  sx={{ fontWeight: 800, color: "#64748b", bgcolor: '#f8fafc', top: 0, zIndex: 2 }}
                 >
                   AMOUNT (₹)
                 </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
               {/* 1. Total Sales */}
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: "#1e293b" }}>
+                <TableCell sx={{ fontWeight: 700, color: "#1e293b", bgcolor: 'white', borderBottom: '2px solid #e2e8f0', top: 40, zIndex: 2 }}>
                   Total Sales (Gross Income)
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ fontWeight: 700, color: "#16a34a" }}
+                  sx={{ fontWeight: 700, color: "#16a34a", bgcolor: 'white', borderBottom: '2px solid #e2e8f0', top: 40, zIndex: 2 }}
                 >
                   + {totalSales.toLocaleString()}
                 </TableCell>
               </TableRow>
+            </TableHead>
+            <TableBody>
 
-              {/* 2. Detailed Expenses */}
-              {Object.entries(expenseBreakdown).map(([cat, amount]) => (
-                <TableRow key={cat}>
+              {/* 2. Chronological Expenses & Purchases */}
+              {cashFlowItems.map((item) => (
+                <TableRow key={item.id}>
                   <TableCell sx={{ color: "#64748b", pl: 4 }}>
-                    Less: Expenses ({cat})
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>
+                        Less: {item.type === 'Expense' ? 'Expense' : 'Inventory Purchase'} ({item.label})
+                      </span>
+                      <Typography variant="caption" sx={{ color: '#94a3b8', fontStyle: 'italic', ml: 2 }}>
+                        {item.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
+                      </Typography>
+                    </Box>
                   </TableCell>
                   <TableCell align="right" sx={{ color: "#dc2626" }}>
-                    - {amount.toLocaleString()}
+                    - {item.amount.toLocaleString()}
                   </TableCell>
                 </TableRow>
               ))}
-
-              {/* 3. Detailed Inventory Purchases */}
-              {Object.entries(purchaseBreakdown).map(([vendor, amount]) => (
-                <TableRow key={vendor}>
-                  <TableCell sx={{ color: "#64748b", pl: 4 }}>
-                    Less: Inventory Purchases ({vendor})
-                  </TableCell>
-                  <TableCell align="right" sx={{ color: "#dc2626" }}>
-                    - {amount.toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-
+            </TableBody>
+            <TableFooter sx={{ position: 'sticky', bottom: 0, zIndex: 1, bgcolor: "#f0fdf4" }}>
               {/* 4. Final Cash Balance */}
-              <TableRow sx={{ bgcolor: "#f0fdf4" }}>
+              <TableRow>
                 <TableCell
-                  sx={{ fontWeight: 900, fontSize: "1.1rem", color: "#166534" }}
+                  sx={{ fontWeight: 900, fontSize: "1.1rem", color: "#166534", borderTop: '2px solid #16a34a' }}
                 >
                   TOTAL MONEY IN SHOP (NET BALANCE)
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ fontWeight: 900, fontSize: "1.1rem", color: "#166534" }}
+                  sx={{ fontWeight: 900, fontSize: "1.1rem", color: "#166534", borderTop: '2px solid #16a34a' }}
                 >
                   ₹ {totalCashBalance.toLocaleString()}
                 </TableCell>
               </TableRow>
-            </TableBody>
+            </TableFooter>
           </Table>
         </TableContainer>
       </Box>
@@ -196,8 +250,8 @@ const AnalyticsPanel = ({ reportData, loading }) => {
                   bgcolor: "#fff",
                   borderRadius: 2,
                   border: "2px solid #f0fdf4",
-                                  height: "100%"
-                  
+                  height: "100%"
+
                 }}
               >
                 <Typography
@@ -223,7 +277,7 @@ const AnalyticsPanel = ({ reportData, loading }) => {
                     alignItems: "center",
                     py: 1.5,
                     borderBottom: "1px solid #f1f5f9",
-                    
+
                   }}
                 >
                   <Typography sx={{ color: "#64748b", fontWeight: 500 }}>
@@ -402,6 +456,78 @@ const AnalyticsPanel = ({ reportData, loading }) => {
           </Grid>
         </Paper>
       </Box>
+
+      {/* Analytics Charts Row */}
+      <Box sx={{ display: 'flex', gap: 4, flexDirection: { xs: 'column', md: 'row' } }}>
+
+        {/* Expenses Pie Chart */}
+        <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <PieChartIcon sx={{ color: '#0b1d39' }} />
+            <Typography variant="h6" sx={{ color: '#0b1d39', fontWeight: 700 }}>Expenses by Category</Typography>
+          </Box>
+          <Typography variant="caption" sx={{ color: '#64748b', mb: 3 }}>Breakdown of operating costs</Typography>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minHeight: 150 }}>
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <Box sx={{ width: 120, height: 120, borderRadius: '50%', background: expenseSegments.length ? `conic-gradient(${expenseGradient})` : '#e2e8f0', position: 'relative' }}>
+                <Box sx={{ position: 'absolute', top: '25%', left: '25%', width: '50%', height: '50%', bgcolor: '#fff', borderRadius: '50%' }} />
+              </Box>
+            </Box>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', maxHeight: '150px' }}>
+              {expenseSegments.length === 0 && <Typography variant="caption" sx={{ color: '#94a3b8' }}>No expenses to display</Typography>}
+              {expenseSegments.map(seg => (
+                <Box key={seg.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: seg.color }} />
+                    <Typography variant="caption" sx={{ color: '#4b5563', fontSize: '0.75rem', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {seg.name} ({seg.percent.toFixed(0)}%)
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" sx={{ color: '#111827', fontSize: '0.75rem', fontWeight: 600 }}>
+                    ₹{seg.value.toLocaleString()}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Paper>
+
+        {/* Purchases Pie Chart */}
+        <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <PieChartIcon sx={{ color: '#0b1d39' }} />
+            <Typography variant="h6" sx={{ color: '#0b1d39', fontWeight: 700 }}>Purchases by Vendor</Typography>
+          </Box>
+          <Typography variant="caption" sx={{ color: '#64748b', mb: 3 }}>Breakdown of inventory investments</Typography>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minHeight: 150 }}>
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <Box sx={{ width: 120, height: 120, borderRadius: '50%', background: purchaseSegments.length ? `conic-gradient(${purchaseGradient})` : '#e2e8f0', position: 'relative' }}>
+                <Box sx={{ position: 'absolute', top: '25%', left: '25%', width: '50%', height: '50%', bgcolor: '#fff', borderRadius: '50%' }} />
+              </Box>
+            </Box>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', maxHeight: '150px' }}>
+              {purchaseSegments.length === 0 && <Typography variant="caption" sx={{ color: '#94a3b8' }}>No purchases to display</Typography>}
+              {purchaseSegments.map(seg => (
+                <Box key={seg.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: seg.color }} />
+                    <Typography variant="caption" sx={{ color: '#4b5563', fontSize: '0.75rem', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {seg.name} ({seg.percent.toFixed(0)}%)
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" sx={{ color: '#111827', fontSize: '0.75rem', fontWeight: 600 }}>
+                    ₹{seg.value.toLocaleString()}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Paper>
+
+      </Box>
+
     </Box>
   );
 };

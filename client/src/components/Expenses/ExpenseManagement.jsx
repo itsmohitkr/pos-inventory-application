@@ -165,8 +165,16 @@ const ExpenseManagement = () => {
                 api.get(`/api/expenses${queryParams}`),
                 api.get(`/api/purchases${queryParams}`)
             ]);
-            setExpenses(expRes.data);
-            setPurchases(purRes.data);
+            const sortedExp = expRes.data.sort((a, b) => {
+                if (a.date === b.date) return b.id - a.id;
+                return new Date(b.date) - new Date(a.date);
+            });
+            const sortedPur = purRes.data.sort((a, b) => {
+                if (a.date === b.date) return b.id - a.id;
+                return new Date(b.date) - new Date(a.date);
+            });
+            setExpenses(sortedExp);
+            setPurchases(sortedPur);
         } catch (err) {
             setError('Failed to fetch data');
         } finally {
@@ -383,7 +391,7 @@ const ExpenseManagement = () => {
                                         <TableBody>
                                             {expenses.map((row) => (
                                                 <TableRow key={row.id}>
-                                                    <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
+                                                    <TableCell>{new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</TableCell>
                                                     <TableCell>{row.category}</TableCell>
                                                     <TableCell>{row.description}</TableCell>
                                                     <TableCell align="right">₹{row.amount.toLocaleString()}</TableCell>
@@ -448,7 +456,7 @@ const ExpenseManagement = () => {
                                         <TableBody>
                                             {purchases.map((row) => (
                                                 <TableRow key={row.id}>
-                                                    <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
+                                                    <TableCell>{new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</TableCell>
                                                     <TableCell>{row.vendor || 'N/A'}</TableCell>
                                                     <TableCell>{row.note}</TableCell>
                                                     <TableCell align="right">₹{row.totalAmount.toLocaleString()}</TableCell>

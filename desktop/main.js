@@ -96,6 +96,40 @@ ipcMain.on('print-manual', (event, { printerName }) => {
   });
 });
 
+ipcMain.on('print-barcode', (event, { html, printerName }) => {
+  console.log(`[BARCODE PRINT] Direct Printing to: ${printerName || 'System Default'}`);
+
+  // Create a hidden browser window for printing the barcode
+  let hiddenWin = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+
+  hiddenWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+  hiddenWin.webContents.on('did-finish-load', () => {
+    hiddenWin.webContents.print({
+      silent: true,
+      deviceName: printerName || undefined,
+      printBackground: true,
+      color: true,
+      margins: { marginType: 'none' },
+      scaleFactor: 100
+    }, (success, failureReason) => {
+      if (!success) {
+        console.error(`[BARCODE PRINT ERROR] Failed to print: ${failureReason}`);
+      } else {
+        console.log('[BARCODE PRINT SUCCESS] Direct print sent to barcode printer.');
+      }
+      hiddenWin.close();
+      hiddenWin = null;
+    });
+  });
+});
+
 // -------------------------------------------------------------------------
 // CRITICAL: INITIALIZATION ORDER
 // -------------------------------------------------------------------------

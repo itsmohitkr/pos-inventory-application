@@ -106,6 +106,7 @@ const PromotionManagement = () => {
                 if (data.thresholds && !data.config) {
                     const migratedConfig = data.thresholds.map(t => ({
                         threshold: t,
+                        isActive: true,
                         profitPercentage: data.profitPercentage || 20,
                         minCostPrice: data.minCostPrice || 0,
                         maxCostPrice: data.maxCostPrice || null,
@@ -150,6 +151,7 @@ const PromotionManagement = () => {
 
         const newEntry = {
             threshold: val,
+            isActive: false,
             profitPercentage: 20,
             minCostPrice: 0,
             maxCostPrice: null,
@@ -533,6 +535,7 @@ const PromotionManagement = () => {
                                             <Table size="small">
                                                 <TableHead sx={{ bgcolor: '#f8fafc' }}>
                                                     <TableRow>
+                                                        <TableCell sx={{ fontWeight: 700, width: '8%' }}>Status</TableCell>
                                                         <TableCell sx={{ fontWeight: 700, width: '12%' }}>Min Order (₹)</TableCell>
                                                         <TableCell sx={{ fontWeight: 700, width: '12%' }}>Profit % Limit</TableCell>
                                                         <TableCell sx={{ fontWeight: 700, width: '12%' }}>Min Item CP</TableCell>
@@ -547,6 +550,23 @@ const PromotionManagement = () => {
                                                 <TableBody>
                                                     {(promoSettings.config || []).map((config) => (
                                                         <TableRow key={config.threshold} hover>
+                                                            <TableCell>
+                                                                <Switch
+                                                                    size="small"
+                                                                    checked={config.isActive !== false}
+                                                                    onChange={(e) => handleUpdateConfig(config.threshold, 'isActive', e.target.checked)}
+                                                                    color="success"
+                                                                    sx={{
+                                                                        '& .MuiSwitch-switchBase:not(.Mui-checked)': {
+                                                                            color: '#ef4444',
+                                                                        },
+                                                                        '& .MuiSwitch-switchBase:not(.Mui-checked) + .MuiSwitch-track': {
+                                                                            backgroundColor: '#ef4444',
+                                                                            opacity: 0.5,
+                                                                        },
+                                                                    }}
+                                                                />
+                                                            </TableCell>
                                                             <TableCell sx={{ fontWeight: 800, color: '#0b1d39' }}>₹{config.threshold}</TableCell>
                                                             <TableCell>
                                                                 <TextField
@@ -657,7 +677,7 @@ const PromotionManagement = () => {
                                                     ))}
                                                     {(promoSettings.config || []).length === 0 && (
                                                         <TableRow>
-                                                            <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                                                            <TableCell colSpan={10} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                                                                 No thresholds defined. Add a minimum order value above to start.
                                                             </TableCell>
                                                         </TableRow>

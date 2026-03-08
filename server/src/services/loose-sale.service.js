@@ -28,7 +28,14 @@ const getLooseSalesReport = async ({ startDate, endDate }) => {
     return items;
 };
 
+const deleteLooseSale = async (id) => {
+    return await prisma.looseSale.delete({
+        where: { id: parseInt(id) }
+    });
+};
+
 module.exports = {
     createLooseSale,
-    getLooseSalesReport
+    getLooseSalesReport,
+    deleteLooseSale
 };

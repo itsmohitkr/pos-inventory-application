@@ -258,6 +258,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                 if (data.thresholds && !data.config) {
                     const migratedConfig = data.thresholds.map(t => ({
                         threshold: t,
+                        isActive: true,
                         profitPercentage: data.profitPercentage || 20,
                         minCostPrice: data.minCostPrice || 0,
                         maxCostPrice: data.maxCostPrice || null,
@@ -850,7 +851,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
     const activeConfig = useMemo(() => {
         if (!promoSettings?.enabled || !promoSettings?.config?.length) return null;
-        const metConfigs = promoSettings.config.filter(c => Number(baseTotalAmount) >= Number(c.threshold));
+        const metConfigs = promoSettings.config.filter(c => Number(baseTotalAmount) >= Number(c.threshold) && c.isActive !== false);
         if (metConfigs.length === 0) return null;
         return metConfigs.reduce((prev, curr) => (Number(curr.threshold) > Number(prev.threshold)) ? curr : prev);
     }, [baseTotalAmount, promoSettings]);

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-    Box, Typography, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Chip, FormControl, InputLabel, Select, MenuItem
+    Box, Typography, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Chip, FormControl, InputLabel, Select, MenuItem, Checkbox
 } from '@mui/material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -10,6 +10,7 @@ import SortableTableHead from './SortableTableHead';
 
 const LowStockReportPanel = ({ data, loading }) => {
     const [selectedCategory, setSelectedCategory] = useState("All Categories");
+    const [selectedItems, setSelectedItems] = useState([]);
 
     const categories = useMemo(() => {
         if (!data) return [];
@@ -23,26 +24,43 @@ const LowStockReportPanel = ({ data, loading }) => {
         return data.filter(p => p.category === selectedCategory);
     }, [data, selectedCategory]);
 
+    const handleToggleSelect = (id) => {
+        setSelectedItems(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+    };
+
+    const handleSelectAll = (event) => {
+        if (event.target.checked) {
+            setSelectedItems(filteredData.map(item => item.id));
+        } else {
+            setSelectedItems([]);
+        }
+    };
+
     const { items: sortedData, requestSort, sortConfig } = useSortableTable(filteredData, { key: 'totalQuantity', direction: 'asc' });
 
     const handleExportPDF = () => {
-        if (filteredData.length === 0) return;
+        const itemsToExport = selectedItems.length > 0
+            ? filteredData.filter(item => selectedItems.includes(item.id))
+            : filteredData;
+
+        if (itemsToExport.length === 0) return;
 
         const doc = new jsPDF();
         doc.setFontSize(18);
-        doc.text('Low Stock Report', 14, 20);
+        doc.text('Vendor Order List (Low Stock)', 14, 20);
 
         doc.setFontSize(11);
         doc.setTextColor(100);
         doc.text(`Category: ${selectedCategory}`, 14, 28);
         doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34);
 
-        const tableColumn = ["Product Name", "Category", "Current Stock", "Threshold"];
-        const tableRows = filteredData.map(item => [
+        const tableColumn = ["S.No", "Product Name", "Category", "MRP (₹)", "Current Stock"];
+        const tableRows = itemsToExport.map((item, index) => [
+            (index + 1).toString(),
             item.name,
             item.category || 'Uncategorized',
-            item.totalQuantity.toString(),
-            item.lowStockThreshold.toString()
+            item.mrp?.toFixed(2) || '0.00',
+            item.totalQuantity.toString()
         ]);
 
         autoTable(doc, {
@@ -54,11 +72,17 @@ const LowStockReportPanel = ({ data, loading }) => {
             headStyles: { fillColor: [25, 118, 210] }
         });
 
-        doc.save(`low_stock_report_${selectedCategory.replace(/\s+/g, '_').toLowerCase()}.pdf`);
+        doc.save(`vendor_order_${selectedCategory.replace(/\s+/g, '_').toLowerCase()}.pdf`);
     };
 
     const handlePrint = () => {
-        window.print();
+        if (selectedItems.length > 0) {
+            // Note: Native window.print prints the whole screen. For a selected subset, exporting PDF is the ideal path.
+            // But we'll trigger PDF export for print layout consistency if they clicked "Print Selected"
+            handleExportPDF();
+        } else {
+            window.print();
+        }
     };
 
     if (loading) {
@@ -108,49 +132,71 @@ const LowStockReportPanel = ({ data, loading }) => {
                         </FormControl>
                     </Box>
 
-                    <ExportOptions
-                        onExportPDF={handleExportPDF}
-                        onPrint={handlePrint}
-                    />
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                        <ExportOptions
+                            onExportPDF={handleExportPDF}
+                            onPrint={handlePrint}
+                            selectedCount={selectedItems.length}
+                        />
+                    </Box>
                 </Box>
 
                 <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
                     <Table stickyHeader sx={{ minWidth: 800 }}>
-                        <SortableTableHead
-                            columns={[
-                                { id: 'name', label: 'PRODUCT' },
-                                { id: 'category', label: 'CATEGORY' },
-                                { id: 'totalQuantity', label: 'CURRENT STOCK', align: 'center' },
-                                { id: 'lowStockThreshold', label: 'THRESHOLD', align: 'center' },
-                                { id: 'status', label: 'STATUS', align: 'center', getter: (item) => item.totalQuantity === 0 ? "Out of Stock" : "Low Stock" }
-                            ]}
-                            sortConfig={sortConfig}
-                            requestSort={requestSort}
-                        />
+                        <TableHead>
+                            <TableRow>
+                                <TableCell padding="checkbox" sx={{ bgcolor: '#f8fafc' }}>
+                                    <Checkbox
+                                        indeterminate={selectedItems.length > 0 && selectedItems.length < filteredData.length}
+                                        checked={filteredData.length > 0 && selectedItems.length === filteredData.length}
+                                        onChange={handleSelectAll}
+                                    />
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>S.NO</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>PRODUCT</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>CATEGORY</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }} align="right">MRP (₹)</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }} align="center">STOCK</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }} align="center">STATUS</TableCell>
+                            </TableRow>
+                        </TableHead>
                         <TableBody>
-                            {sortedData.map((item) => (
-                                <TableRow key={item.id} hover>
-                                    <TableCell sx={{ fontWeight: 600 }}>{item.name}</TableCell>
-                                    <TableCell><Chip label={item.category || 'Uncategorized'} size="small" variant="outlined" /></TableCell>
-                                    <TableCell align="center">
-                                        <Typography sx={{ fontWeight: 700, color: item.totalQuantity === 0 ? '#d32f2f' : '#ed6c02' }}>
-                                            {item.totalQuantity}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell align="center">{item.lowStockThreshold}</TableCell>
-                                    <TableCell align="center">
-                                        <Chip
-                                            label={item.totalQuantity === 0 ? "Out of Stock" : "Low Stock"}
-                                            size="small"
-                                            sx={{
-                                                fontWeight: 700,
-                                                bgcolor: item.totalQuantity === 0 ? '#ffebee' : '#fff3e0',
-                                                color: item.totalQuantity === 0 ? '#d32f2f' : '#e65100'
-                                            }}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                            {sortedData.map((item, index) => {
+                                const isItemSelected = selectedItems.includes(item.id);
+                                return (
+                                    <TableRow
+                                        key={item.id}
+                                        hover
+                                        selected={isItemSelected}
+                                        onClick={() => handleToggleSelect(item.id)}
+                                        sx={{ cursor: 'pointer' }}
+                                    >
+                                        <TableCell padding="checkbox">
+                                            <Checkbox checked={isItemSelected} />
+                                        </TableCell>
+                                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{index + 1}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>{item.name}</TableCell>
+                                        <TableCell><Chip label={item.category || 'Uncategorized'} size="small" variant="outlined" /></TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 700 }}>₹{item.mrp?.toFixed(2) || '0.00'}</TableCell>
+                                        <TableCell align="center">
+                                            <Typography sx={{ fontWeight: 700, color: item.totalQuantity === 0 ? '#d32f2f' : '#ed6c02' }}>
+                                                {item.totalQuantity}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <Chip
+                                                label={item.totalQuantity === 0 ? "Out of Stock" : "Low Stock"}
+                                                size="small"
+                                                sx={{
+                                                    fontWeight: 700,
+                                                    bgcolor: item.totalQuantity === 0 ? '#ffebee' : '#fff3e0',
+                                                    color: item.totalQuantity === 0 ? '#d32f2f' : '#e65100'
+                                                }}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 </TableContainer>
