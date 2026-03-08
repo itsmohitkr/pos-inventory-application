@@ -26,7 +26,8 @@ import {
     Alert,
     Stack,
     Divider,
-    Chip
+    Chip,
+    Autocomplete
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -279,6 +280,8 @@ const ExpenseManagement = () => {
     const totalExpensesAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
     const totalPurchasesAmount = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
 
+    const vendorOptions = Array.from(new Set(purchases.map(p => p.vendor).filter(Boolean)));
+
     return (
         <Box
             sx={{
@@ -513,54 +516,60 @@ const ExpenseManagement = () => {
                         <DialogTitle>{expenseForm.id ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
                         <DialogContent>
                             <Box sx={{ mt: 2 }}>
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                                         <TextField
-                                            fullWidth
+                                            sx={{ flex: 1 }}
                                             required
                                             label="Amount"
                                             type="number"
                                             value={expenseForm.amount}
                                             onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
                                         />
-                                    </Grid>
-                                    <Grid item xs={12}>
                                         <TextField
-                                            fullWidth
+                                            sx={{ flex: 1 }}
                                             required
                                             label="Expenses for?"
                                             value={expenseForm.category}
                                             onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
                                             placeholder="Enter category details..."
                                         />
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            fullWidth
-                                            required
-                                            label="Date"
-                                            type="date"
-                                            value={expenseForm.date}
-                                            onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                                            InputLabelProps={{ shrink: true }}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            fullWidth
-                                            label="Description"
-                                            multiline
-                                            rows={3}
-                                            value={expenseForm.description}
-                                            onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                                        />
-                                    </Grid>
-                                </Grid>
+                                    </Box>
+                                    <TextField
+                                        fullWidth
+                                        required
+                                        label="Date"
+                                        type="date"
+                                        value={expenseForm.date}
+                                        onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Description"
+                                        multiline
+                                        rows={3}
+                                        value={expenseForm.description}
+                                        onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                                    />
+                                </Box>
                             </Box>
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={() => setExpenseDialogOpen(false)}>Cancel</Button>
-                            <Button variant="contained" type="submit" disabled={!expenseForm.amount || !expenseForm.category || !expenseForm.date}>Successful</Button>
+                            <Button
+                                variant="contained"
+                                type="submit"
+                                disabled={!expenseForm.amount || !expenseForm.category || !expenseForm.date}
+                                sx={{
+                                    color: '#ffffff',
+                                    bgcolor: '#0b1d39',
+                                    '&:hover': { bgcolor: '#1a365d' },
+                                    '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.5)', bgcolor: 'rgba(11, 29, 57, 0.5)' }
+                                }}
+                            >
+                                Successful
+                            </Button>
                         </DialogActions>
                     </form>
                 </Dialog>
@@ -571,39 +580,48 @@ const ExpenseManagement = () => {
                         <DialogTitle>{purchaseForm.id ? 'Edit Purchase' : 'Log Inventory Purchase'}</DialogTitle>
                         <DialogContent>
                             <Box sx={{ mt: 2 }}>
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            fullWidth
-                                            label="Vendor Name"
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+                                        <Autocomplete
+                                            sx={{ flex: 1 }}
+                                            freeSolo
+                                            options={vendorOptions}
                                             value={purchaseForm.vendor}
-                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, vendor: e.target.value })}
+                                            onChange={(event, newValue) => {
+                                                setPurchaseForm({ ...purchaseForm, vendor: newValue || '' });
+                                            }}
+                                            onInputChange={(event, newInputValue) => {
+                                                setPurchaseForm({ ...purchaseForm, vendor: newInputValue });
+                                            }}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    label="Vendor Name"
+                                                />
+                                            )}
                                         />
-                                    </Grid>
-                                    <Grid item xs={12}>
                                         <TextField
-                                            fullWidth
+                                            sx={{ flex: 1 }}
                                             required
                                             label="Total Amount"
                                             type="number"
                                             value={purchaseForm.totalAmount}
                                             onChange={(e) => setPurchaseForm({ ...purchaseForm, totalAmount: e.target.value })}
                                         />
-                                    </Grid>
-                                    <Grid item xs={12}>
+                                    </Box>
+
+                                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                                         <TextField
-                                            fullWidth
+                                            sx={{ flex: 1 }}
                                             label="Date"
                                             type="date"
                                             value={purchaseForm.date}
                                             onChange={(e) => setPurchaseForm({ ...purchaseForm, date: e.target.value })}
                                             InputLabelProps={{ shrink: true }}
                                         />
-                                    </Grid>
-                                    <Grid item xs={12}>
                                         <TextField
+                                            sx={{ flex: 1 }}
                                             select
-                                            fullWidth
                                             label="Payment Status"
                                             value={purchaseForm.paymentStatus}
                                             onChange={(e) => setPurchaseForm({ ...purchaseForm, paymentStatus: e.target.value })}
@@ -612,23 +630,34 @@ const ExpenseManagement = () => {
                                             <option value="Paid">Paid</option>
                                             <option value="Unpaid">Unpaid</option>
                                         </TextField>
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            fullWidth
-                                            label="Note"
-                                            multiline
-                                            rows={3}
-                                            value={purchaseForm.note}
-                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, note: e.target.value })}
-                                        />
-                                    </Grid>
-                                </Grid>
+                                    </Box>
+
+                                    <TextField
+                                        fullWidth
+                                        label="Note"
+                                        multiline
+                                        rows={3}
+                                        value={purchaseForm.note}
+                                        onChange={(e) => setPurchaseForm({ ...purchaseForm, note: e.target.value })}
+                                    />
+                                </Box>
                             </Box>
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={() => setPurchaseDialogOpen(false)}>Cancel</Button>
-                            <Button variant="contained" type="submit" disabled={!purchaseForm.totalAmount}>Successful</Button>
+                            <Button
+                                variant="contained"
+                                type="submit"
+                                disabled={!purchaseForm.totalAmount}
+                                sx={{
+                                    color: '#ffffff',
+                                    bgcolor: '#0b1d39',
+                                    '&:hover': { bgcolor: '#1a365d' },
+                                    '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.5)', bgcolor: 'rgba(11, 29, 57, 0.5)' }
+                                }}
+                            >
+                                Successful
+                            </Button>
                         </DialogActions>
                     </form>
                 </Dialog>
