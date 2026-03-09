@@ -38,7 +38,7 @@ import NumpadDialog from './NumpadDialog';
 import CustomDialog from '../common/CustomDialog';
 import SuccessNotification from '../common/SuccessNotification';
 import useCustomDialog from '../../hooks/useCustomDialog';
-import { getStoredPaymentSettings, getFullscreenEnabled, getNotificationDuration, getExtraDiscountEnabled, getChangeCalculatorEnabled, setChangeCalculatorEnabled, getPaymentMethodsEnabled, getCalculatorEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
+import { getStoredPaymentSettings, getFullscreenEnabled, getNotificationDuration, getExtraDiscountEnabled, getChangeCalculatorEnabled, setChangeCalculatorEnabled, getPaymentMethodsEnabled, getCalculatorEnabled, getDecodedPricesEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
 
 const STORAGE_KEYS = {
     receipt: 'posReceiptSettings',
