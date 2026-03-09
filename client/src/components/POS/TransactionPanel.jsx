@@ -113,24 +113,7 @@ const TransactionPanel = ({
                             color: 'rgba(255, 255, 255, 0.4)', // Faint color
                             letterSpacing: 1
                         }}>
-                            [{Math.round(totalCostPrice || 0)}
-                        </Typography>
-                        <Typography variant="caption" component="span" sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            color: '#22c55e', // Green for profit
-                            letterSpacing: 1,
-                            opacity: 0.8
-                        }}>
-                            {Math.round((totalAmount || 0) - (totalCostPrice || 0))}
-                        </Typography>
-                        <Typography variant="caption" sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            color: 'rgba(255, 255, 255, 0.4)', // Faint color
-                            letterSpacing: 1
-                        }}>
-                            ]
+                            [{Math.round(totalCostPrice || 0)}][{Math.round((totalAmount || 0) - (totalCostPrice || 0))}]
                         </Typography>
                     </Box>
                 )}
