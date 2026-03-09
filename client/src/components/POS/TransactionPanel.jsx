@@ -108,28 +108,12 @@ const TransactionPanel = ({
                 {decodedPricesEnabled && (
                     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
                         <Typography variant="caption" sx={{
-                            fontSize: '0.7rem',
-                            fontWeight: 800,
-                            color: '#ff8a8a', // Light red for CP
-                            bgcolor: 'rgba(255, 255, 255, 0.1)',
-                            px: 1,
-                            py: 0.2,
-                            borderRadius: 1,
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            color: 'rgba(255, 255, 255, 0.4)', // Faint color
                             letterSpacing: 1
                         }}>
-                            {Math.round(totalCostPrice || 0)}
-                        </Typography>
-                        <Typography variant="caption" sx={{
-                            fontSize: '0.7rem',
-                            fontWeight: 800,
-                            color: '#6ee7b7', // Light green for SP
-                            bgcolor: 'rgba(255, 255, 255, 0.1)',
-                            px: 1,
-                            py: 0.2,
-                            borderRadius: 1,
-                            letterSpacing: 1
-                        }}>
-                            {Math.round(totalAmount || 0)}
+                            [{Math.round(totalCostPrice || 0)}]
                         </Typography>
                     </Box>
                 )}
