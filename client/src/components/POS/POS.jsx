@@ -555,6 +555,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             }
             return item;
         }));
+        refocus();
     };
 
     const handleSetQuantity = (batchId, quantity) => {

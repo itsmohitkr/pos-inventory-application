@@ -150,7 +150,7 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
                                     <TableCell align="center">
                                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 1, width: 'fit-content', mx: 'auto', opacity: item.isFree ? 0.6 : 1 }}>
                                             {!item.isFree && (
-                                                <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, -1)} color="primary">
+                                                <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, -1)} onMouseDown={(e) => e.preventDefault()} color="primary">
                                                     <RemoveIcon fontSize="small" />
                                                 </IconButton>
                                             )}
@@ -177,7 +177,7 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
                                                 {item.quantity}
                                             </Typography>
                                             {!item.isFree && (
-                                                <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, 1)} color="primary">
+                                                <IconButton size="small" onClick={() => onUpdateQuantity(item.batch_id, 1)} onMouseDown={(e) => e.preventDefault()} color="primary">
                                                     <AddIcon fontSize="small" />
                                                 </IconButton>
                                             )}
@@ -200,6 +200,7 @@ const CartTable = ({ cart, onUpdateQuantity, onRemoveFromCart, onQuantityClick, 
                                             size="medium"
                                             color="error"
                                             onClick={() => onRemoveFromCart(item.batch_id)}
+                                            onMouseDown={(e) => e.preventDefault()}
                                             sx={{
                                                 border: '1.5px solid',
                                                 borderColor: 'error.light',
