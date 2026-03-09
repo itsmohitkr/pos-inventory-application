@@ -772,6 +772,7 @@ function App() {
 
   const handleCloseSettingsMenu = () => {
     setSettingsAnchorEl(null);
+    window.dispatchEvent(new Event('pos-refocus'));
   };
 
   const handleOpenBillSettings = () => {
