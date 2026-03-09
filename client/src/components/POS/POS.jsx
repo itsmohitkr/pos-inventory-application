@@ -300,10 +300,11 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             refreshSettings();
             setFullscreenEnabled(getFullscreenEnabled());
             setIsCalculatorEnabled(getCalculatorEnabled());
+            refocus();
         };
         window.addEventListener('pos-settings-updated', handleSettingsUpdated);
         return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
-    }, [refreshSettings]);
+    }, [refreshSettings, refocus]);
 
 
     // Resizable Layout State
