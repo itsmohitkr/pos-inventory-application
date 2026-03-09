@@ -18,7 +18,7 @@ import {
     Add as AddIcon,
     Delete as DeleteIcon
 } from '@mui/icons-material';
-import { getStoredPaymentSettings, STORAGE_KEYS, getFullscreenEnabled, getNotificationDuration, setNotificationDuration, getExtraDiscountEnabled, setExtraDiscountEnabled, DEFAULT_PAYMENT_SETTINGS } from '../../utils/paymentSettings';
+import { getStoredPaymentSettings, STORAGE_KEYS, getFullscreenEnabled, getNotificationDuration, setNotificationDuration, getExtraDiscountEnabled, setExtraDiscountEnabled, DEFAULT_PAYMENT_SETTINGS, getDecodedPricesEnabled, setDecodedPricesEnabled } from '../../utils/paymentSettings';
 import api from '../../api';
 import { useEffect } from 'react';
 
@@ -35,6 +35,7 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
     const [paymentSettings, setPaymentSettings] = useState(DEFAULT_PAYMENT_SETTINGS);
     const [customMethod, setCustomMethod] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
+    const [showDecodedPrices, setShowDecodedPrices] = useState(getDecodedPricesEnabled());
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -116,6 +117,15 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
             }
             return updated;
         });
+    };
+
+    const handleDecodedPricesToggle = (event) => {
+        const isEnabled = event.target.checked;
+        setShowDecodedPrices(isEnabled);
+        setDecodedPricesEnabled(isEnabled);
+        if (showSuccess) {
+            showSuccess(`Decoded CP/SP display ${isEnabled ? 'enabled' : 'disabled'}`);
+        }
     };
 
     const saveSettings = async (settings) => {
@@ -247,6 +257,15 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
                                 />
                             }
                             label="Allow Multiple Payment Methods in Single Transaction"
+                        />
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={showDecodedPrices}
+                                    onChange={handleDecodedPricesToggle}
+                                />
+                            }
+                            label="Show Encoded CP and SP on Checkout"
                         />
                     </FormGroup>
                 </Box>

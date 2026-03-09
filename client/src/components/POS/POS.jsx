@@ -157,6 +157,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
     const [paymentMethodsEnabled, setPaymentMethodsEnabled] = useState(getPaymentMethodsEnabled());
     const [shouldPrintAfterPayment, setShouldPrintAfterPayment] = useState(false);
     const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
+    const [decodedPricesEnabled, setDecodedPricesEnabledState] = useState(() => getDecodedPricesEnabled());
 
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const [lastAddedItemId, setLastAddedItemId] = useState(null);
@@ -300,6 +301,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
             refreshSettings();
             setFullscreenEnabled(getFullscreenEnabled());
             setIsCalculatorEnabled(getCalculatorEnabled());
+            setDecodedPricesEnabledState(getDecodedPricesEnabled());
             refocus();
         };
         window.addEventListener('pos-settings-updated', handleSettingsUpdated);
@@ -1019,6 +1021,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
 
     const totalAmount = receiptSettings.roundOff ? Math.round(baseTotalAmount) : baseTotalAmount;
     const totalSavings = totalMrp - totalAmount;
+    const totalCostPrice = cart.reduce((sum, item) => sum + ((item.costPrice || 0) * item.quantity), 0);
 
     const filterOptions = (options, { inputValue }) => {
         const normalizedInput = inputValue.trim().toLowerCase();
@@ -1452,6 +1455,8 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                         selectedPaymentMethod={selectedPaymentMethod}
                         paymentSettings={paymentSettings}
                         extraDiscountEnabled={extraDiscountEnabled}
+                        decodedPricesEnabled={decodedPricesEnabled}
+                        totalCostPrice={totalCostPrice}
                         subTotal={subTotal}
                         totalMrp={totalMrp}
                         totalQty={totalQty}

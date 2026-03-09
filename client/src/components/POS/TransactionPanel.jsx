@@ -51,7 +51,9 @@ const TransactionPanel = ({
     receivedAmount,
     setReceivedAmount,
     showNumpad,
-    setShowNumpad
+    setShowNumpad,
+    decodedPricesEnabled,
+    totalCostPrice
 }) => {
     const changeDue = Math.max(0, receivedAmount - totalAmount);
 
@@ -93,12 +95,44 @@ const TransactionPanel = ({
                 sx={{
                     p: 1.5,
                     color: 'primary.contrastText',
-                    background: 'linear-gradient(135deg, #0b1d39 0%, #1b3e6f 100%)'
+                    background: 'linear-gradient(135deg, #0b1d39 0%, #1b3e6f 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
                 }}
             >
                 <Typography variant="subtitle1" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <ReceiptIcon fontSize="small" /> Checkout
                 </Typography>
+
+                {decodedPricesEnabled && (
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                        <Typography variant="caption" sx={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            color: '#ff8a8a', // Light red for CP
+                            bgcolor: 'rgba(255, 255, 255, 0.1)',
+                            px: 1,
+                            py: 0.2,
+                            borderRadius: 1,
+                            letterSpacing: 1
+                        }}>
+                            {Math.round(totalCostPrice || 0)}
+                        </Typography>
+                        <Typography variant="caption" sx={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            color: '#6ee7b7', // Light green for SP
+                            bgcolor: 'rgba(255, 255, 255, 0.1)',
+                            px: 1,
+                            py: 0.2,
+                            borderRadius: 1,
+                            letterSpacing: 1
+                        }}>
+                            {Math.round(totalAmount || 0)}
+                        </Typography>
+                    </Box>
+                )}
             </Box>
 
             {/* Content */}

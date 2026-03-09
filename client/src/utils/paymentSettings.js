@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
     enableChangeCalculator: 'posEnableChangeCalculator',
     enablePaymentMethods: 'posEnablePaymentMethods',
     enableCalculator: 'posEnableCalculator',
+    enableDecodedPrices: 'posEnableDecodedPrices',
     receipt: 'posReceiptSettings',
     shopName: 'posShopName'
 };
@@ -124,5 +125,23 @@ export const setCalculatorEnabled = (enabled) => {
         window.dispatchEvent(new Event('pos-settings-updated'));
     } catch (error) {
         console.error('Failed to save calculator setting:', error);
+    }
+};
+
+export const getDecodedPricesEnabled = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.enableDecodedPrices);
+        return stored ? JSON.parse(stored) : false; // Default to false (disabled)
+    } catch {
+        return false;
+    }
+};
+
+export const setDecodedPricesEnabled = (enabled) => {
+    try {
+        localStorage.setItem(STORAGE_KEYS.enableDecodedPrices, JSON.stringify(enabled));
+        window.dispatchEvent(new Event('pos-settings-updated'));
+    } catch (error) {
+        console.error('Failed to save decoded prices setting:', error);
     }
 };
