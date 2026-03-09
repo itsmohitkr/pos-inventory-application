@@ -780,6 +780,11 @@ function App() {
     handleCloseSettingsMenu();
   };
 
+  const closeBillSettings = () => {
+    setShowBillDialog(false);
+    window.dispatchEvent(new Event('pos-refocus'));
+  };
+
   const handleSaveBillSettings = async () => {
     setReceiptSettings(draftReceiptSettings);
     setShowBillDialog(false);
@@ -789,6 +794,7 @@ function App() {
         value: draftReceiptSettings
       });
       showSuccess('Bill settings saved successfully');
+      window.dispatchEvent(new Event('pos-refocus'));
     } catch (error) {
       console.error('Failed to save bill settings:', error);
       showError('Failed to save bill settings');
@@ -798,6 +804,11 @@ function App() {
   const handleOpenAccountSettings = () => {
     setShowAccountDialog(true);
     handleCloseSettingsMenu();
+  };
+
+  const closeAccountSettings = () => {
+    setShowAccountDialog(false);
+    window.dispatchEvent(new Event('pos-refocus'));
   };
 
   const isAdmin = currentUser?.role === 'admin';
@@ -996,14 +1007,14 @@ function App() {
 
         <AccountDetailsDialog
           open={showAccountDialog}
-          onClose={() => setShowAccountDialog(false)}
+          onClose={closeAccountSettings}
           shopName={shopName}
           shopMetadata={shopMetadata}
           onMetadataChange={handleShopMetadataChange}
           currentUser={currentUser}
         />
 
-        <Dialog open={showChangePasswordDialog} onClose={() => setShowChangePasswordDialog(false)} maxWidth="sm" fullWidth>
+        <Dialog open={showChangePasswordDialog} onClose={() => { setShowChangePasswordDialog(false); window.dispatchEvent(new Event('pos-refocus')); }} maxWidth="sm" fullWidth>
           <DialogTitle>Change Password</DialogTitle>
           <DialogContent sx={{ pt: 2 }}>
             {passwordError && <Typography color="error" sx={{ mb: 2 }}>{passwordError}</Typography>}
@@ -1035,14 +1046,14 @@ function App() {
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setShowChangePasswordDialog(false)} variant="outlined">Cancel</Button>
+            <Button onClick={() => { setShowChangePasswordDialog(false); window.dispatchEvent(new Event('pos-refocus')); }} variant="outlined">Cancel</Button>
             <Button onClick={handleChangePassword} variant="contained">Change Password</Button>
           </DialogActions>
         </Dialog>
 
         <ReceiptPreviewDialog
           open={showBillDialog}
-          onClose={() => setShowBillDialog(false)}
+          onClose={closeBillSettings}
           lastSale={SAMPLE_SALE}
           receiptSettings={draftReceiptSettings}
           onSettingChange={handleSettingChange}
@@ -1059,7 +1070,7 @@ function App() {
 
         <UserManagementDialog
           open={showUserManagementDialog}
-          onClose={() => setShowUserManagementDialog(false)}
+          onClose={() => { setShowUserManagementDialog(false); window.dispatchEvent(new Event('pos-refocus')); }}
           currentUser={currentUser}
         />
         <CustomDialog {...dialogState} onClose={closeDialog} />
