@@ -171,11 +171,12 @@ model PurchaseItem {
 }
 
 model PurchasePayment {
-  id         Int      @id @default(autoincrement())
-  purchaseId Int
-  amount     Float
-  date       DateTime @default(now())
-  note       String?
-  createdAt  DateTime @default(now())
-  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  purchaseId    Int
+  amount        Float
+  paymentMethod String?
+  date          DateTime @default(now())
+  note          String?
+  createdAt     DateTime @default(now())
+  purchase      Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 }

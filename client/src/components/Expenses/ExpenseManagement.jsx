@@ -80,11 +80,13 @@ const ExpenseManagement = () => {
         date: getLocalTodayString(),
         note: '',
         paidAmount: '',
+        paymentMethod: 'Cash',
         items: []
     });
 
     const [paymentForm, setPaymentForm] = useState({
         amount: '',
+        paymentMethod: 'Cash',
         date: getLocalTodayString(),
         note: ''
     });
@@ -200,7 +202,7 @@ const ExpenseManagement = () => {
     };
 
     const handleOpenPurchaseDialog = () => {
-        setPurchaseForm({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', items: [] });
+        setPurchaseForm({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', paymentMethod: 'Cash', items: [] });
         setPurchaseDialogOpen(true);
     };
 
@@ -223,6 +225,7 @@ const ExpenseManagement = () => {
             note: purchase.note || '',
             date: new Date(purchase.date).toISOString().split('T')[0],
             paidAmount: purchase.totalPaid || 0,
+            paymentMethod: 'Cash',
             items: purchase.items || []
         });
         setPurchaseDialogOpen(true);
@@ -292,6 +295,7 @@ const ExpenseManagement = () => {
         setSelectedPurchase(purchase);
         setPaymentForm({
             amount: purchase.dueAmount || 0,
+            paymentMethod: 'Cash',
             date: getLocalTodayString(),
             note: ''
         });
@@ -308,6 +312,7 @@ const ExpenseManagement = () => {
         try {
             await api.post(`/api/purchases/${selectedPurchase.id}/payments`, {
                 amount: parseFloat(paymentForm.amount),
+                paymentMethod: paymentForm.paymentMethod,
                 date: paymentForm.date,
                 note: paymentForm.note
             });
@@ -701,6 +706,19 @@ const ExpenseManagement = () => {
                                                     : ''
                                             }
                                         />
+                                        <TextField
+                                            sx={{ flex: 1 }}
+                                            select
+                                            label="Method"
+                                            value={purchaseForm.paymentMethod}
+                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, paymentMethod: e.target.value })}
+                                            SelectProps={{ native: true }}
+                                        >
+                                            <option value="Cash">Cash</option>
+                                            <option value="Card">Card</option>
+                                            <option value="UPI">UPI</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                        </TextField>
                                     </Box>
 
                                     <TextField
@@ -745,15 +763,31 @@ const ExpenseManagement = () => {
                                         <Typography variant="body1" fontWeight="bold" color="error.main">Due Amount: ₹{selectedPurchase.dueAmount?.toLocaleString()}</Typography>
                                     </Box>
                                 )}
-                                <TextField
-                                    required
-                                    fullWidth
-                                    label="Payment Amount"
-                                    type="number"
-                                    inputProps={{ max: selectedPurchase?.dueAmount || 0, step: "0.01" }}
-                                    value={paymentForm.amount}
-                                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                                />
+                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                    <TextField
+                                        required
+                                        sx={{ flex: 2 }}
+                                        label="Payment Amount"
+                                        type="number"
+                                        inputProps={{ max: selectedPurchase?.dueAmount || 0, step: "0.01" }}
+                                        value={paymentForm.amount}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                                    />
+                                    <TextField
+                                        required
+                                        sx={{ flex: 1 }}
+                                        select
+                                        label="Method"
+                                        value={paymentForm.paymentMethod}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                                        SelectProps={{ native: true }}
+                                    >
+                                        <option value="Cash">Cash</option>
+                                        <option value="Card">Card</option>
+                                        <option value="UPI">UPI</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                    </TextField>
+                                </Box>
                                 <TextField
                                     required
                                     fullWidth
@@ -817,6 +851,7 @@ const ExpenseManagement = () => {
                                             <TableHead sx={{ bgcolor: 'action.hover' }}>
                                                 <TableRow>
                                                     <TableCell>Date & Time</TableCell>
+                                                    <TableCell>Method</TableCell>
                                                     <TableCell>Note</TableCell>
                                                     <TableCell align="right">Amount</TableCell>
                                                 </TableRow>
@@ -828,6 +863,7 @@ const ExpenseManagement = () => {
                                                             day: '2-digit', month: 'short', year: 'numeric',
                                                             hour: '2-digit', minute: '2-digit', hour12: true
                                                         })}</TableCell>
+                                                        <TableCell>{payment.paymentMethod || 'Cash'}</TableCell>
                                                         <TableCell>{payment.note || '-'}</TableCell>
                                                         <TableCell align="right" sx={{ fontWeight: 'medium', color: 'success.main' }}>
                                                             ₹{payment.amount.toLocaleString()}

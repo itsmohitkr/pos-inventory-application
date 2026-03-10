@@ -11,7 +11,7 @@ const getDateWithCurrentTime = (dateString) => {
 };
 
 const createPurchase = async (data) => {
-    const { vendor, totalAmount, date, note, paidAmount, items = [] } = data;
+    const { vendor, totalAmount, date, note, paidAmount, paymentMethod, items = [] } = data;
 
     // Filter out invalid items (those without product IDs)
     const validItems = items.filter(item => item.productId && !isNaN(parseInt(item.productId)));
@@ -55,11 +55,12 @@ const createPurchase = async (data) => {
                 data: {
                     purchaseId: purchase.id,
                     amount: parsedPaidAmount,
+                    paymentMethod: paymentMethod || 'Cash',
                     date: purchase.date,
                     note: 'Initial payment upon logging purchase'
                 }
             });
-            purchase.payments = [{ amount: parsedPaidAmount, date: purchase.date, note: 'Initial payment upon logging purchase' }];
+            purchase.payments = [{ amount: parsedPaidAmount, paymentMethod: paymentMethod || 'Cash', date: purchase.date, note: 'Initial payment upon logging purchase' }];
         }
 
         // Optionally update batch cost price if batchId is provided
@@ -166,13 +167,14 @@ const updatePurchase = async (id, data) => {
 };
 
 const addPayment = async (purchaseId, paymentData) => {
-    const { amount, date, note } = paymentData;
+    const { amount, date, note, paymentMethod } = paymentData;
 
     return await prisma.$transaction(async (tx) => {
         const payment = await tx.purchasePayment.create({
             data: {
                 purchaseId: parseInt(purchaseId),
                 amount: parseFloat(amount) || 0,
+                paymentMethod: paymentMethod || 'Cash',
                 date: date ? getDateWithCurrentTime(date) : new Date(),
                 note
             }
