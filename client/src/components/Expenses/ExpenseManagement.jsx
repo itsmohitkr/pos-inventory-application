@@ -56,6 +56,11 @@ const ExpenseManagement = () => {
     // Filtering states
     const [dateFilter, setDateFilter] = useState('thisMonth');
     const [customDates, setCustomDates] = useState({ start: getLocalTodayString(), end: getLocalTodayString() });
+    const [purchaseStatusFilter, setPurchaseStatusFilter] = useState('All');
+    const [purchaseVendorFilter, setPurchaseVendorFilter] = useState('All');
+    const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('All');
+    const [expenseSearchFilter, setExpenseSearchFilter] = useState('');
+    const [purchaseSearchFilter, setPurchaseSearchFilter] = useState('');
 
     // Dialog states
     const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
@@ -325,11 +330,31 @@ const ExpenseManagement = () => {
     };
 
     // Derived totals
-    const totalExpensesAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalPurchasesAmount = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
-    const totalPurchasesDue = purchases.reduce((sum, p) => sum + (p.dueAmount || 0), 0);
-
     const vendorOptions = Array.from(new Set(purchases.map(p => p.vendor).filter(Boolean)));
+
+    // Filtering expenses
+    const filteredExpenses = expenses.filter(e => {
+        if (expenseCategoryFilter !== 'All' && e.category !== expenseCategoryFilter) return false;
+        if (expenseSearchFilter && !e.description?.toLowerCase().includes(expenseSearchFilter.toLowerCase()) && !e.category.toLowerCase().includes(expenseSearchFilter.toLowerCase())) return false;
+        return true;
+    });
+
+    // Filtering purchases
+    const filteredPurchases = purchases.filter(p => {
+        if (purchaseStatusFilter !== 'All' && p.paymentStatus !== purchaseStatusFilter) return false;
+        if (purchaseVendorFilter !== 'All' && p.vendor !== purchaseVendorFilter) return false;
+        if (purchaseSearchFilter) {
+            const search = purchaseSearchFilter.toLowerCase();
+            const vendorMatch = p.vendor?.toLowerCase().includes(search);
+            const noteMatch = p.note?.toLowerCase().includes(search);
+            if (!vendorMatch && !noteMatch) return false;
+        }
+        return true;
+    });
+
+    const totalExpensesAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalPurchasesAmount = filteredPurchases.reduce((sum, p) => sum + p.totalAmount, 0);
+    const totalPurchasesDue = filteredPurchases.reduce((sum, p) => sum + (p.dueAmount || 0), 0);
 
     return (
         <Box
@@ -422,11 +447,33 @@ const ExpenseManagement = () => {
 
                         {activeTab === 0 && (
                             <Box>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                                <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2} sx={{ mb: 2 }}>
                                     <Typography variant="h6">Operating Expenses</Typography>
-                                    <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenExpenseDialog}>
-                                        Add Expense
-                                    </Button>
+                                    <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                                        <TextField
+                                            size="small"
+                                            placeholder="Search description..."
+                                            value={expenseSearchFilter}
+                                            onChange={(e) => setExpenseSearchFilter(e.target.value)}
+                                            sx={{ minWidth: 200 }}
+                                        />
+                                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                                            <InputLabel>Category</InputLabel>
+                                            <Select
+                                                value={expenseCategoryFilter}
+                                                label="Category"
+                                                onChange={(e) => setExpenseCategoryFilter(e.target.value)}
+                                            >
+                                                <MenuItem value="All">All Categories</MenuItem>
+                                                {categories.map(cat => (
+                                                    <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenExpenseDialog}>
+                                            Add Expense
+                                        </Button>
+                                    </Stack>
                                 </Stack>
 
                                 <TableContainer component={Paper} variant="outlined">
@@ -441,7 +488,7 @@ const ExpenseManagement = () => {
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {expenses.map((row) => (
+                                            {filteredExpenses.map((row) => (
                                                 <TableRow key={row.id}>
                                                     <TableCell>{new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</TableCell>
                                                     <TableCell>{row.category}</TableCell>
@@ -457,13 +504,13 @@ const ExpenseManagement = () => {
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
-                                            {expenses.length === 0 && (
+                                            {filteredExpenses.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} align="center">No expenses found for this period</TableCell>
+                                                    <TableCell colSpan={5} align="center">No expenses match criteria</TableCell>
                                                 </TableRow>
                                             )}
                                             {/* Highlighted Total Row */}
-                                            {expenses.length > 0 && (
+                                            {filteredExpenses.length > 0 && (
                                                 <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
                                                     <TableCell colSpan={3} sx={{ py: 1.5 }}>
                                                         <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
@@ -486,11 +533,41 @@ const ExpenseManagement = () => {
 
                         {activeTab === 1 && (
                             <Box>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                                <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2} sx={{ mb: 2 }}>
                                     <Typography variant="h6">Inventory Purchases</Typography>
-                                    <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenPurchaseDialog}>
-                                        Log Purchase
-                                    </Button>
+                                    <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                                        <TextField
+                                            size="small"
+                                            placeholder="Search vendor or note..."
+                                            value={purchaseSearchFilter}
+                                            onChange={(e) => setPurchaseSearchFilter(e.target.value)}
+                                            sx={{ minWidth: 200 }}
+                                        />
+                                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                                            <InputLabel>Status</InputLabel>
+                                            <Select
+                                                value={purchaseStatusFilter}
+                                                label="Status"
+                                                onChange={(e) => setPurchaseStatusFilter(e.target.value)}
+                                            >
+                                                <MenuItem value="All">All Statuses</MenuItem>
+                                                <MenuItem value="Paid">Paid</MenuItem>
+                                                <MenuItem value="Due">Due</MenuItem>
+                                                <MenuItem value="Unpaid">Unpaid</MenuItem>
+                                            </Select>
+                                        </FormControl>
+                                        <Autocomplete
+                                            size="small"
+                                            sx={{ minWidth: 150 }}
+                                            options={['All', ...vendorOptions]}
+                                            value={purchaseVendorFilter}
+                                            onChange={(e, val) => setPurchaseVendorFilter(val || 'All')}
+                                            renderInput={(params) => <TextField {...params} label="Vendor" />}
+                                        />
+                                        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenPurchaseDialog}>
+                                            Log Purchase
+                                        </Button>
+                                    </Stack>
                                 </Stack>
 
                                 <TableContainer component={Paper} variant="outlined">
@@ -507,7 +584,7 @@ const ExpenseManagement = () => {
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {purchases.map((row) => (
+                                            {filteredPurchases.map((row) => (
                                                 <TableRow
                                                     key={row.id}
                                                     onDoubleClick={() => handleOpenPaymentHistoryDialog(row)}
@@ -550,13 +627,13 @@ const ExpenseManagement = () => {
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
-                                            {purchases.length === 0 && (
+                                            {filteredPurchases.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={7} align="center">No purchases recorded for this period</TableCell>
+                                                    <TableCell colSpan={7} align="center">No purchases match criteria</TableCell>
                                                 </TableRow>
                                             )}
                                             {/* Highlighted Total Row */}
-                                            {purchases.length > 0 && (
+                                            {filteredPurchases.length > 0 && (
                                                 <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
                                                     <TableCell colSpan={3} sx={{ py: 1.5 }}>
                                                         <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
