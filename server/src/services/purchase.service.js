@@ -1,6 +1,15 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// Helper to append current time to a date string (YYYY-MM-DD)
+const getDateWithCurrentTime = (dateString) => {
+    if (!dateString) return new Date();
+    const dateObj = new Date(dateString);
+    const now = new Date();
+    dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+    return dateObj;
+};
+
 const createPurchase = async (data) => {
     const { vendor, totalAmount, date, note, paidAmount, items = [] } = data;
 
@@ -19,7 +28,7 @@ const createPurchase = async (data) => {
         const purchaseData = {
             vendor,
             totalAmount: parsedTotalAmount,
-            date: date ? new Date(date) : new Date(),
+            date: date ? getDateWithCurrentTime(date) : new Date(),
             note,
             paymentStatus: initialPaymentStatus
         };
@@ -164,7 +173,7 @@ const addPayment = async (purchaseId, paymentData) => {
             data: {
                 purchaseId: parseInt(purchaseId),
                 amount: parseFloat(amount) || 0,
-                date: date ? new Date(date) : new Date(),
+                date: date ? getDateWithCurrentTime(date) : new Date(),
                 note
             }
         });
