@@ -6,5 +6,6 @@ router.post('/', purchaseController.createPurchase);
 router.get('/', purchaseController.getPurchases);
 router.put('/:id', purchaseController.updatePurchase);
 router.delete('/:id', purchaseController.deletePurchase);
+router.post('/:id/payments', purchaseController.addPayment);
 
 module.exports = router;

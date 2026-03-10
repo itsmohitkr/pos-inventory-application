@@ -36,9 +36,19 @@ const updatePurchase = async (req, res) => {
     }
 };
 
+const addPayment = async (req, res) => {
+    try {
+        const payment = await purchaseService.addPayment(req.params.id, req.body);
+        res.status(201).json(payment);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     createPurchase,
     getPurchases,
     deletePurchase,
-    updatePurchase
+    updatePurchase,
+    addPayment
 };

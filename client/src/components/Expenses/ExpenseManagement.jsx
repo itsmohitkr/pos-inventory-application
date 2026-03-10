@@ -34,7 +34,9 @@ import {
     Delete as DeleteIcon,
     Receipt as ReceiptIcon,
     LocalShipping as ShippingIcon,
-    Edit as EditIcon
+    Edit as EditIcon,
+    Payment as PaymentIcon,
+    History as HistoryIcon
 } from '@mui/icons-material';
 import api from '../../api';
 
@@ -58,6 +60,9 @@ const ExpenseManagement = () => {
     // Dialog states
     const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
     const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+    const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+    const [paymentHistoryDialogOpen, setPaymentHistoryDialogOpen] = useState(false);
+    const [selectedPurchase, setSelectedPurchase] = useState(null);
 
     // Form states
     const [expenseForm, setExpenseForm] = useState({
@@ -76,6 +81,12 @@ const ExpenseManagement = () => {
         note: '',
         paymentStatus: 'Paid',
         items: []
+    });
+
+    const [paymentForm, setPaymentForm] = useState({
+        amount: '',
+        date: getLocalTodayString(),
+        note: ''
     });
 
     const categories = ['Electricity', 'Rent', 'Wages', 'WiFi', 'Maintenance', 'Misc'];
@@ -276,9 +287,41 @@ const ExpenseManagement = () => {
         }
     };
 
+    const handleOpenPaymentDialog = (purchase) => {
+        setSelectedPurchase(purchase);
+        setPaymentForm({
+            amount: purchase.dueAmount || 0,
+            date: getLocalTodayString(),
+            note: ''
+        });
+        setPaymentDialogOpen(true);
+    };
+
+    const handleOpenPaymentHistoryDialog = (purchase) => {
+        setSelectedPurchase(purchase);
+        setPaymentHistoryDialogOpen(true);
+    };
+
+    const handleCreatePayment = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            await api.post(`/api/purchases/${selectedPurchase.id}/payments`, {
+                amount: parseFloat(paymentForm.amount),
+                date: paymentForm.date,
+                note: paymentForm.note
+            });
+            setPaymentDialogOpen(false);
+            fetchData();
+        } catch (err) {
+            console.error('Payment saving error:', err);
+            setError('Failed to save payment.');
+        }
+    };
+
     // Derived totals
     const totalExpensesAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
     const totalPurchasesAmount = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
+    const totalPurchasesDue = purchases.reduce((sum, p) => sum + (p.dueAmount || 0), 0);
 
     const vendorOptions = Array.from(new Set(purchases.map(p => p.vendor).filter(Boolean)));
 
@@ -452,26 +495,46 @@ const ExpenseManagement = () => {
                                                 <TableCell>Vendor</TableCell>
                                                 <TableCell>Note</TableCell>
                                                 <TableCell align="right">Amount</TableCell>
+                                                <TableCell align="right">Due</TableCell>
                                                 <TableCell align="center">Status</TableCell>
                                                 <TableCell align="right">Actions</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
                                             {purchases.map((row) => (
-                                                <TableRow key={row.id}>
+                                                <TableRow
+                                                    key={row.id}
+                                                    onDoubleClick={() => handleOpenPaymentHistoryDialog(row)}
+                                                    sx={{ '&:hover': { bgcolor: 'action.hover', cursor: 'pointer' } }}
+                                                >
                                                     <TableCell>{new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</TableCell>
                                                     <TableCell>{row.vendor || 'N/A'}</TableCell>
                                                     <TableCell>{row.note}</TableCell>
                                                     <TableCell align="right">₹{row.totalAmount.toLocaleString()}</TableCell>
+                                                    <TableCell align="right">
+                                                        {row.dueAmount > 0 ? (
+                                                            <Typography fontWeight="bold" color="error.main">₹{row.dueAmount.toLocaleString()}</Typography>
+                                                        ) : (
+                                                            <Typography color="text.secondary">-</Typography>
+                                                        )}
+                                                    </TableCell>
                                                     <TableCell align="center">
                                                         <Chip
                                                             label={row.paymentStatus || 'Paid'}
                                                             size="small"
-                                                            color={row.paymentStatus === 'Unpaid' ? 'error' : 'success'}
+                                                            color={
+                                                                row.paymentStatus === 'Paid' ? 'success' :
+                                                                    row.paymentStatus === 'Due' ? 'warning' : 'error'
+                                                            }
                                                             sx={{ fontWeight: 'bold', minWidth: 70 }}
                                                         />
                                                     </TableCell>
                                                     <TableCell align="right">
+                                                        {row.dueAmount > 0 && (
+                                                            <IconButton size="small" color="success" onClick={() => handleOpenPaymentDialog(row)} title="Make Payment">
+                                                                <PaymentIcon fontSize="small" />
+                                                            </IconButton>
+                                                        )}
                                                         <IconButton size="small" color="primary" onClick={() => handleEditPurchase(row)}>
                                                             <EditIcon fontSize="small" />
                                                         </IconButton>
@@ -483,7 +546,7 @@ const ExpenseManagement = () => {
                                             ))}
                                             {purchases.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={6} align="center">No purchases recorded for this period</TableCell>
+                                                    <TableCell colSpan={7} align="center">No purchases recorded for this period</TableCell>
                                                 </TableRow>
                                             )}
                                             {/* Highlighted Total Row */}
@@ -497,6 +560,11 @@ const ExpenseManagement = () => {
                                                     <TableCell align="right" sx={{ py: 1.5 }}>
                                                         <Typography variant="h6" fontWeight="bold" color="primary.dark">
                                                             ₹{totalPurchasesAmount.toLocaleString()}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="right" sx={{ py: 1.5 }}>
+                                                        <Typography variant="h6" fontWeight="bold" color="error.main">
+                                                            ₹{totalPurchasesDue.toLocaleString()}
                                                         </Typography>
                                                     </TableCell>
                                                     <TableCell colSpan={2} sx={{ py: 1.5 }} />
@@ -627,8 +695,8 @@ const ExpenseManagement = () => {
                                             onChange={(e) => setPurchaseForm({ ...purchaseForm, paymentStatus: e.target.value })}
                                             SelectProps={{ native: true }}
                                         >
-                                            <option value="Paid">Paid</option>
-                                            <option value="Unpaid">Unpaid</option>
+                                            <option value="Paid">Paid (Full)</option>
+                                            <option value="Unpaid">Unpaid (Full Due)</option>
                                         </TextField>
                                     </Box>
 
@@ -660,6 +728,118 @@ const ExpenseManagement = () => {
                             </Button>
                         </DialogActions>
                     </form>
+                </Dialog>
+
+                {/* Make Payment Dialog */}
+                <Dialog open={paymentDialogOpen} onClose={() => setPaymentDialogOpen(false)} fullWidth maxWidth="xs">
+                    <form onSubmit={handleCreatePayment}>
+                        <DialogTitle>Make Payment</DialogTitle>
+                        <DialogContent>
+                            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {selectedPurchase && (
+                                    <Box sx={{ mb: 1, p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
+                                        <Typography variant="body2" color="text.secondary">Total Amount: ₹{selectedPurchase.totalAmount.toLocaleString()}</Typography>
+                                        <Typography variant="body1" fontWeight="bold" color="error.main">Due Amount: ₹{selectedPurchase.dueAmount?.toLocaleString()}</Typography>
+                                    </Box>
+                                )}
+                                <TextField
+                                    required
+                                    fullWidth
+                                    label="Payment Amount"
+                                    type="number"
+                                    inputProps={{ max: selectedPurchase?.dueAmount || 0, step: "0.01" }}
+                                    value={paymentForm.amount}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                                />
+                                <TextField
+                                    required
+                                    fullWidth
+                                    label="Payment Date"
+                                    type="date"
+                                    value={paymentForm.date}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <TextField
+                                    fullWidth
+                                    label="Note (Optional)"
+                                    multiline
+                                    rows={2}
+                                    value={paymentForm.note}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
+                                />
+                            </Box>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setPaymentDialogOpen(false)}>Cancel</Button>
+                            <Button
+                                variant="contained"
+                                type="submit"
+                                color="success"
+                                disabled={!paymentForm.amount || parseFloat(paymentForm.amount) <= 0 || parseFloat(paymentForm.amount) > (selectedPurchase?.dueAmount || 0)}
+                            >
+                                Record Payment
+                            </Button>
+                        </DialogActions>
+                    </form>
+                </Dialog>
+
+                {/* Payment History Dialog */}
+                <Dialog open={paymentHistoryDialogOpen} onClose={() => setPaymentHistoryDialogOpen(false)} fullWidth maxWidth="sm">
+                    <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <HistoryIcon color="primary" /> Payment History
+                    </DialogTitle>
+                    <DialogContent dividers>
+                        {selectedPurchase && (
+                            <Box>
+                                <Stack direction="row" justifyContent="space-between" sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">Total Amount</Typography>
+                                        <Typography variant="h6" fontWeight="bold">₹{selectedPurchase.totalAmount.toLocaleString()}</Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">Total Paid</Typography>
+                                        <Typography variant="h6" fontWeight="bold" color="success.main">₹{selectedPurchase.totalPaid?.toLocaleString()}</Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">Due Amount</Typography>
+                                        <Typography variant="h6" fontWeight="bold" color="error.main">₹{selectedPurchase.dueAmount?.toLocaleString()}</Typography>
+                                    </Box>
+                                </Stack>
+
+                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Recorded Payments</Typography>
+                                {selectedPurchase.payments && selectedPurchase.payments.length > 0 ? (
+                                    <TableContainer component={Paper} variant="outlined">
+                                        <Table size="small">
+                                            <TableHead sx={{ bgcolor: 'action.hover' }}>
+                                                <TableRow>
+                                                    <TableCell>Date</TableCell>
+                                                    <TableCell>Note</TableCell>
+                                                    <TableCell align="right">Amount</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {selectedPurchase.payments.map((payment) => (
+                                                    <TableRow key={payment.id}>
+                                                        <TableCell>{new Date(payment.date).toLocaleDateString('en-GB')}</TableCell>
+                                                        <TableCell>{payment.note || '-'}</TableCell>
+                                                        <TableCell align="right" sx={{ fontWeight: 'medium', color: 'success.main' }}>
+                                                            ₹{payment.amount.toLocaleString()}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                ) : (
+                                    <Alert severity="info" variant="outlined">No payments have been recorded for this purchase yet.</Alert>
+                                )}
+                            </Box>
+                        )}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setPaymentHistoryDialogOpen(false)}>Close</Button>
+                    </DialogActions>
                 </Dialog>
             </Box>
         </Box>

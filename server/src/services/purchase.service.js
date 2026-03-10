@@ -29,8 +29,22 @@ const createPurchase = async (data) => {
 
         const purchase = await tx.purchase.create({
             data: purchaseData,
-            include: { items: true }
+            include: { items: true, payments: true }
         });
+
+        // If the initial purchase was marked 'Paid' and has a total amount, 
+        // automatically create a payment matching the total amount.
+        if (purchase.paymentStatus === 'Paid' && purchase.totalAmount > 0) {
+            await tx.purchasePayment.create({
+                data: {
+                    purchaseId: purchase.id,
+                    amount: purchase.totalAmount,
+                    date: purchase.date,
+                    note: 'Initial full payment'
+                }
+            });
+            purchase.payments = [{ amount: purchase.totalAmount, date: purchase.date, note: 'Initial full payment' }];
+        }
 
         // Optionally update batch cost price if batchId is provided
         for (const item of validItems) {
@@ -59,10 +73,22 @@ const getPurchases = async (filters = {}) => {
         where.vendor = { contains: vendor };
     }
 
-    return await prisma.purchase.findMany({
+    const purchases = await prisma.purchase.findMany({
         where,
-        include: { items: true },
+        include: { items: true, payments: { orderBy: { date: 'desc' } } },
         orderBy: { date: 'desc' }
+    });
+
+    // Compute due amount and correct status dynamically based on payments
+    return purchases.map(p => {
+        const totalPaid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
+        const dueAmount = Math.max(0, p.totalAmount - totalPaid);
+        let currentStatus = p.paymentStatus;
+        if (dueAmount <= 0) currentStatus = 'Paid';
+        else if (totalPaid > 0 && dueAmount > 0) currentStatus = 'Due';
+        else if (totalPaid === 0) currentStatus = 'Unpaid';
+
+        return { ...p, totalPaid, dueAmount, paymentStatus: currentStatus };
     });
 };
 
@@ -106,7 +132,7 @@ const updatePurchase = async (id, data) => {
         const purchase = await tx.purchase.update({
             where: { id: parseInt(id) },
             data: purchaseData,
-            include: { items: true }
+            include: { items: true, payments: true }
         });
 
         // Optionally update batch cost price if batchId is provided
@@ -123,9 +149,46 @@ const updatePurchase = async (id, data) => {
     });
 };
 
+const addPayment = async (purchaseId, paymentData) => {
+    const { amount, date, note } = paymentData;
+
+    return await prisma.$transaction(async (tx) => {
+        const payment = await tx.purchasePayment.create({
+            data: {
+                purchaseId: parseInt(purchaseId),
+                amount: parseFloat(amount) || 0,
+                date: date ? new Date(date) : new Date(),
+                note
+            }
+        });
+
+        // Check if fully paid to update the parent status
+        const purchase = await tx.purchase.findUnique({
+            where: { id: parseInt(purchaseId) },
+            include: { payments: true }
+        });
+
+        const totalPaid = purchase.payments.reduce((sum, p) => sum + p.amount, 0);
+        if (totalPaid >= purchase.totalAmount) {
+            await tx.purchase.update({
+                where: { id: parseInt(purchaseId) },
+                data: { paymentStatus: 'Paid' }
+            });
+        } else {
+            await tx.purchase.update({
+                where: { id: parseInt(purchaseId) },
+                data: { paymentStatus: 'Due' }
+            });
+        }
+
+        return payment;
+    });
+};
+
 module.exports = {
     createPurchase,
     getPurchases,
     deletePurchase,
-    updatePurchase
+    updatePurchase,
+    addPayment
 };
