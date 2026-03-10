@@ -816,7 +816,7 @@ const ExpenseManagement = () => {
                                         <Table size="small">
                                             <TableHead sx={{ bgcolor: 'action.hover' }}>
                                                 <TableRow>
-                                                    <TableCell>Date</TableCell>
+                                                    <TableCell>Date & Time</TableCell>
                                                     <TableCell>Note</TableCell>
                                                     <TableCell align="right">Amount</TableCell>
                                                 </TableRow>
@@ -824,7 +824,10 @@ const ExpenseManagement = () => {
                                             <TableBody>
                                                 {selectedPurchase.payments.map((payment) => (
                                                     <TableRow key={payment.id}>
-                                                        <TableCell>{new Date(payment.date).toLocaleDateString('en-GB')}</TableCell>
+                                                        <TableCell>{new Date(payment.date).toLocaleString('en-GB', {
+                                                            day: '2-digit', month: 'short', year: 'numeric',
+                                                            hour: '2-digit', minute: '2-digit', hour12: true
+                                                        })}</TableCell>
                                                         <TableCell>{payment.note || '-'}</TableCell>
                                                         <TableCell align="right" sx={{ fontWeight: 'medium', color: 'success.main' }}>
                                                             ₹{payment.amount.toLocaleString()}
