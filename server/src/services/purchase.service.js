@@ -30,7 +30,8 @@ const createPurchase = async (data) => {
             totalAmount: parsedTotalAmount,
             date: date ? getDateWithCurrentTime(date) : new Date(),
             note,
-            paymentStatus: initialPaymentStatus
+            paymentStatus: initialPaymentStatus,
+            paymentMethod: paymentMethod || 'Cash'
         };
 
         if (validItems.length > 0) {
@@ -73,7 +74,10 @@ const createPurchase = async (data) => {
             }
         }
 
-        return purchase;
+        return {
+            ...purchase,
+            paymentMethod: purchase.paymentMethod || 'Cash'
+        };
     });
 };
 
@@ -92,7 +96,7 @@ const getPurchases = async (filters = {}) => {
 
     const purchases = await prisma.purchase.findMany({
         where,
-        include: { items: true, payments: { orderBy: { date: 'desc' } } },
+        include: { items: true, payments: { orderBy: { createdAt: 'asc' } } },
         orderBy: { date: 'desc' }
     });
 
@@ -105,7 +109,7 @@ const getPurchases = async (filters = {}) => {
         else if (totalPaid > 0 && dueAmount > 0) currentStatus = 'Due';
         else if (totalPaid === 0) currentStatus = 'Unpaid';
 
-        return { ...p, totalPaid, dueAmount, paymentStatus: currentStatus };
+        return { ...p, totalPaid, dueAmount, paymentStatus: currentStatus, paymentMethod: p.paymentMethod || 'Cash' };
     });
 };
 
@@ -127,7 +131,8 @@ const updatePurchase = async (id, data) => {
             totalAmount: parseFloat(totalAmount) || 0,
             date: date ? new Date(date) : new Date(),
             note,
-            paymentStatus: paymentStatus || 'Paid'
+            paymentStatus: paymentStatus || 'Paid',
+            paymentMethod: data.paymentMethod || 'Cash'
         };
 
         // If items are provided, delete old ones and create new ones
@@ -149,7 +154,7 @@ const updatePurchase = async (id, data) => {
         const purchase = await tx.purchase.update({
             where: { id: parseInt(id) },
             data: purchaseData,
-            include: { items: true, payments: true }
+            include: { items: true, payments: { orderBy: { createdAt: 'asc' } } }
         });
 
         // Optionally update batch cost price if batchId is provided
@@ -162,7 +167,80 @@ const updatePurchase = async (id, data) => {
             }
         }
 
-        return purchase;
+        return {
+            ...purchase,
+            paymentMethod: purchase.payments.length > 0 ? purchase.payments[0].paymentMethod : 'Cash'
+        };
+    });
+};
+
+const updatePayment = async (paymentId, paymentData) => {
+    const { amount, date, note, paymentMethod } = paymentData;
+    const pid = parseInt(paymentId);
+
+    return await prisma.$transaction(async (tx) => {
+        const oldPayment = await tx.purchasePayment.findUnique({
+            where: { id: pid }
+        });
+
+        if (!oldPayment) throw new Error('Payment not found');
+
+        const payment = await tx.purchasePayment.update({
+            where: { id: pid },
+            data: {
+                amount: amount !== undefined ? parseFloat(amount) : undefined,
+                paymentMethod,
+                date: date ? getDateWithCurrentTime(date) : undefined,
+                note
+            }
+        });
+
+        // Update parent purchase status
+        await syncPurchaseStatus(payment.purchaseId, tx);
+
+        return payment;
+    });
+};
+
+const deletePayment = async (paymentId) => {
+    const pid = parseInt(paymentId);
+
+    return await prisma.$transaction(async (tx) => {
+        const payment = await tx.purchasePayment.findUnique({
+            where: { id: pid }
+        });
+
+        if (!payment) throw new Error('Payment not found');
+
+        await tx.purchasePayment.delete({
+            where: { id: pid }
+        });
+
+        // Update parent purchase status
+        await syncPurchaseStatus(payment.purchaseId, tx);
+
+        return { success: true };
+    });
+};
+
+// Internal helper to sync purchase status after payment changes
+const syncPurchaseStatus = async (purchaseId, tx) => {
+    const purchase = await tx.purchase.findUnique({
+        where: { id: parseInt(purchaseId) },
+        include: { payments: true }
+    });
+
+    const totalPaid = purchase.payments.reduce((sum, p) => sum + p.amount, 0);
+    let newStatus = 'Unpaid';
+    if (totalPaid >= purchase.totalAmount) {
+        newStatus = 'Paid';
+    } else if (totalPaid > 0) {
+        newStatus = 'Due';
+    }
+
+    await tx.purchase.update({
+        where: { id: purchase.id },
+        data: { paymentStatus: newStatus }
     });
 };
 
@@ -208,5 +286,7 @@ module.exports = {
     getPurchases,
     deletePurchase,
     updatePurchase,
-    addPayment
+    addPayment,
+    updatePayment,
+    deletePayment
 };

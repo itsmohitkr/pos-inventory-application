@@ -45,10 +45,30 @@ const addPayment = async (req, res) => {
     }
 };
 
+const updatePayment = async (req, res) => {
+    try {
+        const payment = await purchaseService.updatePayment(req.params.id, req.body);
+        res.json(payment);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const deletePayment = async (req, res) => {
+    try {
+        await purchaseService.deletePayment(req.params.id);
+        res.json({ message: 'Payment deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     createPurchase,
     getPurchases,
     deletePurchase,
     updatePurchase,
-    addPayment
+    addPayment,
+    updatePayment,
+    deletePayment
 };

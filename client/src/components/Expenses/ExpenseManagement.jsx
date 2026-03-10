@@ -27,7 +27,8 @@ import {
     Stack,
     Divider,
     Chip,
-    Autocomplete
+    Autocomplete,
+    Menu
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -36,7 +37,8 @@ import {
     LocalShipping as ShippingIcon,
     Edit as EditIcon,
     Payment as PaymentIcon,
-    History as HistoryIcon
+    History as HistoryIcon,
+    MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import api from '../../api';
 
@@ -45,6 +47,8 @@ const getLocalTodayString = () => {
     const tzoffset = (new Date()).getTimezoneOffset() * 60000;
     return (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1).split('T')[0];
 };
+
+const splitIsoDate = (isoString) => isoString.split('T')[0];
 
 const ExpenseManagement = () => {
     const [activeTab, setActiveTab] = useState(0);
@@ -68,6 +72,11 @@ const ExpenseManagement = () => {
     const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
     const [paymentHistoryDialogOpen, setPaymentHistoryDialogOpen] = useState(false);
     const [selectedPurchase, setSelectedPurchase] = useState(null);
+    const [selectedPayment, setSelectedPayment] = useState(null); // Added
+    const [deleteConfig, setDeleteConfig] = useState({ open: false, title: '', message: '', onConfirm: null });
+
+    // Menu state
+    const [paymentMenuAnchor, setPaymentMenuAnchor] = useState(null);
 
     // Form states
     const [expenseForm, setExpenseForm] = useState({
@@ -90,6 +99,14 @@ const ExpenseManagement = () => {
     });
 
     const [paymentForm, setPaymentForm] = useState({
+        amount: '',
+        paymentMethod: 'Cash',
+        date: getLocalTodayString(),
+        note: ''
+    });
+
+    const [paymentEditDialogOpen, setPaymentEditDialogOpen] = useState(false);
+    const [editPaymentForm, setEditPaymentForm] = useState({
         amount: '',
         paymentMethod: 'Cash',
         date: getLocalTodayString(),
@@ -167,7 +184,7 @@ const ExpenseManagement = () => {
         return { startDate: start.toISOString(), endDate: end.toISOString() };
     };
 
-    const fetchData = async () => {
+    const fetchData = async (callback) => {
         setLoading(true);
         setError(null);
         try {
@@ -194,6 +211,7 @@ const ExpenseManagement = () => {
             });
             setExpenses(sortedExp);
             setPurchases(sortedPur);
+            if (callback) callback(sortedPur);
         } catch (err) {
             setError('Failed to fetch data');
         } finally {
@@ -230,7 +248,7 @@ const ExpenseManagement = () => {
             note: purchase.note || '',
             date: new Date(purchase.date).toISOString().split('T')[0],
             paidAmount: purchase.totalPaid || 0,
-            paymentMethod: 'Cash',
+            paymentMethod: purchase.paymentMethod || 'Cash',
             items: purchase.items || []
         });
         setPurchaseDialogOpen(true);
@@ -251,15 +269,21 @@ const ExpenseManagement = () => {
         }
     };
 
-    const handleDeleteExpense = async (id) => {
-        if (window.confirm('Are you sure you want to delete this expense?')) {
-            try {
-                await api.delete(`/api/expenses/${id}`);
-                fetchData();
-            } catch (err) {
-                setError('Failed to delete expense');
+    const handleDeleteExpense = (id) => {
+        setDeleteConfig({
+            open: true,
+            title: 'Confirm Delete Expense',
+            message: 'Are you sure you want to delete this expense record?',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/api/expenses/${id}`);
+                    fetchData();
+                    setDeleteConfig(prev => ({ ...prev, open: false }));
+                } catch (err) {
+                    setError('Failed to delete expense');
+                }
             }
-        }
+        });
     };
 
     const handleCreatePurchase = async (e) => {
@@ -268,12 +292,17 @@ const ExpenseManagement = () => {
             const submissionData = {
                 ...purchaseForm,
                 totalAmount: parseFloat(purchaseForm.totalAmount) || 0,
-                paidAmount: parseFloat(purchaseForm.paidAmount) || 0,
+                // When editing, totalAmount and paidAmount should not be changed via this form.
+                // They are only set on initial creation or via payments.
+                paidAmount: purchaseForm.id ? undefined : (parseFloat(purchaseForm.paidAmount) || 0),
                 items: (purchaseForm.items || []).filter(item => item.productId && item.quantity)
             };
 
             if (purchaseForm.id) {
-                await api.put(`/api/purchases/${purchaseForm.id}`, submissionData);
+                // For existing purchases, only update vendor, date, note, items and preserve totalAmount.
+                // paidAmount is managed separately.
+                const { paidAmount, ...updateData } = submissionData;
+                await api.put(`/api/purchases/${purchaseForm.id}`, updateData);
             } else {
                 await api.post('/api/purchases', submissionData);
             }
@@ -285,22 +314,29 @@ const ExpenseManagement = () => {
         }
     };
 
-    const handleDeletePurchase = async (id) => {
-        if (window.confirm('Are you sure you want to delete this purchase?')) {
-            try {
-                await api.delete(`/api/purchases/${id}`);
-                fetchData();
-            } catch (err) {
-                setError('Failed to delete purchase');
+    const handleDeletePurchase = (id) => {
+        setDeleteConfig({
+            open: true,
+            title: 'Confirm Delete Purchase',
+            message: 'Are you sure you want to delete this purchase? This action cannot be undone and will affect inventory records.',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/api/purchases/${id}`);
+                    fetchData();
+                    setDeleteConfig(prev => ({ ...prev, open: false }));
+                } catch (err) {
+                    console.error('Delete error:', err);
+                    setError('Failed to delete purchase');
+                }
             }
-        }
+        });
     };
 
     const handleOpenPaymentDialog = (purchase) => {
         setSelectedPurchase(purchase);
         setPaymentForm({
             amount: purchase.dueAmount || 0,
-            paymentMethod: 'Cash',
+            paymentMethod: purchase.paymentMethod || 'Cash',
             date: getLocalTodayString(),
             note: ''
         });
@@ -310,6 +346,67 @@ const ExpenseManagement = () => {
     const handleOpenPaymentHistoryDialog = (purchase) => {
         setSelectedPurchase(purchase);
         setPaymentHistoryDialogOpen(true);
+    };
+
+    const handleEditPayment = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            await api.put(`/api/purchases/payments/${selectedPayment.id}`, {
+                amount: parseFloat(editPaymentForm.amount),
+                paymentMethod: editPaymentForm.paymentMethod,
+                date: editPaymentForm.date,
+                note: editPaymentForm.note
+            });
+            setPaymentEditDialogOpen(false);
+            fetchData((updatedPurchases) => {
+                const refreshed = updatedPurchases.find(p => p.id === selectedPurchase.id);
+                if (refreshed) setSelectedPurchase(refreshed);
+            });
+        } catch (err) {
+            console.error('Payment edit error:', err);
+            setError('Failed to update payment.');
+        }
+    };
+
+    const handleDeletePayment = (paymentId) => {
+        setDeleteConfig({
+            open: true,
+            title: 'Confirm Delete Payment',
+            message: 'Are you sure you want to delete this payment record? This will increase the due amount of the purchase.',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/api/purchases/payments/${paymentId}`);
+                    fetchData((updatedPurchases) => {
+                        const refreshed = updatedPurchases.find(p => p.id === selectedPurchase.id);
+                        if (refreshed) setSelectedPurchase(refreshed);
+                    });
+                    setDeleteConfig(prev => ({ ...prev, open: false }));
+                } catch (err) {
+                    console.error('Payment delete error:', err);
+                    setError('Failed to delete payment.');
+                }
+            }
+        });
+    };
+
+    const handleOpenPaymentMenu = (event, payment) => {
+        setPaymentMenuAnchor(event.currentTarget);
+        setSelectedPayment(payment);
+    };
+
+    const handleClosePaymentMenu = () => {
+        setPaymentMenuAnchor(null);
+    };
+
+    const handleOpenEditPayment = () => {
+        setEditPaymentForm({
+            amount: selectedPayment.amount,
+            paymentMethod: selectedPayment.paymentMethod || 'Cash',
+            date: selectedPayment.date ? splitIsoDate(selectedPayment.date) : getLocalTodayString(),
+            note: selectedPayment.note || ''
+        });
+        setPaymentEditDialogOpen(true);
+        handleClosePaymentMenu();
     };
 
     const handleCreatePayment = async (e) => {
@@ -322,7 +419,10 @@ const ExpenseManagement = () => {
                 note: paymentForm.note
             });
             setPaymentDialogOpen(false);
-            fetchData();
+            fetchData((updatedPurchases) => {
+                const refreshed = updatedPurchases.find(p => p.id === selectedPurchase.id);
+                if (refreshed) setSelectedPurchase(refreshed);
+            });
         } catch (err) {
             console.error('Payment saving error:', err);
             setError('Failed to save payment.');
@@ -576,6 +676,7 @@ const ExpenseManagement = () => {
                                             <TableRow>
                                                 <TableCell>Date</TableCell>
                                                 <TableCell>Vendor</TableCell>
+                                                <TableCell>Method</TableCell>
                                                 <TableCell>Note</TableCell>
                                                 <TableCell align="right">Amount</TableCell>
                                                 <TableCell align="right">Due</TableCell>
@@ -592,6 +693,7 @@ const ExpenseManagement = () => {
                                                 >
                                                     <TableCell>{new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</TableCell>
                                                     <TableCell>{row.vendor || 'N/A'}</TableCell>
+                                                    <TableCell>{row.paymentMethod || 'Cash'}</TableCell>
                                                     <TableCell>{row.note}</TableCell>
                                                     <TableCell align="right">₹{row.totalAmount.toLocaleString()}</TableCell>
                                                     <TableCell align="right">
@@ -612,30 +714,71 @@ const ExpenseManagement = () => {
                                                             sx={{ fontWeight: 'bold', minWidth: 70 }}
                                                         />
                                                     </TableCell>
-                                                    <TableCell align="right">
-                                                        {row.dueAmount > 0 && (
-                                                            <IconButton size="small" color="success" onClick={() => handleOpenPaymentDialog(row)} title="Make Payment">
-                                                                <PaymentIcon fontSize="small" />
-                                                            </IconButton>
-                                                        )}
-                                                        <IconButton size="small" color="primary" onClick={() => handleEditPurchase(row)}>
-                                                            <EditIcon fontSize="small" />
-                                                        </IconButton>
-                                                        <IconButton size="small" color="error" onClick={() => handleDeletePurchase(row.id)}>
-                                                            <DeleteIcon fontSize="small" />
-                                                        </IconButton>
+                                                    <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5 }}>
+                                                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                                                            {row.dueAmount > 0 && (
+                                                                <Button
+                                                                    size="small"
+                                                                    color="success"
+                                                                    onClick={() => handleOpenPaymentDialog(row)}
+                                                                    sx={{
+                                                                        flexDirection: 'column',
+                                                                        fontSize: '0.65rem',
+                                                                        minWidth: '60px',
+                                                                        textTransform: 'none',
+                                                                        lineHeight: 1.2,
+                                                                        py: 0.5
+                                                                    }}
+                                                                >
+                                                                    <PaymentIcon sx={{ fontSize: '1.2rem', mb: 0.2 }} />
+                                                                    Pay
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                size="small"
+                                                                color="primary"
+                                                                onClick={() => handleEditPurchase(row)}
+                                                                sx={{
+                                                                    flexDirection: 'column',
+                                                                    fontSize: '0.65rem',
+                                                                    minWidth: '50px',
+                                                                    textTransform: 'none',
+                                                                    lineHeight: 1.2,
+                                                                    py: 0.5
+                                                                }}
+                                                            >
+                                                                <EditIcon sx={{ fontSize: '1.2rem', mb: 0.2 }} />
+                                                                Edit
+                                                            </Button>
+                                                            <Button
+                                                                size="small"
+                                                                color="error"
+                                                                onClick={() => handleDeletePurchase(row.id)}
+                                                                sx={{
+                                                                    flexDirection: 'column',
+                                                                    fontSize: '0.65rem',
+                                                                    minWidth: '50px',
+                                                                    textTransform: 'none',
+                                                                    lineHeight: 1.2,
+                                                                    py: 0.5
+                                                                }}
+                                                            >
+                                                                <DeleteIcon sx={{ fontSize: '1.2rem', mb: 0.2 }} />
+                                                                Delete
+                                                            </Button>
+                                                        </Box>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
                                             {filteredPurchases.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={7} align="center">No purchases match criteria</TableCell>
+                                                    <TableCell colSpan={8} align="center">No purchases match criteria</TableCell>
                                                 </TableRow>
                                             )}
                                             {/* Highlighted Total Row */}
                                             {filteredPurchases.length > 0 && (
                                                 <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
-                                                    <TableCell colSpan={3} sx={{ py: 1.5 }}>
+                                                    <TableCell colSpan={4} sx={{ py: 1.5 }}>
                                                         <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
                                                             Total Current Period
                                                         </Typography>
@@ -754,6 +897,7 @@ const ExpenseManagement = () => {
                                         <TextField
                                             sx={{ flex: 1 }}
                                             required
+                                            disabled={!!purchaseForm.id}
                                             label="Total Amount"
                                             type="number"
                                             value={purchaseForm.totalAmount}
@@ -774,11 +918,12 @@ const ExpenseManagement = () => {
                                             sx={{ flex: 1 }}
                                             label="Amount Paid Now"
                                             type="number"
+                                            disabled={!!purchaseForm.id}
                                             inputProps={{ min: 0, max: purchaseForm.totalAmount || 0, step: "0.01" }}
                                             value={purchaseForm.paidAmount}
                                             onChange={(e) => setPurchaseForm({ ...purchaseForm, paidAmount: e.target.value })}
                                             helperText={
-                                                purchaseForm.totalAmount
+                                                purchaseForm.totalAmount && !purchaseForm.id
                                                     ? `Due: ₹${Math.max(0, (parseFloat(purchaseForm.totalAmount) || 0) - (parseFloat(purchaseForm.paidAmount) || 0)).toLocaleString()}`
                                                     : ''
                                             }
@@ -870,6 +1015,7 @@ const ExpenseManagement = () => {
                                     fullWidth
                                     label="Payment Date"
                                     type="date"
+                                    inputProps={{ min: selectedPurchase?.date ? splitIsoDate(selectedPurchase.date) : "" }}
                                     value={paymentForm.date}
                                     onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })}
                                     InputLabelProps={{ shrink: true }}
@@ -934,30 +1080,142 @@ const ExpenseManagement = () => {
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
-                                                {selectedPurchase.payments.map((payment) => (
-                                                    <TableRow key={payment.id}>
-                                                        <TableCell>{new Date(payment.date).toLocaleString('en-GB', {
-                                                            day: '2-digit', month: 'short', year: 'numeric',
-                                                            hour: '2-digit', minute: '2-digit', hour12: true
-                                                        })}</TableCell>
-                                                        <TableCell>{payment.paymentMethod || 'Cash'}</TableCell>
-                                                        <TableCell>{payment.note || '-'}</TableCell>
-                                                        <TableCell align="right" sx={{ fontWeight: 'medium', color: 'success.main' }}>
-                                                            ₹{payment.amount.toLocaleString()}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
+                                                {[...(selectedPurchase.payments || [])].reverse().map((payment, index) => {
+                                                    const isMostRecent = index === 0;
+                                                    return (
+                                                        <TableRow key={payment.id}>
+                                                            <TableCell>{new Date(payment.date).toLocaleString('en-GB', {
+                                                                day: '2-digit', month: 'short', year: 'numeric',
+                                                                hour: '2-digit', minute: '2-digit', hour12: true
+                                                            })}</TableCell>
+                                                            <TableCell>{payment.paymentMethod || 'Cash'}</TableCell>
+                                                            <TableCell>{payment.note || '-'}</TableCell>
+                                                            <TableCell align="right">
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+                                                                    <Typography sx={{ fontWeight: 'medium', color: 'success.main' }}>
+                                                                        ₹{payment.amount.toLocaleString()}
+                                                                    </Typography>
+                                                                    <IconButton size="small" onClick={(e) => handleOpenPaymentMenu(e, payment)}>
+                                                                        <MoreVertIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                </Box>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
                                             </TableBody>
                                         </Table>
                                     </TableContainer>
                                 ) : (
-                                    <Alert severity="info" variant="outlined">No payments have been recorded for this purchase yet.</Alert>
+                                    <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                                        No payment records found.
+                                    </Box>
                                 )}
                             </Box>
                         )}
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setPaymentHistoryDialogOpen(false)}>Close</Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Payment Action Menu */}
+                <Menu
+                    anchorEl={paymentMenuAnchor}
+                    open={Boolean(paymentMenuAnchor)}
+                    onClose={handleClosePaymentMenu}
+                >
+                    <MenuItem
+                        onClick={handleOpenEditPayment}
+                        disabled={!selectedPurchase?.payments?.length || !selectedPayment || selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !== selectedPayment.id}
+                    >
+                        <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => { handleDeletePayment(selectedPayment.id); handleClosePaymentMenu(); }}
+                        disabled={!selectedPurchase?.payments?.length || !selectedPayment || selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !== selectedPayment.id}
+                        sx={{ color: 'error.main' }}
+                    >
+                        <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Delete
+                    </MenuItem>
+                </Menu>
+
+                {/* Edit Payment Sub-Dialog */}
+                <Dialog open={paymentEditDialogOpen} onClose={() => setPaymentEditDialogOpen(false)} fullWidth maxWidth="xs">
+                    <form onSubmit={handleEditPayment}>
+                        <DialogTitle>Edit Payment Record</DialogTitle>
+                        <DialogContent>
+                            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                    <TextField
+                                        required
+                                        sx={{ flex: 2 }}
+                                        label="Amount"
+                                        type="number"
+                                        value={editPaymentForm.amount}
+                                        onChange={(e) => setEditPaymentForm({ ...editPaymentForm, amount: e.target.value })}
+                                    />
+                                    <TextField
+                                        required
+                                        sx={{ flex: 1 }}
+                                        select
+                                        label="Method"
+                                        value={editPaymentForm.paymentMethod}
+                                        onChange={(e) => setEditPaymentForm({ ...editPaymentForm, paymentMethod: e.target.value })}
+                                        SelectProps={{ native: true }}
+                                    >
+                                        <option value="Cash">Cash</option>
+                                        <option value="Card">Card</option>
+                                        <option value="UPI">UPI</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                    </TextField>
+                                </Box>
+                                <TextField
+                                    required
+                                    label="Date"
+                                    type="date"
+                                    inputProps={{ min: selectedPurchase?.date ? splitIsoDate(selectedPurchase.date) : "" }}
+                                    value={editPaymentForm.date}
+                                    onChange={(e) => setEditPaymentForm({ ...editPaymentForm, date: e.target.value })}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <TextField
+                                    label="Note"
+                                    multiline
+                                    rows={2}
+                                    value={editPaymentForm.note}
+                                    onChange={(e) => setEditPaymentForm({ ...editPaymentForm, note: e.target.value })}
+                                />
+                            </Box>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setPaymentEditDialogOpen(false)}>Cancel</Button>
+                            <Button variant="contained" type="submit" color="primary">Update Payment</Button>
+                        </DialogActions>
+                    </form>
+                </Dialog>
+
+                {/* Custom Delete Confirmation Dialog */}
+                <Dialog
+                    open={deleteConfig.open}
+                    onClose={() => setDeleteConfig({ ...deleteConfig, open: false })}
+                >
+                    <DialogTitle>{deleteConfig.title}</DialogTitle>
+                    <DialogContent>
+                        <Typography>{deleteConfig.message}</Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setDeleteConfig({ ...deleteConfig, open: false })}>Cancel</Button>
+                        <Button
+                            onClick={() => {
+                                if (deleteConfig.onConfirm) deleteConfig.onConfirm();
+                            }}
+                            color="error"
+                            variant="contained"
+                            sx={{ color: '#fff' }}
+                        >
+                            Delete
+                        </Button>
                     </DialogActions>
                 </Dialog>
             </Box>
