@@ -2,18 +2,26 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const createPurchase = async (data) => {
-    const { vendor, totalAmount, date, note, paymentStatus, items = [] } = data;
+    const { vendor, totalAmount, date, note, paidAmount, items = [] } = data;
 
     // Filter out invalid items (those without product IDs)
     const validItems = items.filter(item => item.productId && !isNaN(parseInt(item.productId)));
 
+    const parsedTotalAmount = parseFloat(totalAmount) || 0;
+    const parsedPaidAmount = parseFloat(paidAmount) || 0;
+
+    // Derived status
+    let initialPaymentStatus = 'Paid';
+    if (parsedPaidAmount < parsedTotalAmount && parsedPaidAmount > 0) initialPaymentStatus = 'Due';
+    if (parsedPaidAmount === 0 && parsedTotalAmount > 0) initialPaymentStatus = 'Unpaid';
+
     return await prisma.$transaction(async (tx) => {
         const purchaseData = {
             vendor,
-            totalAmount: parseFloat(totalAmount) || 0,
+            totalAmount: parsedTotalAmount,
             date: date ? new Date(date) : new Date(),
             note,
-            paymentStatus: paymentStatus || 'Paid'
+            paymentStatus: initialPaymentStatus
         };
 
         if (validItems.length > 0) {
@@ -32,18 +40,17 @@ const createPurchase = async (data) => {
             include: { items: true, payments: true }
         });
 
-        // If the initial purchase was marked 'Paid' and has a total amount, 
-        // automatically create a payment matching the total amount.
-        if (purchase.paymentStatus === 'Paid' && purchase.totalAmount > 0) {
+        // Record the initial payment if an amount was given
+        if (parsedPaidAmount > 0) {
             await tx.purchasePayment.create({
                 data: {
                     purchaseId: purchase.id,
-                    amount: purchase.totalAmount,
+                    amount: parsedPaidAmount,
                     date: purchase.date,
-                    note: 'Initial full payment'
+                    note: 'Initial payment upon logging purchase'
                 }
             });
-            purchase.payments = [{ amount: purchase.totalAmount, date: purchase.date, note: 'Initial full payment' }];
+            purchase.payments = [{ amount: parsedPaidAmount, date: purchase.date, note: 'Initial payment upon logging purchase' }];
         }
 
         // Optionally update batch cost price if batchId is provided

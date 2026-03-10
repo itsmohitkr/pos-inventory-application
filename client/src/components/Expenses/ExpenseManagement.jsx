@@ -79,7 +79,7 @@ const ExpenseManagement = () => {
         totalAmount: '',
         date: getLocalTodayString(),
         note: '',
-        paymentStatus: 'Paid',
+        paidAmount: '',
         items: []
     });
 
@@ -200,7 +200,7 @@ const ExpenseManagement = () => {
     };
 
     const handleOpenPurchaseDialog = () => {
-        setPurchaseForm({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', paymentStatus: 'Paid', items: [] });
+        setPurchaseForm({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', items: [] });
         setPurchaseDialogOpen(true);
     };
 
@@ -222,7 +222,7 @@ const ExpenseManagement = () => {
             totalAmount: purchase.totalAmount,
             note: purchase.note || '',
             date: new Date(purchase.date).toISOString().split('T')[0],
-            paymentStatus: purchase.paymentStatus || 'Paid',
+            paidAmount: purchase.totalPaid || 0,
             items: purchase.items || []
         });
         setPurchaseDialogOpen(true);
@@ -260,6 +260,7 @@ const ExpenseManagement = () => {
             const submissionData = {
                 ...purchaseForm,
                 totalAmount: parseFloat(purchaseForm.totalAmount) || 0,
+                paidAmount: parseFloat(purchaseForm.paidAmount) || 0,
                 items: (purchaseForm.items || []).filter(item => item.productId && item.quantity)
             };
 
@@ -689,15 +690,17 @@ const ExpenseManagement = () => {
                                         />
                                         <TextField
                                             sx={{ flex: 1 }}
-                                            select
-                                            label="Payment Status"
-                                            value={purchaseForm.paymentStatus}
-                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, paymentStatus: e.target.value })}
-                                            SelectProps={{ native: true }}
-                                        >
-                                            <option value="Paid">Paid (Full)</option>
-                                            <option value="Unpaid">Unpaid (Full Due)</option>
-                                        </TextField>
+                                            label="Amount Paid Now"
+                                            type="number"
+                                            inputProps={{ min: 0, max: purchaseForm.totalAmount || 0, step: "0.01" }}
+                                            value={purchaseForm.paidAmount}
+                                            onChange={(e) => setPurchaseForm({ ...purchaseForm, paidAmount: e.target.value })}
+                                            helperText={
+                                                purchaseForm.totalAmount
+                                                    ? `Due: ₹${Math.max(0, (parseFloat(purchaseForm.totalAmount) || 0) - (parseFloat(purchaseForm.paidAmount) || 0)).toLocaleString()}`
+                                                    : ''
+                                            }
+                                        />
                                     </Box>
 
                                     <TextField
