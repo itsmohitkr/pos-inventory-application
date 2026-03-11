@@ -1419,24 +1419,6 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
                                                 History
                                             </Typography>
                                         </Box>
-                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-                                            <IconButton
-                                                size="medium"
-                                                onClick={() => setBarcodePrintOpen(true)}
-                                                sx={{
-                                                    bgcolor: '#d97706',
-                                                    color: '#fff',
-                                                    '&:hover': {
-                                                        bgcolor: '#b45309'
-                                                    }
-                                                }}
-                                            >
-                                                <PrintIcon />
-                                            </IconButton>
-                                            <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#d97706' }}>
-                                                Barcode
-                                            </Typography>
-                                        </Box>
                                     </Box>
                                 </Box>
                                 <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>

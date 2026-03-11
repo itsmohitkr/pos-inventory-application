@@ -45,7 +45,8 @@ import {
   FileUpload as UploadIcon,
   FileDownload as DownloadIcon,
   ViewList as ViewListIcon,
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  LocalPrintshop as LocalPrintshopIcon
 } from '@mui/icons-material';
 import AddProductForm from './components/Inventory/AddProductForm';
 import ProductList from './components/Inventory/ProductList';
@@ -53,6 +54,7 @@ import InventoryTree from './components/Inventory/InventoryTree';
 import BulkImportDialog from './components/Inventory/BulkImportDialog';
 import InventoryExcelView from './components/Inventory/InventoryExcelView';
 import BulkAddGrid from './components/Inventory/BulkAddGrid';
+import PriceListPanel from './components/Inventory/PriceListPanel';
 import POS from './components/POS/POS';
 import Reporting from './components/Reporting/Reporting';
 import ExpenseManagement from './components/Expenses/ExpenseManagement';
@@ -321,6 +323,7 @@ const Inventory = () => {
   const { showError, showSuccess } = useCustomDialog();
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showBulkAdd, setShowBulkAdd] = useState(false);
+  const [showPriceList, setShowPriceList] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [excelViewOpen, setExcelViewOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -347,6 +350,12 @@ const Inventory = () => {
     if (inventoryRef.current?.refresh) {
       inventoryRef.current.refresh();
     }
+    setShowAddProduct(false);
+    setShowBulkAdd(false);
+  };
+
+  const handleOpenPriceList = () => {
+    setShowPriceList(true);
     setShowAddProduct(false);
     setShowBulkAdd(false);
   };
@@ -411,7 +420,7 @@ const Inventory = () => {
             Browse products by category and manage stock efficiently.
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1, justifyContent: 'flex-end' }}>
           <Button
             variant="outlined"
             color="primary"
@@ -439,6 +448,15 @@ const Inventory = () => {
             sx={{ minWidth: 160 }}
           >
             Spreadsheet View
+          </Button>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<LocalPrintshopIcon />}
+            onClick={handleOpenPriceList}
+            sx={{ minWidth: 130 }}
+          >
+            Price List
           </Button>
           <Button
             variant="outlined"
@@ -506,6 +524,11 @@ const Inventory = () => {
         onClose={() => setExcelViewOpen(false)}
         categoryFilter={categoryFilter}
         externalSearch={debouncedSearch}
+      />
+
+      <PriceListPanel
+        open={showPriceList}
+        onClose={() => setShowPriceList(false)}
       />
     </Box>
   );
