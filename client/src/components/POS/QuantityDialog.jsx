@@ -47,7 +47,7 @@ const QuantityDialog = ({ open, onClose, onConfirm, itemName, initialValue = 1 }
         '1', '2', '3',
         '4', '5', '6',
         '7', '8', '9',
-        'C', '0'
+        'C', '0', 'Confirm'
     ];
 
     return (
@@ -88,48 +88,26 @@ const QuantityDialog = ({ open, onClose, onConfirm, itemName, initialValue = 1 }
                         <Grid item xs={4} key={btn}>
                             <Button
                                 fullWidth
-                                variant="outlined"
-                                onClick={() => btn === 'C' ? handleClear() : handleNumberClick(btn)}
+                                variant={btn === 'Confirm' ? "contained" : "outlined"}
+                                color={btn === 'Confirm' ? "primary" : (btn === 'C' ? "error" : "inherit")}
+                                onClick={() => {
+                                    if (btn === 'C') handleClear();
+                                    else if (btn === 'Confirm') handleConfirm();
+                                    else handleNumberClick(btn);
+                                }}
                                 sx={{
                                     height: 70,
-                                    fontSize: '1.5rem',
+                                    fontSize: btn === 'Confirm' ? '1.1rem' : '1.5rem',
                                     fontWeight: 'bold',
                                     borderRadius: 2,
-                                    color: btn === 'C' ? 'error.main' : 'text.primary',
-                                    borderColor: btn === 'C' ? 'error.light' : 'divider'
+                                    color: btn === 'Confirm' ? 'primary.contrastText' : (btn === 'C' ? 'error.main' : 'text.primary'),
+                                    borderColor: btn === 'Confirm' ? 'primary.main' : (btn === 'C' ? 'error.light' : 'divider')
                                 }}
                             >
                                 {btn}
                             </Button>
                         </Grid>
                     ))}
-                    <Grid item xs={4}>
-                        <Button
-                            fullWidth
-                            variant="outlined"
-                            onClick={handleBackspace}
-                            sx={{ height: 70, borderRadius: 2, borderColor: 'divider' }}
-                        >
-                            <BackspaceIcon />
-                        </Button>
-                    </Grid>
-                    <Grid item xs={12} sx={{ mt: 1 }}>
-                        <Button
-                            fullWidth
-                            variant="contained"
-                            color="primary"
-                            onClick={handleConfirm}
-                            sx={{
-                                height: 60,
-                                fontSize: '1.2rem',
-                                fontWeight: 'bold',
-                                borderRadius: 2,
-                                boxShadow: 3
-                            }}
-                        >
-                            Confirm Quantity
-                        </Button>
-                    </Grid>
                 </Grid>
             </DialogContent>
         </Dialog>

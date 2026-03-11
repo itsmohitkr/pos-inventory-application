@@ -1510,7 +1510,7 @@ const POS = ({ receiptSettings: propReceiptSettings, shopMetadata: propShopMetad
                         refocus();
                     }}
                     itemName={manualQuantityItem?.name}
-                    initialValue={manualQuantityItem?.quantity || 1}
+                    initialValue={0}
                 />
 
                 <LooseSaleDialog

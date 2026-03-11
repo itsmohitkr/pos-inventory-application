@@ -61,7 +61,8 @@ const PAPER_PRESETS = {
         gapHorizontal: 3,
         gapVertical: 3,
         barcodeLineWidth: 1,
-        barcodeHeight: 30
+        barcodeHeight: 30,
+        barcodeFormat: 'CODE128'
       }
     },
     {
@@ -78,7 +79,8 @@ const PAPER_PRESETS = {
         gapHorizontal: 2.5,
         gapVertical: 2,
         barcodeLineWidth: 0.8,
-        barcodeHeight: 25
+        barcodeHeight: 25,
+        barcodeFormat: 'CODE128'
       }
     },
     {
@@ -95,7 +97,8 @@ const PAPER_PRESETS = {
         gapHorizontal: 4,
         gapVertical: 4,
         barcodeLineWidth: 1.2,
-        barcodeHeight: 40
+        barcodeHeight: 40,
+        barcodeFormat: 'CODE128'
       }
     }
   ],
@@ -114,7 +117,8 @@ const PAPER_PRESETS = {
         gapHorizontal: 2,
         gapVertical: 2,
         barcodeLineWidth: 1.1,
-        barcodeHeight: 30
+        barcodeHeight: 30,
+        barcodeFormat: 'CODE128'
       }
     },
     {
@@ -131,7 +135,8 @@ const PAPER_PRESETS = {
         gapHorizontal: 2,
         gapVertical: 2,
         barcodeLineWidth: 1,
-        barcodeHeight: 26
+        barcodeHeight: 26,
+        barcodeFormat: 'CODE128'
       }
     }
   ]
@@ -197,7 +202,8 @@ const PriceListPanel = ({ open, onClose }) => {
   const [layout, setLayout] = useState({
     ...PAPER_PRESETS.a4[0].layout,
     textAlign: 'left',
-    barcodeLineSpacing: 1.25
+    barcodeLineSpacing: 1.25,
+    barcodeFormat: 'CODE128'
   });
 
   const [displayOptions, setDisplayOptions] = useState(DEFAULT_DISPLAY_OPTIONS);
@@ -523,7 +529,8 @@ const PriceListPanel = ({ open, onClose }) => {
             }
 
             .price-label-item svg {
-              width: 100%;
+              display: block;
+              margin: 0 auto;
               max-width: 100%;
               height: ${Math.max(20, Number(layout.barcodeHeight) || 20)}px;
             }
@@ -926,6 +933,36 @@ const PriceListPanel = ({ open, onClose }) => {
                           onChange={(event) => setLayout((current) => ({ ...current, barcodeHeight: Math.max(20, Number(event.target.value) || 20) }))}
                         />
                       </Grid>
+                      <Grid item xs={6}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Bar Thickness"
+                          type="number"
+                          inputProps={{ min: 0.1, max: 4, step: 0.1 }}
+                          value={layout.barcodeLineWidth}
+                          onChange={(event) => setLayout((current) => ({ ...current, barcodeLineWidth: Math.max(0.1, Number(event.target.value) || 0.1) }))}
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Barcode Format</InputLabel>
+                          <Select
+                            label="Barcode Format"
+                            value={layout.barcodeFormat || 'CODE128'}
+                            onChange={(event) => setLayout((current) => ({ ...current, barcodeFormat: event.target.value }))}
+                          >
+                            <MenuItem value="CODE128">CODE128 (Standard)</MenuItem>
+                            <MenuItem value="CODE39">CODE39</MenuItem>
+                            <MenuItem value="EAN13">EAN13 (Requires 12/13 digits)</MenuItem>
+                            <MenuItem value="EAN8">EAN8 (Requires 7/8 digits)</MenuItem>
+                            <MenuItem value="UPC">UPC</MenuItem>
+                            <MenuItem value="ITF">ITF</MenuItem>
+                            <MenuItem value="MSI">MSI</MenuItem>
+                            <MenuItem value="pharmacode">Pharmacode</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
 
                       <Grid item xs={6}>
                         <TextField
@@ -1189,7 +1226,8 @@ const PriceListPanel = ({ open, onClose }) => {
                             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                               <Barcode
                                 value={label.barcodeValue}
-                                width={Math.max(0.7, Number(layout.barcodeLineWidth) || 0.7)}
+                                format={layout.barcodeFormat || 'CODE128'}
+                                width={Math.max(0.1, Number(layout.barcodeLineWidth) || 0.7)}
                                 height={Math.max(20, Number(layout.barcodeHeight) || 20)}
                                 margin={0}
                                 fontSize={10}

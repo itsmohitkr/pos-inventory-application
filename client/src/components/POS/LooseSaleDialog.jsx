@@ -182,7 +182,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: 2,
                                 bgcolor: 'rgba(0,0,0,0.04)',
-                                '& input': { caretColor: 'transparent', textAlign: 'center' }
+                                '& input': { textAlign: 'left' }
                             }
                         }}
                         autoFocus
