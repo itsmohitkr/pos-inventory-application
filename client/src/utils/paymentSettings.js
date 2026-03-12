@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
     enablePaymentMethods: 'posEnablePaymentMethods',
     enableCalculator: 'posEnableCalculator',
     enableDecodedPrices: 'posEnableDecodedPrices',
+    adminAutoLogoutTime: 'posAdminAutoLogoutTime',
     receipt: 'posReceiptSettings',
     shopName: 'posShopName'
 };
@@ -143,5 +144,23 @@ export const setDecodedPricesEnabled = (enabled) => {
         window.dispatchEvent(new Event('pos-settings-updated'));
     } catch (error) {
         console.error('Failed to save decoded prices setting:', error);
+    }
+};
+
+export const getAdminAutoLogoutTime = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.adminAutoLogoutTime);
+        return stored ? parseInt(stored, 10) : 15; // Default to 15 minutes
+    } catch {
+        return 15;
+    }
+};
+
+export const setAdminAutoLogoutTime = (minutes) => {
+    try {
+        localStorage.setItem(STORAGE_KEYS.adminAutoLogoutTime, minutes.toString());
+        window.dispatchEvent(new Event('pos-settings-updated'));
+    } catch (error) {
+        console.error('Failed to save admin auto-logout time:', error);
     }
 };

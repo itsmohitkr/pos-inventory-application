@@ -46,7 +46,9 @@ import {
   getExtraDiscountEnabled,
   setExtraDiscountEnabled,
   getCalculatorEnabled,
-  setCalculatorEnabled
+  setCalculatorEnabled,
+  getAdminAutoLogoutTime,
+  setAdminAutoLogoutTime
 } from "../../utils/paymentSettings";
 import { Snackbar, Alert as MuiAlert } from "@mui/material";
 
@@ -94,6 +96,8 @@ const AccountDetailsDialog = ({
   const [extraDiscountEnabled, setExtraDiscountEnabledState] = useState(getExtraDiscountEnabled());
   const [notificationDuration, setNotificationDurationState] = useState(() => getNotificationDuration() / 1000);
   const [calculatorEnabled, setCalculatorEnabledState] = useState(getCalculatorEnabled());
+  const [adminAutoLogoutTime, setAdminAutoLogoutTimeState] = useState(getAdminAutoLogoutTime());
+  const [weightedAverageCostEnabled, setWeightedAverageCostEnabled] = useState(false);
   const [tabValue, setTabValue] = useState(0);
 
   // Sync with metadata prop changes
@@ -167,14 +171,17 @@ const AccountDetailsDialog = ({
         if (settings.posNotificationDuration !== undefined) {
           setNotificationDurationState(settings.posNotificationDuration / 1000);
         }
+        if (settings.posEnableWeightedAverageCost !== undefined) {
+          setWeightedAverageCostEnabled(settings.posEnableWeightedAverageCost);
+        }
       } catch (error) {
         console.error('Failed to fetch UI settings:', error);
       }
     };
-    if (open && tabValue === 2) {
+    if (open) {
       fetchUISettings();
     }
-  }, [open, tabValue]);
+  }, [open]);
 
   const handleSave = () => {
     onMetadataChange({
@@ -206,12 +213,22 @@ const AccountDetailsDialog = ({
           key: 'posNotificationDuration',
           value: notificationDuration * 1000
         });
+        await api.post('/api/settings', {
+          key: 'posAdminAutoLogoutTime',
+          value: adminAutoLogoutTime
+        });
+        await api.post('/api/settings', {
+          key: 'posEnableWeightedAverageCost',
+          value: weightedAverageCostEnabled
+        });
         window.dispatchEvent(new Event("pos-settings-updated"));
       } catch (error) {
         console.error('Failed to save UI settings:', error);
       }
     };
     saveSettingsToServer();
+
+    setAdminAutoLogoutTime(adminAutoLogoutTime);
 
     window.dispatchEvent(new Event("pos-ui-zoom-updated"));
     window.dispatchEvent(new Event("pos-settings-updated"));
@@ -792,6 +809,25 @@ const AccountDetailsDialog = ({
                     <FormControlLabel
                       control={
                         <Switch
+                          checked={weightedAverageCostEnabled}
+                          onChange={(e) => setWeightedAverageCostEnabled(e.target.checked)}
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body1" fontWeight={600}>
+                            Enable Weighted Average Cost
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Automatically calculate new cost price when adding stock in Quick Inventory
+                          </Typography>
+                        </Box>
+                      }
+                    />
+
+                    <FormControlLabel
+                      control={
+                        <Switch
                           checked={extraDiscountEnabled}
                           onChange={(e) => {
                             setExtraDiscountEnabledState(e.target.checked);
@@ -822,6 +858,22 @@ const AccountDetailsDialog = ({
                         inputProps={{ min: 1, max: 10, step: 0.5 }}
                         label="Duration (seconds)"
                         helperText="How long success notifications are displayed (1-10 seconds)"
+                        sx={{ maxWidth: 250, mt: 1 }}
+                      />
+                    </Box>
+
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body1" fontWeight={600} gutterBottom>
+                        Admin Elevation Auto-Logout
+                      </Typography>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={adminAutoLogoutTime}
+                        onChange={(e) => setAdminAutoLogoutTimeState(parseInt(e.target.value))}
+                        inputProps={{ min: 1, max: 120, step: 1 }}
+                        label="Time (minutes)"
+                        helperText="How long admin elevation remains active before timing out"
                         sx={{ maxWidth: 250, mt: 1 }}
                       />
                     </Box>

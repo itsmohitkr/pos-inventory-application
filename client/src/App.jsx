@@ -68,6 +68,7 @@ import UserManagementDialog from './components/Auth/UserManagementDialog';
 import AccountDetailsDialog from './components/Settings/AccountDetailsDialog';
 import CustomDialog from './components/common/CustomDialog';
 import useCustomDialog from './hooks/useCustomDialog';
+import { getAdminAutoLogoutTime } from './utils/paymentSettings';
 
 const STORAGE_KEYS = {
   receipt: 'posReceiptSettings',
@@ -557,6 +558,7 @@ function App() {
   const [monochromeMode, setMonochromeMode] = useState(() => localStorage.getItem('posMonochromeMode') === 'true');
   const [printers, setPrinters] = useState([]);
   const [defaultPrinter, setDefaultPrinter] = useState(null);
+  const [adminLogoutTimer, setAdminLogoutTimer] = useState(null);
 
   const [shopMetadata, setShopMetadata] = useState({
     shopMobile: '',
@@ -616,7 +618,22 @@ function App() {
     // Check if user is already logged in
     const storedUser = localStorage.getItem('posCurrentUser');
     if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
+      const user = JSON.parse(storedUser);
+      setCurrentUser(user);
+
+      // Restore auto-logout timer if elevated
+      if (user.originalRole) {
+        const expiry = localStorage.getItem('posAdminElevationExpiry');
+        if (expiry) {
+          const remaining = Math.floor((parseInt(expiry, 10) - Date.now()) / 1000);
+          if (remaining > 0) {
+            setAdminLogoutTimer(remaining);
+          } else {
+            // Already expired, logout immediately
+            setTimeout(handleAdminLogout, 0);
+          }
+        }
+      }
     }
     fetchSettings();
     setLoading(false);
@@ -654,6 +671,37 @@ function App() {
     if (window.electron) fetchPrinters();
   }, []);
 
+  useEffect(() => {
+    let interval;
+    if (adminLogoutTimer !== null && adminLogoutTimer > 0) {
+      interval = setInterval(() => {
+        setAdminLogoutTimer(prev => prev - 1);
+      }, 1000);
+    } else if (adminLogoutTimer === 0) {
+      handleAdminLogout();
+    }
+
+    // Periodically sync with localStorage to handle multi-tab or potential drift
+    if (adminLogoutTimer !== null && adminLogoutTimer % 5 === 0) {
+      const expiry = localStorage.getItem('posAdminElevationExpiry');
+      if (expiry) {
+        const remaining = Math.floor((parseInt(expiry, 10) - Date.now()) / 1000);
+        if (Math.abs(remaining - adminLogoutTimer) > 2) {
+          setAdminLogoutTimer(remaining > 0 ? remaining : 0);
+        }
+      }
+    }
+
+    return () => clearInterval(interval);
+  }, [adminLogoutTimer]);
+
+  const formatTimer = (seconds) => {
+    if (seconds === null) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return ` (${mins}:${secs.toString().padStart(2, '0')})`;
+  };
+
 
 
   const handleLogin = (user) => {
@@ -685,6 +733,15 @@ function App() {
         };
         setCurrentUser(elevatedUser);
         localStorage.setItem('posCurrentUser', JSON.stringify(elevatedUser));
+
+        // Start auto-logout timer
+        const timeoutMinutes = getAdminAutoLogoutTime();
+        const durationSeconds = timeoutMinutes * 60;
+        const expiry = Date.now() + (durationSeconds * 1000);
+
+        localStorage.setItem('posAdminElevationExpiry', expiry.toString());
+        setAdminLogoutTimer(durationSeconds);
+
         setShowAdminLoginDialog(false);
         setAdminPassword('');
         window.dispatchEvent(new Event('pos-refocus'));
@@ -704,6 +761,12 @@ function App() {
 
       setCurrentUser(restoredUser);
       localStorage.setItem('posCurrentUser', JSON.stringify(restoredUser));
+      localStorage.removeItem('posAdminElevationExpiry');
+      setAdminLogoutTimer(null);
+
+      // Redirect to POS screen
+      window.location.hash = '#/pos';
+
       // A small trick to trigger a render forcing user out of restricted tabs by
       // allowing standard React Router Navigate to kick in if they are on a protected route.
     }
@@ -887,7 +950,7 @@ function App() {
                   color="error"
                   sx={{ ml: 3, fontWeight: 'bold' }}
                 >
-                  Log out Admin
+                  Log out Admin{formatTimer(adminLogoutTimer)}
                 </Button>
               )}
             </Box>
