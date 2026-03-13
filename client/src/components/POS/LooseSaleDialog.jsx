@@ -139,7 +139,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                bgcolor: 'primary.dark',
+                bgcolor: 'primary.main',
                 color: 'primary.contrastText'
             }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Loose Sale Entry</Typography>
@@ -185,7 +185,6 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
                                 '& input': { textAlign: 'left' }
                             }
                         }}
-                        autoFocus
                     />
 
                     {/* Rows 2-5: Numpad */}

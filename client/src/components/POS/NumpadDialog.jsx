@@ -106,7 +106,7 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
                 }
             }}
         >
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1, bgcolor: 'primary.dark', color: 'primary.contrastText' }}>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
                 <Typography variant="h6" fontWeight="bold">{title}</Typography>
                 <IconButton onClick={onClose} size="small" sx={{ color: 'inherit' }}>
                     <CloseIcon />
@@ -114,14 +114,15 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
             </DialogTitle>
             <DialogContent sx={{ mt: 2 }}>
                 <Box sx={{
-                    bgcolor: '#1e293b',
-                    color: '#f8fafc',
+                    bgcolor: 'grey.100',
+                    color: 'text.primary',
                     p: 3,
                     borderRadius: 2,
                     mb: 3,
                     textAlign: 'right',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
                 }}>
                     <Typography variant="h3" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
                         {value}

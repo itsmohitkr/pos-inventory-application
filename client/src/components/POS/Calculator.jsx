@@ -176,7 +176,7 @@ const Calculator = ({ open, onClose }) => {
                 }
             }}
         >
-            <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.dark', color: 'primary.contrastText' }}>
+            <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' }}>
                 <Typography variant="h6" fontWeight="bold">Calculator</Typography>
                 <IconButton size="small" onClick={onClose} sx={{ color: 'inherit' }}>
                     <CloseIcon />
@@ -187,22 +187,24 @@ const Calculator = ({ open, onClose }) => {
                 {/* Display Area */}
                 <Box sx={{
                     p: 3,
-                    bgcolor: '#1e293b',
-                    color: '#f8fafc',
+                    bgcolor: 'grey.100',
+                    color: 'text.primary',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'flex-end',
                     minHeight: 120,
-                    borderBottom: '1px solid rgba(255,255,255,0.1)'
+                    borderBottom: '1px solid',
+                    borderColor: 'divider'
                 }}>
                     <Typography
                         variant="body1"
                         sx={{
-                            color: 'rgba(255,255,255,0.6)',
+                            color: 'text.secondary',
                             minHeight: 24,
                             mb: 1,
                             fontSize: '1.2rem',
-                            wordBreak: 'break-all'
+                            wordBreak: 'break-all',
+                            fontWeight: 500
                         }}
                     >
                         {expression.replace(/\*/g, '×').replace(/\//g, '÷') || '\u00A0'}

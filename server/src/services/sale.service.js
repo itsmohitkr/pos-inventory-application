@@ -84,7 +84,8 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
                 sellingPrice: effectivePrice, // Record the actual price sold at
                 costPrice: batch.costPrice,
                 mrp: batch.mrp,
-                isWholesale: isWholesaleItem
+                isWholesale: isWholesaleItem,
+                isFree: !!(item.sellingPrice === 0 || item.isFree)
             });
 
             movementData.push({

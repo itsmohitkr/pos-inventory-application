@@ -85,6 +85,7 @@ model SaleItem {
   costPrice        Float
   mrp              Float
   isWholesale      Boolean @default(false)
+  isFree           Boolean @default(false)
   batch            Batch   @relation(fields: [batchId], references: [id])
   sale             Sale    @relation(fields: [saleId], references: [id])
 }
