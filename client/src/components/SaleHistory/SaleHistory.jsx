@@ -545,10 +545,10 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                           sx={{
                             fontWeight: 800,
                             bgcolor: "#f8fafc",
-                            minWidth: 80,
+                            minWidth: 150,
                           }}
                         >
-                          ORDER ID
+                          {saleType === 'pos' ? 'ORDER ID' : 'ITEM NAME / NOTES'}
                         </TableCell>
                         <TableCell
                           sx={{
@@ -690,7 +690,14 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                               },
                             }}
                           >
-                            <TableCell sx={{ fontWeight: 600 }}>LOO-{sale.id}</TableCell>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: '#e65100' }}>
+                                {sale.itemName || 'Loose Item'}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                LOO-{sale.id}
+                              </Typography>
+                            </TableCell>
                             <TableCell>
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 {new Date(sale.createdAt).toLocaleDateString()}

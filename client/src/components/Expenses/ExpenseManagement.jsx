@@ -71,8 +71,11 @@ const ExpenseManagement = () => {
     const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
     const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
     const [paymentHistoryDialogOpen, setPaymentHistoryDialogOpen] = useState(false);
+    const [expensePaymentDialogOpen, setExpensePaymentDialogOpen] = useState(false); // New
+    const [expensePaymentHistoryDialogOpen, setExpensePaymentHistoryDialogOpen] = useState(false); // New
     const [selectedPurchase, setSelectedPurchase] = useState(null);
-    const [selectedPayment, setSelectedPayment] = useState(null); // Added
+    const [selectedExpense, setSelectedExpense] = useState(null); // New
+    const [selectedPayment, setSelectedPayment] = useState(null);
     const [deleteConfig, setDeleteConfig] = useState({ open: false, title: '', message: '', onConfirm: null });
 
     // Menu state
@@ -84,7 +87,9 @@ const ExpenseManagement = () => {
         amount: '',
         category: '',
         description: '',
-        date: getLocalTodayString()
+        date: getLocalTodayString(),
+        paidAmount: '', // New
+        paymentMethod: 'Cash' // New
     });
 
     const [purchaseForm, setPurchaseForm] = useState({
@@ -211,7 +216,7 @@ const ExpenseManagement = () => {
             });
             setExpenses(sortedExp);
             setPurchases(sortedPur);
-            if (callback) callback(sortedPur);
+            if (callback) callback(sortedPur, sortedExp); // Pass both to callback
         } catch (err) {
             setError('Failed to fetch data');
         } finally {
@@ -220,7 +225,7 @@ const ExpenseManagement = () => {
     };
 
     const handleOpenExpenseDialog = () => {
-        setExpenseForm({ id: null, amount: '', category: '', description: '', date: getLocalTodayString() });
+        setExpenseForm({ id: null, amount: '', category: '', description: '', date: getLocalTodayString(), paidAmount: '', paymentMethod: 'Cash' });
         setExpenseDialogOpen(true);
     };
 
@@ -235,7 +240,8 @@ const ExpenseManagement = () => {
             amount: expense.amount,
             category: expense.category,
             description: expense.description || '',
-            date: new Date(expense.date).toISOString().split('T')[0]
+            date: new Date(expense.date).toISOString().split('T')[0],
+            paymentMethod: expense.paymentMethod || 'Cash'
         });
         setExpenseDialogOpen(true);
     };
@@ -260,7 +266,12 @@ const ExpenseManagement = () => {
             if (expenseForm.id) {
                 await api.put(`/api/expenses/${expenseForm.id}`, expenseForm);
             } else {
-                await api.post('/api/expenses', expenseForm);
+                const submissionData = {
+                    ...expenseForm,
+                    amount: parseFloat(expenseForm.amount) || 0,
+                    paidAmount: parseFloat(expenseForm.paidAmount) || 0
+                };
+                await api.post('/api/expenses', submissionData);
             }
             setExpenseDialogOpen(false);
             fetchData();
@@ -348,47 +359,6 @@ const ExpenseManagement = () => {
         setPaymentHistoryDialogOpen(true);
     };
 
-    const handleEditPayment = async (e) => {
-        if (e) e.preventDefault();
-        try {
-            await api.put(`/api/purchases/payments/${selectedPayment.id}`, {
-                amount: parseFloat(editPaymentForm.amount),
-                paymentMethod: editPaymentForm.paymentMethod,
-                date: editPaymentForm.date,
-                note: editPaymentForm.note
-            });
-            setPaymentEditDialogOpen(false);
-            fetchData((updatedPurchases) => {
-                const refreshed = updatedPurchases.find(p => p.id === selectedPurchase.id);
-                if (refreshed) setSelectedPurchase(refreshed);
-            });
-        } catch (err) {
-            console.error('Payment edit error:', err);
-            setError('Failed to update payment.');
-        }
-    };
-
-    const handleDeletePayment = (paymentId) => {
-        setDeleteConfig({
-            open: true,
-            title: 'Confirm Delete Payment',
-            message: 'Are you sure you want to delete this payment record? This will increase the due amount of the purchase.',
-            onConfirm: async () => {
-                try {
-                    await api.delete(`/api/purchases/payments/${paymentId}`);
-                    fetchData((updatedPurchases) => {
-                        const refreshed = updatedPurchases.find(p => p.id === selectedPurchase.id);
-                        if (refreshed) setSelectedPurchase(refreshed);
-                    });
-                    setDeleteConfig(prev => ({ ...prev, open: false }));
-                } catch (err) {
-                    console.error('Payment delete error:', err);
-                    setError('Failed to delete payment.');
-                }
-            }
-        });
-    };
-
     const handleOpenPaymentMenu = (event, payment) => {
         setPaymentMenuAnchor(event.currentTarget);
         setSelectedPayment(payment);
@@ -409,6 +379,65 @@ const ExpenseManagement = () => {
         handleClosePaymentMenu();
     };
 
+    const handleEditPaymentSubmission = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            const endpoint = selectedPurchase
+                ? `/api/purchases/payments/${selectedPayment.id}`
+                : `/api/expenses/payments/${selectedPayment.id}`;
+
+            await api.put(endpoint, {
+                amount: parseFloat(editPaymentForm.amount),
+                paymentMethod: editPaymentForm.paymentMethod,
+                date: editPaymentForm.date,
+                note: editPaymentForm.note
+            });
+            setPaymentEditDialogOpen(false);
+            fetchData((updatedPurchases, updatedExpenses) => {
+                if (selectedPurchase) {
+                    const refreshed = updatedPurchases.find(p => p.id === selectedPurchase.id);
+                    if (refreshed) setSelectedPurchase(refreshed);
+                } else if (selectedExpense) {
+                    const refreshed = updatedExpenses.find(e => e.id === selectedExpense.id);
+                    if (refreshed) setSelectedExpense(refreshed);
+                }
+            });
+        } catch (err) {
+            console.error('Payment edit error:', err);
+            setError('Failed to update payment.');
+        }
+    };
+
+    const handleDeletePaymentAction = (paymentId) => {
+        setDeleteConfig({
+            open: true,
+            title: 'Confirm Delete Payment',
+            message: 'Are you sure you want to delete this payment record?',
+            onConfirm: async () => {
+                try {
+                    const endpoint = selectedPurchase
+                        ? `/api/purchases/payments/${paymentId}`
+                        : `/api/expenses/payments/${paymentId}`;
+
+                    await api.delete(endpoint);
+                    fetchData((updatedPurchases, updatedExpenses) => {
+                        if (selectedPurchase) {
+                            const refreshed = updatedPurchases.find(p => p.id === selectedPurchase.id);
+                            if (refreshed) setSelectedPurchase(refreshed);
+                        } else if (selectedExpense) {
+                            const refreshed = updatedExpenses.find(e => e.id === selectedExpense.id);
+                            if (refreshed) setSelectedExpense(refreshed);
+                        }
+                    });
+                    setDeleteConfig(prev => ({ ...prev, open: false }));
+                } catch (err) {
+                    console.error('Payment delete error:', err);
+                    setError('Failed to delete payment.');
+                }
+            }
+        });
+    };
+
     const handleCreatePayment = async (e) => {
         if (e) e.preventDefault();
         try {
@@ -427,6 +456,78 @@ const ExpenseManagement = () => {
             console.error('Payment saving error:', err);
             setError('Failed to save payment.');
         }
+    };
+
+    const handleOpenExpensePaymentDialog = (expense) => {
+        setSelectedExpense(expense);
+        setPaymentForm({
+            amount: expense.dueAmount || 0,
+            paymentMethod: expense.paymentMethod || 'Cash',
+            date: getLocalTodayString(),
+            note: ''
+        });
+        setExpensePaymentDialogOpen(true);
+    };
+
+    const handleOpenExpensePaymentHistoryDialog = (expense) => {
+        setSelectedExpense(expense);
+        setExpensePaymentHistoryDialogOpen(true);
+    };
+
+    const handleCreateExpensePayment = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            await api.post(`/api/expenses/${selectedExpense.id}/payments`, {
+                amount: parseFloat(paymentForm.amount),
+                paymentMethod: paymentForm.paymentMethod,
+                date: paymentForm.date,
+                note: paymentForm.note
+            });
+            setExpensePaymentDialogOpen(false);
+            fetchData((updatedData) => {
+                // If fetchData doesn't separate, we might need to find by id in either
+                // But fetchData usually sets both.
+                // However, our fetchData expects a callback for Purchases specifically in some places?
+                // Let's check fetchData again.
+            });
+        } catch (err) {
+            console.error('Expense payment error:', err);
+            setError('Failed to save expense payment.');
+        }
+    };
+
+    // Need to handle edit/delete for expense payments too
+    const handleEditExpensePayment = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            await api.put(`/api/expenses/payments/${selectedPayment.id}`, {
+                amount: parseFloat(editPaymentForm.amount),
+                paymentMethod: editPaymentForm.paymentMethod,
+                date: editPaymentForm.date,
+                note: editPaymentForm.note
+            });
+            setPaymentEditDialogOpen(false);
+            fetchData();
+        } catch (err) {
+            setError('Failed to update expense payment.');
+        }
+    };
+
+    const handleDeleteExpensePayment = (paymentId) => {
+        setDeleteConfig({
+            open: true,
+            title: 'Confirm Delete Payment',
+            message: 'Are you sure you want to delete this payment record?',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/api/expenses/payments/${paymentId}`);
+                    fetchData();
+                    setDeleteConfig(prev => ({ ...prev, open: false }));
+                } catch (err) {
+                    setError('Failed to delete expense payment.');
+                }
+            }
+        });
     };
 
     // Derived totals
@@ -453,6 +554,7 @@ const ExpenseManagement = () => {
     });
 
     const totalExpensesAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalExpensesDue = filteredExpenses.reduce((sum, e) => sum + (e.dueAmount || 0), 0); // New
     const totalPurchasesAmount = filteredPurchases.reduce((sum, p) => sum + p.totalAmount, 0);
     const totalPurchasesDue = filteredPurchases.reduce((sum, p) => sum + (p.dueAmount || 0), 0);
 
@@ -576,43 +678,115 @@ const ExpenseManagement = () => {
                                     </Stack>
                                 </Stack>
 
-                                <TableContainer component={Paper} variant="outlined">
-                                    <Table>
+                                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: "calc(100vh - 350px)", overflow: "auto" }}>
+                                    <Table stickyHeader>
                                         <TableHead sx={{ bgcolor: 'action.hover' }}>
-                                            <TableRow>
-                                                <TableCell>Date</TableCell>
-                                                <TableCell>Category</TableCell>
-                                                <TableCell>Description</TableCell>
-                                                <TableCell align="right">Amount</TableCell>
-                                                <TableCell align="right">Actions</TableCell>
+                                            <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                                                <TableCell sx={{ fontWeight: 800 }}>DATE</TableCell>
+                                                <TableCell sx={{ fontWeight: 800 }}>CATEGORY</TableCell>
+                                                <TableCell sx={{ fontWeight: 800 }}>DESCRIPTION</TableCell>
+                                                <TableCell sx={{ fontWeight: 800 }}>METHOD</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 800 }}>AMOUNT</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 800 }}>DUE</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 800 }}>STATUS</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 800 }}>ACTIONS</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
                                             {filteredExpenses.map((row) => (
-                                                <TableRow key={row.id}>
+                                                <TableRow
+                                                    key={row.id}
+                                                    onDoubleClick={() => handleOpenExpensePaymentHistoryDialog(row)}
+                                                    sx={{ '&:hover': { bgcolor: 'action.hover', cursor: 'pointer' } }}
+                                                >
                                                     <TableCell>{new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</TableCell>
                                                     <TableCell>{row.category}</TableCell>
                                                     <TableCell>{row.description}</TableCell>
+                                                    <TableCell>{row.paymentMethod || 'Cash'}</TableCell>
                                                     <TableCell align="right">₹{row.amount.toLocaleString()}</TableCell>
                                                     <TableCell align="right">
-                                                        <IconButton size="small" color="primary" onClick={() => handleEditExpense(row)}>
-                                                            <EditIcon fontSize="small" />
-                                                        </IconButton>
-                                                        <IconButton size="small" color="error" onClick={() => handleDeleteExpense(row.id)}>
-                                                            <DeleteIcon fontSize="small" />
-                                                        </IconButton>
+                                                        {(row.dueAmount || 0) > 0 ? (
+                                                            <Typography fontWeight="bold" color="error.main">₹{row.dueAmount.toLocaleString()}</Typography>
+                                                        ) : (
+                                                            <Typography color="text.secondary">-</Typography>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Chip
+                                                            label={row.paymentStatus || 'Paid'}
+                                                            size="small"
+                                                            color={
+                                                                row.paymentStatus === 'Paid' ? 'success' :
+                                                                    row.paymentStatus === 'Due' ? 'warning' : 'error'
+                                                            }
+                                                            sx={{ fontWeight: 'bold', minWidth: 70 }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5 }}>
+                                                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                                                            {(row.dueAmount || 0) > 0 && (
+                                                                <Button
+                                                                    size="small"
+                                                                    color="success"
+                                                                    onClick={() => handleOpenExpensePaymentDialog(row)}
+                                                                    sx={{
+                                                                        flexDirection: 'column',
+                                                                        fontSize: '0.65rem',
+                                                                        minWidth: '60px',
+                                                                        textTransform: 'none',
+                                                                        lineHeight: 1.2,
+                                                                        py: 0.5
+                                                                    }}
+                                                                >
+                                                                    <PaymentIcon sx={{ fontSize: '1.2rem', mb: 0.2 }} />
+                                                                    Pay
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                size="small"
+                                                                color="primary"
+                                                                onClick={() => handleEditExpense(row)}
+                                                                sx={{
+                                                                    flexDirection: 'column',
+                                                                    fontSize: '0.65rem',
+                                                                    minWidth: '50px',
+                                                                    textTransform: 'none',
+                                                                    lineHeight: 1.2,
+                                                                    py: 0.5
+                                                                }}
+                                                            >
+                                                                <EditIcon sx={{ fontSize: '1.2rem', mb: 0.2 }} />
+                                                                Edit
+                                                            </Button>
+                                                            <Button
+                                                                size="small"
+                                                                color="error"
+                                                                onClick={() => handleDeleteExpense(row.id)}
+                                                                sx={{
+                                                                    flexDirection: 'column',
+                                                                    fontSize: '0.65rem',
+                                                                    minWidth: '50px',
+                                                                    textTransform: 'none',
+                                                                    lineHeight: 1.2,
+                                                                    py: 0.5
+                                                                }}
+                                                            >
+                                                                <DeleteIcon sx={{ fontSize: '1.2rem', mb: 0.2 }} />
+                                                                Delete
+                                                            </Button>
+                                                        </Box>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
                                             {filteredExpenses.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} align="center">No expenses match criteria</TableCell>
+                                                    <TableCell colSpan={8} align="center">No expenses match criteria</TableCell>
                                                 </TableRow>
                                             )}
                                             {/* Highlighted Total Row */}
                                             {filteredExpenses.length > 0 && (
-                                                <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
-                                                    <TableCell colSpan={3} sx={{ py: 1.5 }}>
+                                                <TableRow sx={{ bgcolor: '#f1f5f9', position: 'sticky', bottom: 0, zIndex: 1 }}>
+                                                    <TableCell colSpan={4} sx={{ py: 1.5 }}>
                                                         <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
                                                             Total Current Period
                                                         </Typography>
@@ -622,7 +796,12 @@ const ExpenseManagement = () => {
                                                             ₹{totalExpensesAmount.toLocaleString()}
                                                         </Typography>
                                                     </TableCell>
-                                                    <TableCell sx={{ py: 1.5 }} />
+                                                    <TableCell align="right" sx={{ py: 1.5 }}>
+                                                        <Typography variant="h6" fontWeight="bold" color="error.dark">
+                                                            ₹{totalExpensesDue.toLocaleString()}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell colSpan={2} sx={{ py: 1.5 }} />
                                                 </TableRow>
                                             )}
                                         </TableBody>
@@ -670,18 +849,18 @@ const ExpenseManagement = () => {
                                     </Stack>
                                 </Stack>
 
-                                <TableContainer component={Paper} variant="outlined">
-                                    <Table>
+                                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: "calc(100vh - 350px)", overflow: "auto" }}>
+                                    <Table stickyHeader>
                                         <TableHead sx={{ bgcolor: 'action.hover' }}>
-                                            <TableRow>
-                                                <TableCell>Date</TableCell>
-                                                <TableCell>Vendor</TableCell>
-                                                <TableCell>Method</TableCell>
-                                                <TableCell>Note</TableCell>
-                                                <TableCell align="right">Amount</TableCell>
-                                                <TableCell align="right">Due</TableCell>
-                                                <TableCell align="center">Status</TableCell>
-                                                <TableCell align="right">Actions</TableCell>
+                                            <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                                                <TableCell sx={{ fontWeight: 800 }}>DATE</TableCell>
+                                                <TableCell sx={{ fontWeight: 800 }}>VENDOR</TableCell>
+                                                <TableCell sx={{ fontWeight: 800 }}>METHOD</TableCell>
+                                                <TableCell sx={{ fontWeight: 800 }}>NOTE</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 800 }}>AMOUNT</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 800 }}>DUE</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 800 }}>STATUS</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 800 }}>ACTIONS</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -777,7 +956,7 @@ const ExpenseManagement = () => {
                                             )}
                                             {/* Highlighted Total Row */}
                                             {filteredPurchases.length > 0 && (
-                                                <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)' }}>
+                                                <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)', position: 'sticky', bottom: 0, zIndex: 1 }}>
                                                     <TableCell colSpan={4} sx={{ py: 1.5 }}>
                                                         <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">
                                                             Total Current Period
@@ -820,24 +999,65 @@ const ExpenseManagement = () => {
                                             value={expenseForm.amount}
                                             onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
                                         />
+                                        <Autocomplete
+                                            sx={{ flex: 1 }}
+                                            freeSolo
+                                            options={categories}
+                                            value={expenseForm.category}
+                                            onChange={(event, newValue) => {
+                                                setExpenseForm({ ...expenseForm, category: newValue || '' });
+                                            }}
+                                            onInputChange={(event, newInputValue) => {
+                                                setExpenseForm({ ...expenseForm, category: newInputValue });
+                                            }}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    required
+                                                    label="Expenses for?"
+                                                    placeholder="Enter category details..."
+                                                />
+                                            )}
+                                        />
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                                         <TextField
                                             sx={{ flex: 1 }}
                                             required
-                                            label="Expenses for?"
-                                            value={expenseForm.category}
-                                            onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                                            placeholder="Enter category details..."
+                                            label="Date"
+                                            type="date"
+                                            value={expenseForm.date}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                                            InputLabelProps={{ shrink: true }}
                                         />
+                                        <TextField
+                                            sx={{ flex: 1 }}
+                                            label="Amount Paid Now"
+                                            type="number"
+                                            disabled={!!expenseForm.id}
+                                            inputProps={{ min: 0, max: expenseForm.amount || 0, step: "0.01" }}
+                                            value={expenseForm.paidAmount}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, paidAmount: e.target.value })}
+                                            helperText={
+                                                expenseForm.amount && !expenseForm.id
+                                                    ? `Due: ₹${Math.max(0, (parseFloat(expenseForm.amount) || 0) - (parseFloat(expenseForm.paidAmount) || 0)).toLocaleString()}`
+                                                    : ''
+                                            }
+                                        />
+                                        <TextField
+                                            sx={{ flex: 1 }}
+                                            select
+                                            label="Method"
+                                            value={expenseForm.paymentMethod}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, paymentMethod: e.target.value })}
+                                            SelectProps={{ native: true }}
+                                        >
+                                            <option value="Cash">Cash</option>
+                                            <option value="Card">Card</option>
+                                            <option value="UPI">UPI</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                        </TextField>
                                     </Box>
-                                    <TextField
-                                        fullWidth
-                                        required
-                                        label="Date"
-                                        type="date"
-                                        value={expenseForm.date}
-                                        onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                                        InputLabelProps={{ shrink: true }}
-                                    />
                                     <TextField
                                         fullWidth
                                         label="Description"
@@ -1127,13 +1347,21 @@ const ExpenseManagement = () => {
                 >
                     <MenuItem
                         onClick={handleOpenEditPayment}
-                        disabled={!selectedPurchase?.payments?.length || !selectedPayment || selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !== selectedPayment.id}
+                        disabled={
+                            selectedPurchase
+                                ? (!selectedPurchase.payments?.length || !selectedPayment || selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !== selectedPayment.id)
+                                : (!selectedExpense?.payments?.length || !selectedPayment || selectedExpense.payments[selectedExpense.payments.length - 1]?.id !== selectedPayment.id)
+                        }
                     >
                         <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
                     </MenuItem>
                     <MenuItem
-                        onClick={() => { handleDeletePayment(selectedPayment.id); handleClosePaymentMenu(); }}
-                        disabled={!selectedPurchase?.payments?.length || !selectedPayment || selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !== selectedPayment.id}
+                        onClick={() => { handleDeletePaymentAction(selectedPayment.id); handleClosePaymentMenu(); }}
+                        disabled={
+                            selectedPurchase
+                                ? (!selectedPurchase.payments?.length || !selectedPayment || selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !== selectedPayment.id)
+                                : (!selectedExpense?.payments?.length || !selectedPayment || selectedExpense.payments[selectedExpense.payments.length - 1]?.id !== selectedPayment.id)
+                        }
                         sx={{ color: 'error.main' }}
                     >
                         <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Delete
@@ -1142,7 +1370,7 @@ const ExpenseManagement = () => {
 
                 {/* Edit Payment Sub-Dialog */}
                 <Dialog open={paymentEditDialogOpen} onClose={() => setPaymentEditDialogOpen(false)} fullWidth maxWidth="xs">
-                    <form onSubmit={handleEditPayment}>
+                    <form onSubmit={handleEditPaymentSubmission}>
                         <DialogTitle>Edit Payment Record</DialogTitle>
                         <DialogContent>
                             <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1216,6 +1444,153 @@ const ExpenseManagement = () => {
                         >
                             Delete
                         </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Expense Payment Dialog */}
+                <Dialog open={expensePaymentDialogOpen} onClose={() => setExpensePaymentDialogOpen(false)} fullWidth maxWidth="xs">
+                    <form onSubmit={handleCreateExpensePayment}>
+                        <DialogTitle>Record Expense Payment</DialogTitle>
+                        <DialogContent>
+                            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {selectedExpense && (
+                                    <Box sx={{ mb: 1, p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
+                                        <Typography variant="body2" color="text.secondary">Total Expense: ₹{selectedExpense.amount.toLocaleString()}</Typography>
+                                        <Typography variant="body1" fontWeight="bold" color="error.main">Due Amount: ₹{selectedExpense.dueAmount?.toLocaleString()}</Typography>
+                                    </Box>
+                                )}
+                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                    <TextField
+                                        required
+                                        sx={{ flex: 2 }}
+                                        label="Payment Amount"
+                                        type="number"
+                                        inputProps={{ max: selectedExpense?.dueAmount || 0, step: "0.01" }}
+                                        value={paymentForm.amount}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                                    />
+                                    <TextField
+                                        required
+                                        sx={{ flex: 1 }}
+                                        select
+                                        label="Method"
+                                        value={paymentForm.paymentMethod}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                                        SelectProps={{ native: true }}
+                                    >
+                                        <option value="Cash">Cash</option>
+                                        <option value="Card">Card</option>
+                                        <option value="UPI">UPI</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                    </TextField>
+                                </Box>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    label="Payment Date"
+                                    type="date"
+                                    value={paymentForm.date}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                                <TextField
+                                    fullWidth
+                                    label="Note (Optional)"
+                                    multiline
+                                    rows={2}
+                                    value={paymentForm.note}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
+                                />
+                            </Box>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setExpensePaymentDialogOpen(false)}>Cancel</Button>
+                            <Button
+                                variant="contained"
+                                type="submit"
+                                color="success"
+                                disabled={!paymentForm.amount || parseFloat(paymentForm.amount) <= 0 || parseFloat(paymentForm.amount) > (selectedExpense?.dueAmount || 0)}
+                            >
+                                Record Payment
+                            </Button>
+                        </DialogActions>
+                    </form>
+                </Dialog>
+
+                {/* Expense Payment History Dialog */}
+                <Dialog open={expensePaymentHistoryDialogOpen} onClose={() => setExpensePaymentHistoryDialogOpen(false)} fullWidth maxWidth="sm">
+                    <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <HistoryIcon color="primary" /> Expense Payment History
+                    </DialogTitle>
+                    <DialogContent dividers>
+                        {selectedExpense && (
+                            <Box>
+                                <Stack direction="row" justifyContent="space-between" sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">Total Amount</Typography>
+                                        <Typography variant="h6" fontWeight="bold">₹{selectedExpense.amount.toLocaleString()}</Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">Total Paid</Typography>
+                                        <Typography variant="h6" fontWeight="bold" color="success.main">₹{selectedExpense.totalPaid?.toLocaleString()}</Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary">Due Amount</Typography>
+                                        <Typography variant="h6" fontWeight="bold" color="error.main">₹{selectedExpense.dueAmount?.toLocaleString()}</Typography>
+                                    </Box>
+                                </Stack>
+
+                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>Recorded Payments</Typography>
+                                {selectedExpense.payments && selectedExpense.payments.length > 0 ? (
+                                    <TableContainer component={Paper} variant="outlined">
+                                        <Table size="small">
+                                            <TableHead sx={{ bgcolor: 'action.hover' }}>
+                                                <TableRow>
+                                                    <TableCell>Date & Time</TableCell>
+                                                    <TableCell>Method</TableCell>
+                                                    <TableCell>Note</TableCell>
+                                                    <TableCell align="right">Amount</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {[...(selectedExpense.payments || [])].reverse().map((payment, index) => {
+                                                    return (
+                                                        <TableRow key={payment.id}>
+                                                            <TableCell>{new Date(payment.date).toLocaleString('en-GB', {
+                                                                day: '2-digit', month: 'short', year: 'numeric',
+                                                                hour: '2-digit', minute: '2-digit', hour12: true
+                                                            })}</TableCell>
+                                                            <TableCell>{payment.paymentMethod || 'Cash'}</TableCell>
+                                                            <TableCell>{payment.note || '-'}</TableCell>
+                                                            <TableCell align="right">
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+                                                                    <Typography sx={{ fontWeight: 'medium', color: 'success.main' }}>
+                                                                        ₹{payment.amount.toLocaleString()}
+                                                                    </Typography>
+                                                                    <IconButton size="small" onClick={(e) => {
+                                                                        setSelectedPurchase(null);
+                                                                        handleOpenPaymentMenu(e, payment);
+                                                                    }}>
+                                                                        <MoreVertIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                </Box>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                ) : (
+                                    <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                                        No payment records found.
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setExpensePaymentHistoryDialogOpen(false)}>Close</Button>
                     </DialogActions>
                 </Dialog>
             </Box>

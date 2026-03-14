@@ -139,13 +139,27 @@ model Setting {
 }
 
 model Expense {
-  id          Int      @id @default(autoincrement())
-  amount      Float
-  category    String   // 'Electricity', 'Rent', 'Wages', 'WiFi', 'Maintenance', 'Misc'
-  description String?
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int              @id @default(autoincrement())
+  amount        Float
+  category      String           // 'Electricity', 'Rent', 'Wages', 'WiFi', 'Maintenance', 'Misc'
+  description   String?
+  date          DateTime         @default(now())
+  paymentStatus String           @default("Paid") // "Paid", "Unpaid", "Due"
+  paymentMethod String?          @default("Cash")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  payments      ExpensePayment[]
+}
+
+model ExpensePayment {
+  id            Int      @id @default(autoincrement())
+  expenseId     Int
+  amount        Float
+  paymentMethod String?
+  date          DateTime @default(now())
+  note          String?
+  createdAt     DateTime @default(now())
+  expense       Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 }
 
 model Purchase {
