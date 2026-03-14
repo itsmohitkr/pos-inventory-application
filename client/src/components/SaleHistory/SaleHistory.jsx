@@ -850,6 +850,19 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                               >
                                 ₹{stats.totalDiscount.toFixed(2)}
                               </Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontWeight: 600,
+                                  color: "#64748b",
+                                  display: "block",
+                                  whiteSpace: "normal",
+                                  lineHeight: 1.2,
+                                  mt: 0.5
+                                }}
+                              >
+                                ₹{stats.mrpDiscount.toFixed(2)} MRP + ₹{stats.extraDiscount.toFixed(2)} Extra · {stats.discountPercent}% of MRP
+                              </Typography>
                             </Box>
                           </Box>
                         </Paper>
@@ -874,19 +887,59 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                                 <TableRow>
                                   <TableCell sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>PRODUCT</TableCell>
                                   <TableCell align="center" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>QTY</TableCell>
+                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>MRP</TableCell>
                                   <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>PRICE</TableCell>
-                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>TOTAL</TableCell>
+                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>MRP DISCOUNT</TableCell>
+                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>EXTRA DISCOUNT</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {selectedSale.items.map((item) => (
-                                  <TableRow key={item.id}>
-                                    <TableCell sx={{ fontWeight: 600 }}>{item.productName}</TableCell>
-                                    <TableCell align="center">{item.quantity}</TableCell>
-                                    <TableCell align="right">₹{item.sellingPrice.toFixed(2)}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700 }}>₹{(item.sellingPrice * item.quantity).toFixed(2)}</TableCell>
-                                  </TableRow>
-                                ))}
+                                {selectedSale.items.map((item) => {
+                                  const mrp = item.mrp || item.sellingPrice;
+                                  const itemDiscount = mrp - item.sellingPrice;
+                                  const itemDiscountPercent = mrp > 0 ? ((itemDiscount / mrp) * 100).toFixed(1) : 0;
+                                  const returnedQty = item.returnedQuantity || 0;
+
+                                  return (
+                                    <TableRow key={item.id}>
+                                      <TableCell sx={{ fontWeight: 600 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <span>{item.productName}</span>
+                                          {returnedQty > 0 && (
+                                            <Chip
+                                              label={returnedQty === item.quantity ? "Refunded" : "Returned"}
+                                              size="small"
+                                              sx={{
+                                                bgcolor: returnedQty === item.quantity ? "#ffebee" : "#e8f5e9",
+                                                color: returnedQty === item.quantity ? "#d32f2f" : "#2e7d32",
+                                                fontWeight: 700,
+                                                fontSize: "0.7rem",
+                                              }}
+                                            />
+                                          )}
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell align="center">{item.quantity}</TableCell>
+                                      <TableCell align="right">₹{mrp.toFixed(2)}</TableCell>
+                                      <TableCell align="right">₹{item.sellingPrice.toFixed(2)}</TableCell>
+                                      <TableCell align="right">
+                                        <Box>
+                                          <Typography variant="body2" sx={{ color: "#d32f2f", fontWeight: 700 }}>
+                                            ₹{itemDiscount.toFixed(2)}
+                                          </Typography>
+                                          <Typography variant="caption" color="text.secondary">
+                                            ({itemDiscountPercent}%)
+                                          </Typography>
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell align="right">
+                                        <Typography variant="body2" sx={{ color: "#d32f2f", fontWeight: 700 }}>
+                                          ₹0.00
+                                        </Typography>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
                               </TableBody>
                             </Table>
                           </TableContainer>
