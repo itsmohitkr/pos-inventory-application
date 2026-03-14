@@ -142,6 +142,45 @@ const InventoryTree = forwardRef((props, ref) => {
         }
     };
 
+    const handleDragStart = (e, productId) => {
+        e.dataTransfer.setData('text/plain', productId);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleCategoryDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleCategoryDrop = async (e, targetCategory) => {
+        e.preventDefault();
+        const productId = e.dataTransfer.getData('text/plain');
+        if (!productId) return;
+
+        const product = products.find(p => String(p.id) === String(productId));
+        if (!product) return;
+
+        // Cannot move to "All Products" virtual category
+        if (targetCategory === 'All Products') return;
+
+        const nextCategory = targetCategory === 'Uncategorized' ? null : targetCategory;
+        if ((product.category || null) === nextCategory) return;
+
+        try {
+            await api.put(`/api/products/${product.id}`, {
+                name: product.name,
+                barcode: product.barcode,
+                category: nextCategory,
+                batchTrackingEnabled: product.batchTrackingEnabled,
+                lowStockWarningEnabled: product.lowStockWarningEnabled,
+                lowStockThreshold: product.lowStockThreshold
+            });
+            fetchProducts();
+        } catch (error) {
+            console.error('Failed to move product via dnd:', error);
+        }
+    };
+
     const filteredProducts = useMemo(() => {
         if (!normalizedSearch) return products;
         return products.filter((product) => {
@@ -236,6 +275,8 @@ const InventoryTree = forwardRef((props, ref) => {
                                 <ListItemButton
                                     selected={isSelected}
                                     onClick={() => setSelectedCategory(category)}
+                                    onDragOver={handleCategoryDragOver}
+                                    onDrop={(e) => handleCategoryDrop(e, category)}
                                     sx={{
                                         py: 1.5,
                                         borderRadius: 1.5,
@@ -346,8 +387,11 @@ const InventoryTree = forwardRef((props, ref) => {
                                 return (
                                     <Grid item xs={12} sm={6} lg={4} key={product.id}>
                                         <Card
+                                            draggable={true}
+                                            onDragStart={(e) => handleDragStart(e, product.id)}
                                             sx={{
                                                 height: '100%',
+                                                cursor: 'pointer',
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 transition: 'all 200ms ease',

@@ -149,12 +149,28 @@ const updateCategory = async (id, { name }) => {
     oldParts[oldParts.length - 1] = trimmedName;
     const newPath = oldParts.join('/');
 
+    // Find products linked to this category or its subcategories
     const productsToUpdate = await prisma.product.findMany({
-        where: { category: { startsWith: oldPath } }
+        where: {
+            OR: [
+                { category: oldPath },
+                { category: { startsWith: `${oldPath}/` } }
+            ]
+        }
     });
 
     for (const product of productsToUpdate) {
-        const nextCategory = product.category.replace(oldPath, newPath);
+        let nextCategory;
+        // Case-insensitive check for exact match or path prefix
+        if (product.category.toLowerCase() === oldPath.toLowerCase()) {
+            nextCategory = newPath;
+        } else if (product.category.toLowerCase().startsWith(oldPath.toLowerCase() + '/')) {
+            nextCategory = newPath + product.category.slice(oldPath.length);
+        } else {
+            // Should not happen with current where clause, but safe fallback
+            continue;
+        }
+
         await prisma.product.update({
             where: { id: product.id },
             data: { category: nextCategory }

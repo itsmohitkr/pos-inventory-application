@@ -48,7 +48,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
     const marginSide = config.marginSide !== undefined ? `${config.marginSide}mm` : '0mm'; // Use 0 for container side as we use centering helper
 
     // Rounding logic
-    const originalTotal = sale.totalAmount;
+    const originalTotal = sale.totalAmount || sale.price || 0;
     const roundedTotal = config.roundOff ? Math.round(originalTotal) : originalTotal;
     const roundOff = roundedTotal - originalTotal;
 
@@ -238,7 +238,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {sale.items.map((item, idx) => {
+                        {sale.items ? sale.items.map((item, idx) => {
                             const mrp = item.mrp || item.sellingPrice;
                             return (
                                 <tr key={idx} style={{ borderBottom: theme.itemDivider }}>
@@ -282,7 +282,13 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                                     </td>
                                 </tr>
                             );
-                        })}
+                        }) : (
+                            <tr>
+                                <td colSpan={4} style={{ padding: '10px 0', fontWeight: 600 }}>
+                                    {sale.itemName || 'Loose Item Sale'}
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
 
@@ -302,12 +308,12 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
                     )}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
                         <Typography variant="body2" sx={{ fontSize: '1em', fontWeight: theme.textWeight }}>Subtotal:</Typography>
-                        <Typography variant="body2" sx={{ fontSize: '1em', fontWeight: theme.textWeight }}>₹{(sale.totalAmount + sale.discount + (sale.extraDiscount || 0)).toFixed(2)}</Typography>
+                        <Typography variant="body2" sx={{ fontSize: '1em', fontWeight: theme.textWeight }}>₹{(originalTotal + (sale.discount || 0) + (sale.extraDiscount || 0)).toFixed(2)}</Typography>
                     </Box>
-                    {(config.discount && (sale.discount > 0 || sale.extraDiscount > 0)) && (
+                    {(config.discount && ((sale.discount || 0) > 0 || (sale.extraDiscount || 0) > 0)) && (
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
                             <Typography variant="body2" sx={{ fontSize: '0.9em', fontWeight: theme.boldWeight }}>TOTAL DISCOUNT:</Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9em', fontWeight: theme.boldWeight }}>-₹{(sale.discount + (sale.extraDiscount || 0)).toFixed(2)}</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.9em', fontWeight: theme.boldWeight }}>-₹{((sale.discount || 0) + (sale.extraDiscount || 0)).toFixed(2)}</Typography>
                         </Box>
                     )}
 

@@ -31,7 +31,20 @@ import {
   Print as PrintIcon,
   Replay as RefundIcon,
   CalendarToday as CalendarIcon,
+  DeleteOutline as DeleteIcon,
+  ShoppingBag as PosIcon,
+  Sell as LooseIcon
 } from "@mui/icons-material";
+import {
+  ToggleButton,
+  ToggleButtonGroup,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+} from "@mui/material";
+
 import Receipt from "../POS/Receipt";
 import RefundDialog from "../Refund/RefundDialog";
 import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
@@ -42,6 +55,8 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   const [loading, setLoading] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [tabValue, setTabValue] = useState(0);
+  const [saleType, setSaleType] = useState('pos');
+  const [deleteLooseId, setDeleteLooseId] = useState(null);
   const [dateRange, setDateRange] = useState({
     startDate: "",
     endDate: "",
@@ -228,9 +243,39 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
       const range = timeframes[tabValue].getValue();
       fetchSales(range.start, range.end);
     } else if (dateRange.startDate && dateRange.endDate) {
-      fetchSales(dateRange.startDate, dateRange.endDate);
+      handleApplyCustomRange();
     }
   };
+
+  const handleDeleteLooseSale = async () => {
+    if (!deleteLooseId) return;
+    try {
+      await api.delete(`/api/loose-sales/${deleteLooseId}`);
+      setDeleteLooseId(null);
+      // Refresh
+      if (tabValue < 8) {
+        const range = timeframes[tabValue].getValue();
+        fetchSales(range.start, range.end);
+      } else {
+        handleApplyCustomRange();
+      }
+    } catch (error) {
+      console.error("Failed to delete loose sale:", error);
+    }
+  };
+
+  const handleSaleTypeChange = (event, newType) => {
+    if (newType !== null) {
+      setSaleType(newType);
+      // Reset selected item when switching tabs
+      if (newType === 'pos') {
+        setSelectedSale(sales[0] || null);
+      } else {
+        setSelectedSale(looseSales[0] || null);
+      }
+    }
+  };
+
 
   const calculateStats = (sale) => {
     if (!sale) return { total: 0, mrpDiscount: 0, extraDiscount: 0, discountPercent: 0 };
@@ -310,8 +355,26 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
               View and manage past transactions and receipts.
             </Typography>
           </Box>
-          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+          <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
+            <ToggleButtonGroup
+              value={saleType}
+              exclusive
+              onChange={handleSaleTypeChange}
+              size="small"
+              sx={{ bgcolor: 'rgba(255,255,255,0.5)' }}
+            >
+              <ToggleButton value="pos" sx={{ px: 2, gap: 1, fontWeight: 700 }}>
+                <PosIcon fontSize="small" />
+                POS Sales
+              </ToggleButton>
+              <ToggleButton value="loose" sx={{ px: 2, gap: 1, fontWeight: 700 }}>
+                <LooseIcon fontSize="small" />
+                Loose Sales
+              </ToggleButton>
+            </ToggleButtonGroup>
+
             <FormControl size="small" sx={{ minWidth: 150 }}>
+
               <InputLabel>Time Frame</InputLabel>
               <Select
                 value={tabValue}
@@ -401,15 +464,16 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
             {/* Left Panel: Sales List */}
             <Grid
               item
-              xs={6}
-              md={6}
+              xs={saleType === 'pos' ? 6 : 12}
+              md={saleType === 'pos' ? 6 : 12}
               sx={{
                 display: "flex",
                 flexDirection: "column",
                 minHeight: 0,
                 minWidth: 0,
-                flexBasis: "50%",
-                maxWidth: "50%",
+                flexBasis: saleType === 'pos' ? "50%" : "100%",
+                maxWidth: saleType === 'pos' ? "50%" : "100%",
+                transition: "all 0.3s ease",
               }}
             >
               <Paper
@@ -431,7 +495,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                   }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    Sales ({sales.length})
+                    {saleType === 'pos' ? 'Sales' : 'Loose Sales'} ({saleType === 'pos' ? sales.length : looseSales.length})
                   </Typography>
                   <Chip
                     label={(() => {
@@ -505,26 +569,30 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                         >
                           AMOUNT
                         </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            fontWeight: 800,
-                            bgcolor: "#f8fafc",
-                            minWidth: 100,
-                          }}
-                        >
-                          PAYMENT
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            fontWeight: 800,
-                            bgcolor: "#f8fafc",
-                            minWidth: 110,
-                          }}
-                        >
-                          STATUS
-                        </TableCell>
+                        {saleType === 'pos' && (
+                          <>
+                            <TableCell
+                              align="center"
+                              sx={{
+                                fontWeight: 800,
+                                bgcolor: "#f8fafc",
+                                minWidth: 100,
+                              }}
+                            >
+                              PAYMENT
+                            </TableCell>
+                            <TableCell
+                              align="center"
+                              sx={{
+                                fontWeight: 800,
+                                bgcolor: "#f8fafc",
+                                minWidth: 110,
+                              }}
+                            >
+                              STATUS
+                            </TableCell>
+                          </>
+                        )}
                         <TableCell
                           align="center"
                           sx={{
@@ -538,455 +606,391 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {sales.map((sale) => (
-                        <TableRow
-                          key={sale.id}
-                          id={`sale-row-${sale.id}`}
-                          hover
-                          selected={selectedSale?.id === sale.id}
-                          onClick={() => setSelectedSale(sale)}
-                          sx={{
-                            cursor: "pointer",
-                            "&.Mui-selected": {
-                              bgcolor: "#e3f2fd",
-                            },
-                          }}
-                        >
-                          <TableCell sx={{ fontWeight: 600 }}>
-                            ORD-{sale.id}
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                              sx={{ fontWeight: 600 }}
-                            >
-                              {new Date(sale.createdAt).toLocaleDateString()}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {new Date(sale.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>
-                            ₹{sale.netTotalAmount.toFixed(2)}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={sale.paymentMethod || 'Cash'}
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                fontWeight: 600,
-                                fontSize: '0.7rem',
-                                color: sale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
-                                borderColor: sale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1'
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell align="center">
-                            {(() => {
-                              const refundStatus = getRefundStatus(sale.items);
-                              const display = getStatusDisplay(refundStatus);
-                              return (
-                                <Chip
-                                  label={display.label}
-                                  size="small"
-                                  sx={{
-                                    bgcolor: display.bgcolor,
-                                    color: display.color,
-                                    fontWeight: 700,
-                                  }}
-                                />
-                              );
-                            })()}
-                          </TableCell>
-                          <TableCell
-                            align="center"
-                            onClick={(e) => e.stopPropagation()}
-                            sx={{ minWidth: 120 }}
+                      {saleType === 'pos' ? (
+                        sales.map((sale) => (
+                          <TableRow
+                            key={sale.id}
+                            id={`sale-row-${sale.id}`}
+                            hover
+                            selected={selectedSale?.id === sale.id}
+                            onClick={() => setSelectedSale(sale)}
+                            sx={{
+                              cursor: "pointer",
+                              "&.Mui-selected": {
+                                bgcolor: "#e3f2fd",
+                              },
+                            }}
                           >
-                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
-                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handlePrintReceipt(sale)}
-                                  sx={{
-                                    bgcolor: 'rgba(46, 125, 50, 0.1)',
-                                    color: "#2e7d32",
-                                    '&:hover': {
-                                      bgcolor: 'rgba(46, 125, 50, 0.2)'
-                                    }
-                                  }}
-                                >
+                            <TableCell sx={{ fontWeight: 600 }}>ORD-{sale.id}</TableCell>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {new Date(sale.createdAt).toLocaleDateString()}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {new Date(sale.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>
+                              ₹{sale.netTotalAmount.toFixed(2)}
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={sale.paymentMethod || 'Cash'}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  fontWeight: 600,
+                                  fontSize: '0.7rem',
+                                  color: sale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
+                                  borderColor: sale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1'
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              {(() => {
+                                const refundStatus = getRefundStatus(sale.items);
+                                const display = getStatusDisplay(refundStatus);
+                                return (
+                                  <Chip
+                                    label={display.label}
+                                    size="small"
+                                    sx={{
+                                      bgcolor: display.bgcolor,
+                                      color: display.color,
+                                      fontWeight: 700,
+                                    }}
+                                  />
+                                );
+                              })()}
+                            </TableCell>
+                            <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
+                                <IconButton size="small" onClick={() => handlePrintReceipt(sale)} color="success">
                                   <PrintIcon fontSize="small" />
                                 </IconButton>
-                                <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#2e7d32' }}>
-                                  Print
-                                </Typography>
-                              </Box>
-
-                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleRefund(sale)}
-                                  sx={{
-                                    bgcolor: 'rgba(211, 47, 47, 0.1)',
-                                    color: "#d32f2f",
-                                    '&:hover': {
-                                      bgcolor: 'rgba(211, 47, 47, 0.2)'
-                                    }
-                                  }}
-                                >
+                                <IconButton size="small" onClick={() => handleRefund(sale)} color="error">
                                   <RefundIcon fontSize="small" />
                                 </IconButton>
-                                <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#d32f2f' }}>
-                                  Return
-                                </Typography>
                               </Box>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {sales.length === 0 && (
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        looseSales.map((sale) => (
+                          <TableRow
+                            key={sale.id}
+                            id={`sale-row-${sale.id}`}
+                            hover
+                            selected={selectedSale?.id === sale.id}
+                            onClick={() => setSelectedSale(sale)}
+                            sx={{
+                              cursor: "pointer",
+                              "&.Mui-selected": {
+                                bgcolor: "#fff3e0",
+                              },
+                            }}
+                          >
+                            <TableCell sx={{ fontWeight: 600 }}>LOO-{sale.id}</TableCell>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {new Date(sale.createdAt).toLocaleDateString()}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {new Date(sale.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>
+                              ₹{sale.price.toFixed(2)}
+                            </TableCell>
+                            <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                              <IconButton size="small" color="error" onClick={() => setDeleteLooseId(sale.id)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                      {(saleType === 'pos' ? sales.length : looseSales.length) === 0 && (
                         <TableRow>
-                          <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+                          <TableCell colSpan={saleType === 'pos' ? 6 : 4} align="center" sx={{ py: 8 }}>
                             <Typography variant="body1" color="text.secondary">
-                              No sales found for this period
+                              No {saleType === 'pos' ? 'POS' : 'loose'} sales found for this period
                             </Typography>
                           </TableCell>
                         </TableRow>
                       )}
                     </TableBody>
+
                   </Table>
                 </TableContainer>
               </Paper>
             </Grid>
 
-            {/* Right Panel: Statistics & Products */}
-            <Grid
-              item
-              xs={6}
-              md={6}
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 0,
-                minWidth: 0,
-                flexBasis: "50%",
-                maxWidth: "50%",
-              }}
-            >
-              {selectedSale ? (
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 2,
-                    height: "100%",
-                    overflow: "hidden",
-                  }}
-                >
-                  {/* Statistics Cards */}
-                  <Paper
+            {/* Right Panel: Statistics & Products (Only for POS Sales) */}
+            {saleType === 'pos' && (
+              <Grid
+                item
+                xs={6}
+                md={6}
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: 0,
+                  minWidth: 0,
+                  flexBasis: "50%",
+                  maxWidth: "50%",
+                }}
+              >
+                {selectedSale ? (
+                  <Box
                     sx={{
-                      p: 1.75,
-                      borderRadius: 1.5,
-                      border: "1px solid #eef2f6",
-                      bgcolor: "#ffffff",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "stretch",
-                        justifyContent: "space-between",
-                        gap: 2,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <Box sx={{ minWidth: 180 }}>
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 800, color: "#1a73e8" }}
-                        >
-                          Order ORD-{selectedSale.id}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          {new Date(selectedSale.createdAt).toLocaleDateString()} {new Date(selectedSale.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 700, color: "#64748b" }}>
-                            Items: {selectedSale.items.reduce((sum, item) => sum + item.quantity, 0)}
-                          </Typography>
-                          <Chip
-                            label={selectedSale.paymentMethod || 'Cash'}
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              height: 20,
-                              fontWeight: 700,
-                              fontSize: '0.65rem',
-                              color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
-                              borderColor: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1'
-                            }}
-                          />
-                        </Box>
-                      </Box>
-                      <Box
-                        sx={{
-                          flex: 1,
-                          p: 1,
-                          borderRadius: 1.5,
-                          bgcolor: "#f8fafc",
-                          border: "1px solid #eef2f6",
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ fontWeight: 700, display: "block" }}
-                        >
-                          TOTAL VALUE
-                        </Typography>
-                        <Typography
-                          variant="h6"
-                          sx={{ fontWeight: 800, color: "#1976d2" }}
-                        >
-                          ₹{stats.total.toFixed(2)}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          flex: 1.4,
-                          p: 1,
-                          borderRadius: 1.5,
-                          bgcolor: "#fff5f5",
-                          border: "1px solid #ffe4e6",
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ fontWeight: 700, display: "block" }}
-                        >
-                          TOTAL DISCOUNT
-                        </Typography>
-                        <Typography
-                          variant="h6"
-                          sx={{ fontWeight: 800, color: "#d32f2f" }}
-                        >
-                          ₹{stats.totalDiscount.toFixed(2)}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: "block", whiteSpace: "nowrap" }}
-                        >
-                          {`₹${stats.mrpDiscount.toFixed(2)} MRP + ₹${stats.extraDiscount.toFixed(2)} Extra · ${stats.discountPercent}% of MRP`}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Paper>
-
-                  {/* Products List */}
-                  <Paper
-                    sx={{
-                      flex: 1,
                       display: "flex",
                       flexDirection: "column",
+                      gap: 2,
+                      height: "100%",
                       overflow: "hidden",
                     }}
                   >
-                    <Box
-                      sx={{
-                        p: 2,
-                        borderBottom: "1px solid #eee",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        Products ({selectedSale.items.length})
+                    {saleType === 'pos' ? (
+                      <>
+                        {/* POS Statistics */}
+                        <Paper
+                          sx={{
+                            p: 1.75,
+                            borderRadius: 1.5,
+                            border: "1px solid #eef2f6",
+                            bgcolor: "#ffffff",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "stretch",
+                              justifyContent: "space-between",
+                              gap: 2,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            <Box sx={{ minWidth: 180 }}>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontWeight: 800, color: "#1a73e8" }}
+                              >
+                                Order ORD-{selectedSale.id}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                {new Date(selectedSale.createdAt).toLocaleDateString()} {new Date(selectedSale.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: "#64748b" }}>
+                                  Items: {selectedSale.items.reduce((sum, item) => sum + item.quantity, 0)}
+                                </Typography>
+                                <Chip
+                                  label={selectedSale.paymentMethod || 'Cash'}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    height: 20,
+                                    fontWeight: 700,
+                                    fontSize: '0.65rem',
+                                    color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
+                                    borderColor: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1'
+                                  }}
+                                />
+                              </Box>
+                            </Box>
+                            <Box
+                              sx={{
+                                flex: 1,
+                                p: 1,
+                                borderRadius: 1.5,
+                                bgcolor: "#f8fafc",
+                                border: "1px solid #eef2f6",
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ fontWeight: 700, display: "block" }}
+                              >
+                                TOTAL VALUE
+                              </Typography>
+                              <Typography
+                                variant="h6"
+                                sx={{ fontWeight: 800, color: "#1976d2" }}
+                              >
+                                ₹{stats.total.toFixed(2)}
+                              </Typography>
+                            </Box>
+                            <Box
+                              sx={{
+                                flex: 1.4,
+                                p: 1,
+                                borderRadius: 1.5,
+                                bgcolor: "#fff5f5",
+                                border: "1px solid #ffe4e6",
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ fontWeight: 700, display: "block" }}
+                              >
+                                TOTAL DISCOUNT
+                              </Typography>
+                              <Typography
+                                variant="h6"
+                                sx={{ fontWeight: 800, color: "#d32f2f" }}
+                              >
+                                ₹{stats.totalDiscount.toFixed(2)}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Paper>
+
+                        {/* Products List */}
+                        <Paper
+                          sx={{
+                            flex: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <Box sx={{ p: 2, borderBottom: "1px solid #eee", flexShrink: 0 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                              Products ({selectedSale.items.length})
+                            </Typography>
+                          </Box>
+                          <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
+                            <Table size="small" stickyHeader>
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>PRODUCT</TableCell>
+                                  <TableCell align="center" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>QTY</TableCell>
+                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>PRICE</TableCell>
+                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>TOTAL</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {selectedSale.items.map((item) => (
+                                  <TableRow key={item.id}>
+                                    <TableCell sx={{ fontWeight: 600 }}>{item.productName}</TableCell>
+                                    <TableCell align="center">{item.quantity}</TableCell>
+                                    <TableCell align="right">₹{item.sellingPrice.toFixed(2)}</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 700 }}>₹{(item.sellingPrice * item.quantity).toFixed(2)}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </Paper>
+                      </>
+                    ) : (
+                      <>
+                        {/* Loose Sale Detail */}
+                        <Paper
+                          sx={{
+                            p: 3,
+                            borderRadius: 2,
+                            border: "1px solid #fff3e0",
+                            bgcolor: "#fffbf2",
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column'
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                            <Box>
+                              <Typography variant="h5" sx={{ fontWeight: 800, color: "#e65100" }}>
+                                Loose Sale Details
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                                TRANSACTION ID: LOO-{selectedSale.id}
+                              </Typography>
+                            </Box>
+                            <Chip label="One-time Sale" color="warning" size="small" sx={{ fontWeight: 700 }} />
+                          </Box>
+
+                          <Divider sx={{ mb: 3 }} />
+
+                          <Grid container spacing={4}>
+                            <Grid item xs={12}>
+                              <Typography variant="caption" color="text.secondary" fontWeight={700}>ITEM DESCRIPTION / NOTES</Typography>
+                              <Typography variant="h6" fontWeight={700} sx={{ mt: 0.5 }}>
+                                {selectedSale.itemName || 'Untitled Loose Item'}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary" fontWeight={700}>DATE</Typography>
+                              <Typography variant="body1" fontWeight={600}>
+                                {new Date(selectedSale.createdAt).toLocaleDateString()}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary" fontWeight={700}>TIME</Typography>
+                              <Typography variant="body1" fontWeight={600}>
+                                {new Date(selectedSale.createdAt).toLocaleTimeString()}
+                              </Typography>
+                            </Grid>
+                          </Grid>
+
+                          <Box sx={{ mt: 'auto', pt: 4 }}>
+                            <Paper sx={{ p: 3, bgcolor: '#e65100', color: 'white', borderRadius: 2 }}>
+                              <Typography variant="subtitle2" sx={{ opacity: 0.9, fontWeight: 700 }}>TOTAL AMOUNT PAID</Typography>
+                              <Typography variant="h3" sx={{ fontWeight: 900 }}>
+                                ₹{selectedSale.price.toFixed(2)}
+                              </Typography>
+                            </Paper>
+
+                            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                startIcon={<DeleteIcon />}
+                                onClick={() => setDeleteLooseId(selectedSale.id)}
+                                sx={{ fontWeight: 700, borderWeight: 2 }}
+                              >
+                                Delete This Transaction
+                              </Button>
+                            </Box>
+                          </Box>
+                        </Paper>
+                      </>
+                    )}
+                  </Box>
+                ) : (
+                  <Paper
+                    sx={{
+                      p: 4,
+                      textAlign: "center",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flex: 1,
+                      border: '2px dashed #e2e8f0',
+                      bgcolor: '#f8fafc',
+                      borderRadius: 3
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        No Transaction Selected
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Select a {saleType === 'pos' ? 'POS' : 'loose'} sale from the list to view its full details.
                       </Typography>
                     </Box>
-                    <TableContainer sx={{ flex: 1, overflowY: "auto", overflowX: "auto" }}>
-                      <Table size="small" stickyHeader>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell
-                              sx={{
-                                fontWeight: 800,
-                                bgcolor: "#f8fafc",
-                                minWidth: 120,
-                              }}
-                            >
-                              PRODUCT
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              sx={{
-                                fontWeight: 800,
-                                bgcolor: "#f8fafc",
-                                minWidth: 50,
-                              }}
-                            >
-                              QTY
-                            </TableCell>
-                            <TableCell
-                              align="right"
-                              sx={{
-                                fontWeight: 800,
-                                bgcolor: "#f8fafc",
-                                minWidth: 70,
-                              }}
-                            >
-                              MRP
-                            </TableCell>
-                            <TableCell
-                              align="right"
-                              sx={{
-                                fontWeight: 800,
-                                bgcolor: "#f8fafc",
-                                minWidth: 70,
-                              }}
-                            >
-                              PRICE
-                            </TableCell>
-                            <TableCell
-                              align="right"
-                              sx={{
-                                fontWeight: 800,
-                                bgcolor: "#f8fafc",
-                                minWidth: 90,
-                              }}
-                            >
-                              MRP DISCOUNT
-                            </TableCell>
-                            <TableCell
-                              align="right"
-                              sx={{
-                                fontWeight: 800,
-                                bgcolor: "#f8fafc",
-                                minWidth: 90,
-                              }}
-                            >
-                              EXTRA DISCOUNT
-                            </TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {selectedSale.items.map((item) => {
-                            const mrp = item.mrp || item.sellingPrice;
-                            const itemDiscount = mrp - item.sellingPrice;
-                            const discountPercent =
-                              mrp > 0
-                                ? ((itemDiscount / mrp) * 100).toFixed(1)
-                                : 0;
-                            const returnedQty = item.returnedQuantity || 0;
-
-                            return (
-                              <TableRow key={item.id}>
-                                <TableCell sx={{ fontWeight: 600 }}>
-                                  <Box
-                                    sx={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 1,
-                                    }}
-                                  >
-                                    <span>{item.productName}</span>
-                                    {returnedQty > 0 && (
-                                      <Chip
-                                        label={
-                                          returnedQty === item.quantity
-                                            ? "Refunded"
-                                            : "Returned"
-                                        }
-                                        size="small"
-                                        sx={{
-                                          bgcolor:
-                                            returnedQty === item.quantity
-                                              ? "#ffebee"
-                                              : "#e8f5e9",
-                                          color:
-                                            returnedQty === item.quantity
-                                              ? "#d32f2f"
-                                              : "#2e7d32",
-                                          fontWeight: 700,
-                                          fontSize: "0.7rem",
-                                        }}
-                                      />
-                                    )}
-                                  </Box>
-                                </TableCell>
-                                <TableCell align="center">
-                                  {item.quantity}
-                                </TableCell>
-                                <TableCell align="right">
-                                  ₹{mrp.toFixed(2)}
-                                </TableCell>
-                                <TableCell align="right">
-                                  ₹{item.sellingPrice.toFixed(2)}
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Box>
-                                    <Typography
-                                      variant="body2"
-                                      sx={{ color: "#d32f2f", fontWeight: 700 }}
-                                    >
-                                      ₹{itemDiscount.toFixed(2)}
-                                    </Typography>
-                                    <Typography
-                                      variant="caption"
-                                      color="text.secondary"
-                                    >
-                                      ({discountPercent}%)
-                                    </Typography>
-                                  </Box>
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ color: "#d32f2f", fontWeight: 700 }}
-                                  >
-                                    ₹0.00
-                                  </Typography>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
                   </Paper>
-                </Box>
-              ) : (
-                <Paper
-                  sx={{
-                    p: 4,
-                    textAlign: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flex: 1,
-                  }}
-                >
-                  <Typography variant="body1" color="text.secondary">
-                    Select a sale to view details
-                  </Typography>
-                </Paper>
-              )}
-            </Grid>
+                )}
+              </Grid>
+            )}
           </Grid>
         )}
 
@@ -1041,6 +1045,45 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           sale={refundSale}
           onRefundSuccess={handleRefundSuccess}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={Boolean(deleteLooseId)}
+          onClose={() => setDeleteLooseId(null)}
+          PaperProps={{
+            sx: { borderRadius: 3, p: 1 }
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 800, color: '#d32f2f', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <DeleteIcon color="error" />
+            Delete Loose Sale?
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ fontWeight: 500 }}>
+              Are you sure you want to permanently delete this loose sale record (LOO-{deleteLooseId})?
+              This action cannot be undone and will be removed from all financial reports.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, gap: 1 }}>
+            <Button
+              onClick={() => setDeleteLooseId(null)}
+              variant="outlined"
+              color="inherit"
+              sx={{ fontWeight: 700, borderRadius: 2 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteLooseSale}
+              variant="contained"
+              color="error"
+              sx={{ fontWeight: 800, borderRadius: 2, px: 3 }}
+            >
+              Yes, Delete Record
+            </Button>
+          </DialogActions>
+        </Dialog>
+
       </Container>
     </Box>
   );

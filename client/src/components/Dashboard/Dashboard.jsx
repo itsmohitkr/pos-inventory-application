@@ -465,7 +465,7 @@ const Dashboard = () => {
                                     return (
                                         <Box key={idx} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
                                             {data.totalSales > 0 && (
-                                                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#fff', mb: 0.5, zIndex: 2, mt: '-15px' }}>
+                                                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#4b5563', mb: 0.5, zIndex: 2, mt: '-15px' }}>
                                                     {data.totalSales.toFixed(2)}
                                                 </Typography>
                                             )}
@@ -563,7 +563,7 @@ const Dashboard = () => {
                                     return (
                                         <Box key={`daily-bar-${idx}`} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
                                             {data.totalSales > 0 && (
-                                                <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#fff', mb: 0.5, zIndex: 2, mt: '-15px', whiteSpace: 'nowrap', transform: 'rotate(-45deg)', transformOrigin: 'left bottom' }}>
+                                                <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#4b5563', mb: 0.5, zIndex: 2, mt: '-15px', whiteSpace: 'nowrap', transform: 'rotate(-45deg)', transformOrigin: 'left bottom' }}>
                                                     {formatShortNum(data.totalSales)}
                                                 </Typography>
                                             )}
@@ -707,7 +707,7 @@ const Dashboard = () => {
                                     return (
                                         <Box key={idx} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', px: '1px' }}>
                                             {val > 0 && (
-                                                <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#fff', mb: 0.5, zIndex: 2, mt: '-12px' }}>
+                                                <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#4b5563', mb: 0.5, zIndex: 2, mt: '-12px' }}>
                                                     {Math.round(val)}
                                                 </Typography>
                                             )}

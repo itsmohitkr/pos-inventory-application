@@ -76,9 +76,17 @@ const ProductRow = React.memo(({ product, index, isSelected, onSelect, onEdit, o
         stockStatus === 'low' ? '#7c3aed' :
             '#10b981';
 
+    const handleDragStart = (e) => {
+        e.dataTransfer.setData('text/plain', product.id);
+        e.dataTransfer.effectAllowed = 'move';
+        // Add a ghost image or styling if needed, but default is usually fine
+    };
+
     return (
         <TableRow
             hover
+            draggable={true}
+            onDragStart={handleDragStart}
             onClick={() => onSelect(product)}
             sx={{
                 cursor: 'pointer',
@@ -646,20 +654,37 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
             showError('Category name cannot include "/"');
             return;
         }
+
+        const isRename = categoryDialogMode === 'edit';
+        const oldPath = categoryDialogTarget?.path;
+
         try {
-            if (categoryDialogMode === 'add') {
+            if (isRename && categoryDialogTarget) {
+                await api.put(`/api/categories/${categoryDialogTarget.id}`, {
+                    name: trimmed
+                });
+
+                // If the currently filtered category was renamed, update the filter to new path
+                if (categoryFilter === oldPath) {
+                    const parts = oldPath.split('/');
+                    parts[parts.length - 1] = trimmed;
+                    const newPath = parts.join('/');
+                    onCategoryChange(newPath);
+                }
+            } else {
                 await api.post('/api/categories', {
                     name: trimmed,
                     parentId: categoryDialogParent?.id || null
                 });
-            } else if (categoryDialogTarget) {
-                await api.put(`/api/categories/${categoryDialogTarget.id}`, {
-                    name: trimmed
-                });
             }
+
             setAddCategoryOpen(false);
             setNewCategoryName('');
+
+            // Critical: fetchProducts and fetchSummary ensure the counts and product cards update instantly
             fetchCategories();
+            fetchProducts();
+            fetchSummary();
         } catch (error) {
             console.error(error);
             showError('Failed to save category: ' + (error.response?.data?.error || error.message));

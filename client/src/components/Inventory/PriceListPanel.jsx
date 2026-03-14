@@ -150,6 +150,19 @@ const DEFAULT_DISPLAY_OPTIONS = {
   barcode: true
 };
 
+const PRICE_LIST_SETTINGS_KEY = 'posPriceListSettings';
+
+const getStoredSettings = () => {
+  try {
+    const stored = localStorage.getItem(PRICE_LIST_SETTINGS_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.error('Failed to load stored price list settings:', error);
+    return null;
+  }
+};
+
+
 const MM_TO_PX = 3.7795275591;
 const MIN_PREVIEW_SCALE = 0.2;
 const PREVIEW_FIT_PADDING_PX = 36;
@@ -195,18 +208,26 @@ const PriceListPanel = ({ open, onClose }) => {
   const [selectedProducts, setSelectedProducts] = useState([]);
 
   const [printers, setPrinters] = useState([]);
-  const [selectedPrinter, setSelectedPrinter] = useState('');
 
-  const [paperType, setPaperType] = useState('a4');
-  const [paperPreset, setPaperPreset] = useState(PAPER_PRESETS.a4[0].id); // Defaults to 4x10 now
-  const [layout, setLayout] = useState({
-    ...PAPER_PRESETS.a4[0].layout,
-    textAlign: 'left',
-    barcodeLineSpacing: 1.25,
-    barcodeFormat: 'CODE128'
+  // Persistence Loading
+  const initialSettings = useMemo(() => getStoredSettings(), []);
+
+  const [selectedPrinter, setSelectedPrinter] = useState(initialSettings?.selectedPrinter || '');
+
+  const [paperType, setPaperType] = useState(initialSettings?.paperType || 'a4');
+  const [paperPreset, setPaperPreset] = useState(initialSettings?.paperPreset || PAPER_PRESETS.a4[0].id);
+  const [layout, setLayout] = useState(() => {
+    if (initialSettings?.layout) return initialSettings.layout;
+    return {
+      ...PAPER_PRESETS.a4[0].layout,
+      textAlign: 'left',
+      barcodeLineSpacing: 1.25,
+      barcodeFormat: 'CODE128'
+    };
   });
 
-  const [displayOptions, setDisplayOptions] = useState(DEFAULT_DISPLAY_OPTIONS);
+  const [displayOptions, setDisplayOptions] = useState(initialSettings?.displayOptions || DEFAULT_DISPLAY_OPTIONS);
+
   const [showAdvancedLayout, setShowAdvancedLayout] = useState(false);
   const [printError, setPrintError] = useState('');
   const [printNotice, setPrintNotice] = useState({ open: false, message: '', severity: 'info' });
@@ -325,6 +346,19 @@ const PriceListPanel = ({ open, onClose }) => {
     fetchProducts();
     fetchPrinters();
   }, [open, fetchProducts, fetchPrinters]);
+
+  // Persistence Saving
+  useEffect(() => {
+    const settings = {
+      selectedPrinter,
+      paperType,
+      paperPreset,
+      layout,
+      displayOptions
+    };
+    localStorage.setItem(PRICE_LIST_SETTINGS_KEY, JSON.stringify(settings));
+  }, [selectedPrinter, paperType, paperPreset, layout, displayOptions]);
+
 
   useEffect(() => {
     if (!open) {
