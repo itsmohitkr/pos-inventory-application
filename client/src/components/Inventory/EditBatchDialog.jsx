@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, Grid, TextField, InputAdornment, Box, Typography, DialogActions, Button, Divider } from '@mui/material';
+import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import api from '../../api';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
@@ -18,6 +19,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
         wholesaleMinQty: '',
         expiryDate: ''
     });
+    const [discountInput, setDiscountInput] = useState('0');
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
@@ -33,15 +35,47 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                 wholesaleMinQty: batch.wholesaleMinQty || '',
                 expiryDate: batch.expiryDate ? batch.expiryDate.split('T')[0] : ''
             });
+
+            const m = batch.mrp || 0;
+            const s = batch.sellingPrice || 0;
+            if (m > 0) {
+                setDiscountInput(((m - s) / m * 100).toFixed(1));
+            } else {
+                setDiscountInput('0');
+            }
             setIsSaving(false);
         }
     }, [open, batch]);
 
     const handleChange = (name, value) => {
+        if (name === 'discount_percent') {
+            setDiscountInput(value);
+            const val = parseFloat(value);
+            if (!isNaN(val)) {
+                const m = parseFloat(formData.mrp) || 0;
+                const newS = m * (1 - val / 100);
+                setFormData(prev => ({
+                    ...prev,
+                    sellingPrice: Math.max(0, Number(newS.toFixed(2)))
+                }));
+            }
+            return;
+        }
+
         setFormData(prev => ({
             ...prev,
             [name]: value
         }));
+
+        if (name === 'mrp' || name === 'sellingPrice') {
+            const m = name === 'mrp' ? parseFloat(value) : parseFloat(formData.mrp || 0);
+            const s = name === 'sellingPrice' ? parseFloat(value) : parseFloat(formData.sellingPrice || 0);
+            if (m > 0) {
+                setDiscountInput(((m - s) / m * 100).toFixed(1));
+            } else {
+                setDiscountInput('0');
+            }
+        }
     };
 
     const handleSave = async (e) => {
@@ -59,6 +93,17 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
         if (sellingPrice < costPrice || sellingPrice > mrp) {
             showError('Invalid pricing: Selling Price must be between Cost Price and MRP');
             return;
+        }
+
+        if (formData.wholesaleEnabled) {
+            if (!formData.wholesalePrice || !formData.wholesaleMinQty) {
+                showError('Wholesale Price and Minimum Quantity are required when wholesale is enabled');
+                return;
+            }
+            if (Number(formData.wholesalePrice) <= 0 || Number(formData.wholesaleMinQty) <= 0) {
+                showError('Wholesale Price and Minimum Quantity must be greater than zero');
+                return;
+            }
         }
 
         setIsSaving(true);
@@ -106,12 +151,14 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
     return (
         <>
             <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth onKeyDown={handleKeyDown}>
-                <DialogTitle>Edit Batch Details</DialogTitle>
-                <DialogContent component="form" onSubmit={handleSave} sx={{ pt: 2 }}>
+                <DialogTitle sx={{ pb: 1 }}>Edit Batch Details</DialogTitle>
+                <Divider />
+                <DialogContent component="form" onSubmit={handleSave} sx={{ pt: 4, pb: 4 }}>
                     <Grid container spacing={2} sx={{ mt: 0.5 }}>
                         <Grid item xs={6}>
                             <TextField
                                 label="Batch Code"
+                                InputLabelProps={{ shrink: true }}
                                 fullWidth
                                 value={formData.batchCode}
                                 onChange={(e) => handleChange('batchCode', e.target.value)}
@@ -121,6 +168,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                             <TextField
                                 label="Quantity"
                                 type="number"
+                                InputLabelProps={{ shrink: true }}
                                 fullWidth
                                 value={formData.quantity}
                                 onChange={(e) => handleChange('quantity', e.target.value)}
@@ -128,10 +176,28 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                                 InputProps={{ inputProps: { min: 0, step: 1 } }}
                             />
                         </Grid>
-                        <Grid item xs={4}>
+                        <Grid item xs={6}>
+                            <TextField
+                                label="MRP"
+                                type="number"
+                                InputLabelProps={{ shrink: true }}
+                                fullWidth
+                                value={formData.mrp}
+                                onChange={(e) => handleChange('mrp', e.target.value)}
+                                error={sellingAboveMrp}
+                                helperText={sellingAboveMrp ? 'MRP must be >= selling price' : ''}
+                                placeholder="0.00"
+                                InputProps={{
+                                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                    inputProps: { min: 0, step: '1' }
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={6}>
                             <TextField
                                 label="Cost Price (CP)"
                                 type="number"
+                                InputLabelProps={{ shrink: true }}
                                 fullWidth
                                 value={formData.costPrice}
                                 onChange={(e) => handleChange('costPrice', e.target.value)}
@@ -140,14 +206,32 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                                 placeholder="0.00"
                                 InputProps={{
                                     startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                    inputProps: { min: 0, step: '0.01' }
+                                    inputProps: { min: 0, step: '1' }
                                 }}
                             />
                         </Grid>
-                        <Grid item xs={4}>
+
+                        <Grid item xs={5}>
+                            <TextField
+                                label="Discount (%)"
+                                InputLabelProps={{ shrink: true }}
+                                fullWidth
+                                value={discountInput}
+                                onChange={(e) => handleChange('discount_percent', e.target.value)}
+                                placeholder="0.0"
+                                InputProps={{
+                                    startAdornment: <InputAdornment position="start">%</InputAdornment>,
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <ArrowForwardIcon color="action" />
+                        </Grid>
+                        <Grid item xs={5}>
                             <TextField
                                 label="Selling Price (SP)"
                                 type="number"
+                                InputLabelProps={{ shrink: true }}
                                 fullWidth
                                 value={formData.sellingPrice}
                                 onChange={(e) => handleChange('sellingPrice', e.target.value)}
@@ -160,21 +244,20 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                                 }}
                             />
                         </Grid>
-                        <Grid item xs={4}>
+
+                        <Grid item xs={12}>
                             <TextField
-                                label="MRP"
-                                type="number"
+                                label="Expiry Date"
+                                type="date"
                                 fullWidth
-                                value={formData.mrp}
-                                onChange={(e) => handleChange('mrp', e.target.value)}
-                                error={sellingAboveMrp}
-                                helperText={sellingAboveMrp ? 'MRP must be >= selling price' : ''}
-                                placeholder="0.00"
-                                InputProps={{
-                                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                    inputProps: { min: 0, step: '0.01' }
-                                }}
+                                InputLabelProps={{ shrink: true }}
+                                value={formData.expiryDate}
+                                onChange={(e) => handleChange('expiryDate', e.target.value)}
                             />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Box sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)', my: 2, width: '100%' }} />
                         </Grid>
                         <Grid item xs={12}>
                             <WholesaleConfiguration
@@ -189,42 +272,30 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                             />
                         </Grid>
                         <Grid item xs={12}>
-                            <TextField
-                                label="Expiry Date"
-                                type="date"
-                                fullWidth
-                                InputLabelProps={{ shrink: true }}
-                                value={formData.expiryDate}
-                                onChange={(e) => handleChange('expiryDate', e.target.value)}
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
                             <Box sx={{
                                 p: 1.5,
-                                bgcolor: '#f0f7ff',
+                                bgcolor: '#f0f9ff',
                                 borderRadius: 1,
                                 display: 'flex',
                                 flexWrap: 'wrap',
-                                gap: 2,
-                                border: '1px solid #cce3ff'
+                                gap: 3,
+                                border: '1px solid #e0f2fe'
                             }}>
-                                <Box sx={{ flex: 1, minWidth: '140px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#0059b2' }}>Margin:</Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: '800', color: '#0059b2' }}>
-                                        {sellingPrice > 0
-                                            ? (((sellingPrice - costPrice) / sellingPrice) * 100).toFixed(1)
-                                            : 0}%
-                                    </Typography>
-                                </Box>
-                                <Divider orientation="vertical" flexItem sx={{ borderRightWidth: 1.5, borderColor: '#cce3ff', display: { xs: 'none', sm: 'block' } }} />
-                                <Box sx={{ flex: 1, minWidth: '140px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1976d2' }}>Discount:</Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: '800', color: '#1976d2' }}>
-                                        {mrp > 0
-                                            ? (((mrp - sellingPrice) / mrp) * 100).toFixed(1)
-                                            : 0}%
-                                    </Typography>
-                                </Box>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#ed6c02', display: 'flex', alignItems: 'center' }}>
+                                    Discount: <Box component="span" sx={{ ml: 0.5, fontWeight: 800, color: '#ed6c02' }}>
+                                        ₹{(mrp - sellingPrice).toFixed(2)} ({mrp > 0 ? (((mrp - sellingPrice) / mrp) * 100).toFixed(1) : 0}%)
+                                    </Box>
+                                </Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#2e7d32', display: 'flex', alignItems: 'center' }}>
+                                    Margin: <Box component="span" sx={{ ml: 0.5, fontWeight: 800, color: '#2e7d32' }}>
+                                        ₹{(sellingPrice - costPrice).toFixed(2)} ({sellingPrice > 0 ? (((sellingPrice - costPrice) / sellingPrice) * 100).toFixed(1) : 0}%)
+                                    </Box>
+                                </Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#0288d1', display: 'flex', alignItems: 'center' }}>
+                                    Vendor Discount: <Box component="span" sx={{ ml: 0.5, fontWeight: 800, color: '#0288d1' }}>
+                                        ₹{(mrp - costPrice).toFixed(2)} ({mrp > 0 ? (((mrp - costPrice) / mrp) * 100).toFixed(1) : 0}%)
+                                    </Box>
+                                </Typography>
                             </Box>
                         </Grid>
                     </Grid>

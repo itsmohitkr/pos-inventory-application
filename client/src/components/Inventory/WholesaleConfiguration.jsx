@@ -21,27 +21,29 @@ const WholesaleConfiguration = ({
     const wholesaleMarginPercent = wPrice > 0 ? (wholesaleMarginValue / wPrice) * 100 : 0;
 
     return (
-        <Grid container spacing={2}>
-            <Grid item xs={12}>
-                <Divider sx={{ my: 1 }} />
-                <FormControlLabel
-                    control={
-                        <Switch
-                            checked={wholesaleEnabled}
-                            onChange={(e) => onToggleChange(e.target.checked)}
-                        />
-                    }
-                    label={<Typography variant="subtitle2" fontWeight={600}>Enable Wholesale Pricing</Typography>}
-                />
-            </Grid>
+        <Box sx={{ width: '100%' }}>
+            <FormControlLabel
+                control={
+                    <Switch
+                        checked={wholesaleEnabled}
+                        onChange={(e) => onToggleChange(e.target.checked)}
+                    />
+                }
+                label={<Typography variant="subtitle2" fontWeight={600}>Enable Wholesale Pricing</Typography>}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, mb: 1.5 }}>
+                Enable this to set special discounted prices for bulk orders.
+            </Typography>
 
             {wholesaleEnabled && (
-                <>
+                <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
                         <TextField
                             fullWidth
                             type="number"
                             label="Wholesale Price"
+                            required
+                            InputLabelProps={{ shrink: true }}
                             value={wholesalePrice}
                             onChange={(e) => onPriceChange(e.target.value)}
                             placeholder="0.00"
@@ -56,6 +58,8 @@ const WholesaleConfiguration = ({
                             fullWidth
                             type="number"
                             label="Min. Quantity"
+                            required
+                            InputLabelProps={{ shrink: true }}
                             value={wholesaleMinQty}
                             onChange={(e) => onMinQtyChange(e.target.value)}
                             placeholder="10"
@@ -76,9 +80,9 @@ const WholesaleConfiguration = ({
                             </Box>
                         </Box>
                     </Grid>
-                </>
+                </Grid>
             )}
-        </Grid>
+        </Box>
     );
 };
 

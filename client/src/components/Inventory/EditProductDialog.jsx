@@ -16,7 +16,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
         barcode: '',
         batchTrackingEnabled: false,
         lowStockWarningEnabled: false,
-        lowStockThreshold: 10
+        lowStockThreshold: 2
     });
     const [batches, setBatches] = useState([]);
     const [existingCategories, setExistingCategories] = useState([]);
@@ -41,7 +41,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
                     barcode: fullProduct.barcode || '',
                     batchTrackingEnabled: !!fullProduct.batchTrackingEnabled,
                     lowStockWarningEnabled: !!fullProduct.lowStockWarningEnabled,
-                    lowStockThreshold: fullProduct.lowStockThreshold || 10
+                    lowStockThreshold: fullProduct.lowStockThreshold || 2
                 });
                 if (fullProduct.barcode) {
                     setBarcodes(fullProduct.barcode.split('|').filter(Boolean));
@@ -301,7 +301,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
                             value={formData.lowStockThreshold}
                             onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
                             InputProps={{ inputProps: { min: 0, step: 1 } }}
-                            helperText="Alert when stock quantity falls below this number"
+                            helperText={`Less than or equal to ${formData.lowStockThreshold || 2} quantity will be under the low stock warning`}
                             sx={{ mt: 1 }}
                         />
                     )}

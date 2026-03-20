@@ -12,7 +12,8 @@ import {
     Numbers as NumbersIcon,
     Refresh as RefreshIcon,
     Close as CloseIcon,
-    Save as SaveIcon
+    Save as SaveIcon,
+    ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../hooks/useCustomDialog';
@@ -25,8 +26,8 @@ const AddProductForm = ({ onProductAdded }) => {
         barcodes: [],
         category: '',
         enableBatchTracking: false,
-        lowStockWarningEnabled: false,
-        lowStockThreshold: 10,
+        lowStockWarningEnabled: true,
+        lowStockThreshold: 2,
         initialBatch: {
             batch_code: '',
             quantity: '',
@@ -43,6 +44,7 @@ const AddProductForm = ({ onProductAdded }) => {
     const [barcodeError, setBarcodeError] = useState('');
     const [barcodeChecking, setBarcodeChecking] = useState(false);
     const [manualBarcodeInput, setManualBarcodeInput] = useState('');
+    const [discountInput, setDiscountInput] = useState('0');
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -71,6 +73,24 @@ const AddProductForm = ({ onProductAdded }) => {
         if (name === 'barcode') {
             setBarcodeError('');
         }
+
+        if (name === 'initialBatch.discount_percent') {
+            setDiscountInput(value);
+            const val = parseFloat(value);
+            if (!isNaN(val)) {
+                const currentMrp = parseFloat(formData.initialBatch.mrp) || 0;
+                const newSellingPrice = currentMrp * (1 - val / 100);
+                setFormData(prev => ({
+                    ...prev,
+                    initialBatch: {
+                        ...prev.initialBatch,
+                        selling_price: Math.max(0, Number(newSellingPrice.toFixed(2)))
+                    }
+                }));
+            }
+            return;
+        }
+
         if (name.includes('.')) {
             const [parent, child] = name.split('.');
             setFormData(prev => ({
@@ -80,6 +100,19 @@ const AddProductForm = ({ onProductAdded }) => {
                     [child]: value
                 }
             }));
+
+            // Sync discount input if MRP or Selling Price changes
+            if (name === 'initialBatch.mrp' || name === 'initialBatch.selling_price') {
+                const m = name === 'initialBatch.mrp' ? parseFloat(value) : parseFloat(formData.initialBatch.mrp || 0);
+                const s = name === 'initialBatch.selling_price' ? parseFloat(value) : parseFloat(formData.initialBatch.selling_price || 0);
+
+                if (m > 0) {
+                    const d = ((m - s) / m) * 100;
+                    setDiscountInput(d.toFixed(1));
+                } else {
+                    setDiscountInput('0');
+                }
+            }
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -243,6 +276,8 @@ const AddProductForm = ({ onProductAdded }) => {
     const discountPercent = mrp > 0 ? (discountValue / mrp) * 100 : 0;
     const marginValue = sellingPrice - costPrice;
     const marginPercent = sellingPrice > 0 ? (marginValue / sellingPrice) * 100 : 0;
+    const vendorDiscountValue = Math.max(0, mrp - costPrice);
+    const vendorDiscountPercent = mrp > 0 ? (vendorDiscountValue / mrp) * 100 : 0;
     const wholesalePrice = Number(formData.initialBatch.wholesalePrice) || 0;
     const wholesaleSavings = sellingPrice > 0 ? sellingPrice - wholesalePrice : 0;
     const wholesalePricePercent = sellingPrice > 0 ? (wholesaleSavings / sellingPrice) * 100 : 0;
@@ -255,12 +290,12 @@ const AddProductForm = ({ onProductAdded }) => {
                 elevation={0}
                 sx={{
                     mb: 4,
-                    p: 3,
+                    p: 4,
                     borderRadius: 2.5,
                     border: '1px solid rgba(15, 23, 42, 0.08)'
                 }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                     <AddCircleIcon color="primary" />
                     <Box>
                         <Typography variant="subtitle1" fontWeight={600}>
@@ -274,7 +309,7 @@ const AddProductForm = ({ onProductAdded }) => {
                 <Divider sx={{ mb: 3 }} />
                 <form onSubmit={handleSubmit}>
                     <Grid container spacing={3}>
-                        <Grid item xs={12} lg={6}>
+                        <Grid item xs={12} lg={7}>
                             <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid rgba(148, 163, 184, 0.25)' }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                                     <InventoryIcon color="primary" />
@@ -288,6 +323,7 @@ const AddProductForm = ({ onProductAdded }) => {
                                             fullWidth
                                             label="Product Name"
                                             name="name"
+                                            InputLabelProps={{ shrink: true }}
                                             value={formData.name}
                                             onChange={handleChange}
                                             required
@@ -313,6 +349,7 @@ const AddProductForm = ({ onProductAdded }) => {
                                                     {...params}
                                                     label="Category"
                                                     placeholder="Select or type new"
+                                                    InputLabelProps={{ shrink: true }}
                                                     InputProps={{
                                                         ...params.InputProps,
                                                         startAdornment: (
@@ -330,7 +367,6 @@ const AddProductForm = ({ onProductAdded }) => {
                                     </Grid>
                                     <Grid item xs={12}>
                                         <Box sx={{ mb: 2 }}>
-                                            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>Barcodes</Typography>
                                             <Grid container spacing={1} alignItems="center">
                                                 <Grid item xs>
                                                     <TextField
@@ -348,6 +384,7 @@ const AddProductForm = ({ onProductAdded }) => {
                                                         error={Boolean(barcodeError)}
                                                         helperText={barcodeError}
                                                         disabled={barcodeChecking}
+                                                        InputLabelProps={{ shrink: true }}
                                                         InputProps={{
                                                             startAdornment: <InputAdornment position="start"><QrCodeIcon color="action" /></InputAdornment>,
                                                         }}
@@ -429,10 +466,11 @@ const AddProductForm = ({ onProductAdded }) => {
                                                 label="Low Stock Threshold"
                                                 value={formData.lowStockThreshold}
                                                 onChange={(e) => setFormData(prev => ({ ...prev, lowStockThreshold: e.target.value }))}
-                                                placeholder="10"
+                                                placeholder="2"
                                                 sx={{ mt: 2 }}
+                                                InputLabelProps={{ shrink: true }}
                                                 InputProps={{ inputProps: { min: 0, step: 1 } }}
-                                                helperText="Alert when stock quantity falls below this number"
+                                                helperText={`Less than or equal to ${formData.lowStockThreshold || 2} quantity will be under the low stock warning`}
                                             />
                                         )}
                                     </Grid>
@@ -459,6 +497,7 @@ const AddProductForm = ({ onProductAdded }) => {
                                                     value={formData.initialBatch.batch_code}
                                                     onChange={handleChange}
                                                     placeholder="e.g. B001 (leave empty to auto-generate)"
+                                                    InputLabelProps={{ shrink: true }}
                                                 />
                                                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                                     Leave empty to auto-generate a unique batch code
@@ -486,6 +525,7 @@ const AddProductForm = ({ onProductAdded }) => {
                                             value={formData.initialBatch.quantity}
                                             onChange={handleChange}
                                             placeholder="0"
+                                            InputLabelProps={{ shrink: true }}
                                             InputProps={{ inputProps: { min: 0, step: 1 } }}
                                         />
                                     </Grid>
@@ -498,13 +538,14 @@ const AddProductForm = ({ onProductAdded }) => {
                                             value={formData.initialBatch.mrp}
                                             onChange={handleChange}
                                             placeholder="0.00"
+                                            InputLabelProps={{ shrink: true }}
                                             InputProps={{
                                                 startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                                inputProps: { min: 0, step: '0.01' }
+                                                inputProps: { min: 0, step: '1' }
                                             }}
                                         />
                                     </Grid>
-                                    <Grid item xs={12} md={6}>
+                                    <Grid item xs={12} md={4}>
                                         <TextField
                                             fullWidth
                                             type="number"
@@ -513,22 +554,41 @@ const AddProductForm = ({ onProductAdded }) => {
                                             value={formData.initialBatch.cost_price}
                                             onChange={handleChange}
                                             placeholder="0.00"
+                                            InputLabelProps={{ shrink: true }}
                                             InputProps={{
                                                 startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                                inputProps: { min: 0, step: '0.01' }
+                                                inputProps: { min: 0, step: '1' }
                                             }}
                                         />
                                     </Grid>
-                                    <Grid item xs={12} md={6}>
+                                    <Grid item xs={12} md={3.5}>
+                                        <TextField
+                                            fullWidth
+                                            label="Discount (%)"
+                                            name="initialBatch.discount_percent"
+                                            InputLabelProps={{ shrink: true }}
+                                            value={discountInput}
+                                            onChange={handleChange}
+                                            placeholder="0.0"
+                                            InputProps={{
+                                                startAdornment: <InputAdornment position="start">%</InputAdornment>,
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={0.5} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <ArrowForwardIcon color="action" />
+                                    </Grid>
+                                    <Grid item xs={12} md={4}>
                                         <TextField
                                             fullWidth
                                             type="number"
                                             label="Selling Price"
                                             name="initialBatch.selling_price"
+                                            InputLabelProps={{ shrink: true }}
                                             value={formData.initialBatch.selling_price}
                                             onChange={handleChange}
                                             error={sellingInvalid}
-                                            helperText={sellingInvalid ? 'Selling price must be between cost and MRP' : ' '}
+                                            helperText={sellingInvalid ? 'Must be ≤ MRP & ≥ Cost' : ' '}
                                             placeholder="0.00"
                                             InputProps={{
                                                 startAdornment: <InputAdornment position="start">₹</InputAdornment>,
@@ -537,31 +597,50 @@ const AddProductForm = ({ onProductAdded }) => {
                                         />
                                     </Grid>
                                     <Grid item xs={12}>
-                                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                                            <Typography variant="caption" color="text.secondary">Discount: ₹{discountValue.toFixed(2)} ({discountPercent.toFixed(1)}%)</Typography>
-                                            <Typography variant="caption" color="text.secondary">Margin: ₹{marginValue.toFixed(2)} ({marginPercent.toFixed(1)}%)</Typography>
+                                        <Box sx={{
+                                            p: 1.5,
+                                            bgcolor: '#f0f9ff',
+                                            borderRadius: 1,
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            gap: 3,
+                                            border: '1px solid #e0f2fe'
+                                        }}>
+                                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#ed6c02', display: 'flex', alignItems: 'center' }}>
+                                                Discount: <Box component="span" sx={{ ml: 0.5, fontWeight: 800, color: '#ed6c02' }}>₹{discountValue.toFixed(2)} ({discountPercent.toFixed(1)}%)</Box>
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#2e7d32', display: 'flex', alignItems: 'center' }}>
+                                                Margin: <Box component="span" sx={{ ml: 0.5, fontWeight: 800, color: '#2e7d32' }}>₹{marginValue.toFixed(2)} ({marginPercent.toFixed(1)}%)</Box>
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#0288d1', display: 'flex', alignItems: 'center' }}>
+                                                Vendor Discount: <Box component="span" sx={{ ml: 0.5, fontWeight: 800, color: '#0288d1' }}>₹{vendorDiscountValue.toFixed(2)} ({vendorDiscountPercent.toFixed(1)}%)</Box>
+                                            </Typography>
                                         </Box>
                                     </Grid>
-
-                                    <WholesaleConfiguration
-                                        wholesaleEnabled={formData.initialBatch.wholesaleEnabled}
-                                        onToggleChange={(checked) => setFormData(prev => ({
-                                            ...prev,
-                                            initialBatch: { ...prev.initialBatch, wholesaleEnabled: checked }
-                                        }))}
-                                        wholesalePrice={formData.initialBatch.wholesalePrice}
-                                        onPriceChange={(value) => setFormData(prev => ({
-                                            ...prev,
-                                            initialBatch: { ...prev.initialBatch, wholesalePrice: value }
-                                        }))}
-                                        wholesaleMinQty={formData.initialBatch.wholesaleMinQty}
-                                        onMinQtyChange={(value) => setFormData(prev => ({
-                                            ...prev,
-                                            initialBatch: { ...prev.initialBatch, wholesaleMinQty: value }
-                                        }))}
-                                        sellingPrice={formData.initialBatch.selling_price}
-                                        costPrice={formData.initialBatch.cost_price}
-                                    />
+                                    <Grid item xs={12}>
+                                        <Box sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)', my: 2, width: '100%' }} />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <WholesaleConfiguration
+                                            wholesaleEnabled={formData.initialBatch.wholesaleEnabled}
+                                            onToggleChange={(checked) => setFormData(prev => ({
+                                                ...prev,
+                                                initialBatch: { ...prev.initialBatch, wholesaleEnabled: checked }
+                                            }))}
+                                            wholesalePrice={formData.initialBatch.wholesalePrice}
+                                            onPriceChange={(value) => setFormData(prev => ({
+                                                ...prev,
+                                                initialBatch: { ...prev.initialBatch, wholesalePrice: value }
+                                            }))}
+                                            wholesaleMinQty={formData.initialBatch.wholesaleMinQty}
+                                            onMinQtyChange={(value) => setFormData(prev => ({
+                                                ...prev,
+                                                initialBatch: { ...prev.initialBatch, wholesaleMinQty: value }
+                                            }))}
+                                            sellingPrice={formData.initialBatch.selling_price}
+                                            costPrice={formData.initialBatch.cost_price}
+                                        />
+                                    </Grid>
                                 </Grid>
                             </Box>
                         </Grid>
