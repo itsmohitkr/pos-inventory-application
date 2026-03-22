@@ -33,7 +33,7 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
         discRsVendor: true, discPctVendor: false,
         discRsCust: true, discPctCust: false,
         marginPct: true, barcode: true,
-        expiry: true, wsPrice: false, wsMinQty: false, stock: true,
+        expiry: true, wsPrice: false, wsMinQty: false, lowStockEnabled: true, batchTrackingEnabled: true, stock: true,
         totalValCp: true, totalValSp: true, createdAt: true
     });
     const [colAnchorEl, setColAnchorEl] = useState(null);
@@ -120,6 +120,8 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
                         expiry: batch.expiryDate,
                         wsPrice: batch.wholesalePrice,
                         wsMinQty: batch.wholesaleMinQty,
+                        lowStockEnabled: product.lowStockWarningEnabled,
+                        batchTrackingEnabled: product.batchTrackingEnabled,
                         stock: batch.quantity,
                         totalValCp: batch.quantity * batch.costPrice,
                         totalValSp: batch.quantity * batch.sellingPrice,
@@ -144,9 +146,10 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
                     discPctCust: 0,
                     marginPct: 0,
                     barcode: product.barcode || 'N/A',
-                    expiry: null,
                     wsPrice: null,
                     wsMinQty: null,
+                    lowStockEnabled: product.lowStockWarningEnabled,
+                    batchTrackingEnabled: product.batchTrackingEnabled,
                     stock: 0,
                     totalValCp: 0,
                     totalValSp: 0,
@@ -631,6 +634,16 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
                                         <TableSortLabel active={sortConfigs.some(c => c.key === 'wsMinQty')} direction={sortConfigs.find(c => c.key === 'wsMinQty')?.direction || 'asc'} onClick={(e) => handleSort('wsMinQty', e)}>WS Min Qty</TableSortLabel>
                                     </TableCell>
                                 )}
+                                {cols.lowStockEnabled && (
+                                    <TableCell sx={{ bgcolor: '#e8eaf6', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                        <TableSortLabel active={sortConfigs.some(c => c.key === 'lowStockEnabled')} direction={sortConfigs.find(c => c.key === 'lowStockEnabled')?.direction || 'asc'} onClick={(e) => handleSort('lowStockEnabled', e)}>Low Stock</TableSortLabel>
+                                    </TableCell>
+                                )}
+                                {cols.batchTrackingEnabled && (
+                                    <TableCell sx={{ bgcolor: '#e8eaf6', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                        <TableSortLabel active={sortConfigs.some(c => c.key === 'batchTrackingEnabled')} direction={sortConfigs.find(c => c.key === 'batchTrackingEnabled')?.direction || 'asc'} onClick={(e) => handleSort('batchTrackingEnabled', e)}>Batch Tracking</TableSortLabel>
+                                    </TableCell>
+                                )}
                                 {cols.stock && (
                                     <TableCell sx={{ bgcolor: '#e8eaf6', fontWeight: 800, whiteSpace: 'nowrap' }}>
                                         <TableSortLabel active={sortConfigs.some(c => c.key === 'stock')} direction={sortConfigs.find(c => c.key === 'stock')?.direction || 'asc'} onClick={(e) => handleSort('stock', e)}>Stock</TableSortLabel>
@@ -711,6 +724,28 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
                                     {cols.expiry && <TableCell sx={{ py: 0.5, bgcolor: getExpiryColor(row.expiry) }}>{row.expiry ? new Date(row.expiry).toLocaleDateString() : '—'}</TableCell>}
                                     {cols.wsPrice && <TableCell>{row.wsPrice ? `${row.wsPrice.toFixed(2)}` : '—'}</TableCell>}
                                     {cols.wsMinQty && <TableCell>{row.wsMinQty || '—'}</TableCell>}
+                                    {cols.lowStockEnabled && (
+                                        <TableCell sx={{ py: 0.5, textAlign: 'center' }}>
+                                            <Chip
+                                                label={row.lowStockEnabled ? 'Enabled' : 'Disabled'}
+                                                size="small"
+                                                color={row.lowStockEnabled ? 'warning' : 'default'}
+                                                variant={row.lowStockEnabled ? 'filled' : 'outlined'}
+                                                sx={{ height: 18, fontSize: '0.6rem' }}
+                                            />
+                                        </TableCell>
+                                    )}
+                                    {cols.batchTrackingEnabled && (
+                                        <TableCell sx={{ py: 0.5, textAlign: 'center' }}>
+                                            <Chip
+                                                label={row.batchTrackingEnabled ? 'Enabled' : 'Disabled'}
+                                                size="small"
+                                                color={row.batchTrackingEnabled ? 'primary' : 'default'}
+                                                variant={row.batchTrackingEnabled ? 'filled' : 'outlined'}
+                                                sx={{ height: 18, fontSize: '0.6rem' }}
+                                            />
+                                        </TableCell>
+                                    )}
                                     {cols.stock && (
                                         <TableCell
                                             sx={{
@@ -759,6 +794,8 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
                                 {cols.expiry && <TableCell sx={{ fontWeight: 800 }}></TableCell>}
                                 {cols.wsPrice && <TableCell sx={{ fontWeight: 800 }}>{totals.avgWsPrice?.toFixed(2) || '0.00'}</TableCell>}
                                 {cols.wsMinQty && <TableCell sx={{ fontWeight: 800 }}></TableCell>}
+                                {cols.lowStockEnabled && <TableCell sx={{ fontWeight: 800 }}></TableCell>}
+                                {cols.batchTrackingEnabled && <TableCell sx={{ fontWeight: 800 }}></TableCell>}
                                 {cols.stock && <TableCell sx={{ fontWeight: 900, fontSize: '1rem', color: '#1a237e' }}>{totals.totalStock || 0}</TableCell>}
                                 {cols.totalValCp && <TableCell sx={{ fontWeight: 900, fontSize: '1rem', color: 'error.main' }}>{totals.totalValueCost?.toFixed(2) || '0.00'}</TableCell>}
                                 {cols.totalValSp && <TableCell sx={{ fontWeight: 900, fontSize: '1rem', color: 'success.main' }}>{totals.totalValueSelling?.toFixed(2) || '0.00'}</TableCell>}

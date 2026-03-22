@@ -70,24 +70,19 @@ const getStockStatus = (product) => {
 };
 
 // Memoized individual row for high performance with 1,000+ items
-const ProductRow = React.memo(({ product, index, isSelected, onSelect, onEdit, onDelete, onDoubleClick }) => {
+const ProductRow = React.memo(({ product, index, isSelected, onSelect, onEdit, onDelete, onDoubleClick, onDragStart }) => {
     const stockStatus = getStockStatus(product);
     const statusColor = stockStatus === 'zero' ? '#ef4444' :
         stockStatus === 'low' ? '#7c3aed' :
             '#10b981';
 
-    const handleDragStart = (e) => {
-        e.dataTransfer.setData('text/plain', product.id);
-        e.dataTransfer.effectAllowed = 'move';
-        // Add a ghost image or styling if needed, but default is usually fine
-    };
 
     return (
         <TableRow
             hover
             draggable={true}
-            onDragStart={handleDragStart}
-            onClick={() => onSelect(product)}
+            onDragStart={(e) => onDragStart(e, product)}
+            onClick={(e) => onSelect(product, e)}
             onDoubleClick={() => onDoubleClick && onDoubleClick()}
             sx={{
                 cursor: 'pointer',
@@ -107,13 +102,37 @@ const ProductRow = React.memo(({ product, index, isSelected, onSelect, onEdit, o
                             {product.category || 'Uncategorized'}
                         </Typography>
                     </Box>
-                    {product.batchTrackingEnabled && (
-                        <Chip label="Batch" size="small" variant="filled" sx={{ height: '20px' }} />
-                    )}
                 </Box>
             </TableCell>
             <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
                 {renderBarcodeChips(product.barcode, 'small')}
+            </TableCell>
+            <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+                <Chip
+                    label={product.batchTrackingEnabled ? 'Enabled' : 'Disabled'}
+                    size="small"
+                    color={product.batchTrackingEnabled ? 'primary' : 'default'}
+                    variant={product.batchTrackingEnabled ? 'filled' : 'outlined'}
+                    sx={{ height: '20px', fontSize: '0.65rem', fontWeight: 700 }}
+                />
+            </TableCell>
+            <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+                <Chip
+                    label={product.lowStockWarningEnabled ? 'Enabled' : 'Disabled'}
+                    size="small"
+                    color={product.lowStockWarningEnabled ? 'warning' : 'default'}
+                    variant={product.lowStockWarningEnabled ? 'filled' : 'outlined'}
+                    sx={{
+                        height: '20px',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        ...(product.lowStockWarningEnabled && {
+                            bgcolor: 'rgba(217, 119, 6, 0.1)',
+                            color: '#d97706',
+                            borderColor: '#d97706'
+                        })
+                    }}
+                />
             </TableCell>
             <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
                 <Typography variant="body1">{product.total_stock}</Typography>
@@ -173,6 +192,8 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
     const [addStockOpen, setAddStockOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [lastSelectedId, setLastSelectedId] = useState(null);
     const [selectedProductDetails, setSelectedProductDetails] = useState(null);
     const [selectedProductRefresh, setSelectedProductRefresh] = useState(0);
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -532,6 +553,7 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
         // This handler is called by EditProductDialog's onProductUpdated callback
         fetchProducts();
         fetchSummary();
+        fetchCategories();
         setSelectedProductRefresh(prev => prev + 1);
         setEditOpen(false);
     };
@@ -558,6 +580,55 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
             console.error(error);
             showError('Failed to delete batch: ' + (error.response?.data?.error || error.message));
         }
+    };
+
+    const handleRowClick = (product, event) => {
+        const id = String(product.id);
+        let nextSelected = new Set(selectedIds);
+
+        if (event.shiftKey && lastSelectedId) {
+            // Range selection
+            const displayedIds = displayedProducts.map(p => String(p.id));
+            const startIdx = displayedIds.indexOf(String(lastSelectedId));
+            const endIdx = displayedIds.indexOf(id);
+            if (startIdx !== -1 && endIdx !== -1) {
+                const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
+                const rangeIds = displayedIds.slice(min, max + 1);
+                rangeIds.forEach(rid => nextSelected.add(rid));
+            }
+        } else if (event.ctrlKey || event.metaKey) {
+            // Toggle individual
+            if (nextSelected.has(id)) {
+                nextSelected.delete(id);
+            } else {
+                nextSelected.add(id);
+            }
+        } else {
+            // Single selection
+            nextSelected = new Set([id]);
+        }
+
+        setSelectedIds(nextSelected);
+        setLastSelectedId(id);
+        setSelectedProduct(product);
+        setSelectedProductDetails(null);
+    };
+
+    const handleListDragStart = (e, product) => {
+        const id = String(product.id);
+        let dragIds = [id];
+
+        if (selectedIds.has(id)) {
+            dragIds = Array.from(selectedIds);
+        } else {
+            // If dragging unselected item, select it and drag only it
+            setSelectedIds(new Set([id]));
+            setLastSelectedId(id);
+            setSelectedProduct(product);
+        }
+
+        e.dataTransfer.setData('text/plain', dragIds.join(','));
+        e.dataTransfer.effectAllowed = 'move';
     };
 
     const handleAddStock = (product) => {
@@ -712,24 +783,81 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
     };
     const handleCategoryDrop = async (event, targetCategory) => {
         event.preventDefault();
-        const productId = event.dataTransfer.getData('text/plain');
-        if (!productId) return;
-        const product = products.find(item => String(item.id) === String(productId));
-        if (!product) return;
+        const productIdsStr = event.dataTransfer.getData('text/plain');
+        if (!productIdsStr) return;
+        const productIds = productIdsStr.split(',').filter(Boolean);
+        if (productIds.length === 0) return;
+
         const nextCategory = targetCategory === 'uncategorized' ? null : targetCategory;
-        if ((product.category || null) === nextCategory) return;
+
+        // Filter out products already in the target category
+        const productsToMove = productIds.map(id =>
+            products.find(item => String(item.id) === String(id))
+        ).filter(p => p && (p.category || null) !== nextCategory);
+
+        if (productsToMove.length === 0) return;
+
         try {
-            await api.put(`/api/products/${product.id}`, {
-                name: toTitleCase(product.name),
-                barcode: product.barcode,
-                category: nextCategory,
-                batchTrackingEnabled: product.batchTrackingEnabled
+            // Optimistic Update for all products
+            setProducts(prev => prev.map(p => {
+                if (productIds.includes(String(p.id))) {
+                    return { ...p, category: nextCategory };
+                }
+                return p;
+            }));
+
+            // Optimistic update for category counts
+            setCategoryCounts(prev => {
+                const next = { ...prev };
+
+                productsToMove.forEach(product => {
+                    const oldCategory = product.category;
+
+                    // Decrement old
+                    if (oldCategory) {
+                        const oldParts = oldCategory.split('/').map(part => part.trim()).filter(Boolean);
+                        let path = "";
+                        oldParts.forEach(part => {
+                            path = path ? `${path}/${part}` : part;
+                            if (next[path] > 0) next[path]--;
+                        });
+                    } else {
+                        setUncategorizedCount(c => Math.max(0, c - 1));
+                    }
+
+                    // Increment new
+                    if (nextCategory) {
+                        const newParts = nextCategory.split('/').map(part => part.trim()).filter(Boolean);
+                        let path = "";
+                        newParts.forEach(part => {
+                            path = path ? `${path}/${part}` : part;
+                            next[path] = (next[path] || 0) + 1;
+                        });
+                    } else {
+                        setUncategorizedCount(c => c + 1);
+                    }
+                });
+
+                return next;
             });
+
+            // Perform bulk updates (sequentially or in parallel - parallel is faster)
+            await Promise.all(productsToMove.map(p =>
+                api.put(`/api/products/${p.id}`, {
+                    name: toTitleCase(p.name),
+                    barcode: p.barcode,
+                    category: nextCategory,
+                    batchTrackingEnabled: p.batchTrackingEnabled
+                })
+            ));
+
             fetchProducts();
             fetchSummary();
+            fetchCategories();
         } catch (error) {
             console.error(error);
-            showError('Failed to move product: ' + (error.response?.data?.error || error.message));
+            showError('Failed to move products: ' + (error.response?.data?.error || error.message));
+            fetchProducts(); // Rollback/Sync
         }
     };
     const handleCategoryDragOver = (event) => {
@@ -1135,6 +1263,8 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
                                     setSelectedProduct(null);
                                     setSelectedProductDetails(null);
                                     setSelectedProductRefresh(0);
+                                    setSelectedIds(new Set()); // Clear selected IDs on reset
+                                    setLastSelectedId(null);
                                 }}
                                 sx={{
                                     color: '#1f2937',
@@ -1313,7 +1443,25 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
                                         Barcode
                                     </TableSortLabel>
                                 </TableCell>
+                                <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+                                    <TableSortLabel
+                                        active={sortBy === 'batchTrackingEnabled'}
+                                        direction={sortBy === 'batchTrackingEnabled' ? sortOrder : 'asc'}
+                                        onClick={() => handleSortRequest('batchTrackingEnabled')}
+                                    >
+                                        Batch Tracking
+                                    </TableSortLabel>
+                                </TableCell>
 
+                                <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+                                    <TableSortLabel
+                                        active={sortBy === 'lowStockWarningEnabled'}
+                                        direction={sortBy === 'lowStockWarningEnabled' ? sortOrder : 'asc'}
+                                        onClick={() => handleSortRequest('lowStockWarningEnabled')}
+                                    >
+                                        Low Stock
+                                    </TableSortLabel>
+                                </TableCell>
                                 <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
                                     <TableSortLabel
                                         active={sortBy === 'stock'}
@@ -1332,8 +1480,9 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
                                     key={product.id}
                                     product={product}
                                     index={index}
-                                    isSelected={selectedProduct?.id === product.id}
-                                    onSelect={setSelectedProduct}
+                                    isSelected={selectedIds.has(String(product.id))}
+                                    onSelect={handleRowClick}
+                                    onDragStart={handleListDragStart}
                                     onEdit={handleEditClick}
                                     onDelete={handleDelete}
                                     onDoubleClick={() => {

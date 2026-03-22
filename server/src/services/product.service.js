@@ -210,6 +210,8 @@ const getAllProducts = async ({
       barcode: "p.barcode",
       createdAt: "p.createdAt",
       stock: "total_stock",
+      lowStockWarningEnabled: "p.lowStockWarningEnabled",
+      batchTrackingEnabled: "p.batchTrackingEnabled"
     }[sortBy] || "p.name";
   const safeOrder = sortOrder === "desc" ? "DESC" : "ASC";
   const whereSql = buildWhereSql({ search, category });
@@ -615,10 +617,10 @@ const addBatch = async (batchData) => {
     throw new Error("Product not found");
   }
 
-  const qtyToAdd = parseInt(quantity);
-  const mrpValue = parseFloat(mrp);
-  const costValue = parseFloat(cost_price);
-  const sellingValue = parseFloat(selling_price);
+  const qtyToAdd = parseInt(quantity) || 0;
+  const mrpValue = parseFloat(mrp) || 0;
+  const costValue = parseFloat(cost_price) || 0;
+  const sellingValue = parseFloat(selling_price) || 0;
   validatePricing({
     mrp: mrpValue,
     costPrice: costValue,
@@ -634,7 +636,7 @@ const addBatch = async (batchData) => {
   if (product.batchTrackingEnabled) {
     const createdBatch = await prisma.batch.create({
       data: {
-        productId: parseInt(product_id),
+        product: { connect: { id: parseInt(product_id) } },
         batchCode: finalBatchCode,
         quantity: qtyToAdd,
         mrp: mrpValue,
@@ -684,7 +686,7 @@ const addBatch = async (batchData) => {
 
   const createdBatch = await prisma.batch.create({
     data: {
-      productId: parseInt(product_id),
+      product: { connect: { id: parseInt(product_id) } },
       batchCode: batch_code,
       quantity: qtyToAdd,
       mrp: mrpValue,
@@ -740,10 +742,16 @@ const updateProduct = async (id, productData) => {
     await _validateBarcodesUniqueness(prisma, barcode, productId);
   }
 
-  return await prisma.product.update({
+  const updated = await prisma.product.update({
     where: { id: productId },
     data: updateData,
   });
+
+  // Background sync to ensure Category table reflects potentially new strings
+  const categoryService = require("./category.service");
+  categoryService.ensureCategoriesFromProducts().catch(err => console.error("Category sync error:", err));
+
+  return updated;
 };
 
 const deleteProduct = async (id) => {

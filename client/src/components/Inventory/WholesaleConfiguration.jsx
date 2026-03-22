@@ -9,7 +9,8 @@ const WholesaleConfiguration = ({
     wholesaleMinQty,
     onMinQtyChange,
     sellingPrice = 0,
-    costPrice = 0
+    costPrice = 0,
+    showErrors = false
 }) => {
     const sPrice = Number(sellingPrice) || 0;
     const cPrice = Number(costPrice) || 0;
@@ -47,6 +48,8 @@ const WholesaleConfiguration = ({
                             value={wholesalePrice}
                             onChange={(e) => onPriceChange(e.target.value)}
                             placeholder="0.00"
+                            error={showErrors && (!wholesalePrice || wholesalePrice.toString().trim() === '')}
+                            helperText={showErrors && (!wholesalePrice || wholesalePrice.toString().trim() === '') ? 'Required' : ''}
                             InputProps={{
                                 startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                                 inputProps: { min: 0, step: '0.01' }
@@ -63,6 +66,8 @@ const WholesaleConfiguration = ({
                             value={wholesaleMinQty}
                             onChange={(e) => onMinQtyChange(e.target.value)}
                             placeholder="10"
+                            error={showErrors && (!wholesaleMinQty || wholesaleMinQty.toString().trim() === '')}
+                            helperText={showErrors && (!wholesaleMinQty || wholesaleMinQty.toString().trim() === '') ? 'Required' : ''}
                             InputProps={{ inputProps: { min: 1, step: 1 } }}
                         />
                     </Grid>
