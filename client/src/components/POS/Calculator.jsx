@@ -154,7 +154,6 @@ const Calculator = ({ open, onClose }) => {
                     'Escape': onClose,
                     'Backspace': handleDelete,
                     'Delete': handleClear,
-                    'Delete': handleClear,
                     'c': handleClear,
                     'C': handleClear,
                 };

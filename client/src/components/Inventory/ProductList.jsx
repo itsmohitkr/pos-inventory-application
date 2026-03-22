@@ -70,7 +70,7 @@ const getStockStatus = (product) => {
 };
 
 // Memoized individual row for high performance with 1,000+ items
-const ProductRow = React.memo(({ product, index, isSelected, onSelect, onEdit, onDelete }) => {
+const ProductRow = React.memo(({ product, index, isSelected, onSelect, onEdit, onDelete, onDoubleClick }) => {
     const stockStatus = getStockStatus(product);
     const statusColor = stockStatus === 'zero' ? '#ef4444' :
         stockStatus === 'low' ? '#7c3aed' :
@@ -88,6 +88,7 @@ const ProductRow = React.memo(({ product, index, isSelected, onSelect, onEdit, o
             draggable={true}
             onDragStart={handleDragStart}
             onClick={() => onSelect(product)}
+            onDoubleClick={() => onDoubleClick && onDoubleClick()}
             sx={{
                 cursor: 'pointer',
                 bgcolor: isSelected ? 'rgba(11, 29, 57, 0.08)' : 'transparent',
@@ -1335,6 +1336,10 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
                                     onSelect={setSelectedProduct}
                                     onEdit={handleEditClick}
                                     onDelete={handleDelete}
+                                    onDoubleClick={() => {
+                                        setSelectedProduct(null);
+                                        setSelectedProductDetails(null);
+                                    }}
                                 />
                             ))}
                         </TableBody>

@@ -541,7 +541,7 @@ const AddProductForm = ({ onProductAdded }) => {
                                             InputLabelProps={{ shrink: true }}
                                             InputProps={{
                                                 startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                                inputProps: { min: 0, step: '1' }
+                                                inputProps: { min: 0, step: '0.01' }
                                             }}
                                         />
                                     </Grid>
@@ -557,7 +557,7 @@ const AddProductForm = ({ onProductAdded }) => {
                                             InputLabelProps={{ shrink: true }}
                                             InputProps={{
                                                 startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                                                inputProps: { min: 0, step: '1' }
+                                                inputProps: { min: 0, step: '0.01' }
                                             }}
                                         />
                                     </Grid>
