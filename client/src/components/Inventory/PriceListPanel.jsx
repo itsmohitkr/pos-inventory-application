@@ -78,7 +78,7 @@ const PAPER_PRESETS = {
         marginLeft: 6,
         gapHorizontal: 2.5,
         gapVertical: 2,
-        barcodeLineWidth: 0.8,
+        barcodeLineWidth: 1.0,
         barcodeHeight: 25,
         barcodeFormat: 'CODE128'
       }
@@ -134,7 +134,7 @@ const PAPER_PRESETS = {
         marginLeft: 2,
         gapHorizontal: 2,
         gapVertical: 2,
-        barcodeLineWidth: 1,
+        barcodeLineWidth: 1.1,
         barcodeHeight: 26,
         barcodeFormat: 'CODE128'
       }
@@ -590,10 +590,23 @@ const PriceListPanel = ({ open, onClose }) => {
       return '';
     }
 
-    const printableLabels = labelElements.map((element) => element.outerHTML);
     const isThermalPrint = paperType === 'thermal';
     const barcodeHeightPx = Math.max(20, Number(layout.barcodeHeight) || 20);
     const barcodeLineSpacing = Math.max(0.8, Number(layout.barcodeLineSpacing) || 1.1);
+
+    // Clone each label and override SVG dimensions so Chromium rasterizes at full
+    // container width × printer DPI instead of the narrow screen-pixel size. This
+    // converts the typical 1.3 dots-per-module (bars merge) to 2.5–3 dots-per-module
+    // (clean, sharp bars) on a 203 DPI thermal printer.
+    const printableLabels = labelElements.map((element) => {
+      const clone = element.cloneNode(true);
+      clone.querySelectorAll('svg').forEach((svg) => {
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', `${barcodeHeightPx}px`);
+        svg.setAttribute('preserveAspectRatio', 'none');
+      });
+      return clone.outerHTML;
+    });
 
     const printableBody = isThermalPrint
       ? printableLabels.map((labelHtml, index) => `
@@ -703,10 +716,8 @@ const PriceListPanel = ({ open, onClose }) => {
 
             .price-label-item svg {
               display: block;
-              margin: 0 auto;
-              max-width: 100%;
+              width: 100% !important;
               height: ${barcodeHeightPx}px !important;
-              width: auto !important;
               shape-rendering: crispEdges;
               text-rendering: geometricPrecision;
             }
