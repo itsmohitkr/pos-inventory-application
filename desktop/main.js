@@ -96,6 +96,66 @@ ipcMain.on('print-manual', (event, { printerName }) => {
   });
 });
 
+ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize }) => {
+  let printWindow;
+
+  try {
+    if (!html || typeof html !== 'string') {
+      throw new Error('Invalid printable HTML payload.');
+    }
+
+    printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true
+      }
+    });
+
+    const htmlUrl = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    await printWindow.loadURL(htmlUrl);
+
+    // Give Chromium a short moment to fully layout SVG/content before print.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    const printOptions = {
+      silent: true,
+      deviceName: printerName || undefined,
+      printBackground: true,
+      color: true,
+      margins: { marginType: 'none' },
+      scaleFactor: 100
+    };
+
+    if (pageSize && Number(pageSize.widthMicrons) > 0 && Number(pageSize.heightMicrons) > 0) {
+      printOptions.pageSize = {
+        width: Math.round(Number(pageSize.widthMicrons)),
+        height: Math.round(Number(pageSize.heightMicrons))
+      };
+    }
+
+    const result = await new Promise((resolve) => {
+      printWindow.webContents.print(printOptions, (success, failureReason) => {
+        resolve({ success, failureReason });
+      });
+    });
+
+    if (!result.success) {
+      throw new Error(result.failureReason || 'Unknown print failure');
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[PRINT HTML ERROR] Failed to print HTML content:', error);
+    throw error;
+  } finally {
+    if (printWindow && !printWindow.isDestroyed()) {
+      printWindow.close();
+    }
+  }
+});
+
 
 // -------------------------------------------------------------------------
 // CRITICAL: INITIALIZATION ORDER

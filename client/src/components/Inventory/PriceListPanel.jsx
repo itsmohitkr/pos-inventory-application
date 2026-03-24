@@ -507,7 +507,112 @@ const PriceListPanel = ({ open, onClose }) => {
     }));
   };
 
-  const handlePrint = () => {
+  const buildPrintableHtml = () => {
+    const grid = previewRef.current?.querySelector('.price-list-grid');
+    if (!grid) {
+      return '';
+    }
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Price List Labels</title>
+          <style>
+            @media print {
+              @page {
+                size: ${printPageSize};
+                margin: 0;
+              }
+              body {
+                margin: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color: #000000;
+                background: #ffffff;
+              }
+            }
+
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+
+            body {
+              margin: 0;
+              padding: 0;
+              color: #000000;
+              background: #ffffff;
+              font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            }
+
+            .price-list-grid {
+              display: grid;
+              width: max-content;
+              max-width: 100%;
+              grid-template-columns: repeat(${Math.max(1, Number(layout.columns) || 1)}, ${Math.max(20, Number(layout.labelWidth) || 20)}mm);
+              column-gap: ${Math.max(0, Number(layout.gapHorizontal) || 0)}mm;
+              row-gap: ${Math.max(0, Number(layout.gapVertical) || 0)}mm;
+              padding: ${Math.max(0, Number(layout.marginTop) || 0)}mm ${Math.max(0, Number(layout.marginRight) || 0)}mm ${Math.max(0, Number(layout.marginBottom) || 0)}mm ${Math.max(0, Number(layout.marginLeft) || 0)}mm;
+              justify-content: flex-start;
+            }
+
+            .price-label-item {
+              width: ${Math.max(20, Number(layout.labelWidth) || 20)}mm;
+              min-height: ${Math.max(15, Number(layout.labelHeight) || 15)}mm;
+              border: 1px solid #000000;
+              border-radius: 0;
+              padding: 1.5mm;
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-start;
+              background: #ffffff;
+              text-align: ${layout.textAlign || 'left'};
+              overflow: hidden;
+              break-inside: avoid;
+              page-break-inside: avoid;
+            }
+
+            .price-label-item svg {
+              display: block;
+              margin: 0 auto;
+              max-width: 100%;
+              height: ${Math.max(20, Number(layout.barcodeHeight) || 20)}px !important;
+              width: auto !important;
+            }
+
+            .label-line {
+              font-size: 10px;
+              line-height: ${Math.max(0.8, Number(layout.barcodeLineSpacing) || 1.1)};
+              margin: 0.5mm 0;
+              word-break: break-all;
+              display: block;
+              color: #000000;
+            }
+
+            .label-name {
+              font-weight: 700;
+              font-size: 11px;
+              line-height: 1.1;
+              max-height: 2.3em;
+              overflow: hidden;
+              margin-bottom: 1mm;
+              color: #000000;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="price-list-grid">
+            ${grid.innerHTML}
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const handlePrint = async () => {
     setPrintError('');
 
     if (!previewLabels.length) {
@@ -526,29 +631,31 @@ const PriceListPanel = ({ open, onClose }) => {
       }
 
       try {
-        // Scope print styling to this dialog so it does not conflict with other print flows.
-        document.body.classList.add('is-printing-price-labels');
+        const html = buildPrintableHtml();
+        if (!html) {
+          throw new Error('Unable to build printable content.');
+        }
 
-        // Brief timeout to ensure class is applied before print capture
-        setTimeout(() => {
-          window.electron.ipcRenderer.send('print-manual', {
-            printerName: selectedPrinter || undefined
-          });
+        const thermalPageSize = paperType === 'thermal'
+          ? {
+            widthMicrons: Math.round(Math.max(20, Number(layout.labelWidth) || 20) * 1000),
+            heightMicrons: Math.round(Math.max(15, Number(layout.labelHeight) || 15) * 1000)
+          }
+          : undefined;
 
-          setPrintNotice({
-            open: true,
-            message: `Print job sent${selectedPrinter ? ` to ${selectedPrinter}` : ' to default printer'}.`,
-            severity: 'success'
-          });
+        await window.electron.ipcRenderer.invoke('print-html-content', {
+          html,
+          printerName: selectedPrinter || undefined,
+          pageSize: thermalPageSize
+        });
 
-          // Remove class after print dialog is triggered
-          setTimeout(() => {
-            document.body.classList.remove('is-printing-price-labels');
-          }, 1000);
-        }, 100);
+        setPrintNotice({
+          open: true,
+          message: `Print job sent${selectedPrinter ? ` to ${selectedPrinter}` : ' to default printer'}.`,
+          severity: 'success'
+        });
       } catch (error) {
         console.error('Direct print failed:', error);
-        document.body.classList.remove('is-printing-price-labels');
         const message = 'Direct printing failed. Please check printer connection.';
         setPrintError(message);
         setPrintNotice({ open: true, message, severity: 'error' });
@@ -557,7 +664,13 @@ const PriceListPanel = ({ open, onClose }) => {
     }
 
     // Fallback for browser
-    window.print();
+    document.body.classList.add('is-printing-price-labels');
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('is-printing-price-labels');
+      }, 500);
+    }, 50);
   };
 
   const renderLabelMeta = (label) => {
