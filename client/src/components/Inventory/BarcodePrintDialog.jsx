@@ -113,42 +113,60 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
         const printContent = printRef.current.innerHTML;
 
         const htmlDocument = `
+            <!DOCTYPE html>
             <html>
                 <head>
+                    <meta charset="utf-8">
                     <title>Print Barcodes</title>
                     <style>
                         @media print {
-                            body { margin: 0; padding: 0; }
+                            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                             @page { margin: ${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm; }
                         }
+                        * { box-sizing: border-box; }
                         body {
-                            font-family: Arial, sans-serif;
+                            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
                             padding: ${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm;
+                            margin: 0;
+                            width: 100%;
+                            background: #ffffff;
+                            color: #000000;
                         }
                         .barcode-container {
-                            display: flex;
-                            flex-wrap: wrap;
+                            display: grid;
+                            grid-template-columns: repeat(${layout.cols || 1}, 1fr);
                             gap: ${spacing.horizontal}mm;
                             row-gap: ${spacing.vertical}mm;
+                            width: 100%;
                         }
                         .barcode-item {
                             display: flex;
                             flex-direction: column;
                             align-items: ${textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center'};
                             page-break-inside: avoid;
-                            border: 1px dashed #cbd5e1;
+                            border: 1px dashed #000000;
                             padding: ${spacing.vertical}mm ${spacing.horizontal}mm;
+                            background: #ffffff;
+                        }
+                        .barcode-item svg {
+                            display: block;
+                            max-width: 100%;
+                            height: auto !important;
                         }
                         .barcode-info {
                             text-align: ${textAlign};
                             font-size: 10px;
                             margin-top: 2px;
                             width: 100%;
+                            line-height: 1.1;
                         }
+                        p, div, span { margin: 0; padding: 0; }
                     </style>
                 </head>
                 <body>
-                    ${printContent}
+                    <div class="barcode-container">
+                        ${printContent}
+                    </div>
                 </body>
             </html>
         `;

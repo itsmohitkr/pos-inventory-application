@@ -99,9 +99,11 @@ ipcMain.on('print-manual', (event, { printerName }) => {
 ipcMain.on('print-barcode', (event, { html, printerName }) => {
   console.log(`[BARCODE PRINT] Direct Printing to: ${printerName || 'System Default'}`);
 
-  // Create a hidden browser window for printing the barcode
+  // Create a larger hidden browser window for printing the barcode to accommodate various layouts
   let hiddenWin = new BrowserWindow({
     show: false,
+    width: 1024,
+    height: 1024,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -111,22 +113,30 @@ ipcMain.on('print-barcode', (event, { html, printerName }) => {
   hiddenWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 
   hiddenWin.webContents.on('did-finish-load', () => {
-    hiddenWin.webContents.print({
-      silent: true,
-      deviceName: printerName || undefined,
-      printBackground: true,
-      color: true,
-      margins: { marginType: 'none' },
-      scaleFactor: 100
-    }, (success, failureReason) => {
-      if (!success) {
-        console.error(`[BARCODE PRINT ERROR] Failed to print: ${failureReason}`);
-      } else {
-        console.log('[BARCODE PRINT SUCCESS] Direct print sent to barcode printer.');
-      }
-      hiddenWin.close();
-      hiddenWin = null;
-    });
+    // CRITICAL: Add a small delay to ensure SVG barcodes and CSS layouts are fully "painted" 
+    // before the print command is issued. 500ms is a safe value for most printers.
+    setTimeout(() => {
+      if (!hiddenWin) return;
+
+      hiddenWin.webContents.print({
+        silent: true,
+        deviceName: printerName || undefined,
+        printBackground: true,
+        color: true,
+        margins: { marginType: 'none' },
+        scaleFactor: 100
+      }, (success, failureReason) => {
+        if (!success) {
+          console.error(`[BARCODE PRINT ERROR] Failed to print to ${printerName || 'Default'}: ${failureReason}`);
+        } else {
+          console.log(`[BARCODE PRINT SUCCESS] Direct print sent to ${printerName || 'Default'}.`);
+        }
+        if (hiddenWin) {
+          hiddenWin.close();
+          hiddenWin = null;
+        }
+      });
+    }, 500);
   });
 });
 
