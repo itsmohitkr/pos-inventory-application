@@ -594,16 +594,59 @@ const PriceListPanel = ({ open, onClose }) => {
     const barcodeHeightPx = Math.max(20, Number(layout.barcodeHeight) || 20);
     const barcodeLineSpacing = Math.max(0.8, Number(layout.barcodeLineSpacing) || 1.1);
 
-    // Clone each label and override SVG dimensions so Chromium rasterizes at full
-    // container width × printer DPI instead of the narrow screen-pixel size. This
-    // converts the typical 1.3 dots-per-module (bars merge) to 2.5–3 dots-per-module
-    // (clean, sharp bars) on a 203 DPI thermal printer.
+    // CSS pixel density: 96px per inch, 25.4mm per inch
+    const PX_PER_MM = 96 / 25.4;
+    // Available barcode width: label minus outer margins minus barcode-block inline padding (1.2mm × 2)
+    const barcodeAvailableMm = Math.max(
+      5,
+      labelWidthMm - marginLeftMm - marginRightMm - 2.4
+    );
+    const barcodeTargetPx = Math.round(barcodeAvailableMm * PX_PER_MM);
+
+    // Clone each label and pixel-snap every SVG bar rect to integer coordinates.
+    // This eliminates sub-pixel anti-aliasing: instead of relying on shape-rendering:crispEdges
+    // to snap 1.36px bars at render time, we pre-calculate exact integer widths so Chromium
+    // has nothing to interpolate. At 203 DPI printing each 1 CSS pixel = ~2.1 printer dots,
+    // giving clean, separation between bars.
     const printableLabels = labelElements.map((element) => {
       const clone = element.cloneNode(true);
       clone.querySelectorAll('svg').forEach((svg) => {
-        svg.setAttribute('width', '100%');
-        svg.setAttribute('height', `${barcodeHeightPx}px`);
-        svg.setAttribute('preserveAspectRatio', 'none');
+        const nw = parseFloat(svg.getAttribute('width') || '0');
+        const nh = parseFloat(svg.getAttribute('height') || '0');
+
+        if (nw > 0 && nh > 0) {
+          const sx = barcodeTargetPx / nw; // horizontal scale
+          const sy = barcodeHeightPx / nh; // vertical scale
+
+          svg.querySelectorAll('rect').forEach((r) => {
+            const x = parseFloat(r.getAttribute('x') || '0');
+            const w = parseFloat(r.getAttribute('width') || '0');
+            const y = parseFloat(r.getAttribute('y') || '0');
+            const h = parseFloat(r.getAttribute('height') || '0');
+            r.setAttribute('x', String(Math.round(x * sx)));
+            r.setAttribute('width', String(Math.max(1, Math.round(w * sx))));
+            r.setAttribute('y', String(Math.round(y * sy)));
+            r.setAttribute('height', String(Math.round(h * sy)));
+          });
+
+          svg.querySelectorAll('text').forEach((t) => {
+            const x = parseFloat(t.getAttribute('x') || '0');
+            const y = parseFloat(t.getAttribute('y') || '0');
+            t.setAttribute('x', String(Math.round(x * sx)));
+            t.setAttribute('y', String(Math.round(y * sy)));
+          });
+
+          // Set viewBox to match the pre-snapped coordinate space so the SVG
+          // renders 1:1 (no further interpolation) when CSS stretches it to fill.
+          svg.setAttribute('viewBox', `0 0 ${barcodeTargetPx} ${barcodeHeightPx}`);
+          svg.setAttribute('width', '100%');
+          svg.setAttribute('height', `${barcodeHeightPx}px`);
+          svg.setAttribute('preserveAspectRatio', 'none');
+        } else {
+          svg.setAttribute('width', '100%');
+          svg.setAttribute('height', `${barcodeHeightPx}px`);
+          svg.setAttribute('preserveAspectRatio', 'none');
+        }
       });
       return clone.outerHTML;
     });
