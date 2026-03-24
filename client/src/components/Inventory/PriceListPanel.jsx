@@ -283,6 +283,9 @@ const PriceListPanel = ({ open, onClose }) => {
 
   const totalLabelCount = previewLabels.length;
   const missingBarcodeCount = selectedRows.filter((row) => !row.barcodeValue).length;
+  const printPageSize = paperType === 'thermal'
+    ? `${Math.max(20, Number(layout.labelWidth) || 20)}mm ${Math.max(15, Number(layout.labelHeight) || 15)}mm`
+    : 'A4';
 
   const previewPageWidthMm = useMemo(() => {
     const columns = Math.max(1, Number(layout.columns) || 1);
@@ -633,8 +636,8 @@ const PriceListPanel = ({ open, onClose }) => {
       }
 
       try {
-        // Add printing class to body to trigger @media print styles
-        document.body.classList.add('is-printing-labels');
+        // Scope print styling to this dialog so it does not conflict with other print flows.
+        document.body.classList.add('is-printing-price-labels');
 
         // Brief timeout to ensure class is applied before print capture
         setTimeout(() => {
@@ -650,12 +653,12 @@ const PriceListPanel = ({ open, onClose }) => {
 
           // Remove class after print dialog is triggered
           setTimeout(() => {
-            document.body.classList.remove('is-printing-labels');
+            document.body.classList.remove('is-printing-price-labels');
           }, 1000);
         }, 100);
       } catch (error) {
         console.error('Direct print failed:', error);
-        document.body.classList.remove('is-printing-labels');
+        document.body.classList.remove('is-printing-price-labels');
         const message = 'Direct printing failed. Please check printer connection.';
         setPrintError(message);
         setPrintNotice({ open: true, message, severity: 'error' });
@@ -711,6 +714,53 @@ const PriceListPanel = ({ open, onClose }) => {
         }
       }}
     >
+      <style>{`
+        @media print {
+          @page {
+            size: ${printPageSize};
+            margin: 0;
+          }
+
+          body.is-printing-price-labels {
+            visibility: hidden !important;
+            margin: 0 !important;
+            background: #ffffff !important;
+          }
+
+          body.is-printing-price-labels .printable-labels-area,
+          body.is-printing-price-labels .printable-labels-area * {
+            visibility: visible !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color: #000000 !important;
+          }
+
+          body.is-printing-price-labels .printable-labels-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            z-index: 9999 !important;
+          }
+
+          body.is-printing-price-labels .no-print {
+            display: none !important;
+          }
+
+          body.is-printing-price-labels .MuiDialog-paper,
+          body.is-printing-price-labels .MuiDialogContent-root,
+          body.is-printing-price-labels .MuiPaper-root,
+          body.is-printing-price-labels .MuiBox-root {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
+
       <DialogTitle
         className="no-print"
         sx={{
