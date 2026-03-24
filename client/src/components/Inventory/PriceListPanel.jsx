@@ -199,6 +199,49 @@ const getPreviewBatch = (product) => {
   return product.batches[product.batches.length - 1] || null;
 };
 
+const estimateBarcodeModuleCount = (value, format) => {
+  const length = String(value || '').length;
+
+  switch (format) {
+    case 'EAN13':
+    case 'UPC':
+      return 95;
+    case 'EAN8':
+      return 67;
+    case 'ITF':
+      return Math.max(40, length * 14 + 20);
+    case 'MSI':
+      return Math.max(40, length * 12 + 20);
+    case 'pharmacode':
+      return Math.max(32, length * 16);
+    case 'CODE39':
+      return Math.max(48, length * 16 + 35);
+    case 'CODE128':
+    default:
+      return Math.max(55, length * 11 + 35);
+  }
+};
+
+const getBarcodeReadabilityWarning = ({ value, format, lineWidth, labelWidthMm }) => {
+  if (!value) {
+    return null;
+  }
+
+  const innerLabelWidthMm = Math.max(10, labelWidthMm - 4.5);
+  const availableWidthPx = innerLabelWidthMm * MM_TO_PX;
+  const estimatedWidthPx = estimateBarcodeModuleCount(value, format) * Math.max(0.1, lineWidth);
+
+  if (estimatedWidthPx > availableWidthPx * 0.92) {
+    return 'Barcode is too dense for the current label width.';
+  }
+
+  if (lineWidth < 0.9 && labelWidthMm <= 40) {
+    return 'Barcode bars may print too thin for reliable scanning.';
+  }
+
+  return null;
+};
+
 const PriceListPanel = ({ open, onClose }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -283,9 +326,43 @@ const PriceListPanel = ({ open, onClose }) => {
 
   const totalLabelCount = previewLabels.length;
   const missingBarcodeCount = selectedRows.filter((row) => !row.barcodeValue).length;
+  const labelWidthMm = Math.max(20, Number(layout.labelWidth) || 20);
+  const labelHeightMm = Math.max(15, Number(layout.labelHeight) || 15);
+  const marginTopMm = Math.max(0, Number(layout.marginTop) || 0);
+  const marginRightMm = Math.max(0, Number(layout.marginRight) || 0);
+  const marginBottomMm = Math.max(0, Number(layout.marginBottom) || 0);
+  const marginLeftMm = Math.max(0, Number(layout.marginLeft) || 0);
+  const isThermalPreview = paperType === 'thermal';
   const printPageSize = paperType === 'thermal'
-    ? `${Math.max(20, Number(layout.labelWidth) || 20)}mm ${Math.max(15, Number(layout.labelHeight) || 15)}mm`
+    ? `${labelWidthMm}mm ${labelHeightMm}mm`
     : 'A4';
+
+  const barcodeWarnings = useMemo(() => {
+    if (!displayOptions.barcode) {
+      return [];
+    }
+
+    return selectedRows
+      .map((row) => {
+        const message = getBarcodeReadabilityWarning({
+          value: row.barcodeValue,
+          format: layout.barcodeFormat || 'CODE128',
+          lineWidth: Number(layout.barcodeLineWidth) || 0.7,
+          labelWidthMm
+        });
+
+        if (!message) {
+          return null;
+        }
+
+        return {
+          id: row.product.id,
+          productName: row.product.name,
+          message
+        };
+      })
+      .filter(Boolean);
+  }, [displayOptions.barcode, selectedRows, layout.barcodeFormat, layout.barcodeLineWidth, labelWidthMm]);
 
   const previewPageWidthMm = useMemo(() => {
     const columns = Math.max(1, Number(layout.columns) || 1);
@@ -508,10 +585,27 @@ const PriceListPanel = ({ open, onClose }) => {
   };
 
   const buildPrintableHtml = () => {
-    const grid = previewRef.current?.querySelector('.price-list-grid');
-    if (!grid) {
+    const labelElements = Array.from(previewRef.current?.querySelectorAll('.price-label-item') || []);
+    if (labelElements.length === 0) {
       return '';
     }
+
+    const printableLabels = labelElements.map((element) => element.outerHTML);
+    const isThermalPrint = paperType === 'thermal';
+    const barcodeHeightPx = Math.max(20, Number(layout.barcodeHeight) || 20);
+    const barcodeLineSpacing = Math.max(0.8, Number(layout.barcodeLineSpacing) || 1.1);
+
+    const printableBody = isThermalPrint
+      ? printableLabels.map((labelHtml, index) => `
+          <div class="thermal-label-page${index === printableLabels.length - 1 ? ' is-last-page' : ''}">
+            ${labelHtml}
+          </div>
+        `).join('')
+      : `
+          <div class="price-list-grid">
+            ${printableLabels.join('')}
+          </div>
+        `;
 
     return `
       <!DOCTYPE html>
@@ -546,28 +640,44 @@ const PriceListPanel = ({ open, onClose }) => {
               color: #000000;
               background: #ffffff;
               font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              width: ${isThermalPrint ? `${labelWidthMm}mm` : 'auto'};
             }
 
             .price-list-grid {
               display: grid;
               width: max-content;
               max-width: 100%;
-              grid-template-columns: repeat(${Math.max(1, Number(layout.columns) || 1)}, ${Math.max(20, Number(layout.labelWidth) || 20)}mm);
+              grid-template-columns: repeat(${Math.max(1, Number(layout.columns) || 1)}, ${labelWidthMm}mm);
               column-gap: ${Math.max(0, Number(layout.gapHorizontal) || 0)}mm;
               row-gap: ${Math.max(0, Number(layout.gapVertical) || 0)}mm;
-              padding: ${Math.max(0, Number(layout.marginTop) || 0)}mm ${Math.max(0, Number(layout.marginRight) || 0)}mm ${Math.max(0, Number(layout.marginBottom) || 0)}mm ${Math.max(0, Number(layout.marginLeft) || 0)}mm;
+              padding: ${marginTopMm}mm ${marginRightMm}mm ${marginBottomMm}mm ${marginLeftMm}mm;
               justify-content: flex-start;
             }
 
+            .thermal-label-page {
+              width: ${labelWidthMm}mm;
+              height: ${labelHeightMm}mm;
+              box-sizing: border-box;
+              padding: ${marginTopMm}mm ${marginRightMm}mm ${marginBottomMm}mm ${marginLeftMm}mm;
+              overflow: hidden;
+              break-after: page;
+              page-break-after: always;
+            }
+
+            .thermal-label-page.is-last-page {
+              break-after: auto;
+              page-break-after: auto;
+            }
+
             .price-label-item {
-              width: ${Math.max(20, Number(layout.labelWidth) || 20)}mm;
-              min-height: ${Math.max(15, Number(layout.labelHeight) || 15)}mm;
-              border: 1px solid #000000;
+              width: ${labelWidthMm}mm;
+              min-height: ${labelHeightMm}mm;
+              border: none !important;
               border-radius: 0;
-              padding: 1.5mm;
+              padding: 1.2mm 1.6mm;
               display: flex;
               flex-direction: column;
-              justify-content: flex-start;
+              justify-content: center;
               background: #ffffff;
               text-align: ${layout.textAlign || 'left'};
               overflow: hidden;
@@ -575,18 +685,40 @@ const PriceListPanel = ({ open, onClose }) => {
               page-break-inside: avoid;
             }
 
+            .thermal-label-page .price-label-item {
+              width: 100% !important;
+              min-height: 100% !important;
+              height: 100%;
+              padding: 0.8mm 1.4mm;
+            }
+
+            .barcode-block {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              width: 100%;
+              padding: 0 1.2mm;
+              margin-bottom: 0.8mm;
+            }
+
             .price-label-item svg {
               display: block;
               margin: 0 auto;
               max-width: 100%;
-              height: ${Math.max(20, Number(layout.barcodeHeight) || 20)}px !important;
+              height: ${barcodeHeightPx}px !important;
               width: auto !important;
+              shape-rendering: crispEdges;
+              text-rendering: geometricPrecision;
+            }
+
+            .price-label-item svg text {
+              letter-spacing: 0.2px;
             }
 
             .label-line {
               font-size: 10px;
-              line-height: ${Math.max(0.8, Number(layout.barcodeLineSpacing) || 1.1)};
-              margin: 0.5mm 0;
+              line-height: ${barcodeLineSpacing};
+              margin: 0.35mm 0;
               word-break: break-all;
               display: block;
               color: #000000;
@@ -598,15 +730,13 @@ const PriceListPanel = ({ open, onClose }) => {
               line-height: 1.1;
               max-height: 2.3em;
               overflow: hidden;
-              margin-bottom: 1mm;
+              margin-bottom: 0.8mm;
               color: #000000;
             }
           </style>
         </head>
         <body>
-          <div class="price-list-grid">
-            ${grid.innerHTML}
-          </div>
+          ${printableBody}
         </body>
       </html>
     `;
@@ -701,6 +831,49 @@ const PriceListPanel = ({ open, onClose }) => {
       </Box>
     );
   };
+
+  const renderPreviewLabelCard = (label, options = {}) => (
+    <Box
+      key={label.id}
+      className="price-label-item"
+      sx={{
+        width: options.width || `${labelWidthMm}mm`,
+        minHeight: options.minHeight || `${labelHeightMm}mm`,
+        border: 'none',
+        borderRadius: '2px',
+        boxSizing: 'border-box',
+        bgcolor: '#fff',
+        p: options.padding ?? 1,
+        overflow: 'hidden',
+        textAlign: layout.textAlign || 'left',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: options.justifyContent || 'flex-start',
+        '@media print': {
+          border: 'none'
+        }
+      }}
+    >
+      {displayOptions.barcode && label.barcodeValue ? (
+        <Box className="barcode-block" sx={{ display: 'flex', justifyContent: 'center', px: 0.5, mb: 0.5 }}>
+          <Barcode
+            value={label.barcodeValue}
+            format={layout.barcodeFormat || 'CODE128'}
+            width={Math.max(0.1, Number(layout.barcodeLineWidth) || 0.7)}
+            height={Math.max(20, Number(layout.barcodeHeight) || 20)}
+            margin={0}
+            fontSize={11}
+            textMargin={3}
+            displayValue
+          />
+        </Box>
+      ) : displayOptions.barcode ? (
+        <Typography variant="caption" color="error.main">No barcode</Typography>
+      ) : null}
+
+      {renderLabelMeta(label)}
+    </Box>
+  );
 
   return (
     <Dialog
@@ -1269,6 +1442,11 @@ const PriceListPanel = ({ open, onClose }) => {
                     {printError}
                   </Alert>
                 )}
+                {barcodeWarnings.length > 0 && (
+                  <Alert severity="warning" className="no-print" sx={{ mb: 1.2 }}>
+                    {barcodeWarnings.length} selected barcode(s) may be difficult to scan with the current width settings. Example: {barcodeWarnings[0].productName}. {barcodeWarnings[0].message}
+                  </Alert>
+                )}
 
                 <Box
                   ref={previewContainerRef}
@@ -1294,12 +1472,12 @@ const PriceListPanel = ({ open, onClose }) => {
                   <Box
                     ref={previewRef}
                     sx={{
-                      width: paperType === 'a4' ? `${previewPageWidthMm}mm` : '100%',
+                      width: isThermalPreview ? `${labelWidthMm}mm` : `${previewPageWidthMm}mm`,
                       transform: paperType === 'a4' ? `scale(${activePreviewScale})` : 'none',
                       transformOrigin: 'top center',
                       bgcolor: '#fff',
-                      border: '1px solid #94a3b8',
-                      boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                      border: isThermalPreview ? 'none' : '1px dashed #94a3b8',
+                      boxShadow: paperType === 'a4' ? '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' : 'none',
                       borderRadius: '4px',
                       mb: 12, // Substantial padding for bottom scaling
                       flexShrink: 0,
@@ -1312,72 +1490,66 @@ const PriceListPanel = ({ open, onClose }) => {
                       }
                     }}
                   >
-                    <Box
-                      className="price-list-grid"
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${Math.max(1, Number(layout.columns) || 1)}, ${Math.max(20, Number(layout.labelWidth) || 20)}mm)`,
-                        columnGap: `${Math.max(0, Number(layout.gapHorizontal) || 0)}mm`,
-                        rowGap: `${Math.max(0, Number(layout.gapVertical) || 0)}mm`,
-                        p: `${Math.max(0, Number(layout.marginTop) || 0)}mm ${Math.max(0, Number(layout.marginRight) || 0)}mm ${Math.max(0, Number(layout.marginBottom) || 0)}mm ${Math.max(0, Number(layout.marginLeft) || 0)}mm`,
-                        justifyContent: 'center',
-                        position: 'relative',
-                        '@media print': {
-                          width: '100%'
-                        }
-                      }}
-                    >
-                      {previewLabels.map((label) => (
-                        <Box
-                          key={label.id}
-                          className="price-label-item"
-                          sx={{
-                            width: `${Math.max(20, Number(layout.labelWidth) || 20)}mm`,
-                            minHeight: `${Math.max(15, Number(layout.labelHeight) || 15)}mm`,
-                            border: '1px dashed #cbd5e1',
-                            borderRadius: '2px',
-                            boxSizing: 'border-box',
-                            bgcolor: '#fff',
-                            p: 1,
-                            overflow: 'hidden',
-                            textAlign: layout.textAlign || 'left',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'flex-start',
-                            '@media print': {
-                              border: '1px solid #000'
-                            }
-                          }}
-                        >
-                          {displayOptions.barcode && label.barcodeValue ? (
-                            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                              <Barcode
-                                value={label.barcodeValue}
-                                format={layout.barcodeFormat || 'CODE128'}
-                                width={Math.max(0.1, Number(layout.barcodeLineWidth) || 0.7)}
-                                height={Math.max(20, Number(layout.barcodeHeight) || 20)}
-                                margin={0}
-                                fontSize={10}
-                                textMargin={2}
-                                displayValue
-                              />
+                    {isThermalPreview ? (
+                      <Stack spacing={1.2} sx={{ width: `${labelWidthMm}mm` }}>
+                        {previewLabels.length === 0 ? (
+                          <Box sx={{ p: 4, textAlign: 'center', width: '100%' }}>
+                            <Typography variant="body1" color="text.secondary">
+                              Your preview will appear here once you select products.
+                            </Typography>
+                          </Box>
+                        ) : (
+                          previewLabels.map((label) => (
+                            <Box
+                              key={label.id}
+                              sx={{
+                                width: `${labelWidthMm}mm`,
+                                height: `${labelHeightMm}mm`,
+                                border: '1px dashed #94a3b8',
+                                borderRadius: 1,
+                                bgcolor: '#fff',
+                                p: `${marginTopMm}mm ${marginRightMm}mm ${marginBottomMm}mm ${marginLeftMm}mm`,
+                                boxSizing: 'border-box',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              {renderPreviewLabelCard(label, {
+                                width: '100%',
+                                minHeight: '100%',
+                                padding: '0.8mm 1.4mm',
+                                justifyContent: 'center'
+                              })}
                             </Box>
-                          ) : displayOptions.barcode ? (
-                            <Typography variant="caption" color="error.main">No barcode</Typography>
-                          ) : null}
+                          ))
+                        )}
+                      </Stack>
+                    ) : (
+                      <Box
+                        className="price-list-grid"
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: `repeat(${Math.max(1, Number(layout.columns) || 1)}, ${labelWidthMm}mm)`,
+                          columnGap: `${Math.max(0, Number(layout.gapHorizontal) || 0)}mm`,
+                          rowGap: `${Math.max(0, Number(layout.gapVertical) || 0)}mm`,
+                          p: `${marginTopMm}mm ${marginRightMm}mm ${marginBottomMm}mm ${marginLeftMm}mm`,
+                          justifyContent: 'center',
+                          position: 'relative',
+                          '@media print': {
+                            width: '100%'
+                          }
+                        }}
+                      >
+                        {previewLabels.map((label) => renderPreviewLabelCard(label))}
 
-                          {renderLabelMeta(label)}
-                        </Box>
-                      ))}
-
-                      {previewLabels.length === 0 && (
-                        <Box sx={{ p: 4, textAlign: 'center', width: '100%', gridColumn: '1 / -1' }}>
-                          <Typography variant="body1" color="text.secondary">
-                            Your preview will appear here once you select products.
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
+                        {previewLabels.length === 0 && (
+                          <Box sx={{ p: 4, textAlign: 'center', width: '100%', gridColumn: '1 / -1' }}>
+                            <Typography variant="body1" color="text.secondary">
+                              Your preview will appear here once you select products.
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    )}
                   </Box>
                 </Box>
               </Paper>
