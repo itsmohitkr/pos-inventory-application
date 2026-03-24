@@ -110,90 +110,34 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
     };
 
     const handlePrint = () => {
-        const printContent = printRef.current.innerHTML;
-
-        const htmlDocument = `
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <meta charset="utf-8">
-                    <title>Print Barcodes</title>
-                    <style>
-                        @media print {
-                            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            @page { margin: ${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm; }
-                        }
-                        * { box-sizing: border-box; }
-                        body {
-                            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                            padding: ${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm;
-                            margin: 0;
-                            width: 100%;
-                            background: #ffffff;
-                            color: #000000;
-                        }
-                        .barcode-container {
-                            display: grid;
-                            grid-template-columns: repeat(${layout.cols || 1}, 1fr);
-                            gap: ${spacing.horizontal}mm;
-                            row-gap: ${spacing.vertical}mm;
-                            width: 100%;
-                        }
-                        .barcode-item {
-                            display: flex;
-                            flex-direction: column;
-                            align-items: ${textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center'};
-                            page-break-inside: avoid;
-                            border: 1px dashed #000000;
-                            padding: ${spacing.vertical}mm ${spacing.horizontal}mm;
-                            background: #ffffff;
-                        }
-                        .barcode-item svg {
-                            display: block;
-                            max-width: 100%;
-                            height: auto !important;
-                        }
-                        .barcode-info {
-                            text-align: ${textAlign};
-                            font-size: 10px;
-                            margin-top: 2px;
-                            width: 100%;
-                            line-height: 1.1;
-                        }
-                        p, div, span { margin: 0; padding: 0; }
-                    </style>
-                </head>
-                <body>
-                    <div class="barcode-container">
-                        ${printContent}
-                    </div>
-                </body>
-            </html>
-        `;
-
-        if (printMethod === 'machine' && window.electron && selectedPrinter) {
-            // Direct print to barcode machine
+        if (window.electron?.ipcRenderer) {
             try {
-                window.electron.ipcRenderer.send('print-barcode', {
-                    html: htmlDocument,
-                    printerName: selectedPrinter
-                });
-                setSnackbar({ open: true, message: 'Print job sent successfully!', severity: 'success' });
+                // Add printing class to body to trigger @media print styles
+                document.body.classList.add('is-printing-labels');
+
+                // Brief timeout to ensure class is applied before print capture
+                setTimeout(() => {
+                    window.electron.ipcRenderer.send('print-manual', {
+                        printerName: selectedPrinter || undefined
+                    });
+
+                    setSnackbar({ open: true, message: 'Print job sent successfully!', severity: 'success' });
+
+                    // Remove class after print dialog is triggered
+                    setTimeout(() => {
+                        document.body.classList.remove('is-printing-labels');
+                    }, 1000);
+                }, 100);
             } catch (error) {
-                console.error('Print failed:', error);
-                setSnackbar({ open: true, message: 'Failed to send print job.', severity: 'error' });
+                console.error('Direct print failed:', error);
+                document.body.classList.remove('is-printing-labels');
+                setSnackbar({ open: true, message: 'Direct printing failed.', severity: 'error' });
             }
-        } else {
-            // Standard A4 Print Queue
-            const printWindow = window.open('', '', 'width=800,height=600');
-            printWindow.document.write(htmlDocument);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 250);
+            return;
         }
+
+        // Fallback for browser
+        window.print();
     };
 
     const renderBarcodePreview = () => {
@@ -229,7 +173,10 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                             padding: `${spacing.vertical}mm ${spacing.horizontal}mm`,
                             bgcolor: '#ffffff',
                             width: activeCols === 1 ? 'auto' : '100%',
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            '@media print': {
+                                border: '1px solid #000000 !important'
+                            }
                         }}
                     >
                         <Barcode
@@ -287,7 +234,41 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
             fullWidth
             PaperProps={{ sx: { height: '90vh' } }}
         >
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+            <style>{`
+                @media print {
+                    body.is-printing-labels {
+                        visibility: hidden !important;
+                        background: #ffffff !important;
+                    }
+                    body.is-printing-labels .printable-area,
+                    body.is-printing-labels .printable-area * {
+                        visibility: visible !important;
+                        color: #000000 !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    body.is-printing-labels .printable-area {
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 100% !important;
+                        height: auto !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: #ffffff !important;
+                        z-index: 9999 !important;
+                        display: block !important;
+                    }
+                    .no-print {
+                        display: none !important;
+                    }
+                    @page {
+                        margin: ${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm;
+                    }
+                }
+            `}</style>
+
+            <DialogTitle className="no-print" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
                 <Box>
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>
                         Barcode Print Setup
@@ -304,7 +285,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
             <DialogContent dividers>
                 <Grid container spacing={3}>
                     {/* Left Panel - Settings */}
-                    <Grid item xs={12} md={5}>
+                    <Grid item xs={12} md={5} className="no-print">
                         <Stack spacing={3}>
                             {/* Basic Settings */}
                             <Paper elevation={0} sx={{ p: 2, bgcolor: '#f8fafc', border: '1px solid #e2e8f0' }}>
@@ -575,6 +556,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                     {/* Right Panel - Preview */}
                     <Grid item xs={12} md={7}>
                         <Paper
+                            className="printable-area"
                             elevation={0}
                             sx={{
                                 p: 3,
@@ -582,10 +564,14 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                                 border: '2px dashed #cbd5e1',
                                 minHeight: 600,
                                 display: 'flex',
-                                flexDirection: 'column'
+                                flexDirection: 'column',
+                                '@media print': {
+                                    border: 'none',
+                                    p: 0
+                                }
                             }}
                         >
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Box className="no-print" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                     Preview
                                 </Typography>
@@ -596,7 +582,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                                     variant="outlined"
                                 />
                             </Box>
-                            <Divider sx={{ mb: 2 }} />
+                            <Divider className="no-print" sx={{ mb: 2 }} />
                             <Box
                                 ref={printRef}
                                 sx={{
@@ -605,13 +591,19 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                                     bgcolor: printMethod === 'a4' ? '#ffffff' : '#f8fafc',
                                     p: 2,
                                     border: '1px solid #e2e8f0',
-                                    borderRadius: 1
+                                    borderRadius: 1,
+                                    '@media print': {
+                                        border: 'none',
+                                        overflow: 'visible',
+                                        p: 0,
+                                        bgcolor: '#fff'
+                                    }
                                 }}
                             >
                                 {product && product.barcode ? (
                                     renderBarcodePreview()
                                 ) : (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                    <Box className="no-print" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                                         <Typography color="text.secondary">
                                             No barcode available for this product
                                         </Typography>
@@ -623,7 +615,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
                 </Grid>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, py: 2 }}>
+            <DialogActions className="no-print" sx={{ px: 3, py: 2 }}>
                 <Button onClick={onClose} variant="outlined">
                     Cancel
                 </Button>
@@ -658,3 +650,4 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
 };
 
 export default BarcodePrintDialog;
+

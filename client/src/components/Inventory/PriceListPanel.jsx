@@ -513,11 +513,6 @@ const PriceListPanel = ({ open, onClose }) => {
       return '';
     }
 
-    const pageSize =
-      paperType === 'a4'
-        ? 'A4 portrait'
-        : `${layout.labelWidth + layout.marginLeft + layout.marginRight}mm ${layout.labelHeight + layout.marginTop + layout.marginBottom}mm`;
-
     return `
       <!DOCTYPE html>
       <html>
@@ -629,35 +624,38 @@ const PriceListPanel = ({ open, onClose }) => {
       return;
     }
 
-    const html = buildPrintableHtml();
-    if (!html) {
-      const message = 'Unable to generate print preview. Please try again.';
-      setPrintError(message);
-      setPrintNotice({ open: true, message, severity: 'error' });
-      return;
-    }
-
-    if (window.electron?.ipcRenderer && printers.length === 0) {
-      const message = 'No printers detected. Click refresh next to Printer and try again.';
-      setPrintError(message);
-      setPrintNotice({ open: true, message, severity: 'error' });
-      return;
-    }
-
-    // In desktop app, always use Electron print channel. Empty printer means system default.
     if (window.electron?.ipcRenderer) {
+      if (printers.length === 0) {
+        const message = 'No printers detected. Click refresh next to Printer and try again.';
+        setPrintError(message);
+        setPrintNotice({ open: true, message, severity: 'error' });
+        return;
+      }
+
       try {
-        window.electron.ipcRenderer.send('print-barcode', {
-          html,
-          printerName: selectedPrinter || undefined
-        });
-        setPrintNotice({
-          open: true,
-          message: `Print job sent${selectedPrinter ? ` to ${selectedPrinter}` : ' to default printer'}.`,
-          severity: 'success'
-        });
+        // Add printing class to body to trigger @media print styles
+        document.body.classList.add('is-printing-labels');
+
+        // Brief timeout to ensure class is applied before print capture
+        setTimeout(() => {
+          window.electron.ipcRenderer.send('print-manual', {
+            printerName: selectedPrinter || undefined
+          });
+
+          setPrintNotice({
+            open: true,
+            message: `Print job sent${selectedPrinter ? ` to ${selectedPrinter}` : ' to default printer'}.`,
+            severity: 'success'
+          });
+
+          // Remove class after print dialog is triggered
+          setTimeout(() => {
+            document.body.classList.remove('is-printing-labels');
+          }, 1000);
+        }, 100);
       } catch (error) {
         console.error('Direct print failed:', error);
+        document.body.classList.remove('is-printing-labels');
         const message = 'Direct printing failed. Please check printer connection.';
         setPrintError(message);
         setPrintNotice({ open: true, message, severity: 'error' });
@@ -665,22 +663,8 @@ const PriceListPanel = ({ open, onClose }) => {
       return;
     }
 
-    const printWindow = window.open('', '', 'width=1100,height=800');
-    if (!printWindow) {
-      const message = 'Popup blocked by browser. Please allow popups for printing.';
-      setPrintError(message);
-      setPrintNotice({ open: true, message, severity: 'error' });
-      return;
-    }
-
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
-    setPrintNotice({ open: true, message: 'Print dialog opened.', severity: 'info' });
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
+    // Fallback for browser
+    window.print();
   };
 
   const renderLabelMeta = (label) => {
@@ -728,6 +712,7 @@ const PriceListPanel = ({ open, onClose }) => {
       }}
     >
       <DialogTitle
+        className="no-print"
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -772,6 +757,7 @@ const PriceListPanel = ({ open, onClose }) => {
           >
             {/* Left Configuration Column */}
             <Box
+              className="no-print"
               sx={{
                 width: { xs: '100%', sm: '380px', md: '440px' },
                 flexShrink: 0,
@@ -1147,6 +1133,7 @@ const PriceListPanel = ({ open, onClose }) => {
 
             {/* Right Preview Column */}
             <Box
+              className="printable-labels-area"
               sx={{
                 flex: 1,
                 display: 'flex',
@@ -1165,10 +1152,16 @@ const PriceListPanel = ({ open, onClose }) => {
                   height: { xs: 'auto', sm: '100%' },
                   display: 'flex',
                   flexDirection: 'column',
-                  minHeight: { xs: 460, sm: 0 }
+                  minHeight: { xs: 460, sm: 0 },
+                  '@media print': {
+                    border: 'none',
+                    boxShadow: 'none',
+                    p: 0,
+                    bgcolor: '#fff'
+                  }
                 }}
               >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Box className="no-print" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                     Live Preview
                   </Typography>
@@ -1211,15 +1204,15 @@ const PriceListPanel = ({ open, onClose }) => {
                     </Box>
                   </Stack>
                 </Box>
-                <Divider sx={{ mb: 1.5 }} />
+                <Divider className="no-print" sx={{ mb: 1.5 }} />
 
                 {missingBarcodeCount > 0 && (
-                  <Alert severity="warning" sx={{ mb: 1.2 }}>
+                  <Alert severity="warning" className="no-print" sx={{ mb: 1.2 }}>
                     {missingBarcodeCount} selected product(s) do not have barcode values.
                   </Alert>
                 )}
                 {printError && (
-                  <Alert severity="error" sx={{ mb: 1.2 }}>
+                  <Alert severity="error" className="no-print" sx={{ mb: 1.2 }}>
                     {printError}
                   </Alert>
                 )}
@@ -1237,7 +1230,12 @@ const PriceListPanel = ({ open, onClose }) => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'flex-start',
-                    scrollbarGutter: 'stable'
+                    scrollbarGutter: 'stable',
+                    '@media print': {
+                      overflow: 'visible',
+                      p: 0,
+                      bgcolor: '#fff'
+                    }
                   }}
                 >
                   <Box
@@ -1251,7 +1249,14 @@ const PriceListPanel = ({ open, onClose }) => {
                       boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
                       borderRadius: '4px',
                       mb: 12, // Substantial padding for bottom scaling
-                      flexShrink: 0
+                      flexShrink: 0,
+                      '@media print': {
+                        transform: 'none !important',
+                        border: 'none',
+                        boxShadow: 'none',
+                        mb: 0,
+                        width: '100%'
+                      }
                     }}
                   >
                     <Box
@@ -1263,7 +1268,10 @@ const PriceListPanel = ({ open, onClose }) => {
                         rowGap: `${Math.max(0, Number(layout.gapVertical) || 0)}mm`,
                         p: `${Math.max(0, Number(layout.marginTop) || 0)}mm ${Math.max(0, Number(layout.marginRight) || 0)}mm ${Math.max(0, Number(layout.marginBottom) || 0)}mm ${Math.max(0, Number(layout.marginLeft) || 0)}mm`,
                         justifyContent: 'center',
-                        position: 'relative'
+                        position: 'relative',
+                        '@media print': {
+                          width: '100%'
+                        }
                       }}
                     >
                       {previewLabels.map((label) => (
@@ -1282,7 +1290,10 @@ const PriceListPanel = ({ open, onClose }) => {
                             textAlign: layout.textAlign || 'left',
                             display: 'flex',
                             flexDirection: 'column',
-                            justifyContent: 'flex-start'
+                            justifyContent: 'flex-start',
+                            '@media print': {
+                              border: '1px solid #000'
+                            }
                           }}
                         >
                           {displayOptions.barcode && label.barcodeValue ? (
@@ -1323,6 +1334,7 @@ const PriceListPanel = ({ open, onClose }) => {
       </DialogContent>
 
       <DialogActions
+        className="no-print"
         sx={{
           px: 2,
           py: 1.5,
