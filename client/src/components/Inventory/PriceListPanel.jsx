@@ -299,10 +299,6 @@ const PriceListPanel = ({ open, onClose }) => {
 
   const previewPageWidthPx = useMemo(() => Math.max(1, previewPageWidthMm * MM_TO_PX), [previewPageWidthMm]);
   const activePreviewScale = paperType === 'a4' ? previewScale : 1;
-  const scaledPreviewPageWidthPx = useMemo(
-    () => Math.max(1, previewPageWidthPx * activePreviewScale),
-    [previewPageWidthPx, activePreviewScale]
-  );
 
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true);
@@ -509,112 +505,6 @@ const PriceListPanel = ({ open, onClose }) => {
       ...current,
       [field]: !current[field]
     }));
-  };
-
-  const buildPrintableHtml = () => {
-    if (!previewRef.current) {
-      return '';
-    }
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Price List Labels</title>
-          <style>
-            @media print {
-              @page {
-                size: ${pageSize};
-                margin: 0;
-              }
-              body {
-                margin: 0;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-            }
-
-            * {
-              box-sizing: border-box;
-              -webkit-print-color-adjust: exact;
-            }
-
-            body {
-              font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-              margin: 0;
-              padding: 0;
-              color: #000000;
-              width: 100%;
-              min-height: 100%;
-              background: #ffffff;
-            }
-
-            .price-list-grid {
-              display: grid;
-              width: 100%;
-              grid-template-columns: repeat(${Math.max(1, Number(layout.columns) || 1)}, ${Math.max(20, Number(layout.labelWidth) || 20)}mm);
-              column-gap: ${Math.max(0, Number(layout.gapHorizontal) || 0)}mm;
-              row-gap: ${Math.max(0, Number(layout.gapVertical) || 0)}mm;
-              padding: ${Math.max(0, Number(layout.marginTop) || 0)}mm ${Math.max(0, Number(layout.marginRight) || 0)}mm ${Math.max(0, Number(layout.marginBottom) || 0)}mm ${Math.max(0, Number(layout.marginLeft) || 0)}mm;
-              justify-content: center;
-            }
-
-            .price-label-item {
-              width: ${Math.max(20, Number(layout.labelWidth) || 20)}mm;
-              min-height: ${Math.max(15, Number(layout.labelHeight) || 15)}mm;
-              border: 1px dashed #000000;
-              border-radius: 2px;
-              padding: 1.5mm;
-              display: flex;
-              flex-direction: column;
-              justify-content: flex-start;
-              background: #ffffff;
-              text-align: ${layout.textAlign || 'left'};
-              overflow: hidden;
-              page-break-inside: avoid;
-            }
-
-            /* Force SVG to be visible and correctly sized */
-            .price-label-item svg {
-              display: block;
-              margin: 0 auto;
-              max-width: 100%;
-              height: ${Math.max(20, Number(layout.barcodeHeight) || 20)}px !important;
-              width: auto !important;
-            }
-
-            .label-line {
-              font-size: 10px;
-              line-height: ${Math.max(0.8, Number(layout.barcodeLineSpacing) || 1.1)};
-              margin: 0.5mm 0;
-              word-break: break-all;
-              display: block;
-            }
-
-            .label-name {
-              font-weight: 700;
-              font-size: 11px;
-              line-height: 1.1;
-              max-height: 2.3em;
-              overflow: hidden;
-              margin-bottom: 1mm;
-            }
-
-            /* Basic Typography fallback */
-            p, div, span {
-              margin: 0;
-              padding: 0;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="price-list-grid">
-            ${previewRef.current.querySelector('.price-list-grid').innerHTML}
-          </div>
-        </body>
-      </html>
-    `;
   };
 
   const handlePrint = () => {
