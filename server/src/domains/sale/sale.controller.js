@@ -1,33 +1,60 @@
 const saleService = require('./sale.service');
+const { createHttpError } = require('../../shared/error/appError');
+const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
 
 const processSale = async (req, res) => {
     try {
         const sale = await saleService.processSale(req.body);
-        res.json({ message: "Sale processed successfully", saleId: sale.id, sale });
+        return sendSuccessResponse(
+            res,
+            200,
+            { saleId: sale.id, sale },
+            'Sale processed successfully',
+            { format: 'merge' }
+        );
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        throw createHttpError(400, error?.message || 'Failed to process sale', {
+            error: error?.message || 'Failed to process sale'
+        });
     }
 };
 
 const getSaleById = async (req, res) => {
     const { id } = req.params;
+
     try {
         const sale = await saleService.getSaleById(id);
-        if (!sale) return res.status(404).json({ error: "Sale not found" });
-        res.json(sale);
+        if (!sale) {
+            throw createHttpError(404, 'Sale not found', { error: 'Sale not found' });
+        }
+
+        return sendSuccessResponse(res, 200, sale, 'Sale fetched successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        if (error?.statusCode) {
+            throw error;
+        }
+
+        throw createHttpError(500, error?.message || 'Failed to fetch sale', {
+            error: error?.message || 'Failed to fetch sale'
+        });
     }
 };
 
 const processReturn = async (req, res) => {
     const { id: saleId } = req.params;
     const { items } = req.body;
+
     try {
         const result = await saleService.processReturn(saleId, items);
-        res.json(result);
+        return sendSuccessResponse(res, 200, result, 'Return processed successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        throw createHttpError(400, error?.message || 'Failed to process return', {
+            error: error?.message || 'Failed to process return'
+        });
     }
 };
 

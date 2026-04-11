@@ -1,9 +1,12 @@
+const { sendErrorResponse } = require('../utils/helper/responseHelpers');
+
 const pathNotFound = (req, res) => {
-    res.status(404).json({
-        success: false,
-        error: 'Path Not Found',
-        message: `Cannot ${req.method} ${req.originalUrl}`
-    });
+    return sendErrorResponse(
+        res,
+        404,
+        `Cannot ${req.method} ${req.originalUrl}`,
+        'Path Not Found'
+    );
 };
 
 module.exports = pathNotFound;

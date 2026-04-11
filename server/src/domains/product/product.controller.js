@@ -1,5 +1,33 @@
 const productService = require('./product.service');
-const categoryService = require('../category/category.service');
+const { createHttpError } = require('../../shared/error/appError');
+const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
+
+const throwProductError = (error, fallbackStatus = 400) => {
+    console.error('Product controller error:', error);
+
+    if (error?.statusCode) {
+        throw error;
+    }
+
+    if (error?.message?.startsWith('BARCODE_CONFLICT:')) {
+        const message = error.message.replace('BARCODE_CONFLICT: ', '');
+        throw createHttpError(409, message, { error: message });
+    }
+
+    if (error?.code === 'P2003' || /foreign key/i.test(error?.message || '')) {
+        throw createHttpError(409, 'Cannot delete product because it is referenced by other records (e.g., sales, batches, or stock movements). Please remove related records first.', {
+            error: 'Cannot delete product because it is referenced by other records (e.g., sales, batches, or stock movements). Please remove related records first.'
+        });
+    }
+
+    const status = error?.message === 'Product not found' || error?.message === 'Batch not found'
+        ? 404
+        : fallbackStatus;
+
+    throw createHttpError(status, error?.message || 'Request failed', {
+        error: error?.message || 'Request failed'
+    });
+};
 
 const getAllProducts = async (req, res) => {
     try {
@@ -15,7 +43,9 @@ const getAllProducts = async (req, res) => {
 
         if (includeBatches === 'true') {
             const data = await productService.getAllProductsWithBatches({ search, category });
-            return res.json({ data });
+            return sendSuccessResponse(res, 200, { data }, 'Products fetched successfully', {
+                format: 'merge'
+            });
         }
 
         const result = await productService.getAllProducts({
@@ -27,16 +57,22 @@ const getAllProducts = async (req, res) => {
             sortOrder
         });
 
-        res.json({
-            data: result.items,
-            pagination: {
-                page: Number(page),
-                pageSize: Number(pageSize),
-                total: result.total
-            }
-        });
+        return sendSuccessResponse(
+            res,
+            200,
+            {
+                data: result.items,
+                pagination: {
+                    page: Number(page),
+                    pageSize: Number(pageSize),
+                    total: result.total
+                }
+            },
+            'Products fetched successfully',
+            { format: 'merge' }
+        );
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return throwProductError(error, 500);
     }
 };
 
@@ -44,9 +80,11 @@ const getProductSummary = async (req, res) => {
     try {
         const { search = '', category = 'all' } = req.query;
         const data = await productService.getProductSummary({ search, category });
-        res.json({ data });
+        return sendSuccessResponse(res, 200, { data }, 'Product summary fetched successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return throwProductError(error, 500);
     }
 };
 
@@ -54,10 +92,15 @@ const getProductById = async (req, res) => {
     const { id } = req.params;
     try {
         const result = await productService.getProductById(id);
-        if (!result) return res.status(404).json({ error: 'Product not found' });
-        res.json({ data: result });
+        if (!result) {
+            throw createHttpError(404, 'Product not found', { error: 'Product not found' });
+        }
+
+        return sendSuccessResponse(res, 200, { data: result }, 'Product fetched successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return throwProductError(error, 500);
     }
 };
 
@@ -65,10 +108,15 @@ const getProductByBarcode = async (req, res) => {
     const { barcode } = req.params;
     try {
         const result = await productService.getProductByBarcode(barcode);
-        if (!result) return res.status(404).json({ error: "Product not found" });
-        res.json(result);
+        if (!result) {
+            throw createHttpError(404, 'Product not found', { error: 'Product not found' });
+        }
+
+        return sendSuccessResponse(res, 200, result, 'Product fetched successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return throwProductError(error, 500);
     }
 };
 
@@ -77,31 +125,37 @@ const getProductHistory = async (req, res) => {
     const { range = 'today', startDate, endDate } = req.query;
     try {
         const data = await productService.getProductHistory(id, { range, startDate, endDate });
-        res.json({ data });
+        return sendSuccessResponse(res, 200, { data }, 'Product history fetched successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return throwProductError(error, 500);
     }
 };
 
 const createProduct = async (req, res) => {
     try {
         const result = await productService.createOrUpdateProduct(req.body);
-        res.json({ message: "Product/Batch processed successfully", id: result.id });
+        return sendSuccessResponse(
+            res,
+            200,
+            { id: result.id },
+            'Product/Batch processed successfully',
+            { format: 'merge' }
+        );
     } catch (error) {
-        console.error("Error creating product:", error);
-        if (error.message.startsWith('BARCODE_CONFLICT:')) {
-            return res.status(409).json({ error: error.message.replace('BARCODE_CONFLICT: ', '') });
-        }
-        res.status(400).json({ error: error.message });
+        return throwProductError(error, 400);
     }
 };
 
 const addBatch = async (req, res) => {
     try {
         const batch = await productService.addBatch(req.body);
-        res.json({ message: "Batch added", id: batch.id });
+        return sendSuccessResponse(res, 200, { id: batch.id }, 'Batch added', {
+            format: 'merge'
+        });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        return throwProductError(error, 400);
     }
 };
 
@@ -109,13 +163,11 @@ const updateProduct = async (req, res) => {
     const { id } = req.params;
     try {
         const product = await productService.updateProduct(id, req.body);
-        res.json(product);
+        return sendSuccessResponse(res, 200, product, 'Product updated successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        console.error("Error updating product:", error);
-        if (error.message.startsWith('BARCODE_CONFLICT:')) {
-            return res.status(409).json({ error: error.message.replace('BARCODE_CONFLICT: ', '') });
-        }
-        res.status(400).json({ error: error.message });
+        return throwProductError(error, 400);
     }
 };
 
@@ -123,14 +175,9 @@ const deleteProduct = async (req, res) => {
     const { id } = req.params;
     try {
         await productService.deleteProduct(id);
-        res.json({ message: "Product deleted successfully" });
+        return sendSuccessResponse(res, 200, undefined, 'Product deleted successfully');
     } catch (error) {
-        console.error("Error deleting product:", error);
-        // Prisma foreign key error code: P2003
-        if (error.code === 'P2003' || /foreign key/i.test(error.message)) {
-            return res.status(409).json({ error: 'Cannot delete product because it is referenced by other records (e.g., sales, batches, or stock movements). Please remove related records first.' });
-        }
-        res.status(400).json({ error: error.message });
+        return throwProductError(error, 400);
     }
 };
 
@@ -138,10 +185,11 @@ const updateBatch = async (req, res) => {
     const { id } = req.params;
     try {
         const batch = await productService.updateBatch(id, req.body);
-        res.json(batch);
+        return sendSuccessResponse(res, 200, batch, 'Batch updated successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        console.error("Error updating batch:", error);
-        res.status(400).json({ error: error.message });
+        return throwProductError(error, 400);
     }
 };
 
@@ -149,10 +197,9 @@ const deleteBatch = async (req, res) => {
     const { id } = req.params;
     try {
         await productService.deleteBatch(id);
-        res.json({ message: "Batch deleted successfully" });
+        return sendSuccessResponse(res, 200, undefined, 'Batch deleted successfully');
     } catch (error) {
-        console.error("Error deleting batch:", error);
-        res.status(400).json({ error: error.message });
+        return throwProductError(error, 400);
     }
 };
 
@@ -163,23 +210,23 @@ const exportProducts = async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename=products_export_${new Date().toISOString().split('T')[0]}.csv`);
         res.send(csv);
     } catch (error) {
-        console.error("Error exporting products:", error);
-        res.status(500).json({ error: error.message });
+        return throwProductError(error, 500);
     }
 };
 
 const importProducts = async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
+            throw createHttpError(400, 'No file uploaded', { error: 'No file uploaded' });
         }
 
         const csvData = req.file.buffer.toString('utf-8');
         const result = await productService.importProducts(csvData);
-        res.json(result);
+        return sendSuccessResponse(res, 200, result, 'Products imported successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        console.error("Error importing products:", error);
-        res.status(500).json({ error: error.message });
+        return throwProductError(error, 500);
     }
 };
 
@@ -187,14 +234,17 @@ const validateBarcodes = async (req, res) => {
     try {
         const { barcodes } = req.body;
         if (!barcodes || !Array.isArray(barcodes)) {
-            return res.status(400).json({ error: 'Invalid request: barcodes array required' });
+            throw createHttpError(400, 'Invalid request: barcodes array required', {
+                error: 'Invalid request: barcodes array required'
+            });
         }
 
         const existingBarcodes = await productService.validateBarcodes(barcodes);
-        res.json({ existingBarcodes });
+        return sendSuccessResponse(res, 200, { existingBarcodes }, 'Barcode validation completed', {
+            format: 'merge'
+        });
     } catch (error) {
-        console.error('Error validating barcodes:', error);
-        res.status(500).json({ error: error.message });
+        return throwProductError(error, 500);
     }
 };
 
@@ -202,14 +252,17 @@ const bulkCreateProducts = async (req, res) => {
     try {
         const { products } = req.body;
         if (!products || !Array.isArray(products)) {
-            return res.status(400).json({ error: 'Invalid request: products array required' });
+            throw createHttpError(400, 'Invalid request: products array required', {
+                error: 'Invalid request: products array required'
+            });
         }
 
         const result = await productService.bulkCreateProducts(products);
-        res.json(result);
+        return sendSuccessResponse(res, 200, result, 'Products created successfully', {
+            format: 'merge'
+        });
     } catch (error) {
-        console.error("Error bulk creating products:", error);
-        res.status(400).json({ error: error.message });
+        return throwProductError(error, 400);
     }
 };
 

@@ -1,309 +1,244 @@
 const prisma = require('../../config/prisma');
+const { createHttpError } = require('../../shared/error/appError');
+const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
 
 const login = async (req, res) => {
-    try {
-        const { username, password } = req.body;
+    const { username, password } = req.body;
 
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password required' });
-        }
+    const user = await prisma.user.findUnique({
+        where: { username }
+    });
 
-        const user = await prisma.user.findUnique({
-            where: { username }
-        });
-
-        if (!user) {
-            const allUsers = await prisma.user.count();
-            return res.status(401).json({
-                error: 'Invalid credentials',
-                diagnostics: { userFound: false, totalUsers: allUsers }
-            });
-        }
-
-        // Simple password check (in production, use bcrypt)
-        if (user.password !== password) {
-            return res.status(401).json({
-                error: 'Invalid credentials',
-                diagnostics: { userFound: true, passwordMatch: false }
-            });
-        }
-
-        if (user.status === 'inactive') {
-            return res.status(403).json({ error: 'User account is inactive' });
-        }
-
-        // Return user without password
-        const { password: _, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            error: 'Login failed',
-            details: error.message,
-            stack: error.stack,
-            dbUrl: process.env.DATABASE_URL
+    if (!user || user.password !== password) {
+        throw createHttpError(401, 'Invalid credentials', {
+            error: 'Invalid credentials'
         });
     }
+
+    if (user.status === 'inactive') {
+        throw createHttpError(403, 'User account is inactive', {
+            error: 'User account is inactive'
+        });
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    return sendSuccessResponse(res, 200, userWithoutPassword, 'Login successful', {
+        format: 'merge'
+    });
 };
 
 const getProfile = async (req, res) => {
-    try {
-        const userId = req.query.userId;
-        if (!userId) {
-            return res.status(400).json({ error: 'User ID required' });
-        }
+    const user = await prisma.user.findUnique({
+        where: { id: Number(req.query.userId) }
+    });
 
-        const user = await prisma.user.findUnique({
-            where: { id: parseInt(userId) }
+    if (!user) {
+        throw createHttpError(404, 'User not found', {
+            error: 'User not found'
         });
-
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const { password: _, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
-    } catch (error) {
-        console.error('Profile fetch error:', error);
-        res.status(500).json({ error: 'Failed to fetch profile' });
     }
+
+    const { password: _, ...userWithoutPassword } = user;
+    return sendSuccessResponse(res, 200, userWithoutPassword, 'Profile fetched successfully', {
+        format: 'merge'
+    });
 };
 
-const getAllUsers = async (req, res) => {
-    try {
-        const users = await prisma.user.findMany({
-            select: {
-                id: true,
-                username: true,
-                password: true,
-                role: true,
-                status: true,
-                createdAt: true,
-                updatedAt: true
-            }
-        });
+const getAllUsers = async (_req, res) => {
+    const users = await prisma.user.findMany({
+        select: {
+            id: true,
+            username: true,
+            password: true,
+            role: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true
+        }
+    });
 
-        res.json(users);
-    } catch (error) {
-        console.error('Get users error:', error);
-        res.status(500).json({ error: 'Failed to fetch users' });
-    }
+    return sendSuccessResponse(res, 200, users, 'Users fetched successfully', {
+        format: 'raw'
+    });
 };
 
 const createUser = async (req, res) => {
-    try {
-        const { username, password, role } = req.body;
+    const { username, password, role } = req.body;
 
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password required' });
-        }
+    const existingUser = await prisma.user.findUnique({
+        where: { username }
+    });
 
-        const existingUser = await prisma.user.findUnique({
-            where: { username }
+    if (existingUser) {
+        throw createHttpError(400, 'Username already exists', {
+            error: 'Username already exists'
         });
-
-        if (existingUser) {
-            return res.status(400).json({ error: 'Username already exists' });
-        }
-
-        const user = await prisma.user.create({
-            data: {
-                username,
-                password,
-                role: role || 'cashier',
-                status: 'active'
-            },
-            select: {
-                id: true,
-                username: true,
-                role: true,
-                status: true,
-                createdAt: true
-            }
-        });
-
-        res.status(201).json(user);
-    } catch (error) {
-        console.error('Create user error:', error);
-        res.status(500).json({ error: 'Failed to create user' });
     }
+
+    const user = await prisma.user.create({
+        data: {
+            username,
+            password,
+            role: role || 'cashier',
+            status: 'active'
+        },
+        select: {
+            id: true,
+            username: true,
+            role: true,
+            status: true,
+            createdAt: true
+        }
+    });
+
+    return sendSuccessResponse(res, 201, user, 'User created successfully', {
+        format: 'merge'
+    });
 };
 
 const updateUser = async (req, res) => {
-    try {
-        const userId = parseInt(req.params.id);
-        const { role, status, password } = req.body;
+    const userId = Number(req.params.id);
+    const { role, status, password } = req.body;
 
-        const updateData = {};
-        if (role) updateData.role = role;
-        if (status) updateData.status = status;
-        if (password) updateData.password = password;
+    const updateData = {};
+    if (role) updateData.role = role;
+    if (status) updateData.status = status;
+    if (password) updateData.password = password;
 
-        const user = await prisma.user.update({
-            where: { id: userId },
-            data: updateData,
-            select: {
-                id: true,
-                username: true,
-                role: true,
-                status: true,
-                updatedAt: true
-            }
-        });
+    const user = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+            id: true,
+            username: true,
+            role: true,
+            status: true,
+            updatedAt: true
+        }
+    });
 
-        res.json(user);
-    } catch (error) {
-        console.error('Update user error:', error);
-        res.status(500).json({ error: 'Failed to update user' });
-    }
+    return sendSuccessResponse(res, 200, user, 'User updated successfully', {
+        format: 'merge'
+    });
 };
 
 const deleteUser = async (req, res) => {
-    try {
-        const userId = parseInt(req.params.id);
+    const userId = Number(req.params.id);
 
-        await prisma.user.delete({
-            where: { id: userId }
-        });
+    await prisma.user.delete({
+        where: { id: userId }
+    });
 
-        res.json({ message: 'User deleted successfully' });
-    } catch (error) {
-        console.error('Delete user error:', error);
-        res.status(500).json({ error: 'Failed to delete user' });
-    }
+    return sendSuccessResponse(res, 200, undefined, 'User deleted successfully');
 };
 
 const changePassword = async (req, res) => {
-    try {
-        const userId = parseInt(req.params.id);
-        const { oldPassword, newPassword } = req.body;
+    const userId = Number(req.params.id);
+    const { oldPassword, newPassword } = req.body;
 
-        if (!oldPassword || !newPassword) {
-            return res.status(400).json({ error: 'Old and new password required' });
-        }
+    const user = await prisma.user.findUnique({
+        where: { id: userId }
+    });
 
-        const user = await prisma.user.findUnique({
-            where: { id: userId }
+    if (!user) {
+        throw createHttpError(404, 'User not found', {
+            error: 'User not found'
         });
-
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        if (user.password !== oldPassword) {
-            return res.status(401).json({ error: 'Incorrect old password' });
-        }
-
-        await prisma.user.update({
-            where: { id: userId },
-            data: { password: newPassword }
-        });
-
-        res.json({ message: 'Password changed successfully' });
-    } catch (error) {
-        console.error('Change password error:', error);
-        res.status(500).json({ error: 'Failed to change password' });
     }
+
+    if (user.password !== oldPassword) {
+        throw createHttpError(401, 'Incorrect old password', {
+            error: 'Incorrect old password'
+        });
+    }
+
+    await prisma.user.update({
+        where: { id: userId },
+        data: { password: newPassword }
+    });
+
+    return sendSuccessResponse(res, 200, undefined, 'Password changed successfully');
 };
 
 const wipeDatabase = async (req, res) => {
-    try {
-        const { username, password } = req.body;
+    const { username, password } = req.body;
 
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Admin credentials required' });
-        }
+    const user = await prisma.user.findUnique({
+        where: { username }
+    });
 
-        // Verify admin credentials
-        const user = await prisma.user.findUnique({
-            where: { username }
+    if (!user || user.password !== password || user.role !== 'admin') {
+        throw createHttpError(403, 'Invalid admin credentials', {
+            error: 'Invalid admin credentials'
         });
-
-        if (!user || user.password !== password || user.role !== 'admin') {
-            return res.status(403).json({ error: 'Invalid admin credentials' });
-        }
-
-        // Delete all data in order (respecting foreign key constraints)
-        await prisma.$transaction(async (tx) => {
-            const deleteTable = async (tableName) => {
-                try {
-                    await tx[tableName].deleteMany({});
-                } catch (e) {
-                    console.warn(`Could not wipe table ${tableName}: ${e.message}`);
-                }
-            };
-
-            // Order matters for foreign keys
-            await deleteTable('saleItem');
-            await deleteTable('sale');
-            await deleteTable('looseSale');
-            await deleteTable('promotionItem');
-            await deleteTable('promotion');
-            await deleteTable('stockMovement');
-            await deleteTable('batch');
-            await deleteTable('product');
-            await deleteTable('purchaseItem');
-            await deleteTable('purchase');
-            await deleteTable('expense');
-
-            // Categories (self-relation)
-            try {
-                await tx.category.deleteMany({ where: { parentId: { not: null } } });
-                await tx.category.deleteMany({});
-            } catch (e) {
-                console.warn(`Could not wipe table category: ${e.message}`);
-            }
-
-            // Users
-            try {
-                await tx.user.deleteMany({
-                    where: {
-                        id: { not: user.id }
-                    }
-                });
-            } catch (e) {
-                console.warn(`Could not wipe users: ${e.message}`);
-            }
-        });
-
-        res.json({
-            message: 'Database wiped successfully. All data deleted except your admin account.',
-            remainingUser: user.username
-        });
-    } catch (error) {
-        console.error('Wipe database error:', error);
-        res.status(500).json({ error: 'Failed to wipe database' });
     }
+
+    await prisma.$transaction(async (tx) => {
+        const deleteTable = async (tableName) => {
+            try {
+                await tx[tableName].deleteMany({});
+            } catch (e) {
+                console.warn(`Could not wipe table ${tableName}: ${e.message}`);
+            }
+        };
+
+        await deleteTable('saleItem');
+        await deleteTable('sale');
+        await deleteTable('looseSale');
+        await deleteTable('promotionItem');
+        await deleteTable('promotion');
+        await deleteTable('stockMovement');
+        await deleteTable('batch');
+        await deleteTable('product');
+        await deleteTable('purchaseItem');
+        await deleteTable('purchase');
+        await deleteTable('expense');
+
+        try {
+            await tx.category.deleteMany({ where: { parentId: { not: null } } });
+            await tx.category.deleteMany({});
+        } catch (e) {
+            console.warn(`Could not wipe table category: ${e.message}`);
+        }
+
+        try {
+            await tx.user.deleteMany({
+                where: {
+                    id: { not: user.id }
+                }
+            });
+        } catch (e) {
+            console.warn(`Could not wipe users: ${e.message}`);
+        }
+    });
+
+    return sendSuccessResponse(
+        res,
+        200,
+        { remainingUser: user.username },
+        'Database wiped successfully. All data deleted except your admin account.',
+        { format: 'merge' }
+    );
 };
 
 const verifyAdmin = async (req, res) => {
-    try {
-        const { password } = req.body;
+    const { password } = req.body;
 
-        if (!password) {
-            return res.status(400).json({ error: 'Admin password required' });
+    const adminUser = await prisma.user.findFirst({
+        where: {
+            role: 'admin',
+            status: 'active',
+            password
         }
+    });
 
-        // Try to find ANY admin user that matches this password
-        const adminUser = await prisma.user.findFirst({
-            where: {
-                role: 'admin',
-                status: 'active',
-                password: password
-            }
+    if (!adminUser) {
+        throw createHttpError(401, 'Incorrect admin password', {
+            error: 'Incorrect admin password'
         });
-
-        if (!adminUser) {
-            return res.status(401).json({ error: 'Incorrect admin password' });
-        }
-
-        // We only care about verifying the password was valid for AN admin
-        res.json({ success: true, message: 'Admin verified' });
-
-    } catch (error) {
-        console.error('Verify admin error:', error);
-        res.status(500).json({ error: 'Failed to verify admin' });
     }
+
+    return sendSuccessResponse(res, 200, undefined, 'Admin verified');
 };
 
 module.exports = {
