@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api';
+import api from '../../shared/api/api';
 import {
     Paper, Typography, TextField, Button, Grid, Box, InputAdornment,
     Divider, Switch, FormControlLabel, Autocomplete, Chip
