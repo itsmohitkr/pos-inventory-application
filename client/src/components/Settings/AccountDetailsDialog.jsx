@@ -19,6 +19,7 @@ import {
   Tab,
   Switch,
   FormControlLabel,
+  Snackbar,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -38,19 +39,15 @@ import {
   setChangeCalculatorEnabled,
   getPaymentMethodsEnabled,
   setPaymentMethodsEnabled,
-  getStoredPaymentSettings,
   STORAGE_KEYS,
   getFullscreenEnabled,
   getNotificationDuration,
-  setNotificationDuration,
   getExtraDiscountEnabled,
-  setExtraDiscountEnabled,
   getCalculatorEnabled,
   setCalculatorEnabled,
   getAdminAutoLogoutTime,
   setAdminAutoLogoutTime,
 } from '../../shared/utils/paymentSettings';
-import { Snackbar, Alert as MuiAlert } from '@mui/material';
 
 const AccountDetailsDialog = ({
   open,
@@ -101,14 +98,17 @@ const AccountDetailsDialog = ({
 
   // Sync with metadata prop changes
   useEffect(() => {
-    // Only update state if values actually changed to avoid unnecessary renders
-    if (editedShopName !== shopName) setEditedShopName(shopName);
-    if (shopMobile !== shopMetadata.shopMobile) setShopMobile(shopMetadata.shopMobile);
-    if (shopMobile2 !== shopMetadata.shopMobile2) setShopMobile2(shopMetadata.shopMobile2);
-    if (shopAddress !== shopMetadata.shopAddress) setShopAddress(shopMetadata.shopAddress);
-    if (shopEmail !== shopMetadata.shopEmail) setShopEmail(shopMetadata.shopEmail);
-    if (shopGST !== shopMetadata.shopGST) setShopGST(shopMetadata.shopGST);
-    if (logoUrl !== shopMetadata.shopLogo) setLogoUrl(shopMetadata.shopLogo);
+    const frame = window.requestAnimationFrame(() => {
+      setEditedShopName(shopName || '');
+      setShopMobile(shopMetadata.shopMobile || '');
+      setShopMobile2(shopMetadata.shopMobile2 || '');
+      setShopAddress(shopMetadata.shopAddress || '');
+      setShopEmail(shopMetadata.shopEmail || '');
+      setShopGST(shopMetadata.shopGST || '');
+      setLogoUrl(shopMetadata.shopLogo || '');
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [shopName, shopMetadata]);
 
   useEffect(() => {

@@ -24,6 +24,9 @@ import {
   Divider,
   Snackbar,
   Alert,
+  Switch,
+  FormControlLabel,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,7 +38,6 @@ import {
   Settings as SettingsIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
-import { Switch, FormControlLabel, InputAdornment } from '@mui/material';
 import inventoryService from '../../shared/api/inventoryService';
 import posService from '../../shared/api/posService';
 import settingsService from '../../shared/api/settingsService';
@@ -44,7 +46,6 @@ const PromotionManagement = () => {
   const [promotions, setPromotions] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -70,14 +71,7 @@ const PromotionManagement = () => {
   const [newThreshold, setNewThreshold] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  useEffect(() => {
-    fetchPromotions();
-    fetchProducts();
-    fetchPromoSettings();
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
+  async function fetchCategories() {
     try {
       const data = await inventoryService.fetchCategories();
       const flatten = (nodes) => {
@@ -92,9 +86,9 @@ const PromotionManagement = () => {
     } catch (error) {
       console.error('Failed to fetch categories:', error);
     }
-  };
+  }
 
-  const fetchPromoSettings = async () => {
+  async function fetchPromoSettings() {
     try {
       const data = await settingsService.fetchSettings();
       const settings = data.data;
@@ -125,7 +119,7 @@ const PromotionManagement = () => {
     } catch (error) {
       console.error('Failed to fetch promotion settings:', error);
     }
-  };
+  }
 
   const handleSavePromoSettings = async () => {
     try {
@@ -184,23 +178,34 @@ const PromotionManagement = () => {
     }));
   };
 
-  const fetchPromotions = async () => {
+  async function fetchPromotions() {
     try {
       const data = await posService.fetchPromotions();
       setPromotions(data);
     } catch (error) {
       console.error('Failed to fetch promotions:', error);
     }
-  };
+  }
 
-  const fetchProducts = async () => {
+  async function fetchProducts() {
     try {
       const data = await inventoryService.fetchProducts({ pageSize: 1000 });
       setProducts(data.data || []);
     } catch (error) {
       console.error('Failed to fetch products:', error);
     }
-  };
+  }
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      fetchPromotions();
+      fetchProducts();
+      fetchPromoSettings();
+      fetchCategories();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   const handleOpenDialog = () => {
     setIsEditMode(false);
@@ -235,7 +240,7 @@ const PromotionManagement = () => {
             costPrice: data.costPrice,
             sellingPrice: data.sellingPrice,
           };
-        } catch (err) {
+        } catch {
           return {
             productId: item.productId,
             productName: item.product?.name || 'Unknown Product',
@@ -641,10 +646,10 @@ const PromotionManagement = () => {
                                       color: '#ef4444',
                                     },
                                     '& .MuiSwitch-switchBase:not(.Mui-checked) + .MuiSwitch-track':
-                                      {
-                                        backgroundColor: '#ef4444',
-                                        opacity: 0.5,
-                                      },
+                                    {
+                                      backgroundColor: '#ef4444',
+                                      opacity: 0.5,
+                                    },
                                   }}
                                 />
                               </TableCell>

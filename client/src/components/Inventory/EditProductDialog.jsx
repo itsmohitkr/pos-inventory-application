@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import inventoryService from '../../shared/api/inventoryService';
 import {
   Dialog,
@@ -21,10 +21,14 @@ import {
   TableRow,
   Paper,
   IconButton,
+  InputAdornment,
 } from '@mui/material';
-import { Refresh as RefreshIcon, Close as CloseIcon, Edit as EditIcon } from '@mui/icons-material';
-import { InputAdornment } from '@mui/material';
-import { QrCode as QrCodeIcon } from '@mui/icons-material';
+import {
+  Refresh as RefreshIcon,
+  Close as CloseIcon,
+  Edit as EditIcon,
+  QrCode as QrCodeIcon,
+} from '@mui/icons-material';
 import EditBatchDialog from './EditBatchDialog';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
@@ -50,7 +54,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
   const [editBatchOpen, setEditBatchOpen] = useState(false);
   const [currentBatch, setCurrentBatch] = useState(null);
 
-  const fetchProductDetails = async () => {
+  const fetchProductDetails = useCallback(async () => {
     if (!product?.id) return;
     try {
       const data = await inventoryService.fetchProductByBarcode(product.id);
@@ -74,7 +78,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
     } catch (error) {
       console.error('Failed to fetch product details:', error);
     }
-  };
+  }, [product?.id]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -96,7 +100,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
       setBarcodeError('');
       setIsSaving(false);
     }
-  }, [open, product]);
+  }, [open, fetchProductDetails]);
 
   const addBarcode = async (barcode) => {
     const trimmed = barcode.trim();

@@ -14,6 +14,8 @@ import {
 } from '@mui/material';
 import { ListAlt as OrdersIcon, Visibility as ViewIcon } from '@mui/icons-material';
 import { getRefundStatus, getStatusDisplay } from '../../shared/utils/refundStatus';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import ExportOptions from './ExportOptions';
 import useSortableTable from '../../shared/hooks/useSortableTable';
 import SortableTableHead from './SortableTableHead';

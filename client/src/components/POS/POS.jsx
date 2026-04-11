@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -151,7 +151,7 @@ const POS = ({
     handleCloseTab,
     clearCart,
     lastAddedItemId,
-    setLastAddedItemId,
+    setLastAddedItemId: _setLastAddedItemId,
     subTotal,
     totalMrp,
     totalCostPrice,
@@ -192,13 +192,13 @@ const POS = ({
   const [paymentSettings, setPaymentSettings] = useState(() => getStoredPaymentSettings());
   const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled);
   const [extraDiscountEnabled, setExtraDiscountEnabled] = useState(() => getExtraDiscountEnabled());
-  const [isCalculatorEnabled, setIsCalculatorEnabled] = useState(getCalculatorEnabled);
+  const [isCalculatorEnabled, _setIsCalculatorEnabled] = useState(getCalculatorEnabled);
   const [changeCalculatorEnabled, setChangeCalculatorEnabledState] = useState(
     getChangeCalculatorEnabled()
   );
   const [paymentMethodsEnabled, setPaymentMethodsEnabled] = useState(getPaymentMethodsEnabled());
   const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
-  const [decodedPricesEnabled, setDecodedPricesEnabledState] = useState(() =>
+  const [decodedPricesEnabled, _setDecodedPricesEnabledState] = useState(() =>
     getDecodedPricesEnabled()
   );
   const [notification, setNotification] = useState({
@@ -255,7 +255,7 @@ const POS = ({
 
   // ===== All Functions Declared BEFORE useEffect =====
 
-  const refreshSettings = useCallback(async (retries = 3) => {
+  const _refreshSettings = useCallback(async function runRefreshSettings(retries = 3) {
     try {
       const [settingsRes, topSellingData] = await Promise.all([
         settingsService.fetchSettings(),
@@ -298,11 +298,11 @@ const POS = ({
       }
     } catch (error) {
       console.error(`Failed to refresh POS settings (remaining retries: ${retries}):`, error);
-      if (retries > 0) setTimeout(() => refreshSettings(retries - 1), 1000);
+      if (retries > 0) setTimeout(() => runRefreshSettings(retries - 1), 1000);
     }
   }, []);
 
-  const fetchProducts = useCallback(async (retries = 3) => {
+  const fetchProducts = useCallback(async function runFetchProducts(retries = 3) {
     try {
       const res = await inventoryService.fetchProducts({ includeBatches: true });
       const data = res.data;
@@ -314,7 +314,7 @@ const POS = ({
       }
     } catch (err) {
       console.error(`Error fetching products (remaining retries: ${retries}):`, err);
-      if (retries > 0) setTimeout(() => fetchProducts(retries - 1), 1000);
+      if (retries > 0) setTimeout(() => runFetchProducts(retries - 1), 1000);
       else {
         setNotification({
           open: true,
@@ -406,7 +406,7 @@ const POS = ({
         sellingPrice: item.price,
         isFree: item.isFree,
       }));
-      const { icon, ...methodWithoutIcon } = methodToUse;
+      const { icon: _icon, ...methodWithoutIcon } = methodToUse;
       const res = await posService.processSale({
         items,
         discount: 0,
@@ -437,7 +437,7 @@ const POS = ({
         sellingPrice: item.price,
         isFree: item.isFree,
       }));
-      const { icon, ...methodWithoutIcon } = methodToUse;
+      const { icon: _icon, ...methodWithoutIcon } = methodToUse;
       const res = await posService.processSale({
         items,
         discount: 0,

@@ -52,11 +52,10 @@ const LowStockReportPanel = ({ data, loading }) => {
     }
   };
 
-  const {
-    items: sortedData,
-    requestSort,
-    sortConfig,
-  } = useSortableTable(filteredData, { key: 'totalQuantity', direction: 'asc' });
+  const { items: sortedData } = useSortableTable(filteredData, {
+    key: 'totalQuantity',
+    direction: 'asc',
+  });
 
   const handleExportPDF = () => {
     const itemsToExport =

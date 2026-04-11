@@ -135,7 +135,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
             if (saved.textAlign) setTextAlign(saved.textAlign);
             if (saved.shopName) setShopName(saved.shopName);
             if (saved.customDimensions) setCustomDimensions(saved.customDimensions);
-          } catch (e) {
+          } catch {
             console.error('Failed to parse barcode settings');
           }
         }

@@ -38,44 +38,48 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
   const isFieldEmpty = (val) => val === undefined || val === null || val.toString().trim() === '';
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
 
-    const firstBatch = product?.batches?.[0];
-    if (product && !product.batchTrackingEnabled && firstBatch) {
-      setStockData((prev) => ({
-        ...prev,
-        batch_code: '',
-        quantity: '',
-        mrp: firstBatch.mrp ?? prev.mrp,
-        cost_price: firstBatch.costPrice ?? prev.cost_price,
-        selling_price: firstBatch.sellingPrice ?? prev.selling_price,
-        wholesaleEnabled: firstBatch.wholesaleEnabled ?? false,
-        wholesalePrice: firstBatch.wholesalePrice ?? '',
-        wholesaleMinQty: firstBatch.wholesaleMinQty ?? '',
-        expiryDate: '',
-      }));
-      const m = firstBatch.mrp || 0;
-      const s = firstBatch.sellingPrice || 0;
-      if (m > 0) {
-        setDiscountInput((((m - s) / m) * 100).toFixed(1));
+    const frame = window.requestAnimationFrame(() => {
+      const firstBatch = product?.batches?.[0];
+      if (product && !product.batchTrackingEnabled && firstBatch) {
+        setStockData((prev) => ({
+          ...prev,
+          batch_code: '',
+          quantity: '',
+          mrp: firstBatch.mrp ?? prev.mrp,
+          cost_price: firstBatch.costPrice ?? prev.cost_price,
+          selling_price: firstBatch.sellingPrice ?? prev.selling_price,
+          wholesaleEnabled: firstBatch.wholesaleEnabled ?? false,
+          wholesalePrice: firstBatch.wholesalePrice ?? '',
+          wholesaleMinQty: firstBatch.wholesaleMinQty ?? '',
+          expiryDate: '',
+        }));
+        const m = firstBatch.mrp || 0;
+        const s = firstBatch.sellingPrice || 0;
+        if (m > 0) {
+          setDiscountInput((((m - s) / m) * 100).toFixed(1));
+        }
       }
-    }
-    if (product && product.batchTrackingEnabled) {
-      setStockData((prev) => ({
-        ...prev,
-        batch_code: '',
-        quantity: '',
-        mrp: '',
-        cost_price: '',
-        selling_price: '',
-        wholesaleEnabled: false,
-        wholesalePrice: '',
-        wholesaleMinQty: '',
-        expiryDate: '',
-      }));
-      setDiscountInput('0');
-      setFormSubmitted(false);
-    }
+      if (product && product.batchTrackingEnabled) {
+        setStockData((prev) => ({
+          ...prev,
+          batch_code: '',
+          quantity: '',
+          mrp: '',
+          cost_price: '',
+          selling_price: '',
+          wholesaleEnabled: false,
+          wholesalePrice: '',
+          wholesaleMinQty: '',
+          expiryDate: '',
+        }));
+        setDiscountInput('0');
+        setFormSubmitted(false);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [open, product]);
 
   const handleChange = (name, value) => {

@@ -15,13 +15,7 @@ import {
 } from '@mui/material';
 import { Payment as PaymentIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import {
-  getStoredPaymentSettings,
   STORAGE_KEYS,
-  getFullscreenEnabled,
-  getNotificationDuration,
-  setNotificationDuration,
-  getExtraDiscountEnabled,
-  setExtraDiscountEnabled,
   DEFAULT_PAYMENT_SETTINGS,
   getDecodedPricesEnabled,
   setDecodedPricesEnabled,

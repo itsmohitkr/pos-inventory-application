@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -54,7 +54,6 @@ const ExpenseManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [expenses, setExpenses] = useState([]);
   const [purchases, setPurchases] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Filtering states
@@ -128,111 +127,116 @@ const ExpenseManagement = () => {
 
   const categories = ['Electricity', 'Rent', 'Wages', 'WiFi', 'Maintenance', 'Misc'];
 
+  const getDateRange = useCallback(
+    (type) => {
+      const now = new Date();
+      let start = new Date(now);
+      let end = new Date(now);
+
+      switch (type) {
+        case 'today':
+          start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          break;
+        case 'yesterday':
+          start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+          break;
+        case 'thisWeek': {
+          const day = now.getDay();
+          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+          start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          break;
+        }
+        case 'lastWeek': {
+          const day = now.getDay();
+          const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+          start = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 7, 0, 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 1, 23, 59, 59, 999);
+          break;
+        }
+        case 'thisMonth':
+          start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          break;
+        case 'lastMonth':
+          start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+          break;
+        case 'thisYear':
+          start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          break;
+        case 'lastYear':
+          start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+          end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
+          break;
+        case 'custom': {
+          const start = customDates.start
+            ? (() => {
+              const [y, m, d] = customDates.start.split('-').map(Number);
+              return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString();
+            })()
+            : undefined;
+
+          const end = customDates.end
+            ? (() => {
+              const [y, m, d] = customDates.end.split('-').map(Number);
+              return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
+            })()
+            : undefined;
+
+          return { startDate: start, endDate: end };
+        }
+        default:
+          return {};
+      }
+      return { startDate: start.toISOString(), endDate: end.toISOString() };
+    },
+    [customDates]
+  );
+
+  const fetchData = useCallback(
+    async (callback) => {
+      setError(null);
+      try {
+        const range = getDateRange(dateFilter);
+        const { startDate, endDate } = range;
+
+        const params = {};
+        if (startDate) params.startDate = startDate;
+        if (endDate) params.endDate = endDate;
+
+        const [expensesData, purchasesData] = await Promise.all([
+          posService.fetchExpenses(params),
+          posService.fetchPurchases(params),
+        ]);
+        const sortedExp = expensesData.sort((a, b) => {
+          if (a.date === b.date) return b.id - a.id;
+          return new Date(b.date) - new Date(a.date);
+        });
+        const sortedPur = purchasesData.sort((a, b) => {
+          if (a.date === b.date) return b.id - a.id;
+          return new Date(b.date) - new Date(a.date);
+        });
+        setExpenses(sortedExp);
+        setPurchases(sortedPur);
+        if (callback) callback(sortedPur, sortedExp); // Pass both to callback
+      } catch {
+        setError('Failed to fetch data');
+      } finally {
+        // Data fetch attempt finished
+      }
+    },
+    [dateFilter, getDateRange]
+  );
+
   useEffect(() => {
     if (dateFilter !== 'custom') {
       fetchData();
     }
-  }, [dateFilter]);
-
-  const getDateRange = (type) => {
-    const now = new Date();
-    let start = new Date(now);
-    let end = new Date(now);
-
-    switch (type) {
-      case 'today':
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        break;
-      case 'yesterday':
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-        break;
-      case 'thisWeek': {
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        break;
-      }
-      case 'lastWeek': {
-        const day = now.getDay();
-        const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
-        start = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 7, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 1, 23, 59, 59, 999);
-        break;
-      }
-      case 'thisMonth':
-        start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        break;
-      case 'lastMonth':
-        start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-        break;
-      case 'thisYear':
-        start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        break;
-      case 'lastYear':
-        start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
-        break;
-      case 'custom': {
-        const start = customDates.start
-          ? (() => {
-              const [y, m, d] = customDates.start.split('-').map(Number);
-              return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString();
-            })()
-          : undefined;
-
-        const end = customDates.end
-          ? (() => {
-              const [y, m, d] = customDates.end.split('-').map(Number);
-              return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
-            })()
-          : undefined;
-
-        return { startDate: start, endDate: end };
-      }
-      default:
-        return {};
-    }
-    return { startDate: start.toISOString(), endDate: end.toISOString() };
-  };
-
-  const fetchData = async (callback) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const range = getDateRange(dateFilter);
-      const { startDate, endDate } = range;
-
-      const params = {};
-      if (startDate) params.startDate = startDate;
-      if (endDate) params.endDate = endDate;
-
-      const [expensesData, purchasesData] = await Promise.all([
-        posService.fetchExpenses(params),
-        posService.fetchPurchases(params),
-      ]);
-      const sortedExp = expensesData.sort((a, b) => {
-        if (a.date === b.date) return b.id - a.id;
-        return new Date(b.date) - new Date(a.date);
-      });
-      const sortedPur = purchasesData.sort((a, b) => {
-        if (a.date === b.date) return b.id - a.id;
-        return new Date(b.date) - new Date(a.date);
-      });
-      setExpenses(sortedExp);
-      setPurchases(sortedPur);
-      if (callback) callback(sortedPur, sortedExp); // Pass both to callback
-    } catch (err) {
-      setError('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [dateFilter, fetchData]);
 
   const handleOpenExpenseDialog = () => {
     setExpenseForm({
@@ -302,7 +306,7 @@ const ExpenseManagement = () => {
       }
       setExpenseDialogOpen(false);
       fetchData();
-    } catch (err) {
+    } catch {
       setError('Failed to save expense');
     }
   };
@@ -317,7 +321,7 @@ const ExpenseManagement = () => {
           await posService.deleteExpense(id);
           fetchData();
           setDeleteConfig((prev) => ({ ...prev, open: false }));
-        } catch (err) {
+        } catch {
           setError('Failed to delete expense');
         }
       },
@@ -339,7 +343,7 @@ const ExpenseManagement = () => {
       if (purchaseForm.id) {
         // For existing purchases, only update vendor, date, note, items and preserve totalAmount.
         // paidAmount is managed separately.
-        const { paidAmount, ...updateData } = submissionData;
+        const { paidAmount: _paidAmount, ...updateData } = submissionData;
         await posService.updatePurchase(purchaseForm.id, updateData);
       } else {
         await posService.createPurchase(submissionData);
@@ -517,12 +521,7 @@ const ExpenseManagement = () => {
         note: paymentForm.note,
       });
       setExpensePaymentDialogOpen(false);
-      fetchData((updatedData) => {
-        // If fetchData doesn't separate, we might need to find by id in either
-        // But fetchData usually sets both.
-        // However, our fetchData expects a callback for Purchases specifically in some places?
-        // Let's check fetchData again.
-      });
+      fetchData();
     } catch (err) {
       console.error('Expense payment error:', err);
       setError('Failed to save expense payment.');
@@ -530,7 +529,7 @@ const ExpenseManagement = () => {
   };
 
   // Need to handle edit/delete for expense payments too
-  const handleEditExpensePayment = async (e) => {
+  const _handleEditExpensePayment = async (e) => {
     if (e) e.preventDefault();
     try {
       await posService.updateExpensePayment(selectedPayment.id, {
@@ -541,12 +540,12 @@ const ExpenseManagement = () => {
       });
       setPaymentEditDialogOpen(false);
       fetchData();
-    } catch (err) {
+    } catch {
       setError('Failed to update expense payment.');
     }
   };
 
-  const handleDeleteExpensePayment = (paymentId) => {
+  const _handleDeleteExpensePayment = (paymentId) => {
     setDeleteConfig({
       open: true,
       title: 'Confirm Delete Payment',
@@ -556,7 +555,7 @@ const ExpenseManagement = () => {
           await posService.deleteExpensePayment(paymentId);
           fetchData();
           setDeleteConfig((prev) => ({ ...prev, open: false }));
-        } catch (err) {
+        } catch {
           setError('Failed to delete expense payment.');
         }
       },
@@ -1514,8 +1513,8 @@ const ExpenseManagement = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {[...(selectedPurchase.payments || [])].reverse().map((payment, index) => {
-                          const isMostRecent = index === 0;
+                        {[...(selectedPurchase.payments || [])].reverse().map((payment, _index) => {
+                          const _isMostRecent = _index === 0;
                           return (
                             <TableRow key={payment.id}>
                               <TableCell>
@@ -1580,13 +1579,13 @@ const ExpenseManagement = () => {
             disabled={
               selectedPurchase
                 ? !selectedPurchase.payments?.length ||
-                  !selectedPayment ||
-                  selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
-                    selectedPayment.id
+                !selectedPayment ||
+                selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
+                selectedPayment.id
                 : !selectedExpense?.payments?.length ||
-                  !selectedPayment ||
-                  selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
-                    selectedPayment.id
+                !selectedPayment ||
+                selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
+                selectedPayment.id
             }
           >
             <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
@@ -1599,13 +1598,13 @@ const ExpenseManagement = () => {
             disabled={
               selectedPurchase
                 ? !selectedPurchase.payments?.length ||
-                  !selectedPayment ||
-                  selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
-                    selectedPayment.id
+                !selectedPayment ||
+                selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
+                selectedPayment.id
                 : !selectedExpense?.payments?.length ||
-                  !selectedPayment ||
-                  selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
-                    selectedPayment.id
+                !selectedPayment ||
+                selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
+                selectedPayment.id
             }
             sx={{ color: 'error.main' }}
           >
@@ -1851,7 +1850,7 @@ const ExpenseManagement = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {[...(selectedExpense.payments || [])].reverse().map((payment, index) => {
+                        {[...(selectedExpense.payments || [])].reverse().map((payment) => {
                           return (
                             <TableRow key={payment.id}>
                               <TableCell>

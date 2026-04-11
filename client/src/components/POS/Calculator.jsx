@@ -1,27 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, Typography, Box, IconButton, Button, Paper } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
 
 const Calculator = ({ open, onClose }) => {
   const [expression, setExpression] = useState('');
-  const [result, setResult] = useState('0');
 
-  useEffect(() => {
+  const result = useMemo(() => {
     if (!expression) {
-      setResult('0');
-      return;
+      return '0';
     }
     try {
-      if (/[^0-9+\-*/.]/.test(expression)) return;
-      // eslint-disable-next-line no-new-func
+      if (/[^0-9+\-*/.]/.test(expression)) return '0';
       const evalResult = new Function('return (' + expression + ')')();
       if (typeof evalResult === 'number' && !isNaN(evalResult) && isFinite(evalResult)) {
         const roundedResult = Math.round(evalResult * 10000000) / 10000000;
-        setResult(roundedResult.toString());
+        return roundedResult.toString();
       }
+      return '0';
     } catch {
-      // Ignore temporary syntax errors like "5+" gracefully
+      return '0';
     }
   }, [expression]);
 
@@ -58,7 +56,6 @@ const Calculator = ({ open, onClose }) => {
 
   const handleClear = () => {
     setExpression('');
-    setResult('0');
   };
 
   const handleDelete = () => {
@@ -83,7 +80,6 @@ const Calculator = ({ open, onClose }) => {
       const previousExpression = parts.slice(0, -2).join('');
 
       try {
-        // eslint-disable-next-line no-new-func
         const previousValue = new Function('return (' + previousExpression + ')')();
         const percentageAmount = (previousValue * lastNumber) / 100;
 
@@ -94,7 +90,7 @@ const Calculator = ({ open, onClose }) => {
           // For * or /, just treat it as (lastNumber / 100)
           setExpression(previousExpression + operator + lastNumber / 100);
         }
-      } catch (e) {
+      } catch {
         // Fallback: just divide last number by 100
         setExpression(parts.slice(0, -1).join('') + lastNumber / 100);
       }

@@ -22,25 +22,27 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
 
   const batches = scannedProduct?.batches || [];
 
-  // Reset focus when dialog opens or batches change
-  useEffect(() => {
-    if (scannedProduct) {
-      setFocusedIndex(0);
-    }
-  }, [scannedProduct]);
-
+  // Reset focus and keyboard state when dialog opens/closes
   useEffect(() => {
     if (!scannedProduct) {
-      setKeyboardEnabled(false);
-      return;
+      const frame = window.requestAnimationFrame(() => {
+        setKeyboardEnabled(false);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
 
-    setKeyboardEnabled(false);
-    const timer = setTimeout(() => {
+    const resetFrame = window.requestAnimationFrame(() => {
+      setFocusedIndex(0);
+      setKeyboardEnabled(false);
+    });
+    const timer = window.setTimeout(() => {
       setKeyboardEnabled(true);
     }, 150);
 
-    return () => clearTimeout(timer);
+    return () => {
+      window.cancelAnimationFrame(resetFrame);
+      window.clearTimeout(timer);
+    };
   }, [scannedProduct]);
 
   // Handle keyboard navigation

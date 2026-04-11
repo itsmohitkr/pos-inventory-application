@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Dialog,
   AppBar,
@@ -40,7 +40,6 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 });
 
 const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSearch = '' }) => {
-  const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -84,15 +83,7 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
     return ['all', ...Array.from(catSet).sort()];
   }, [products]);
 
-  useEffect(() => {
-    if (open) {
-      setSearchTerm(externalSearch);
-      fetchData();
-    }
-  }, [open, categoryFilter, externalSearch]);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
     try {
       const data = await inventoryService.fetchProducts({
         includeBatches: 'true',
@@ -103,9 +94,16 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
     } catch (error) {
       console.error('Error fetching inventory:', error);
     } finally {
-      setLoading(false);
+      // Fetch complete
     }
-  };
+  }, [categoryFilter, externalSearch]);
+
+  useEffect(() => {
+    if (open) {
+      setSearchTerm(externalSearch);
+      fetchData();
+    }
+  }, [open, externalSearch, fetchData]);
 
   const flatData = useMemo(() => {
     const rows = [];
@@ -212,9 +210,9 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
         const barcodes =
           row.barcode && row.barcode !== 'N/A'
             ? row.barcode
-                .toLowerCase()
-                .split('|')
-                .map((b) => b.trim())
+              .toLowerCase()
+              .split('|')
+              .map((b) => b.trim())
             : [];
 
         if (name.startsWith(query)) {
@@ -282,7 +280,7 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
       avgWsPrice:
         filteredAndSortedData.length > 0
           ? filteredAndSortedData.reduce((sum, row) => sum + (row.wsPrice || 0), 0) /
-            filteredAndSortedData.length
+          filteredAndSortedData.length
           : 0,
       totalValueCost: totalValueCost,
       totalValueSelling: totalValueSelling,

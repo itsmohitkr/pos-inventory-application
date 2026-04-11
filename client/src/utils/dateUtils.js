@@ -24,12 +24,13 @@ export const getDateRange = (type) => {
       start = getStartOfDay(now);
       end = getEndOfDay(now);
       break;
-    case 'yesterday':
+    case 'yesterday': {
       const yesterday = new Date(now);
       yesterday.setDate(now.getDate() - 1);
       start = getStartOfDay(yesterday);
       end = getEndOfDay(yesterday);
       break;
+    }
     case 'thisMonth':
       start = new Date(now.getFullYear(), now.getMonth(), 1);
       end = getEndOfDay(now);
@@ -65,7 +66,7 @@ export const formatDateDisplay = (dateString) => {
       month: 'short',
       year: 'numeric',
     });
-  } catch (e) {
+  } catch {
     return dateString;
   }
 };

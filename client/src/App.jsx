@@ -100,7 +100,7 @@ function App() {
     handleShopMetadataChange,
     handleSaveBillSettings,
     isFullscreen,
-    setIsFullscreen,
+    setIsFullscreen: _setIsFullscreen,
   } = useSettings(showError);
 
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
@@ -176,7 +176,7 @@ function App() {
           showSuccess('Password changed successfully');
         })
         .catch(() => setPasswordError('Failed to change password'));
-    } catch (err) {
+    } catch {
       setPasswordError('Failed to change password');
     }
   };

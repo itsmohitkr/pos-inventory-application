@@ -51,7 +51,6 @@ const TransactionPanel = ({
   paymentSettings,
   extraDiscountEnabled,
   subTotal,
-  totalMrp,
   totalQty,
   totalAmount,
   totalSavings,
@@ -61,17 +60,15 @@ const TransactionPanel = ({
   hasLastSale,
   receivedAmount,
   setReceivedAmount,
-  showNumpad,
   setShowNumpad,
   decodedPricesEnabled,
   totalCostPrice,
 }) => {
   const changeDue = Math.max(0, receivedAmount - totalAmount);
 
-  // Reset received amount when total amount changes significantly (new order)
   React.useEffect(() => {
     if (totalAmount === 0) setReceivedAmount(0);
-  }, [totalAmount]);
+  }, [totalAmount, setReceivedAmount]);
   const getAvailablePaymentMethods = () => {
     const enabled = paymentSettings?.enabledMethods || [];
     const custom = paymentSettings?.customMethods || [];

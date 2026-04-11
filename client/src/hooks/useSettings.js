@@ -33,7 +33,7 @@ const DEFAULT_RECEIPT_SETTINGS = {
 const getStoredShopName = () => {
   try {
     return localStorage.getItem(STORAGE_KEYS.shopName) || 'Bachat Bazaar';
-  } catch (error) {
+  } catch {
     return 'Bachat Bazaar';
   }
 };
@@ -46,7 +46,7 @@ const getStoredReceiptSettings = (fallbackShopName) => {
       ...stored,
       customShopName: stored?.customShopName || fallbackShopName,
     };
-  } catch (error) {
+  } catch {
     return {
       ...DEFAULT_RECEIPT_SETTINGS,
       customShopName: fallbackShopName,

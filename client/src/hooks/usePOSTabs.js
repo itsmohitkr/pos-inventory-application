@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 /**
  * Hook to manage POS tabs and cart state
  */
-export const usePOSTabs = (initialProducts = []) => {
+export const usePOSTabs = () => {
   // Multi-tab state
   const [tabs, setTabs] = useState(() => {
     try {
@@ -11,7 +11,7 @@ export const usePOSTabs = (initialProducts = []) => {
       if (savedTabs) {
         return JSON.parse(savedTabs);
       }
-    } catch (e) {
+    } catch {
       console.error('Failed to parse saved tabs from session storage');
     }
     return [{ id: 1, name: 'Order 1', cart: [], discount: 0 }];
@@ -23,7 +23,7 @@ export const usePOSTabs = (initialProducts = []) => {
       if (savedActiveTab) {
         return parseInt(savedActiveTab, 10);
       }
-    } catch (e) {
+    } catch {
       console.error('Failed to parse saved active tab from session storage');
     }
     return 1;

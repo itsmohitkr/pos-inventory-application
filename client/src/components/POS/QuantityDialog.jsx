@@ -16,9 +16,13 @@ const QuantityDialog = ({ open, onClose, onConfirm, itemName, initialValue = 1 }
   const [value, setValue] = useState(initialValue.toString());
 
   useEffect(() => {
-    if (open) {
+    if (!open) return undefined;
+
+    const frame = window.requestAnimationFrame(() => {
       setValue(initialValue.toString());
-    }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [open, initialValue]);
 
   const handleNumberClick = (num) => {
@@ -27,10 +31,6 @@ const QuantityDialog = ({ open, onClose, onConfirm, itemName, initialValue = 1 }
     } else {
       setValue((prev) => (prev.length < 5 ? prev + num : prev));
     }
-  };
-
-  const handleBackspace = () => {
-    setValue((prev) => (prev.length > 1 ? prev.slice(0, -1) : '0'));
   };
 
   const handleClear = () => {

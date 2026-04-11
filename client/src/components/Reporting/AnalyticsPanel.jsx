@@ -44,7 +44,7 @@ const AnalyticsPanel = ({ reportData, loading }) => {
   const totalSales = reportData?.totalSales || 0;
   const totalProfit = reportData?.totalProfit || 0;
   const netProfit = reportData?.netProfit || 0;
-  const totalPurchases = reportData?.totalPurchases || 0;
+  const _totalPurchases = reportData?.totalPurchases || 0;
   const totalCashBalance = reportData?.totalCashBalance || 0;
   const totalExpenses = reportData?.totalExpenses || 0;
   const ownerPayout = (netProfit * ownerSharePercent) / 100;

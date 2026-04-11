@@ -22,6 +22,7 @@ import {
   DialogActions as AddUserActions,
   Alert,
   Typography,
+  InputAdornment,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -30,7 +31,6 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
-import { InputAdornment } from '@mui/material';
 import settingsService from '../../shared/api/settingsService';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
 import CustomDialog from '../common/CustomDialog';
@@ -38,7 +38,7 @@ import CustomDialog from '../common/CustomDialog';
 const UserManagementDialog = ({ open, onClose, currentUser }) => {
   const { dialogState, showConfirm, showError, closeDialog } = useCustomDialog();
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);

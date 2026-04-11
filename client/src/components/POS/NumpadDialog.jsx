@@ -16,9 +16,13 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
   const [value, setValue] = useState(initialValue.toString());
 
   useEffect(() => {
-    if (open) {
+    if (!open) return undefined;
+
+    const frame = window.requestAnimationFrame(() => {
       setValue(initialValue.toString());
-    }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [open, initialValue]);
 
   const handleNumberClick = (num) => {

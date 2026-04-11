@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dashboardService from '../../shared/api/dashboardService';
-import posService from '../../shared/api/posService';
+import { isRequestCanceled } from '../../shared/api/api';
 import {
   Container,
   Typography,
@@ -25,6 +25,14 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Paper,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Divider as MuiDivider,
+  Stack,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -48,18 +56,8 @@ import LooseSalesReportPanel from './LooseSalesReportPanel';
 import useSortableTable from '../../shared/hooks/useSortableTable';
 import SortableTableHead from './SortableTableHead';
 import { getRefundStatus, getStatusDisplay } from '../../shared/utils/refundStatus';
-import {
-  Paper,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider as MuiDivider,
-  Stack,
-} from '@mui/material';
 
-const Reporting = ({ receiptSettings, shopMetadata }) => {
+const Reporting = () => {
   const [reportData, setReportData] = useState(null);
   const [expiryData, setExpiryData] = useState(null);
   const [lowStockData, setLowStockData] = useState(null);
@@ -73,31 +71,10 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
     endDate: '',
   });
 
-  const timeframes = [
-    { label: 'Today', getValue: () => getRange('today') },
-    { label: 'Yesterday', getValue: () => getRange('yesterday') },
-    { label: 'This Week', getValue: () => getRange('thisWeek') },
-    { label: 'Last Week', getValue: () => getRange('lastWeek') },
-    { label: 'This Month', getValue: () => getRange('thisMonth') },
-    { label: 'Last Month', getValue: () => getRange('lastMonth') },
-    { label: 'This Year', getValue: () => getRange('thisYear') },
-    { label: 'Last Year', getValue: () => getRange('lastYear') },
-    { label: 'Custom', getValue: () => null },
-  ];
-
-  const getRange = (type) => {
+  const getRange = useCallback((type) => {
     const now = new Date();
     let start = new Date(now);
     let end = new Date(now);
-
-    const startOfDay = (d) => {
-      d.setHours(0, 0, 0, 0);
-      return d;
-    };
-    const endOfDay = (d) => {
-      d.setHours(23, 59, 59, 999);
-      return d;
-    };
 
     switch (type) {
       case 'today':
@@ -147,42 +124,60 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
       localStart: start.toLocaleDateString('en-CA'),
       localEnd: end.toLocaleDateString('en-CA'),
     };
-  };
+  }, []);
 
-  const fetchReports = async (start, end, config = {}) => {
-    setLoading(true);
-    try {
-      if (reportType === 'expiry_report') {
-        const data = await dashboardService.fetchExpiryReport(
-          { startDate: start, endDate: end },
-          config
-        );
-        setExpiryData(data);
-      } else if (reportType === 'low_stock') {
-        const data = await dashboardService.fetchLowStockReport(config);
-        setLowStockData(data);
-      } else if (reportType === 'loose_sales') {
-        const data = await dashboardService.fetchLooseSalesReport(
-          { startDate: start, endDate: end },
-          config
-        );
-        setLooseSalesData(data);
-      } else {
-        const data = await dashboardService.fetchPeriodicData(
-          { startDate: start, endDate: end },
-          config
-        );
-        setReportData(data);
+  const timeframes = useMemo(
+    () => [
+      { label: 'Today', getValue: () => getRange('today') },
+      { label: 'Yesterday', getValue: () => getRange('yesterday') },
+      { label: 'This Week', getValue: () => getRange('thisWeek') },
+      { label: 'Last Week', getValue: () => getRange('lastWeek') },
+      { label: 'This Month', getValue: () => getRange('thisMonth') },
+      { label: 'Last Month', getValue: () => getRange('lastMonth') },
+      { label: 'This Year', getValue: () => getRange('thisYear') },
+      { label: 'Last Year', getValue: () => getRange('lastYear') },
+      { label: 'Custom', getValue: () => null },
+    ],
+    [getRange]
+  );
+
+  const fetchReports = useCallback(
+    async (start, end, config = {}) => {
+      setLoading(true);
+      try {
+        if (reportType === 'expiry_report') {
+          const data = await dashboardService.fetchExpiryReport(
+            { startDate: start, endDate: end },
+            config
+          );
+          setExpiryData(data);
+        } else if (reportType === 'low_stock') {
+          const data = await dashboardService.fetchLowStockReport(config);
+          setLowStockData(data);
+        } else if (reportType === 'loose_sales') {
+          const data = await dashboardService.fetchLooseSalesReport(
+            { startDate: start, endDate: end },
+            config
+          );
+          setLooseSalesData(data);
+        } else {
+          const data = await dashboardService.fetchPeriodicData(
+            { startDate: start, endDate: end },
+            config
+          );
+          setReportData(data);
+        }
+      } catch (error) {
+        if (isRequestCanceled(error)) return;
+        console.error('Error fetching reports:', error);
+      } finally {
+        if (!config.signal?.aborted) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      if (isRequestCanceled(error)) return;
-      console.error('Error fetching reports:', error);
-    } finally {
-      if (!config.signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
+    },
+    [reportType]
+  );
 
   // Initial fetch and fetch on reportType change
   useEffect(() => {
@@ -213,7 +208,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
     }
 
     return () => controller.abort();
-  }, [reportType, tabValue, dateRange]);
+  }, [reportType, tabValue, dateRange, fetchReports, timeframes]);
 
   const handleTabChange = (event) => {
     const newValue = event.target.value;

@@ -242,7 +242,7 @@ const ProductRow = React.memo(
 
 const ProductList = forwardRef(
   ({ categoryFilter, onCategoryChange, debouncedSearch, onSearchChange, isPending }, ref) => {
-    const [filteredProducts, setFilteredProducts] = useState(null); // null = show all
+    const [, setFilteredProducts] = useState(null); // null = show all
     const { dialogState, showError, showConfirm, closeDialog } = useCustomDialog();
     const [products, setProducts] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -307,7 +307,7 @@ const ProductList = forwardRef(
     const searchTimerRef = useRef(null);
 
     const fetchProducts = React.useCallback(
-      async (signal) => {
+      async () => {
         const requestId = ++productsRequestId.current;
         try {
           // Fetch everything for the current category once, then filter locally
@@ -332,7 +332,7 @@ const ProductList = forwardRef(
           console.error(error);
         }
       },
-      [sortBy, sortOrder]
+      [sortBy, sortOrder, selectedProduct]
     );
 
     // Fix refresh bug in App.jsx
@@ -345,7 +345,7 @@ const ProductList = forwardRef(
     }));
 
     const fetchSummary = React.useCallback(
-      async (signal) => {
+      async () => {
         const requestId = ++summaryRequestId.current;
         try {
           const isAllNoSearch = (categoryFilter === 'all' || !categoryFilter) && !debouncedSearch;
@@ -389,7 +389,7 @@ const ProductList = forwardRef(
       [debouncedSearch, categoryFilter]
     );
 
-    const fetchCategories = async (signal) => {
+    const fetchCategories = async () => {
       try {
         const data = await inventoryService.fetchCategories();
         setCategories(data.data || []);
@@ -571,9 +571,9 @@ const ProductList = forwardRef(
           p._searchBarcodes ||
           (p._searchBarcodes = p.barcode
             ? p.barcode
-                .toLowerCase()
-                .split('|')
-                .map((b) => b.trim())
+              .toLowerCase()
+              .split('|')
+              .map((b) => b.trim())
             : []);
 
         if (name.startsWith(query)) {
@@ -602,7 +602,7 @@ const ProductList = forwardRef(
       setSearchTerm('');
       onSearchChange('');
       setFilteredProducts(null);
-    }, []);
+    }, [onSearchChange]);
 
     const handleDelete = React.useCallback(
       async (id) => {
@@ -832,9 +832,9 @@ const ProductList = forwardRef(
         contextMenu
           ? null
           : {
-              mouseX: event.clientX - 2,
-              mouseY: event.clientY - 4,
-            }
+            mouseX: event.clientX - 2,
+            mouseY: event.clientY - 4,
+          }
       );
     };
     const closeCategoryMenu = () => {
@@ -1980,9 +1980,9 @@ const ProductList = forwardRef(
                           const margin =
                             batch.sellingPrice > 0
                               ? (
-                                  ((batch.sellingPrice - batch.costPrice) / batch.sellingPrice) *
-                                  100
-                                ).toFixed(1)
+                                ((batch.sellingPrice - batch.costPrice) / batch.sellingPrice) *
+                                100
+                              ).toFixed(1)
                               : 0;
                           const discount =
                             batch.mrp > 0

@@ -7,18 +7,10 @@ import {
   Typography,
   Chip,
   IconButton,
+  Button,
 } from '@mui/material';
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
-import { Button } from '@mui/material';
 
-import { keyframes } from '@mui/system';
-
-const barcodeAnim = keyframes`
-    0% { opacity: 0; transform: translateX(-40px); }
-    10% { opacity: 1; transform: translateX(0px); }
-    80% { opacity: 1; transform: translateX(60px); }
-    100% { opacity: 0; transform: translateX(120px); }
-`;
 
 const POSSearchBar = React.forwardRef(
   (
@@ -37,8 +29,6 @@ const POSSearchBar = React.forwardRef(
     const timerRef = useRef(null);
     const [animating, setAnimating] = React.useState(false);
     const [typewriterBarcode, setTypewriterBarcode] = React.useState('');
-    const [pendingBarcode, setPendingBarcode] = React.useState('');
-    const filteredProductsRef = useRef([]);
 
     React.useImperativeHandle(ref, () => ({
       focus: () => {
@@ -98,7 +88,6 @@ const POSSearchBar = React.forwardRef(
           setTimeout(() => {
             setAnimating(false);
             setTypewriterBarcode('');
-            setPendingBarcode('');
             onSearchInputChange('');
           }, 10); // Ultra-fast turnaround
         } else {

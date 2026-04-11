@@ -45,7 +45,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
   const printableWidth = getSafeWidth(paperSize);
   const marginTop = config.marginTop !== undefined ? `${config.marginTop}mm` : '2mm';
   const marginBottom = config.marginBottom !== undefined ? `${config.marginBottom}mm` : '2mm';
-  const marginSide = config.marginSide !== undefined ? `${config.marginSide}mm` : '0mm'; // Use 0 for container side as we use centering helper
+  const _marginSide = config.marginSide !== undefined ? `${config.marginSide}mm` : '0mm'; // Use 0 for container side as we use centering helper
 
   // Rounding logic
   const originalTotal = sale.totalAmount || sale.price || 0;

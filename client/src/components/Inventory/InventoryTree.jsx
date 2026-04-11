@@ -41,12 +41,9 @@ import {
   Folder as FolderIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  MoreVert as MoreVertIcon,
   Add as AddIcon,
-  Info as InfoIcon,
 } from '@mui/icons-material';
 import EditProductDialog from './EditProductDialog';
-import EditBatchDialog from './EditBatchDialog';
 
 // Helper to render barcodes as chips
 const renderBarcodeChips = (barcode) => {
@@ -95,27 +92,12 @@ const InventoryTree = forwardRef((props, ref) => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [expandedCategories, setExpandedCategories] = useState({});
   const [editOpen, setEditOpen] = useState(false);
-  const [batchEditOpen, setBatchEditOpen] = useState(false);
+  const [_batchEditOpen, setBatchEditOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
-  const [currentBatch, setCurrentBatch] = useState(null);
+  const [_currentBatch, _setCurrentBatch] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const searchInputRef = useRef(null);
-
-  useEffect(() => {
-    fetchProducts();
-    // Explicit focus on mount
-    const timer = setTimeout(() => {
-      if (searchInputRef.current) {
-        searchInputRef.current.focus();
-      }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useImperativeHandle(ref, () => ({
-    refresh: fetchProducts,
-  }));
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -124,7 +106,7 @@ const InventoryTree = forwardRef((props, ref) => {
     return () => clearTimeout(handle);
   }, [searchTerm]);
 
-  const fetchProducts = async () => {
+  async function fetchProducts() {
     try {
       const data = await inventoryService.fetchProducts({
         page: 1,
@@ -151,9 +133,28 @@ const InventoryTree = forwardRef((props, ref) => {
     } catch (error) {
       console.error('Failed to fetch products:', error);
     }
-  };
+  }
 
-  const toggleCategory = (category) => {
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      fetchProducts();
+    });
+    const timer = setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
+    }, 150);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    refresh: fetchProducts,
+  }));
+
+  const _toggleCategory = (category) => {
     setExpandedCategories((prev) => ({
       ...prev,
       [category]: !prev[category],
@@ -281,7 +282,7 @@ const InventoryTree = forwardRef((props, ref) => {
     setCurrentProduct(null);
   };
 
-  const handleBatchUpdated = () => {
+  const _handleBatchUpdated = () => {
     fetchProducts();
     setBatchEditOpen(false);
   };
@@ -323,7 +324,7 @@ const InventoryTree = forwardRef((props, ref) => {
         <List disablePadding>
           {categories.map((category) => {
             const isSelected = selectedCategory === category;
-            const isExpanded = expandedCategories[category];
+            const _isExpanded = expandedCategories[category];
             const itemsInCategory = productsByCategory.get(category) || [];
 
             return (
