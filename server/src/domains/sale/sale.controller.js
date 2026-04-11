@@ -1,6 +1,20 @@
+const { StatusCodes } = require('http-status-codes');
 const saleService = require('./sale.service');
 const { createHttpError } = require('../../shared/error/appError');
+const toAppError = require('../../shared/error/toAppError');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
+
+const mapSaleError = (error, defaultStatus = StatusCodes.BAD_REQUEST) => {
+    if (error?.statusCode) {
+        throw error;
+    }
+
+    throw toAppError(error, {
+        defaultStatus,
+        notFoundMessages: ['Sale not found', 'Sale item'],
+        badRequestMessages: ['Insufficient stock', 'Cannot return more than sold quantity']
+    });
+};
 
 const processSale = async (req, res) => {
     try {
@@ -13,9 +27,7 @@ const processSale = async (req, res) => {
             { format: 'merge' }
         );
     } catch (error) {
-        throw createHttpError(400, error?.message || 'Failed to process sale', {
-            error: error?.message || 'Failed to process sale'
-        });
+        return mapSaleError(error);
     }
 };
 
@@ -25,20 +37,14 @@ const getSaleById = async (req, res) => {
     try {
         const sale = await saleService.getSaleById(id);
         if (!sale) {
-            throw createHttpError(404, 'Sale not found', { error: 'Sale not found' });
+            throw createHttpError(StatusCodes.NOT_FOUND, 'Sale not found', { error: 'Sale not found' });
         }
 
-        return sendSuccessResponse(res, 200, sale, 'Sale fetched successfully', {
+        return sendSuccessResponse(res, StatusCodes.OK, sale, 'Sale fetched successfully', {
             format: 'merge'
         });
     } catch (error) {
-        if (error?.statusCode) {
-            throw error;
-        }
-
-        throw createHttpError(500, error?.message || 'Failed to fetch sale', {
-            error: error?.message || 'Failed to fetch sale'
-        });
+        return mapSaleError(error, StatusCodes.INTERNAL_SERVER_ERROR);
     }
 };
 
@@ -48,16 +54,13 @@ const processReturn = async (req, res) => {
 
     try {
         const result = await saleService.processReturn(saleId, items);
-        return sendSuccessResponse(res, 200, result, 'Return processed successfully', {
+        return sendSuccessResponse(res, StatusCodes.OK, result, 'Return processed successfully', {
             format: 'merge'
         });
     } catch (error) {
-        throw createHttpError(400, error?.message || 'Failed to process return', {
-            error: error?.message || 'Failed to process return'
-        });
+        return mapSaleError(error);
     }
 };
-
 module.exports = {
     processSale,
     getSaleById,
