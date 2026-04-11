@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import api from '../../api';
+import api from '../../shared/api/api';
 import {
     Box,
     Paper,
@@ -37,8 +37,8 @@ import Calculator from './Calculator';
 import NumpadDialog from './NumpadDialog';
 import CustomDialog from '../common/CustomDialog';
 import SuccessNotification from '../common/SuccessNotification';
-import useCustomDialog from '../../hooks/useCustomDialog';
-import { getStoredPaymentSettings, getFullscreenEnabled, getNotificationDuration, getExtraDiscountEnabled, getChangeCalculatorEnabled, setChangeCalculatorEnabled, getPaymentMethodsEnabled, getCalculatorEnabled, getDecodedPricesEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../utils/paymentSettings';
+import useCustomDialog from '../../shared/hooks/useCustomDialog';
+import { getStoredPaymentSettings, getFullscreenEnabled, getNotificationDuration, getExtraDiscountEnabled, getChangeCalculatorEnabled, setChangeCalculatorEnabled, getPaymentMethodsEnabled, getCalculatorEnabled, getDecodedPricesEnabled, STORAGE_KEYS as PAYMENT_STORAGE_KEYS } from '../../shared/utils/paymentSettings';
 
 const STORAGE_KEYS = {
     receipt: 'posReceiptSettings',

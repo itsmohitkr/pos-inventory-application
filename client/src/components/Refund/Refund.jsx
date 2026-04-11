@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../../api';
+import api from '../../shared/api/api';
 import {
     Container, Typography, TextField, Button, Paper, Box,
     Alert, CircularProgress, Card, CardContent

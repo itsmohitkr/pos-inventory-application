@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api';
+import api from '../../shared/api/api';
 import { Dialog, DialogTitle, DialogContent, TextField, DialogActions, Button, Autocomplete, FormControlLabel, Switch, Box, Chip, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from '@mui/material';
 import { Refresh as RefreshIcon, Close as CloseIcon, Edit as EditIcon } from '@mui/icons-material';
 import { InputAdornment } from '@mui/material';
 import { QrCode as QrCodeIcon } from '@mui/icons-material';
 import EditBatchDialog from './EditBatchDialog';
 import CustomDialog from '../common/CustomDialog';
-import useCustomDialog from '../../hooks/useCustomDialog';
+import useCustomDialog from '../../shared/hooks/useCustomDialog';
 
 const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
     const { dialogState, showError, closeDialog } = useCustomDialog();

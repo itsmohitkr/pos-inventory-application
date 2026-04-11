@@ -5,7 +5,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from './ExportOptions';
-import useSortableTable from '../../hooks/useSortableTable';
+import useSortableTable from '../../shared/hooks/useSortableTable';
 import SortableTableHead from './SortableTableHead';
 
 const LowStockReportPanel = ({ data, loading }) => {

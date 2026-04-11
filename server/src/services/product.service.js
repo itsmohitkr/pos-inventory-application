@@ -1,5 +1,5 @@
 const prisma = require("../config/prisma");
-const { getDateRange } = require('../utils/dateUtils');
+const { getDateRange } = require('../shared/utils/dateUtils');
 const { Prisma } = require("@prisma/client");
 const categoryService = require("./category.service");
 

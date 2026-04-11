@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import api from '../../api';
+import api from '../../shared/api/api';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Paper, Typography, TextField, Box, InputAdornment, IconButton,
@@ -35,7 +35,7 @@ import ProductHistoryDialog from './ProductHistoryDialog';
 import QuickInventoryDialog from './QuickInventoryDialog';
 import BarcodePrintDialog from './BarcodePrintDialog';
 import CustomDialog from '../common/CustomDialog';
-import useCustomDialog from '../../hooks/useCustomDialog';
+import useCustomDialog from '../../shared/hooks/useCustomDialog';
 
 // Helper to render barcodes as chips
 const renderBarcodeChips = (barcode, size = 'small') => {

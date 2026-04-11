@@ -16,7 +16,7 @@ import {
     Close as CloseIcon,
     Save as SaveIcon
 } from '@mui/icons-material';
-import api from '../../api';
+import api from '../../shared/api/api';
 
 const LooseSaleDialog = ({ open, onClose, onComplete }) => {
     const [price, setPrice] = useState('0');

@@ -25,9 +25,8 @@ import {
     ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { Autocomplete } from '@mui/material';
-import api from '../../api';
-import CustomDialog from '../common/CustomDialog';
-import useCustomDialog from '../../hooks/useCustomDialog';
+import api from '../../shared/api/api';
+import useCustomDialog from '../../shared/hooks/useCustomDialog';
 
 const INITIAL_ROW = {
     name: '',

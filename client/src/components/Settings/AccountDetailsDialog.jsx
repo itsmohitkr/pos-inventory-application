@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import api from "../../api";
+import api from "../../shared/api/api";
 import {
   Dialog,
   DialogTitle,
@@ -31,7 +31,7 @@ import {
   SystemUpdate as UpdateIcon,
 } from "@mui/icons-material";
 import CustomDialog from "../common/CustomDialog";
-import useCustomDialog from "../../hooks/useCustomDialog";
+import useCustomDialog from "../../shared/hooks/useCustomDialog";
 import PaymentSettingsPanel from "./PaymentSettingsPanel";
 import {
   getChangeCalculatorEnabled,
@@ -49,7 +49,7 @@ import {
   setCalculatorEnabled,
   getAdminAutoLogoutTime,
   setAdminAutoLogoutTime
-} from "../../utils/paymentSettings";
+} from "../../shared/utils/paymentSettings";
 import { Snackbar, Alert as MuiAlert } from "@mui/material";
 
 const AccountDetailsDialog = ({

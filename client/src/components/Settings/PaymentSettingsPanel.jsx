@@ -18,8 +18,8 @@ import {
     Add as AddIcon,
     Delete as DeleteIcon
 } from '@mui/icons-material';
-import { getStoredPaymentSettings, STORAGE_KEYS, getFullscreenEnabled, getNotificationDuration, setNotificationDuration, getExtraDiscountEnabled, setExtraDiscountEnabled, DEFAULT_PAYMENT_SETTINGS, getDecodedPricesEnabled, setDecodedPricesEnabled } from '../../utils/paymentSettings';
-import api from '../../api';
+import { getStoredPaymentSettings, STORAGE_KEYS, getFullscreenEnabled, getNotificationDuration, setNotificationDuration, getExtraDiscountEnabled, setExtraDiscountEnabled, DEFAULT_PAYMENT_SETTINGS, getDecodedPricesEnabled, setDecodedPricesEnabled } from '../../shared/utils/paymentSettings';
+import api from '../../shared/api/api';
 import { useEffect } from 'react';
 
 const PAYMENT_METHOD_OPTIONS = [

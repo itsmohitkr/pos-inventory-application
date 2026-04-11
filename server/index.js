@@ -17,7 +17,7 @@ const expenseRoutes = require('./src/routes/expense.routes');
 const purchaseRoutes = require('./src/routes/purchase.routes');
 const settingRoutes = require('./src/routes/setting.routes');
 const settingService = require('./src/services/setting.service');
-const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/utils/constants');
+const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/config/constants');
 
 const app = express();
 const PORT = process.env.PORT || 5001;

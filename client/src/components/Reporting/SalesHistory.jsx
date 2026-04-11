@@ -16,9 +16,9 @@ import {
   ListAlt as OrdersIcon,
   Visibility as ViewIcon,
 } from "@mui/icons-material";
-import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
+import { getRefundStatus, getStatusDisplay } from "../../shared/utils/refundStatus";
 import ExportOptions from './ExportOptions';
-import useSortableTable from '../../hooks/useSortableTable';
+import useSortableTable from '../../shared/hooks/useSortableTable';
 import SortableTableHead from './SortableTableHead';
 const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
   const { items: sortedData, requestSort, sortConfig } = useSortableTable(sales || [], { key: 'createdAt', direction: 'desc' });

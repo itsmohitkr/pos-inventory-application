@@ -31,8 +31,8 @@ import {
     VisibilityOff as VisibilityOffIcon
 } from '@mui/icons-material';
 import { InputAdornment } from '@mui/material';
-import api from '../../api';
-import useCustomDialog from '../../hooks/useCustomDialog';
+import api from '../../shared/api/api';
+import useCustomDialog from '../../shared/hooks/useCustomDialog';
 import CustomDialog from '../common/CustomDialog';
 
 const UserManagementDialog = ({ open, onClose, currentUser }) => {

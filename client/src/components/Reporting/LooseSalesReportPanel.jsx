@@ -4,11 +4,11 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button
 } from '@mui/material';
 import { DeleteOutline } from '@mui/icons-material';
-import api from '../../api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from './ExportOptions';
-import useSortableTable from '../../hooks/useSortableTable';
+import api from '../../shared/api/api';
+import useSortableTable from '../../shared/hooks/useSortableTable';
 import SortableTableHead from './SortableTableHead';
 
 const LooseSalesReportPanel = ({ data, loading, timeframeLabel, onRefresh }) => {

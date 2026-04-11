@@ -14,7 +14,7 @@ import {
     ViewColumn as ViewColumnIcon,
     FilterAlt as FilterAltIcon
 } from '@mui/icons-material';
-import api from '../../api';
+import api from '../../shared/api/api';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
     return <Slide direction="up" ref={ref} {...props} />;

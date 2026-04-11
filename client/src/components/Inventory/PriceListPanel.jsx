@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import api from '../../api';
+import api from '../../shared/api/api';
 import {
   Alert,
   Autocomplete,

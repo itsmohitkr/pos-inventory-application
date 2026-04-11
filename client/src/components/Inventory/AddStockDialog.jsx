@@ -15,8 +15,7 @@ import {
     Divider
 } from '@mui/material';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
-import CustomDialog from '../common/CustomDialog';
-import useCustomDialog from '../../hooks/useCustomDialog';
+import useCustomDialog from '../../shared/hooks/useCustomDialog';
 import WholesaleConfiguration from './WholesaleConfiguration';
 
 const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {

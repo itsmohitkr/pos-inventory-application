@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, Grid, TextField, InputAdornment, Box, Typography, DialogActions, Button, Divider } from '@mui/material';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
-import api from '../../api';
-import CustomDialog from '../common/CustomDialog';
-import useCustomDialog from '../../hooks/useCustomDialog';
+import api from '../../shared/api/api';
+import useCustomDialog from '../../shared/hooks/useCustomDialog';
 import WholesaleConfiguration from './WholesaleConfiguration';
 
 const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {

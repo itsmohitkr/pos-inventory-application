@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Link as RouterLink, useLocation, Navigate } from 'react-router-dom';
-import api from './api';
+import api from './shared/api/api';
 import {
   AppBar,
   Toolbar,
@@ -67,8 +67,8 @@ import LoginPage from './components/Auth/LoginPage';
 import UserManagementDialog from './components/Auth/UserManagementDialog';
 import AccountDetailsDialog from './components/Settings/AccountDetailsDialog';
 import CustomDialog from './components/common/CustomDialog';
-import useCustomDialog from './hooks/useCustomDialog';
-import { getAdminAutoLogoutTime } from './utils/paymentSettings';
+import useCustomDialog from './shared/hooks/useCustomDialog';
+import { getAdminAutoLogoutTime } from './shared/utils/paymentSettings';
 
 const STORAGE_KEYS = {
   receipt: 'posReceiptSettings',

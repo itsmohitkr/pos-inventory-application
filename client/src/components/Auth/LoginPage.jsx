@@ -12,7 +12,7 @@ import {
     Divider
 } from '@mui/material';
 import { Store as StoreIcon } from '@mui/icons-material';
-import api from '../../api';
+import api from '../../shared/api/api';
 
 const LoginPage = ({ onLogin }) => {
     const [username, setUsername] = useState('');

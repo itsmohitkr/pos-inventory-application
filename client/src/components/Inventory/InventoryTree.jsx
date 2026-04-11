@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import api from '../../api';
+import api from '../../shared/api/api';
 import {
     Box, Paper, TextField, Chip, Stack, Grid, Card, CardContent, CardActions, Button,
     IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Typography,

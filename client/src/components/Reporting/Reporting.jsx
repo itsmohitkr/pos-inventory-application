@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import api from '../../api';
+import api from '../../shared/api/api';
 import {
   Container,
   Typography,
@@ -44,9 +44,8 @@ import ExpiryReportPanel from "./ExpiryReportPanel";
 import ItemSalesReportPanel from "./ItemSalesReportPanel";
 import LowStockReportPanel from "./LowStockReportPanel";
 import LooseSalesReportPanel from "./LooseSalesReportPanel";
-import useSortableTable from "../../hooks/useSortableTable";
-import SortableTableHead from "./SortableTableHead";
-import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
+import useSortableTable from "../../shared/hooks/useSortableTable";
+import { getRefundStatus, getStatusDisplay } from "../../shared/utils/refundStatus";
 import {
   Paper,
   List,

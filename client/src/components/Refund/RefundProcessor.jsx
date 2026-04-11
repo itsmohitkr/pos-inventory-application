@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api';
+import api from '../../shared/api/api';
 import {
     Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Checkbox, TextField, Button, Box, Grid, Chip
 } from '@mui/material';
 import { Undo as ReturnIcon } from '@mui/icons-material';
 import CustomDialog from '../common/CustomDialog';
-import useCustomDialog from '../../hooks/useCustomDialog';
+import useCustomDialog from '../../shared/hooks/useCustomDialog';
 
 const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) => {
     const { dialogState, showError, showSuccess, showConfirm, closeDialog } = useCustomDialog();

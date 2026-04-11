@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { flushSync } from 'react-dom';
-import api from '../../api';
+import api from '../../shared/api/api';
 import {
   Container,
   Typography,
@@ -47,7 +47,7 @@ import {
 
 import Receipt from "../POS/Receipt";
 import RefundDialog from "../Refund/RefundDialog";
-import { getRefundStatus, getStatusDisplay } from "../../utils/refundStatus";
+import { getRefundStatus, getStatusDisplay } from "../../shared/utils/refundStatus";
 
 const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrinter = null }) => {
   const [sales, setSales] = useState([]);
