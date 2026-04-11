@@ -218,10 +218,6 @@ const exportProducts = async (req, res) => {
 
 const importProducts = async (req, res) => {
     try {
-        if (!req.file) {
-            throw createHttpError(StatusCodes.BAD_REQUEST, 'No file uploaded', { error: 'No file uploaded' });
-        }
-
         const csvData = req.file.buffer.toString('utf-8');
         const result = await productService.importProducts(csvData);
         return sendSuccessResponse(res, StatusCodes.OK, result, 'Products imported successfully', {

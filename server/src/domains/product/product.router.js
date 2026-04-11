@@ -4,12 +4,18 @@ const productController = require('./product.controller');
 const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
+const validateUploadedFile = require('../../shared/middleware/validateUploadedFile');
 const {
     productIdParamSchema,
     batchIdParamSchema,
     barcodeParamSchema,
     productQuerySchema,
+    productSummaryQuerySchema,
     productHistoryQuerySchema,
+    createProductBodySchema,
+    addBatchBodySchema,
+    updateProductBodySchema,
+    updateBatchBodySchema,
     validateBarcodesBodySchema,
     bulkCreateProductsBodySchema
 } = require('./product.validation');
@@ -20,12 +26,12 @@ const upload = multer({ storage: multer.memoryStorage() });
 router
     .route('/products')
     .get(validateRequest({ query: productQuerySchema }), asyncHandler(productController.getAllProducts))
-    .post(asyncHandler(productController.createProduct))
+    .post(validateRequest({ body: createProductBodySchema }), asyncHandler(productController.createProduct))
     .all(methodNotAllowed);
 
 router
     .route('/products/summary')
-    .get(asyncHandler(productController.getProductSummary))
+    .get(validateRequest({ query: productSummaryQuerySchema }), asyncHandler(productController.getProductSummary))
     .all(methodNotAllowed);
 
 router
@@ -35,7 +41,7 @@ router
 
 router
     .route('/products/import')
-    .post(upload.single('file'), asyncHandler(productController.importProducts))
+    .post(upload.single('file'), validateUploadedFile('file'), asyncHandler(productController.importProducts))
     .all(methodNotAllowed);
 
 router
@@ -64,17 +70,17 @@ router.get('/products/:barcode', validateRequest({ params: barcodeParamSchema })
 
 router
     .route('/products/:id')
-    .put(validateRequest({ params: productIdParamSchema }), asyncHandler(productController.updateProduct))
+    .put(validateRequest({ params: productIdParamSchema, body: updateProductBodySchema }), asyncHandler(productController.updateProduct))
     .delete(validateRequest({ params: productIdParamSchema }), asyncHandler(productController.deleteProduct));
 
 router
     .route('/batches')
-    .post(asyncHandler(productController.addBatch))
+    .post(validateRequest({ body: addBatchBodySchema }), asyncHandler(productController.addBatch))
     .all(methodNotAllowed);
 
 router
     .route('/batches/:id')
-    .put(validateRequest({ params: batchIdParamSchema }), asyncHandler(productController.updateBatch))
+    .put(validateRequest({ params: batchIdParamSchema, body: updateBatchBodySchema }), asyncHandler(productController.updateBatch))
     .delete(validateRequest({ params: batchIdParamSchema }), asyncHandler(productController.deleteBatch))
     .all(methodNotAllowed);
 

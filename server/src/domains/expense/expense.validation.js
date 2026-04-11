@@ -6,6 +6,12 @@ const expenseIdParamSchema = Joi.object({
 
 const moneyValue = Joi.number().min(0);
 
+const expenseQuerySchema = Joi.object({
+    startDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
+    endDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
+    category: Joi.string().trim().allow('', null).optional()
+}).unknown(true);
+
 const expenseBodySchema = Joi.object({
     amount: moneyValue.required(),
     category: Joi.string().trim().min(1).max(120).required(),
@@ -35,6 +41,7 @@ const paymentBodySchema = Joi.object({
 
 module.exports = {
     expenseIdParamSchema,
+    expenseQuerySchema,
     expenseBodySchema,
     expenseUpdateBodySchema,
     paymentBodySchema

@@ -1,18 +1,11 @@
 const { StatusCodes } = require('http-status-codes');
 const looseSaleService = require('./loose-sale.service');
-const { createHttpError } = require('../../shared/error/appError');
 const toAppError = require('../../shared/error/toAppError');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
 
 const createLooseSale = async (req, res) => {
     try {
         const { itemName, price } = req.body;
-        if (!price || isNaN(price)) {
-            throw createHttpError(StatusCodes.BAD_REQUEST, 'Valid price is required', {
-                error: 'Valid price is required'
-            });
-        }
-
         const looseSale = await looseSaleService.createLooseSale({ itemName, price });
         return sendSuccessResponse(res, StatusCodes.CREATED, looseSale, 'Loose sale created successfully', {
             format: 'raw'

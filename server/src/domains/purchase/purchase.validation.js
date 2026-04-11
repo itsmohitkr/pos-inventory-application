@@ -6,6 +6,12 @@ const purchaseIdParamSchema = Joi.object({
 
 const moneyValue = Joi.number().min(0);
 
+const purchaseQuerySchema = Joi.object({
+    startDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
+    endDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
+    vendor: Joi.string().trim().allow('', null).optional()
+}).unknown(true);
+
 const purchaseItemSchema = Joi.object({
     productId: Joi.alternatives().try(Joi.number().integer().positive(), Joi.string().trim().min(1)).required(),
     batchId: Joi.alternatives().try(Joi.number().integer().positive(), Joi.string().trim().min(1), Joi.valid(null), Joi.string().allow('')).optional(),
@@ -44,6 +50,7 @@ const paymentBodySchema = Joi.object({
 
 module.exports = {
     purchaseIdParamSchema,
+    purchaseQuerySchema,
     purchaseBodySchema,
     purchaseUpdateBodySchema,
     paymentBodySchema

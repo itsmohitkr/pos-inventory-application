@@ -5,6 +5,7 @@ const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
 const {
     expenseIdParamSchema,
+    expenseQuerySchema,
     expenseBodySchema,
     expenseUpdateBodySchema,
     paymentBodySchema
@@ -12,7 +13,7 @@ const {
 
 const router = express.Router();
 
-router.route('/').post(validateRequest({ body: expenseBodySchema }), asyncHandler(expenseController.createExpense)).get(asyncHandler(expenseController.getExpenses)).all(methodNotAllowed);
+router.route('/').post(validateRequest({ body: expenseBodySchema }), asyncHandler(expenseController.createExpense)).get(validateRequest({ query: expenseQuerySchema }), asyncHandler(expenseController.getExpenses)).all(methodNotAllowed);
 router.route('/:id').put(validateRequest({ params: expenseIdParamSchema, body: expenseUpdateBodySchema }), asyncHandler(expenseController.updateExpense)).delete(validateRequest({ params: expenseIdParamSchema }), asyncHandler(expenseController.deleteExpense)).all(methodNotAllowed);
 
 // Payment endpoints
