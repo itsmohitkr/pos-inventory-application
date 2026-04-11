@@ -1,5 +1,5 @@
 const express = require('express');
-const purchaseController = require('./controller');
+const purchaseController = require('./purchase.controller');
 const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 

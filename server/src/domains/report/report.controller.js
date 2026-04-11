@@ -1,4 +1,4 @@
-const reportService = require('./service');
+const reportService = require('./report.service');
 
 const getReports = async (req, res) => {
     const { startDate, endDate } = req.query;

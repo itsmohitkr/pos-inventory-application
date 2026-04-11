@@ -6,17 +6,17 @@ const prisma = require('./src/config/prisma');
 console.error('[BOOT] index.js loaded. Starting server initialization...');
 
 // Import modular routes
-const productRoutes = require('./src/domains/product/routes');
-const categoryRoutes = require('./src/domains/category/routes');
-const saleRoutes = require('./src/domains/sale/routes');
-const reportRoutes = require('./src/domains/report/routes');
-const authRoutes = require('./src/domains/auth/routes');
-const looseSaleRoutes = require('./src/domains/loose-sale/routes');
-const promotionRoutes = require('./src/domains/promotion/routes');
-const expenseRoutes = require('./src/domains/expense/routes');
-const purchaseRoutes = require('./src/domains/purchase/routes');
-const settingRoutes = require('./src/domains/setting/routes');
-const settingService = require('./src/domains/setting/service');
+const productRoutes = require('./src/domains/product/product.router');
+const categoryRoutes = require('./src/domains/category/category.router');
+const saleRoutes = require('./src/domains/sale/sale.router');
+const reportRoutes = require('./src/domains/report/report.router');
+const authRoutes = require('./src/domains/auth/auth.router');
+const looseSaleRoutes = require('./src/domains/loose-sale/loose-sale.router');
+const promotionRoutes = require('./src/domains/promotion/promotion.router');
+const expenseRoutes = require('./src/domains/expense/expense.router');
+const purchaseRoutes = require('./src/domains/purchase/purchase.router');
+const settingRoutes = require('./src/domains/setting/setting.router');
+const settingService = require('./src/domains/setting/setting.service');
 const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/config/constants');
 const pathNotFound = require('./src/shared/error/pathNotFound');
 const errorHandler = require('./src/shared/error/errorHandler');

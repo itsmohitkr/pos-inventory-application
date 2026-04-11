@@ -1,4 +1,4 @@
-const looseSaleService = require('./service');
+const looseSaleService = require('./loose-sale.service');
 
 const createLooseSale = async (req, res) => {
     try {

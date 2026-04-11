@@ -1,5 +1,5 @@
 const express = require('express');
-const promotionController = require('./controller');
+const promotionController = require('./promotion.controller');
 const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 

@@ -1,4 +1,4 @@
-const categoryService = require('./service');
+const categoryService = require('./category.service');
 const prisma = require('../../config/prisma');
 
 const getCategories = async (req, res) => {

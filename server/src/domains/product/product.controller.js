@@ -1,5 +1,5 @@
-const productService = require('./service');
-const categoryService = require("../category/service");
+const productService = require('./product.service');
+const categoryService = require('../category/category.service');
 
 const getAllProducts = async (req, res) => {
     try {

@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const productController = require('./controller');
+const productController = require('./product.controller');
 const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 

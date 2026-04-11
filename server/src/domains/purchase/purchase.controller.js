@@ -1,36 +1,36 @@
-const expenseService = require('./service');
+const purchaseService = require('./purchase.service');
 
-const createExpense = async (req, res) => {
+const createPurchase = async (req, res) => {
     try {
-        const expense = await expenseService.createExpense(req.body);
-        res.status(201).json(expense);
+        const purchase = await purchaseService.createPurchase(req.body);
+        res.status(201).json(purchase);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-const getExpenses = async (req, res) => {
+const getPurchases = async (req, res) => {
     try {
-        const expenses = await expenseService.getExpenses(req.query);
-        res.json(expenses);
+        const purchases = await purchaseService.getPurchases(req.query);
+        res.json(purchases);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-const deleteExpense = async (req, res) => {
+const deletePurchase = async (req, res) => {
     try {
-        await expenseService.deleteExpense(req.params.id);
-        res.status(204).send();
+        await purchaseService.deletePurchase(req.params.id);
+        res.json({ message: 'Purchase deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-const updateExpense = async (req, res) => {
+const updatePurchase = async (req, res) => {
     try {
-        const expense = await expenseService.updateExpense(req.params.id, req.body);
-        res.json(expense);
+        const purchase = await purchaseService.updatePurchase(req.params.id, req.body);
+        res.json(purchase);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -38,7 +38,7 @@ const updateExpense = async (req, res) => {
 
 const addPayment = async (req, res) => {
     try {
-        const payment = await expenseService.addPayment(req.params.id, req.body);
+        const payment = await purchaseService.addPayment(req.params.id, req.body);
         res.status(201).json(payment);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -47,7 +47,7 @@ const addPayment = async (req, res) => {
 
 const updatePayment = async (req, res) => {
     try {
-        const payment = await expenseService.updatePayment(req.params.id, req.body);
+        const payment = await purchaseService.updatePayment(req.params.id, req.body);
         res.json(payment);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -56,7 +56,7 @@ const updatePayment = async (req, res) => {
 
 const deletePayment = async (req, res) => {
     try {
-        await expenseService.deletePayment(req.params.id);
+        await purchaseService.deletePayment(req.params.id);
         res.json({ message: 'Payment deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -64,10 +64,10 @@ const deletePayment = async (req, res) => {
 };
 
 module.exports = {
-    createExpense,
-    getExpenses,
-    deleteExpense,
-    updateExpense,
+    createPurchase,
+    getPurchases,
+    deletePurchase,
+    updatePurchase,
     addPayment,
     updatePayment,
     deletePayment

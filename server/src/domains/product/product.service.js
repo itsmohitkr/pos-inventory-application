@@ -1,7 +1,7 @@
 const prisma = require("../../config/prisma");
 const { getDateRange } = require('../../shared/utils/dateUtils');
 const { Prisma } = require("@prisma/client");
-const categoryService = require("../category/service");
+const categoryService = require('../category/category.service');
 
 const normalizeCategory = (value) => {
   if (value === null || value === undefined) return null;
@@ -765,7 +765,7 @@ const updateProduct = async (id, productData) => {
   });
 
   // Background sync to ensure Category table reflects potentially new strings
-  const categoryService = require("../category/service");
+  const categoryService = require('../category/category.service');
   categoryService.ensureCategoriesFromProducts().catch(err => console.error("Category sync error:", err));
 
   return updated;

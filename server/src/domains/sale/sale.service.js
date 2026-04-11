@@ -97,7 +97,7 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
             });
         }
 
-        const settingService = require('../setting/service');
+        const settingService = require('../setting/setting.service');
         const receiptSettings = await settingService.getSettingByKey('posReceiptSettings') || {};
 
         const finalAmountBeforeRounding = totalAmount - discount - extraDiscount;
