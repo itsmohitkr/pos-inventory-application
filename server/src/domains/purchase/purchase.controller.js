@@ -1,68 +1,91 @@
+const { StatusCodes } = require('http-status-codes');
 const purchaseService = require('./purchase.service');
+const toAppError = require('../../shared/error/toAppError');
+const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
+
+const mapPurchaseError = (error, defaultStatus = StatusCodes.INTERNAL_SERVER_ERROR) => {
+    throw toAppError(error, {
+        defaultStatus,
+        notFoundMessages: ['Payment not found', 'Record to delete does not exist', 'Record to update not found']
+    });
+};
 
 const createPurchase = async (req, res) => {
     try {
         const purchase = await purchaseService.createPurchase(req.body);
-        res.status(201).json(purchase);
+        return sendSuccessResponse(res, StatusCodes.CREATED, purchase, 'Purchase created successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPurchaseError(error);
     }
 };
 
 const getPurchases = async (req, res) => {
     try {
         const purchases = await purchaseService.getPurchases(req.query);
-        res.json(purchases);
+        return sendSuccessResponse(res, StatusCodes.OK, purchases, 'Purchases fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPurchaseError(error);
     }
 };
 
 const deletePurchase = async (req, res) => {
     try {
         await purchaseService.deletePurchase(req.params.id);
-        res.json({ message: 'Purchase deleted successfully' });
+        return sendSuccessResponse(res, StatusCodes.OK, { message: 'Purchase deleted successfully' }, 'Purchase deleted successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPurchaseError(error);
     }
 };
 
 const updatePurchase = async (req, res) => {
     try {
         const purchase = await purchaseService.updatePurchase(req.params.id, req.body);
-        res.json(purchase);
+        return sendSuccessResponse(res, StatusCodes.OK, purchase, 'Purchase updated successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPurchaseError(error);
     }
 };
 
 const addPayment = async (req, res) => {
     try {
         const payment = await purchaseService.addPayment(req.params.id, req.body);
-        res.status(201).json(payment);
+        return sendSuccessResponse(res, StatusCodes.CREATED, payment, 'Purchase payment added successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPurchaseError(error);
     }
 };
 
 const updatePayment = async (req, res) => {
     try {
         const payment = await purchaseService.updatePayment(req.params.id, req.body);
-        res.json(payment);
+        return sendSuccessResponse(res, StatusCodes.OK, payment, 'Purchase payment updated successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPurchaseError(error);
     }
 };
 
 const deletePayment = async (req, res) => {
     try {
         await purchaseService.deletePayment(req.params.id);
-        res.json({ message: 'Payment deleted successfully' });
+        return sendSuccessResponse(res, StatusCodes.OK, { message: 'Payment deleted successfully' }, 'Payment deleted successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPurchaseError(error);
     }
 };
-
 module.exports = {
     createPurchase,
     getPurchases,

@@ -1,7 +1,18 @@
+const { StatusCodes, ReasonPhrases } = require('http-status-codes');
 const ResponseBody = require('./responseBody');
 
-const sendSuccessResponse = (res, status = 200, data, message = 'Success', options = {}) => {
+const sendSuccessResponse = (
+    res,
+    status = StatusCodes.OK,
+    data,
+    message = ReasonPhrases.OK,
+    options = {}
+) => {
     const { format = 'wrapped', meta = {} } = options;
+
+    if (status === StatusCodes.NO_CONTENT) {
+        return res.status(status).send();
+    }
 
     if (format === 'raw') {
         return res.status(status).json(data);
@@ -36,9 +47,17 @@ const sendSuccessResponse = (res, status = 200, data, message = 'Success', optio
     return res.status(status).json(ResponseBody.successResponse(message, data, meta));
 };
 
-const sendErrorResponse = (res, status = 500, message = 'Error', error, options = {}) => {
+const sendErrorResponse = (
+    res,
+    status = StatusCodes.INTERNAL_SERVER_ERROR,
+    message = ReasonPhrases.INTERNAL_SERVER_ERROR,
+    error,
+    options = {}
+) => {
     const { details, meta = {} } = options;
-    const normalizedError = error ?? (status >= 500 ? 'Internal Server Error' : message);
+    const normalizedError = error ?? (status >= StatusCodes.INTERNAL_SERVER_ERROR
+        ? ReasonPhrases.INTERNAL_SERVER_ERROR
+        : message);
 
     return res.status(status).json(
         ResponseBody.errorResponse(message, normalizedError, details, meta)

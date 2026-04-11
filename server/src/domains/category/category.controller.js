@@ -28,7 +28,7 @@ const getCategories = async (_req, res) => {
 const createCategory = async (req, res) => {
     try {
         const category = await categoryService.createCategory(req.body);
-        return sendSuccessResponse(res, 200, category, 'Category saved successfully');
+        return sendSuccessResponse(res, StatusCodes.CREATED, category, 'Category saved successfully');
     } catch (error) {
         return throwCategoryError(error);
     }

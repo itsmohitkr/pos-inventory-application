@@ -1,11 +1,12 @@
+const { StatusCodes, ReasonPhrases } = require('http-status-codes');
 const { sendErrorResponse } = require('../utils/helper/responseHelpers');
 
 const methodNotAllowed = (req, res) => {
     return sendErrorResponse(
         res,
-        405,
+        StatusCodes.METHOD_NOT_ALLOWED,
         `Method ${req.method} not allowed for ${req.originalUrl}`,
-        'Method Not Allowed'
+        ReasonPhrases.METHOD_NOT_ALLOWED
     );
 };
 

@@ -1,12 +1,17 @@
+const { StatusCodes } = require('http-status-codes');
 const reportService = require('./report.service');
+const toAppError = require('../../shared/error/toAppError');
+const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
 
 const getReports = async (req, res) => {
     const { startDate, endDate } = req.query;
     try {
         const stats = await reportService.getReports({ startDate, endDate });
-        res.json(stats);
+        return sendSuccessResponse(res, StatusCodes.OK, stats, 'Reports fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        throw toAppError(error, { defaultStatus: StatusCodes.INTERNAL_SERVER_ERROR });
     }
 };
 
@@ -14,52 +19,61 @@ const getExpiryReport = async (req, res) => {
     const { startDate, endDate } = req.query;
     try {
         const expiringBatches = await reportService.getExpiryReport({ startDate, endDate });
-        res.json(expiringBatches);
+        return sendSuccessResponse(res, StatusCodes.OK, expiringBatches, 'Expiry report fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        throw toAppError(error, { defaultStatus: StatusCodes.INTERNAL_SERVER_ERROR });
     }
 };
 
-const getLowStockReport = async (req, res) => {
+const getLowStockReport = async (_req, res) => {
     try {
         const lowStockProducts = await reportService.getLowStockReport();
-        res.json(lowStockProducts);
+        return sendSuccessResponse(res, StatusCodes.OK, lowStockProducts, 'Low stock report fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        throw toAppError(error, { defaultStatus: StatusCodes.INTERNAL_SERVER_ERROR });
     }
 };
 
 const getMonthlySales = async (req, res) => {
     const { year } = req.query;
     try {
-        const stats = await reportService.getMonthlySales({ year: year ? parseInt(year) : new Date().getFullYear() });
-        res.json(stats);
+        const stats = await reportService.getMonthlySales({ year: year ? parseInt(year, 10) : new Date().getFullYear() });
+        return sendSuccessResponse(res, StatusCodes.OK, stats, 'Monthly sales fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        throw toAppError(error, { defaultStatus: StatusCodes.INTERNAL_SERVER_ERROR });
     }
 };
 
 const getDailySales = async (req, res) => {
     const { year, month } = req.query;
     try {
-        const parsedYear = year ? parseInt(year) : new Date().getFullYear();
-        const parsedMonth = month !== undefined ? parseInt(month) : new Date().getMonth();
+        const parsedYear = year ? parseInt(year, 10) : new Date().getFullYear();
+        const parsedMonth = month !== undefined ? parseInt(month, 10) : new Date().getMonth();
         const stats = await reportService.getDailySales({ year: parsedYear, month: parsedMonth });
-        res.json(stats);
+        return sendSuccessResponse(res, StatusCodes.OK, stats, 'Daily sales fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        throw toAppError(error, { defaultStatus: StatusCodes.INTERNAL_SERVER_ERROR });
     }
 };
 
-const getTopSellingProducts = async (req, res) => {
+const getTopSellingProducts = async (_req, res) => {
     try {
         const stats = await reportService.getTopSellingProducts();
-        res.json(stats);
+        return sendSuccessResponse(res, StatusCodes.OK, stats, 'Top-selling products fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        throw toAppError(error, { defaultStatus: StatusCodes.INTERNAL_SERVER_ERROR });
     }
 };
-
 module.exports = {
     getReports,
     getExpiryReport,

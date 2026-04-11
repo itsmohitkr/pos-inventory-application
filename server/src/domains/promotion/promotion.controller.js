@@ -1,61 +1,86 @@
+const { StatusCodes } = require('http-status-codes');
 const promotionService = require('./promotion.service');
+const { createHttpError } = require('../../shared/error/appError');
+const toAppError = require('../../shared/error/toAppError');
+const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
+
+const mapPromotionError = (error, defaultStatus = StatusCodes.BAD_REQUEST) => {
+    throw toAppError(error, {
+        defaultStatus,
+        notFoundMessages: ['Record to delete does not exist', 'Record to update not found']
+    });
+};
 
 const createPromotion = async (req, res) => {
     try {
         const promotion = await promotionService.createPromotion(req.body);
-        res.status(201).json(promotion);
+        return sendSuccessResponse(res, StatusCodes.CREATED, promotion, 'Promotion created successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        console.error("Error creating promotion:", error);
-        res.status(400).json({ error: error.message });
+        console.error('Error creating promotion:', error);
+        return mapPromotionError(error);
     }
 };
 
-const getAllPromotions = async (req, res) => {
+const getAllPromotions = async (_req, res) => {
     try {
         const promotions = await promotionService.getAllPromotions();
-        res.json(promotions);
+        return sendSuccessResponse(res, StatusCodes.OK, promotions, 'Promotions fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPromotionError(error, StatusCodes.INTERNAL_SERVER_ERROR);
     }
 };
 
 const getProductPricingOptions = async (req, res) => {
     try {
         const options = await promotionService.getProductPricingOptions(req.params.productId);
-        if (!options) return res.status(404).json({ error: 'Product not found' });
-        res.json(options);
+        if (!options) {
+            throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', { error: 'Product not found' });
+        }
+
+        return sendSuccessResponse(res, StatusCodes.OK, options, 'Promotion pricing options fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPromotionError(error, StatusCodes.INTERNAL_SERVER_ERROR);
     }
 };
 
 const deletePromotion = async (req, res) => {
     try {
         await promotionService.deletePromotion(req.params.id);
-        res.json({ message: 'Promotion deleted successfully' });
+        return sendSuccessResponse(res, StatusCodes.OK, { message: 'Promotion deleted successfully' }, 'Promotion deleted successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        return mapPromotionError(error);
     }
 };
 
 const updatePromotion = async (req, res) => {
     try {
         const promotion = await promotionService.updatePromotion(req.params.id, req.body);
-        res.json(promotion);
+        return sendSuccessResponse(res, StatusCodes.OK, promotion, 'Promotion updated successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        return mapPromotionError(error);
     }
 };
 
 const getEffectivePromoPrice = async (req, res) => {
     try {
         const price = await promotionService.getEffectivePromoPrice(req.params.productId);
-        res.json({ promoPrice: price });
+        return sendSuccessResponse(res, StatusCodes.OK, { promoPrice: price }, 'Effective promotional price fetched successfully', {
+            format: 'raw'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        return mapPromotionError(error, StatusCodes.INTERNAL_SERVER_ERROR);
     }
 };
-
 module.exports = {
     createPromotion,
     getAllPromotions,

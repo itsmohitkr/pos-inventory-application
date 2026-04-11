@@ -7,7 +7,7 @@ const processSale = async (req, res) => {
         const sale = await saleService.processSale(req.body);
         return sendSuccessResponse(
             res,
-            200,
+            StatusCodes.CREATED,
             { saleId: sale.id, sale },
             'Sale processed successfully',
             { format: 'merge' }

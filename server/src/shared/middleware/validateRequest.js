@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const { StatusCodes } = require('http-status-codes');
 const { createHttpError } = require('../error/appError');
 
 const DEFAULT_OPTIONS = {
@@ -28,7 +29,7 @@ const validateRequest = (schemas = {}, options = {}) => {
 
             if (error) {
                 return next(
-                    createHttpError(400, 'Validation failed', {
+                    createHttpError(StatusCodes.BAD_REQUEST, 'Validation failed', {
                         name: 'ValidationError',
                         error: 'Validation failed',
                         details: formatValidationDetails(error.details)
