@@ -584,6 +584,14 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
 
     const handleRowClick = (product, event) => {
         const id = String(product.id);
+
+        // If clicking the same product without modifier keys, do nothing to avoid resetting state
+        // and causing the "No stock available" flash on the right panel.
+        const isCurrentlySelected = selectedProduct?.id === product.id;
+        if (isCurrentlySelected && !event.ctrlKey && !event.metaKey && !event.shiftKey && selectedIds.has(id) && selectedIds.size === 1) {
+            return;
+        }
+
         let nextSelected = new Set(selectedIds);
 
         if (event.shiftKey && lastSelectedId) {
@@ -610,8 +618,13 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
 
         setSelectedIds(nextSelected);
         setLastSelectedId(id);
-        setSelectedProduct(product);
-        setSelectedProductDetails(null);
+
+        // Only reset details and signal loading if selecting a different product
+        if (!isCurrentlySelected) {
+            setSelectedProduct(product);
+            setSelectedProductDetails(null);
+            setIsLoadingBatches(true); // Signal loading immediately to avoid "No stock" flash
+        }
     };
 
     const handleListDragStart = (e, product) => {
@@ -622,9 +635,15 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
             dragIds = Array.from(selectedIds);
         } else {
             // If dragging unselected item, select it and drag only it
+            const isCurrentlySelected = selectedProduct?.id === product.id;
             setSelectedIds(new Set([id]));
             setLastSelectedId(id);
-            setSelectedProduct(product);
+
+            if (!isCurrentlySelected) {
+                setSelectedProduct(product);
+                setSelectedProductDetails(null);
+                setIsLoadingBatches(true);
+            }
         }
 
         e.dataTransfer.setData('text/plain', dragIds.join(','));
