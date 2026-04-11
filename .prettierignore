@@ -1,0 +1,14 @@
+node_modules
+client/node_modules
+server/node_modules
+client/dist
+server/dist
+dist
+build
+coverage
+release
+*.log
+.DS_Store
+server/prisma/*.db
+server/prisma/*.db-journal
+server/prisma/*.backup_*

@@ -1,126 +1,129 @@
 {
-    "name": "bachat-bazaar",
-    "version": "1.0.1",
-    "description": "POS Application for Bachat Bazaar",
-    "main": "desktop/main.js",
-    "homepage": "./",
-    "author": "POS Application <support@bachatbazaar.local>",
-    "license": "ISC",
-    "scripts": {
-        "electron-dev": "concurrently \"npm run client-dev\" \"wait-on http://localhost:5173 && electron .\"",
-        "electron-build": "npm run client-build && npm run electron-pack",
-        "electron-pack": "electron-builder --publish never",
-        "electron-publish": "electron-builder --publish always",
-        "client-dev": "cd client && npm run dev",
-        "client-build": "cd client && npm run build",
-        "server": "cd server && npm run dev",
-        "dev": "concurrently \"npm run client-dev\" \"npm run server\""
+  "name": "bachat-bazaar",
+  "version": "1.0.1",
+  "description": "POS Application for Bachat Bazaar",
+  "main": "desktop/main.js",
+  "homepage": "./",
+  "author": "POS Application <support@bachatbazaar.local>",
+  "license": "ISC",
+  "scripts": {
+    "electron-dev": "concurrently \"npm run client-dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron-build": "npm run client-build && npm run electron-pack",
+    "electron-pack": "electron-builder --publish never",
+    "electron-publish": "electron-builder --publish always",
+    "client-dev": "cd client && npm run dev",
+    "client-build": "cd client && npm run build",
+    "server": "cd server && npm run dev",
+    "dev": "concurrently \"npm run client-dev\" \"npm run server\"",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
+  },
+  "keywords": [],
+  "devDependencies": {
+    "app-builder-bin": "^4.2.0",
+    "concurrently": "^8.2.2",
+    "electron": "latest",
+    "electron-builder": "^26.8.1",
+    "electron-is-dev": "^3.0.1",
+    "fs-extra": "^11.3.3",
+    "prettier": "^3.8.2",
+    "wait-on": "^7.0.1"
+  },
+  "type": "commonjs",
+  "build": {
+    "appId": "com.bachatbazaar.pos",
+    "productName": "Bachat Bazaar",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "itsmohitkr",
+        "repo": "pos-inventory-application"
+      }
+    ],
+    "asar": true,
+    "afterPack": "./scripts/post-build.js",
+    "files": [
+      "desktop/**/*",
+      "client/dist/**/*",
+      "server/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache",
+      "!.env",
+      "!client/.env",
+      "!server/.env"
+    ],
+    "asarUnpack": [
+      "server/**/*",
+      "node_modules/**/*",
+      "server/prisma/migrations/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "node_modules/.prisma",
+        "to": "app.asar.unpacked/node_modules/.prisma",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "directories": {
+      "buildResources": "assets"
     },
-    "keywords": [],
-    "devDependencies": {
-        "app-builder-bin": "^4.2.0",
-        "concurrently": "^8.2.2",
-        "electron": "latest",
-        "electron-builder": "^26.8.1",
-        "electron-is-dev": "^3.0.1",
-        "fs-extra": "^11.3.3",
-        "wait-on": "^7.0.1"
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.business",
+      "identity": null,
+      "gatekeeperAssess": false,
+      "icon": "assets/shop_logo.icns",
+      "artifactName": "Bachat-Bazaar-${version}-${arch}.${ext}"
     },
-    "type": "commonjs",
-    "build": {
-        "appId": "com.bachatbazaar.pos",
-        "productName": "Bachat Bazaar",
-        "publish": [
-            {
-                "provider": "github",
-                "owner": "itsmohitkr",
-                "repo": "pos-inventory-application"
-            }
-        ],
-        "asar": true,
-        "afterPack": "./scripts/post-build.js",
-        "files": [
-            "desktop/**/*",
-            "client/dist/**/*",
-            "server/**/*",
-            "node_modules/**/*",
-            "!node_modules/.cache",
-            "!.env",
-            "!client/.env",
-            "!server/.env"
-        ],
-        "asarUnpack": [
-            "server/**/*",
-            "node_modules/**/*",
-            "server/prisma/migrations/**/*"
-        ],
-        "extraFiles": [
-            {
-                "from": "node_modules/.prisma",
-                "to": "app.asar.unpacked/node_modules/.prisma",
-                "filter": [
-                    "**/*"
-                ]
-            }
-        ],
-        "directories": {
-            "buildResources": "assets"
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
         },
-        "mac": {
-            "target": [
-                "dmg",
-                "zip"
-            ],
-            "category": "public.app-category.business",
-            "identity": null,
-            "gatekeeperAssess": false,
-            "icon": "assets/shop_logo.icns",
-            "artifactName": "Bachat-Bazaar-${version}-${arch}.${ext}"
-        },
-        "dmg": {
-            "contents": [
-                {
-                    "x": 130,
-                    "y": 220
-                },
-                {
-                    "x": 410,
-                    "y": 220,
-                    "type": "link",
-                    "path": "/Applications"
-                }
-            ]
-        },
-        "win": {
-            "target": [
-                {
-                    "target": "nsis",
-                    "arch": [
-                        "x64"
-                    ]
-                }
-            ],
-            "icon": "assets/shop_logo.ico",
-            "artifactName": "Bachat-Bazaar-Setup-${version}.${ext}",
-            "executableName": "BachatBazaar"
-        },
-        "nsis": {
-            "oneClick": false,
-            "allowToChangeInstallationDirectory": true,
-            "createDesktopShortcut": true,
-            "createStartMenuShortcut": true,
-            "shortcutName": "Bachat Bazaar"
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
         }
+      ]
     },
-    "dependencies": {
-        "@prisma/client": "^5.22.0",
-        "body-parser": "^2.2.2",
-        "cors": "^2.8.6",
-        "dotenv": "^17.3.1",
-        "electron-updater": "^5.3.0",
-        "express": "^5.2.1",
-        "joi": "^18.1.2",
-        "multer": "^2.0.2",
-        "prisma": "^5.22.0"
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/shop_logo.ico",
+      "artifactName": "Bachat-Bazaar-Setup-${version}.${ext}",
+      "executableName": "BachatBazaar"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Bachat Bazaar"
     }
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "electron-updater": "^5.3.0",
+    "express": "^5.2.1",
+    "joi": "^18.1.2",
+    "multer": "^2.0.2",
+    "prisma": "^5.22.0"
+  }
 }

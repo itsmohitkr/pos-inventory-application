@@ -7,6 +7,13 @@ const { updateSettingsBodySchema } = require('./setting.validation');
 
 const router = express.Router();
 
-router.route('/').get(asyncHandler(settingController.getAllSettings)).post(validateRequest({ body: updateSettingsBodySchema }), asyncHandler(settingController.updateSettings)).all(methodNotAllowed);
+router
+  .route('/')
+  .get(asyncHandler(settingController.getAllSettings))
+  .post(
+    validateRequest({ body: updateSettingsBodySchema }),
+    asyncHandler(settingController.updateSettings)
+  )
+  .all(methodNotAllowed);
 
 module.exports = router;

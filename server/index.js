@@ -29,8 +29,8 @@ app.use(bodyParser.json());
 
 // Request logging middleware
 app.use((req, res, next) => {
-    // ...existing code...
-    next();
+  // ...existing code...
+  next();
 });
 
 // Main API Router
@@ -56,9 +56,9 @@ const fs = require('fs');
 
 // IPC Helper for Splash Screen
 const sendSplashMsg = (msg) => {
-    if (process.send) {
-        process.send({ type: 'splash-status', message: msg });
-    }
+  if (process.send) {
+    process.send({ type: 'splash-status', message: msg });
+  }
 };
 
 const util = require('util');
@@ -66,166 +66,179 @@ const execAsync = util.promisify(require('child_process').exec);
 
 // Auto-run Prisma migrations on startup
 async function runPrismaMigrations() {
-    console.error('[BOOT MIGRATION] Running automated Prisma migrations...');
-    sendSplashMsg('Applying database schemas...');
+  console.error('[BOOT MIGRATION] Running automated Prisma migrations...');
+  sendSplashMsg('Applying database schemas...');
+
+  try {
+    let prismaCliPath;
+    let schemaPath;
+    let pEnv = { ...process.env };
+    let nodeExecutable = process.execPath;
+
+    const isPackaged = process.env.NODE_ENV === 'production' || __dirname.includes('app.asar');
+
+    if (isPackaged) {
+      prismaCliPath = path.join(__dirname, '..', 'node_modules', 'prisma', 'build', 'index.js');
+      schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
+      pEnv.ELECTRON_RUN_AS_NODE = '1';
+    } else {
+      prismaCliPath = path.join(__dirname, 'node_modules', 'prisma', 'build', 'index.js');
+      schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
+      nodeExecutable = process.execPath;
+    }
+
+    console.error('[BOOT MIGRATION] Prisma CLI Path:', prismaCliPath);
+    console.error('[BOOT MIGRATION] Schema Path:', schemaPath);
 
     try {
-        let prismaCliPath;
-        let schemaPath;
-        let pEnv = { ...process.env };
-        let nodeExecutable = process.execPath;
-
-        const isPackaged = process.env.NODE_ENV === 'production' || __dirname.includes('app.asar');
-
-        if (isPackaged) {
-            prismaCliPath = path.join(__dirname, '..', 'node_modules', 'prisma', 'build', 'index.js');
-            schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
-            pEnv.ELECTRON_RUN_AS_NODE = '1';
-        } else {
-            prismaCliPath = path.join(__dirname, 'node_modules', 'prisma', 'build', 'index.js');
-            schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
-            nodeExecutable = process.execPath;
+      // Use execAsync so DB migrations do not block electron main process event loop
+      const { stdout, stderr } = await execAsync(
+        `"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`,
+        {
+          env: pEnv,
+          encoding: 'utf-8',
         }
+      );
+      console.error('[BOOT MIGRATION] Successful:\n', stdout);
+    } catch (deployError) {
+      const errorMsg = deployError.stderr || deployError.stdout || deployError.message || '';
+      if (errorMsg.includes('P3005')) {
+        console.error('[BOOT MIGRATION] P3005 Detected: Database schema not empty. Baselining...');
 
-        console.error('[BOOT MIGRATION] Prisma CLI Path:', prismaCliPath);
-        console.error('[BOOT MIGRATION] Schema Path:', schemaPath);
+        const migrationsDir = path.join(path.dirname(schemaPath), 'migrations');
+        if (fs.existsSync(migrationsDir)) {
+          const dirs = fs
+            .readdirSync(migrationsDir, { withFileTypes: true })
+            .filter((dirent) => dirent.isDirectory())
+            .map((dirent) => dirent.name);
 
-        try {
-            // Use execAsync so DB migrations do not block electron main process event loop
-            const { stdout, stderr } = await execAsync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
-                env: pEnv,
-                encoding: 'utf-8'
-            });
-            console.error('[BOOT MIGRATION] Successful:\n', stdout);
-        } catch (deployError) {
-            const errorMsg = deployError.stderr || deployError.stdout || deployError.message || "";
-            if (errorMsg.includes('P3005')) {
-                console.error('[BOOT MIGRATION] P3005 Detected: Database schema not empty. Baselining...');
+          dirs.sort();
 
-                const migrationsDir = path.join(path.dirname(schemaPath), 'migrations');
-                if (fs.existsSync(migrationsDir)) {
-                    const dirs = fs.readdirSync(migrationsDir, { withFileTypes: true })
-                        .filter(dirent => dirent.isDirectory())
-                        .map(dirent => dirent.name);
-
-                    dirs.sort();
-
-                    for (const migration of dirs) {
-                        try {
-                            await execAsync(`"${nodeExecutable}" "${prismaCliPath}" migrate resolve --applied "${migration}" --schema="${schemaPath}"`, {
-                                env: pEnv
-                            });
-                            console.error(`[BOOT MIGRATION] Baselined migration: ${migration}`);
-                        } catch (resolveErr) {
-                            // If it fails (e.g., already applied), just ignore and continue
-                        }
-                    }
-
-                    console.error('[BOOT MIGRATION] Running final deploy after baselining...');
-                    const { stdout } = await execAsync(`"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`, {
-                        env: pEnv,
-                        encoding: 'utf-8'
-                    });
-                    console.error('[BOOT MIGRATION] Post-Baseline Deploy Successful:\n', stdout);
+          for (const migration of dirs) {
+            try {
+              await execAsync(
+                `"${nodeExecutable}" "${prismaCliPath}" migrate resolve --applied "${migration}" --schema="${schemaPath}"`,
+                {
+                  env: pEnv,
                 }
-            } else {
-                throw deployError;
+              );
+              console.error(`[BOOT MIGRATION] Baselined migration: ${migration}`);
+            } catch (resolveErr) {
+              // If it fails (e.g., already applied), just ignore and continue
             }
+          }
+
+          console.error('[BOOT MIGRATION] Running final deploy after baselining...');
+          const { stdout } = await execAsync(
+            `"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`,
+            {
+              env: pEnv,
+              encoding: 'utf-8',
+            }
+          );
+          console.error('[BOOT MIGRATION] Post-Baseline Deploy Successful:\n', stdout);
         }
-    } catch (error) {
-        console.error('[BOOT MIGRATION FATAL]:\n', error.stderr || error.stdout || error.message);
+      } else {
+        throw deployError;
+      }
     }
+  } catch (error) {
+    console.error('[BOOT MIGRATION FATAL]:\n', error.stderr || error.stdout || error.message);
+  }
 }
 
 // Auto-seed database on first run
 async function checkAndSeed() {
-    try {
-        sendSplashMsg('Checking Local Database Status...');
-        // Run migrations first
-        await runPrismaMigrations();
+  try {
+    sendSplashMsg('Checking Local Database Status...');
+    // Run migrations first
+    await runPrismaMigrations();
 
-        // Check if any users exist in the database
-        const userCount = await prisma.user.count();
+    // Check if any users exist in the database
+    const userCount = await prisma.user.count();
 
-        if (userCount === 0) {
-            // ...existing code...
+    if (userCount === 0) {
+      // ...existing code...
 
-            // Run essential seed script only (admin user etc)
-            const { seedEssential } = require('./seed');
-            await seedEssential();
-            console.log('Database initialized successfully!');
-        } else {
-            console.log('Database already seeded.');
-        }
-
-        // Always ensure default settings exist
-        const shopName = await settingService.getSettingByKey('posShopName');
-        if (!shopName) {
-            console.log('Seeding default shop name...');
-            await settingService.updateSetting('posShopName', 'Bachat Bazaar');
-        }
-
-        const receiptSettings = await settingService.getSettingByKey('posReceiptSettings');
-        if (!receiptSettings) {
-            console.log('Seeding default receipt settings...');
-            await settingService.updateSetting('posReceiptSettings', DEFAULT_RECEIPT_SETTINGS);
-        }
-
-        const paymentSettings = await settingService.getSettingByKey('posPaymentSettings');
-        if (!paymentSettings) {
-            console.log('Seeding default payment settings...');
-            await settingService.updateSetting('posPaymentSettings', {
-                enabledMethods: ['cash'],
-                allowMultplePayment: false,
-                customMethods: []
-            });
-        }
-
-        // Seed shop metadata
-        for (const [key, defaultValue] of Object.entries(DEFAULT_SHOP_METADATA)) {
-            const existing = await settingService.getSettingByKey(key);
-            if (!existing) {
-                console.log(`Seeding default ${key}...`);
-                await settingService.updateSetting(key, defaultValue);
-            }
-        }
-    } catch (error) {
-        console.error('Error checking/seeding database:', error);
+      // Run essential seed script only (admin user etc)
+      const { seedEssential } = require('./seed');
+      await seedEssential();
+      console.log('Database initialized successfully!');
+    } else {
+      console.log('Database already seeded.');
     }
+
+    // Always ensure default settings exist
+    const shopName = await settingService.getSettingByKey('posShopName');
+    if (!shopName) {
+      console.log('Seeding default shop name...');
+      await settingService.updateSetting('posShopName', 'Bachat Bazaar');
+    }
+
+    const receiptSettings = await settingService.getSettingByKey('posReceiptSettings');
+    if (!receiptSettings) {
+      console.log('Seeding default receipt settings...');
+      await settingService.updateSetting('posReceiptSettings', DEFAULT_RECEIPT_SETTINGS);
+    }
+
+    const paymentSettings = await settingService.getSettingByKey('posPaymentSettings');
+    if (!paymentSettings) {
+      console.log('Seeding default payment settings...');
+      await settingService.updateSetting('posPaymentSettings', {
+        enabledMethods: ['cash'],
+        allowMultplePayment: false,
+        customMethods: [],
+      });
+    }
+
+    // Seed shop metadata
+    for (const [key, defaultValue] of Object.entries(DEFAULT_SHOP_METADATA)) {
+      const existing = await settingService.getSettingByKey(key);
+      if (!existing) {
+        console.log(`Seeding default ${key}...`);
+        await settingService.updateSetting(key, defaultValue);
+      }
+    }
+  } catch (error) {
+    console.error('Error checking/seeding database:', error);
+  }
 }
 
 async function startServer() {
+  try {
+    console.error('[BOOT] Starting checkAndSeed with timeout...');
+    sendSplashMsg('Starting core database engine...');
+    // Set a timeout for DB check to prevent boot hangs
+    const bootstrapPromise = checkAndSeed();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Database initialization timed out')), 10000)
+    );
+
     try {
-        console.error('[BOOT] Starting checkAndSeed with timeout...');
-        sendSplashMsg('Starting core database engine...');
-        // Set a timeout for DB check to prevent boot hangs
-        const bootstrapPromise = checkAndSeed();
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Database initialization timed out')), 10000)
-        );
-
-        try {
-            await Promise.race([bootstrapPromise, timeoutPromise]);
-            console.error('[BOOT] Database initialization finished successfully.');
-        } catch (bootstrapError) {
-            console.error('[BOOT WARNING] Database initialization stalled or failed:', bootstrapError.message);
-            console.error('[BOOT] Proceeding to start server anyway...');
-        }
-    } catch (e) {
-        console.error("Critical error during application pre-startup:", e);
+      await Promise.race([bootstrapPromise, timeoutPromise]);
+      console.error('[BOOT] Database initialization finished successfully.');
+    } catch (bootstrapError) {
+      console.error(
+        '[BOOT WARNING] Database initialization stalled or failed:',
+        bootstrapError.message
+      );
+      console.error('[BOOT] Proceeding to start server anyway...');
     }
+  } catch (e) {
+    console.error('Critical error during application pre-startup:', e);
+  }
 
-    app.listen(PORT, () => {
-        console.error(`[BOOT SUCCESS] Server running on port ${PORT}`);
-        sendSplashMsg('Starting UI Interface...');
-    });
+  app.listen(PORT, () => {
+    console.error(`[BOOT SUCCESS] Server running on port ${PORT}`);
+    sendSplashMsg('Starting UI Interface...');
+  });
 }
 
 try {
-    startServer();
+  startServer();
 } catch (e) {
-    console.error('SERVER BOOT FATAL:', e);
+  console.error('SERVER BOOT FATAL:', e);
 }
 
 // Keep process alive hack
-setInterval(() => { }, 10000);
+setInterval(() => {}, 10000);

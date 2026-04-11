@@ -1,98 +1,104 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
 
 :root {
-    --bb-navy: #0b1d39;
-    --bb-ink: #101828;
-    --bb-cream: #f6f3ee;
-    --bb-sand: #efe9e1;
-    --bb-gold: #f2b544;
-    --bb-mint: #1f8a5b;
+  --bb-navy: #0b1d39;
+  --bb-ink: #101828;
+  --bb-cream: #f6f3ee;
+  --bb-sand: #efe9e1;
+  --bb-gold: #f2b544;
+  --bb-mint: #1f8a5b;
 }
 
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 html,
 body {
-    height: 100vh;
-    overflow: hidden;
+  height: 100vh;
+  overflow: hidden;
 }
 
 body {
-    margin: 0;
-    font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: var(--bb-ink);
-    background-color: var(--bb-cream);
-    background-image:
-        radial-gradient(circle at 16% 18%, rgba(242, 181, 68, 0.18), transparent 38%),
-        radial-gradient(circle at 82% 12%, rgba(11, 29, 57, 0.12), transparent 42%),
-        radial-gradient(circle at 24% 82%, rgba(31, 138, 91, 0.12), transparent 44%),
-        linear-gradient(120deg, rgba(255, 255, 255, 0.6), rgba(246, 243, 238, 0.6));
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  font-family:
+    'Inter',
+    'Roboto',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: var(--bb-ink);
+  background-color: var(--bb-cream);
+  background-image:
+    radial-gradient(circle at 16% 18%, rgba(242, 181, 68, 0.18), transparent 38%),
+    radial-gradient(circle at 82% 12%, rgba(11, 29, 57, 0.12), transparent 42%),
+    radial-gradient(circle at 24% 82%, rgba(31, 138, 91, 0.12), transparent 44%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.6), rgba(246, 243, 238, 0.6));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
-    height: 100vh;
-    overflow: hidden;
-    animation: bb-fade 420ms ease-out;
+  height: 100vh;
+  overflow: hidden;
+  animation: bb-fade 420ms ease-out;
 }
 
 @keyframes bb-fade {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .monochrome *:not(.pos-action-btn):not(.pos-action-btn *) {
-    filter: grayscale(1) !important;
+  filter: grayscale(1) !important;
 }
 
 @media print {
-    body * {
-        visibility: hidden;
-    }
+  body * {
+    visibility: hidden;
+  }
 
-    #thermal-receipt-print,
-    #thermal-receipt-print * {
-        visibility: visible;
-    }
+  #thermal-receipt-print,
+  #thermal-receipt-print * {
+    visibility: visible;
+  }
 
-    #thermal-receipt-print {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-    }
+  #thermal-receipt-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
 
-    .report-print-area,
-    .report-print-area * {
-        visibility: visible;
-    }
+  .report-print-area,
+  .report-print-area * {
+    visibility: visible;
+  }
 
-    .report-print-area {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: max-content;
-        overflow: visible;
-        margin: 0;
-        padding: 20px;
-    }
+  .report-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: max-content;
+    overflow: visible;
+    margin: 0;
+    padding: 20px;
+  }
 
-    .no-print,
-    .no-print * {
-        display: none !important;
-        visibility: hidden !important;
-    }
+  .no-print,
+  .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
 }

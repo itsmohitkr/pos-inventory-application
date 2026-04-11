@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import api, { isRequestCanceled } from '../../shared/api/api';
+import inventoryService from '../../shared/api/inventoryService';
+import { isRequestCanceled } from '../../shared/api/api';
 import {
   Alert,
   Autocomplete,
@@ -27,7 +28,7 @@ import {
   TextField,
   Tooltip,
   Typography,
-  useMediaQuery
+  useMediaQuery,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -40,7 +41,7 @@ import {
   Refresh as RefreshIcon,
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
-  AspectRatio as AspectRatioIcon
+  AspectRatio as AspectRatioIcon,
 } from '@mui/icons-material';
 import Barcode from 'react-barcode';
 import { useTheme } from '@mui/material/styles';
@@ -62,8 +63,8 @@ const PAPER_PRESETS = {
         gapVertical: 3,
         barcodeLineWidth: 1,
         barcodeHeight: 30,
-        barcodeFormat: 'CODE128'
-      }
+        barcodeFormat: 'CODE128',
+      },
     },
     {
       id: 'a4_5x13',
@@ -80,8 +81,8 @@ const PAPER_PRESETS = {
         gapVertical: 2,
         barcodeLineWidth: 1.0,
         barcodeHeight: 25,
-        barcodeFormat: 'CODE128'
-      }
+        barcodeFormat: 'CODE128',
+      },
     },
     {
       id: 'a4_3x8',
@@ -98,9 +99,9 @@ const PAPER_PRESETS = {
         gapVertical: 4,
         barcodeLineWidth: 1.2,
         barcodeHeight: 40,
-        barcodeFormat: 'CODE128'
-      }
-    }
+        barcodeFormat: 'CODE128',
+      },
+    },
   ],
   thermal: [
     {
@@ -118,8 +119,8 @@ const PAPER_PRESETS = {
         gapVertical: 2,
         barcodeLineWidth: 1.1,
         barcodeHeight: 30,
-        barcodeFormat: 'CODE128'
-      }
+        barcodeFormat: 'CODE128',
+      },
     },
     {
       id: 'thermal_38x25',
@@ -136,10 +137,10 @@ const PAPER_PRESETS = {
         gapVertical: 2,
         barcodeLineWidth: 1.1,
         barcodeHeight: 26,
-        barcodeFormat: 'CODE128'
-      }
-    }
-  ]
+        barcodeFormat: 'CODE128',
+      },
+    },
+  ],
 };
 
 const DEFAULT_DISPLAY_OPTIONS = {
@@ -147,7 +148,7 @@ const DEFAULT_DISPLAY_OPTIONS = {
   salePrice: true,
   batchNumber: true,
   productName: true,
-  barcode: true
+  barcode: true,
 };
 
 const PRICE_LIST_SETTINGS_KEY = 'posPriceListSettings';
@@ -161,7 +162,6 @@ const getStoredSettings = () => {
     return null;
   }
 };
-
 
 const MM_TO_PX = 3.7795275591;
 const MIN_PREVIEW_SCALE = 0.2;
@@ -258,18 +258,22 @@ const PriceListPanel = ({ open, onClose }) => {
   const [selectedPrinter, setSelectedPrinter] = useState(initialSettings?.selectedPrinter || '');
 
   const [paperType, setPaperType] = useState(initialSettings?.paperType || 'a4');
-  const [paperPreset, setPaperPreset] = useState(initialSettings?.paperPreset || PAPER_PRESETS.a4[0].id);
+  const [paperPreset, setPaperPreset] = useState(
+    initialSettings?.paperPreset || PAPER_PRESETS.a4[0].id
+  );
   const [layout, setLayout] = useState(() => {
     if (initialSettings?.layout) return initialSettings.layout;
     return {
       ...PAPER_PRESETS.a4[0].layout,
       textAlign: 'left',
       barcodeLineSpacing: 1.25,
-      barcodeFormat: 'CODE128'
+      barcodeFormat: 'CODE128',
     };
   });
 
-  const [displayOptions, setDisplayOptions] = useState(initialSettings?.displayOptions || DEFAULT_DISPLAY_OPTIONS);
+  const [displayOptions, setDisplayOptions] = useState(
+    initialSettings?.displayOptions || DEFAULT_DISPLAY_OPTIONS
+  );
 
   const [showAdvancedLayout, setShowAdvancedLayout] = useState(false);
   const [printError, setPrintError] = useState('');
@@ -288,9 +292,7 @@ const PriceListPanel = ({ open, onClose }) => {
   }, [products]);
 
   const selectedProductOptions = useMemo(() => {
-    return selectedProducts
-      .map((item) => productById.get(String(item.productId)))
-      .filter(Boolean);
+    return selectedProducts.map((item) => productById.get(String(item.productId))).filter(Boolean);
   }, [productById, selectedProducts]);
 
   const selectedRows = useMemo(() => {
@@ -302,7 +304,7 @@ const PriceListPanel = ({ open, onClose }) => {
           product,
           quantity: Math.max(1, Number(item.quantity) || 1),
           batch: getPreviewBatch(product),
-          barcodeValue: getPrimaryBarcode(product)
+          barcodeValue: getPrimaryBarcode(product),
         };
       })
       .filter(Boolean);
@@ -317,7 +319,7 @@ const PriceListPanel = ({ open, onClose }) => {
           product: row.product,
           batch: row.batch,
           barcodeValue: row.barcodeValue,
-          copyNumber: copy + 1
+          copyNumber: copy + 1,
         });
       }
     });
@@ -333,9 +335,7 @@ const PriceListPanel = ({ open, onClose }) => {
   const marginBottomMm = Math.max(0, Number(layout.marginBottom) || 0);
   const marginLeftMm = Math.max(0, Number(layout.marginLeft) || 0);
   const isThermalPreview = paperType === 'thermal';
-  const printPageSize = paperType === 'thermal'
-    ? `${labelWidthMm}mm ${labelHeightMm}mm`
-    : 'A4';
+  const printPageSize = paperType === 'thermal' ? `${labelWidthMm}mm ${labelHeightMm}mm` : 'A4';
 
   const barcodeWarnings = useMemo(() => {
     if (!displayOptions.barcode) {
@@ -348,7 +348,7 @@ const PriceListPanel = ({ open, onClose }) => {
           value: row.barcodeValue,
           format: layout.barcodeFormat || 'CODE128',
           lineWidth: Number(layout.barcodeLineWidth) || 0.7,
-          labelWidthMm
+          labelWidthMm,
         });
 
         if (!message) {
@@ -358,11 +358,17 @@ const PriceListPanel = ({ open, onClose }) => {
         return {
           id: row.product.id,
           productName: row.product.name,
-          message
+          message,
         };
       })
       .filter(Boolean);
-  }, [displayOptions.barcode, selectedRows, layout.barcodeFormat, layout.barcodeLineWidth, labelWidthMm]);
+  }, [
+    displayOptions.barcode,
+    selectedRows,
+    layout.barcodeFormat,
+    layout.barcodeLineWidth,
+    labelWidthMm,
+  ]);
 
   const previewPageWidthMm = useMemo(() => {
     const columns = Math.max(1, Number(layout.columns) || 1);
@@ -371,24 +377,37 @@ const PriceListPanel = ({ open, onClose }) => {
     const marginRight = Math.max(0, Number(layout.marginRight) || 0);
     const gapHorizontal = Math.max(0, Number(layout.gapHorizontal) || 0);
 
-    return marginLeft + marginRight + columns * labelWidth + Math.max(0, columns - 1) * gapHorizontal;
-  }, [layout.columns, layout.labelWidth, layout.marginLeft, layout.marginRight, layout.gapHorizontal]);
+    return (
+      marginLeft + marginRight + columns * labelWidth + Math.max(0, columns - 1) * gapHorizontal
+    );
+  }, [
+    layout.columns,
+    layout.labelWidth,
+    layout.marginLeft,
+    layout.marginRight,
+    layout.gapHorizontal,
+  ]);
 
-  const previewPageWidthPx = useMemo(() => Math.max(1, previewPageWidthMm * MM_TO_PX), [previewPageWidthMm]);
+  const previewPageWidthPx = useMemo(
+    () => Math.max(1, previewPageWidthMm * MM_TO_PX),
+    [previewPageWidthMm]
+  );
   const activePreviewScale = paperType === 'a4' ? previewScale : 1;
 
   const fetchProducts = useCallback(async (signal) => {
     setLoadingProducts(true);
     try {
-      const response = await api.get('/api/products', {
-        params: {
+      const data = await inventoryService.fetchProducts(
+        {
           includeBatches: true,
-          category: 'all'
+          category: 'all',
         },
-        signal
-      });
-      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
-      const sorted = [...rows].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+        { signal }
+      );
+      const rows = Array.isArray(data?.data) ? data.data : [];
+      const sorted = [...rows].sort((a, b) =>
+        String(a.name || '').localeCompare(String(b.name || ''))
+      );
       setProducts(sorted);
     } catch (error) {
       if (isRequestCanceled(error)) {
@@ -440,11 +459,10 @@ const PriceListPanel = ({ open, onClose }) => {
       paperType,
       paperPreset,
       layout,
-      displayOptions
+      displayOptions,
     };
     localStorage.setItem(PRICE_LIST_SETTINGS_KEY, JSON.stringify(settings));
   }, [selectedPrinter, paperType, paperPreset, layout, displayOptions]);
-
 
   useEffect(() => {
     if (!open) {
@@ -487,12 +505,12 @@ const PriceListPanel = ({ open, onClose }) => {
 
   const handleZoomIn = () => {
     setAutoFit(false);
-    setPreviewScale(prev => Math.min(3, prev + 0.1));
+    setPreviewScale((prev) => Math.min(3, prev + 0.1));
   };
 
   const handleZoomOut = () => {
     setAutoFit(false);
-    setPreviewScale(prev => Math.max(MIN_PREVIEW_SCALE, prev - 0.1));
+    setPreviewScale((prev) => Math.max(MIN_PREVIEW_SCALE, prev - 0.1));
   };
 
   const handleFitToWidth = () => {
@@ -514,7 +532,7 @@ const PriceListPanel = ({ open, onClose }) => {
     setLayout((current) => ({
       ...preset.layout,
       textAlign: current.textAlign,
-      barcodeLineSpacing: current.barcodeLineSpacing
+      barcodeLineSpacing: current.barcodeLineSpacing,
     }));
   };
 
@@ -534,7 +552,7 @@ const PriceListPanel = ({ open, onClose }) => {
         const existing = current.find((item) => String(item.productId) === String(product.id));
         return {
           productId: product.id,
-          quantity: existing?.quantity || 1
+          quantity: existing?.quantity || 1,
         };
       });
     });
@@ -549,7 +567,7 @@ const PriceListPanel = ({ open, onClose }) => {
         }
         return {
           ...item,
-          quantity: parsed
+          quantity: parsed,
         };
       });
     });
@@ -563,7 +581,7 @@ const PriceListPanel = ({ open, onClose }) => {
         }
         return {
           ...item,
-          quantity: Math.max(1, Number(item.quantity) || 1) + 1
+          quantity: Math.max(1, Number(item.quantity) || 1) + 1,
         };
       });
     });
@@ -577,25 +595,29 @@ const PriceListPanel = ({ open, onClose }) => {
         }
         return {
           ...item,
-          quantity: Math.max(1, (Number(item.quantity) || 1) - 1)
+          quantity: Math.max(1, (Number(item.quantity) || 1) - 1),
         };
       });
     });
   };
 
   const handleRemoveSelectedProduct = (productId) => {
-    setSelectedProducts((current) => current.filter((item) => String(item.productId) !== String(productId)));
+    setSelectedProducts((current) =>
+      current.filter((item) => String(item.productId) !== String(productId))
+    );
   };
 
   const handleDisplayOptionChange = (field) => {
     setDisplayOptions((current) => ({
       ...current,
-      [field]: !current[field]
+      [field]: !current[field],
     }));
   };
 
   const buildPrintableHtml = () => {
-    const labelElements = Array.from(previewRef.current?.querySelectorAll('.price-label-item') || []);
+    const labelElements = Array.from(
+      previewRef.current?.querySelectorAll('.price-label-item') || []
+    );
     if (labelElements.length === 0) {
       return '';
     }
@@ -619,11 +641,15 @@ const PriceListPanel = ({ open, onClose }) => {
     });
 
     const printableBody = isThermalPrint
-      ? printableLabels.map((labelHtml, index) => `
+      ? printableLabels
+          .map(
+            (labelHtml, index) => `
           <div class="thermal-label-page${index === printableLabels.length - 1 ? ' is-last-page' : ''}">
             ${labelHtml}
           </div>
-        `).join('')
+        `
+          )
+          .join('')
       : `
           <div class="price-list-grid">
             ${printableLabels.join('')}
@@ -787,23 +813,24 @@ const PriceListPanel = ({ open, onClose }) => {
           throw new Error('Unable to build printable content.');
         }
 
-        const thermalPageSize = paperType === 'thermal'
-          ? {
-            widthMicrons: Math.round(Math.max(20, Number(layout.labelWidth) || 20) * 1000),
-            heightMicrons: Math.round(Math.max(15, Number(layout.labelHeight) || 15) * 1000)
-          }
-          : undefined;
+        const thermalPageSize =
+          paperType === 'thermal'
+            ? {
+                widthMicrons: Math.round(Math.max(20, Number(layout.labelWidth) || 20) * 1000),
+                heightMicrons: Math.round(Math.max(15, Number(layout.labelHeight) || 15) * 1000),
+              }
+            : undefined;
 
         await window.electron.ipcRenderer.invoke('print-html-content', {
           html,
           printerName: selectedPrinter || undefined,
-          pageSize: thermalPageSize
+          pageSize: thermalPageSize,
         });
 
         setPrintNotice({
           open: true,
           message: `Print job sent${selectedPrinter ? ` to ${selectedPrinter}` : ' to default printer'}.`,
-          severity: 'success'
+          severity: 'success',
         });
       } catch (error) {
         console.error('Direct print failed:', error);
@@ -828,24 +855,44 @@ const PriceListPanel = ({ open, onClose }) => {
     const resolvedTextAlign = layout.textAlign || 'left';
 
     return (
-      <Box sx={{ mt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.2, textAlign: resolvedTextAlign }}>
+      <Box
+        sx={{
+          mt: 0.5,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.2,
+          textAlign: resolvedTextAlign,
+        }}
+      >
         {displayOptions.productName && (
-          <Typography className="label-line label-name" sx={{ fontSize: '0.68rem', fontWeight: 700, textAlign: resolvedTextAlign }}>
+          <Typography
+            className="label-line label-name"
+            sx={{ fontSize: '0.68rem', fontWeight: 700, textAlign: resolvedTextAlign }}
+          >
             {label.product.name}
           </Typography>
         )}
         {displayOptions.mrp && (
-          <Typography className="label-line" sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}>
+          <Typography
+            className="label-line"
+            sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}
+          >
             MRP: Rs {formatCurrency(label.batch?.mrp)}
           </Typography>
         )}
         {displayOptions.salePrice && (
-          <Typography className="label-line" sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}>
+          <Typography
+            className="label-line"
+            sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}
+          >
             Sale: Rs {formatCurrency(label.batch?.sellingPrice)}
           </Typography>
         )}
         {displayOptions.batchNumber && (
-          <Typography className="label-line" sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}>
+          <Typography
+            className="label-line"
+            sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}
+          >
             Batch: {label.batch?.batchCode || '-'}
           </Typography>
         )}
@@ -871,12 +918,15 @@ const PriceListPanel = ({ open, onClose }) => {
         flexDirection: 'column',
         justifyContent: options.justifyContent || 'flex-start',
         '@media print': {
-          border: 'none'
-        }
+          border: 'none',
+        },
       }}
     >
       {displayOptions.barcode && label.barcodeValue ? (
-        <Box className="barcode-block" sx={{ display: 'flex', justifyContent: 'center', px: 0.5, mb: 0.5 }}>
+        <Box
+          className="barcode-block"
+          sx={{ display: 'flex', justifyContent: 'center', px: 0.5, mb: 0.5 }}
+        >
           <Barcode
             value={label.barcodeValue}
             format={layout.barcodeFormat || 'CODE128'}
@@ -889,7 +939,9 @@ const PriceListPanel = ({ open, onClose }) => {
           />
         </Box>
       ) : displayOptions.barcode ? (
-        <Typography variant="caption" color="error.main">No barcode</Typography>
+        <Typography variant="caption" color="error.main">
+          No barcode
+        </Typography>
       ) : null}
 
       {renderLabelMeta(label)}
@@ -907,8 +959,8 @@ const PriceListPanel = ({ open, onClose }) => {
         sx: {
           height: { xs: '96vh', sm: '94vh' },
           width: { xs: '100%', sm: '96vw' },
-          maxWidth: '1500px'
-        }
+          maxWidth: '1500px',
+        },
       }}
     >
       <style>{`
@@ -965,7 +1017,7 @@ const PriceListPanel = ({ open, onClose }) => {
           justifyContent: 'space-between',
           alignItems: 'flex-start',
           gap: 2,
-          pb: 1.2
+          pb: 1.2,
         }}
       >
         <Box>
@@ -988,10 +1040,12 @@ const PriceListPanel = ({ open, onClose }) => {
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          minHeight: 0
+          minHeight: 0,
         }}
       >
-        <Box sx={{ flex: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <Box
+          sx={{ flex: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
+        >
           <Box
             sx={{
               display: 'flex',
@@ -999,7 +1053,7 @@ const PriceListPanel = ({ open, onClose }) => {
               flex: 1,
               minHeight: 0,
               gap: 2,
-              p: 0.5 // Safety padding to prevent shadows from being cut
+              p: 0.5, // Safety padding to prevent shadows from being cut
             }}
           >
             {/* Left Configuration Column */}
@@ -1010,7 +1064,7 @@ const PriceListPanel = ({ open, onClose }) => {
                 flexShrink: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                minHeight: 0
+                minHeight: 0,
               }}
             >
               <Stack
@@ -1022,7 +1076,7 @@ const PriceListPanel = ({ open, onClose }) => {
                   overflowY: 'auto',
                   pr: 0.5,
                   '&::-webkit-scrollbar': { width: 6 },
-                  '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 10 }
+                  '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 10 },
                 }}
               >
                 <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
@@ -1070,7 +1124,7 @@ const PriceListPanel = ({ open, onClose }) => {
                           display: 'grid',
                           gridTemplateColumns: '1fr auto auto auto auto',
                           alignItems: 'center',
-                          gap: 0.6
+                          gap: 0.6,
                         }}
                       >
                         <Box sx={{ minWidth: 0 }}>
@@ -1091,7 +1145,9 @@ const PriceListPanel = ({ open, onClose }) => {
                           type="number"
                           inputProps={{ min: 1, style: { textAlign: 'center', width: 48 } }}
                           value={row.quantity}
-                          onChange={(event) => handleQuantityChange(row.product.id, event.target.value)}
+                          onChange={(event) =>
+                            handleQuantityChange(row.product.id, event.target.value)
+                          }
                         />
                         <IconButton
                           size="small"
@@ -1126,12 +1182,11 @@ const PriceListPanel = ({ open, onClose }) => {
                           value={selectedPrinter}
                           onChange={(event) => setSelectedPrinter(event.target.value)}
                         >
-                          {printers.length === 0 && (
-                            <MenuItem value="">Browser Print</MenuItem>
-                          )}
+                          {printers.length === 0 && <MenuItem value="">Browser Print</MenuItem>}
                           {printers.map((printer) => (
                             <MenuItem key={printer.name} value={printer.name}>
-                              {printer.name}{printer.isDefault ? ' (Default)' : ''}
+                              {printer.name}
+                              {printer.isDefault ? ' (Default)' : ''}
                             </MenuItem>
                           ))}
                         </Select>
@@ -1143,7 +1198,8 @@ const PriceListPanel = ({ open, onClose }) => {
 
                     {!window.electron?.ipcRenderer && (
                       <Alert severity="info" sx={{ py: 0.5 }}>
-                        Printer auto-detection is available in the desktop app. Browser print is still supported.
+                        Printer auto-detection is available in the desktop app. Browser print is
+                        still supported.
                       </Alert>
                     )}
 
@@ -1157,7 +1213,11 @@ const PriceListPanel = ({ open, onClose }) => {
 
                     <FormControl fullWidth size="small">
                       <InputLabel>Paper Size Preset</InputLabel>
-                      <Select label="Paper Size Preset" value={paperPreset} onChange={handlePresetChange}>
+                      <Select
+                        label="Paper Size Preset"
+                        value={paperPreset}
+                        onChange={handlePresetChange}
+                      >
                         {PAPER_PRESETS[paperType].map((preset) => (
                           <MenuItem key={preset.id} value={preset.id}>
                             {preset.name}
@@ -1169,7 +1229,14 @@ const PriceListPanel = ({ open, onClose }) => {
                 </Paper>
 
                 <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1,
+                    }}
+                  >
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                       Advanced Layout and Margins
                     </Typography>
@@ -1193,7 +1260,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           type="number"
                           inputProps={{ min: 1, max: 10 }}
                           value={layout.columns}
-                          onChange={(event) => setLayout((current) => ({ ...current, columns: Math.max(1, Number(event.target.value) || 1) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              columns: Math.max(1, Number(event.target.value) || 1),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1204,7 +1276,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           type="number"
                           inputProps={{ min: 20 }}
                           value={layout.labelWidth}
-                          onChange={(event) => setLayout((current) => ({ ...current, labelWidth: Math.max(20, Number(event.target.value) || 20) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              labelWidth: Math.max(20, Number(event.target.value) || 20),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1215,7 +1292,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           type="number"
                           inputProps={{ min: 15 }}
                           value={layout.labelHeight}
-                          onChange={(event) => setLayout((current) => ({ ...current, labelHeight: Math.max(15, Number(event.target.value) || 15) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              labelHeight: Math.max(15, Number(event.target.value) || 15),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1226,7 +1308,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           type="number"
                           inputProps={{ min: 20 }}
                           value={layout.barcodeHeight}
-                          onChange={(event) => setLayout((current) => ({ ...current, barcodeHeight: Math.max(20, Number(event.target.value) || 20) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              barcodeHeight: Math.max(20, Number(event.target.value) || 20),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1237,7 +1324,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           type="number"
                           inputProps={{ min: 0.1, max: 4, step: 0.1 }}
                           value={layout.barcodeLineWidth}
-                          onChange={(event) => setLayout((current) => ({ ...current, barcodeLineWidth: Math.max(0.1, Number(event.target.value) || 0.1) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              barcodeLineWidth: Math.max(0.1, Number(event.target.value) || 0.1),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={12}>
@@ -1246,7 +1338,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           <Select
                             label="Barcode Format"
                             value={layout.barcodeFormat || 'CODE128'}
-                            onChange={(event) => setLayout((current) => ({ ...current, barcodeFormat: event.target.value }))}
+                            onChange={(event) =>
+                              setLayout((current) => ({
+                                ...current,
+                                barcodeFormat: event.target.value,
+                              }))
+                            }
                           >
                             <MenuItem value="CODE128">CODE128 (Standard)</MenuItem>
                             <MenuItem value="CODE39">CODE39</MenuItem>
@@ -1267,7 +1364,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           label="Margin Left (mm)"
                           type="number"
                           value={layout.marginLeft}
-                          onChange={(event) => setLayout((current) => ({ ...current, marginLeft: Math.max(0, Number(event.target.value) || 0) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              marginLeft: Math.max(0, Number(event.target.value) || 0),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1277,7 +1379,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           label="Margin Right (mm)"
                           type="number"
                           value={layout.marginRight}
-                          onChange={(event) => setLayout((current) => ({ ...current, marginRight: Math.max(0, Number(event.target.value) || 0) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              marginRight: Math.max(0, Number(event.target.value) || 0),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1287,7 +1394,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           label="Margin Top (mm)"
                           type="number"
                           value={layout.marginTop}
-                          onChange={(event) => setLayout((current) => ({ ...current, marginTop: Math.max(0, Number(event.target.value) || 0) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              marginTop: Math.max(0, Number(event.target.value) || 0),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1297,7 +1409,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           label="Margin Bottom (mm)"
                           type="number"
                           value={layout.marginBottom}
-                          onChange={(event) => setLayout((current) => ({ ...current, marginBottom: Math.max(0, Number(event.target.value) || 0) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              marginBottom: Math.max(0, Number(event.target.value) || 0),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1307,7 +1424,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           label="Horizontal Gap (mm)"
                           type="number"
                           value={layout.gapHorizontal}
-                          onChange={(event) => setLayout((current) => ({ ...current, gapHorizontal: Math.max(0, Number(event.target.value) || 0) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              gapHorizontal: Math.max(0, Number(event.target.value) || 0),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1317,7 +1439,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           label="Vertical Gap (mm)"
                           type="number"
                           value={layout.gapVertical}
-                          onChange={(event) => setLayout((current) => ({ ...current, gapVertical: Math.max(0, Number(event.target.value) || 0) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              gapVertical: Math.max(0, Number(event.target.value) || 0),
+                            }))
+                          }
                         />
                       </Grid>
                       <Grid item xs={6}>
@@ -1328,7 +1455,12 @@ const PriceListPanel = ({ open, onClose }) => {
                           type="number"
                           inputProps={{ min: 0.8, max: 3, step: 0.1 }}
                           value={layout.barcodeLineSpacing}
-                          onChange={(event) => setLayout((current) => ({ ...current, barcodeLineSpacing: Math.max(0.8, Number(event.target.value) || 1.25) }))}
+                          onChange={(event) =>
+                            setLayout((current) => ({
+                              ...current,
+                              barcodeLineSpacing: Math.max(0.8, Number(event.target.value) || 1.25),
+                            }))
+                          }
                         />
                       </Grid>
                     </Grid>
@@ -1341,23 +1473,48 @@ const PriceListPanel = ({ open, onClose }) => {
                   </Typography>
                   <FormGroup>
                     <FormControlLabel
-                      control={<Checkbox checked={displayOptions.mrp} onChange={() => handleDisplayOptionChange('mrp')} />}
+                      control={
+                        <Checkbox
+                          checked={displayOptions.mrp}
+                          onChange={() => handleDisplayOptionChange('mrp')}
+                        />
+                      }
                       label="MRP"
                     />
                     <FormControlLabel
-                      control={<Checkbox checked={displayOptions.salePrice} onChange={() => handleDisplayOptionChange('salePrice')} />}
+                      control={
+                        <Checkbox
+                          checked={displayOptions.salePrice}
+                          onChange={() => handleDisplayOptionChange('salePrice')}
+                        />
+                      }
                       label="Sale Price"
                     />
                     <FormControlLabel
-                      control={<Checkbox checked={displayOptions.batchNumber} onChange={() => handleDisplayOptionChange('batchNumber')} />}
+                      control={
+                        <Checkbox
+                          checked={displayOptions.batchNumber}
+                          onChange={() => handleDisplayOptionChange('batchNumber')}
+                        />
+                      }
                       label="Batch Number"
                     />
                     <FormControlLabel
-                      control={<Checkbox checked={displayOptions.productName} onChange={() => handleDisplayOptionChange('productName')} />}
+                      control={
+                        <Checkbox
+                          checked={displayOptions.productName}
+                          onChange={() => handleDisplayOptionChange('productName')}
+                        />
+                      }
                       label="Product Name"
                     />
                     <FormControlLabel
-                      control={<Checkbox checked={displayOptions.barcode} onChange={() => handleDisplayOptionChange('barcode')} />}
+                      control={
+                        <Checkbox
+                          checked={displayOptions.barcode}
+                          onChange={() => handleDisplayOptionChange('barcode')}
+                        />
+                      }
                       label="Barcode No"
                     />
                   </FormGroup>
@@ -1367,7 +1524,9 @@ const PriceListPanel = ({ open, onClose }) => {
                     <Select
                       value={layout.textAlign || 'left'}
                       label="Text Alignment"
-                      onChange={(event) => setLayout((current) => ({ ...current, textAlign: event.target.value }))}
+                      onChange={(event) =>
+                        setLayout((current) => ({ ...current, textAlign: event.target.value }))
+                      }
                     >
                       <MenuItem value="left">Left</MenuItem>
                       <MenuItem value="center">Center</MenuItem>
@@ -1386,7 +1545,7 @@ const PriceListPanel = ({ open, onClose }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 0,
-                minWidth: 0 // Crucial for preventing flex blowout
+                minWidth: 0, // Crucial for preventing flex blowout
               }}
             >
               <Paper
@@ -1404,11 +1563,19 @@ const PriceListPanel = ({ open, onClose }) => {
                     border: 'none',
                     boxShadow: 'none',
                     p: 0,
-                    bgcolor: '#fff'
-                  }
+                    bgcolor: '#fff',
+                  },
                 }}
               >
-                <Box className="no-print" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Box
+                  className="no-print"
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 1,
+                  }}
+                >
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                     Live Preview
                   </Typography>
@@ -1417,20 +1584,41 @@ const PriceListPanel = ({ open, onClose }) => {
                     <Chip size="small" color="primary" label={`${totalLabelCount} labels`} />
 
                     {/* Zoom Control Group */}
-                    <Box sx={{ ml: 1, display: 'flex', alignItems: 'center', bgcolor: 'rgba(0,0,0,0.04)', borderRadius: 2, px: 0.5, py: 0.25 }}>
+                    <Box
+                      sx={{
+                        ml: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        bgcolor: 'rgba(0,0,0,0.04)',
+                        borderRadius: 2,
+                        px: 0.5,
+                        py: 0.25,
+                      }}
+                    >
                       <Tooltip title="Zoom Out">
                         <span>
-                          <IconButton size="small" onClick={handleZoomOut} disabled={paperType !== 'a4'}>
+                          <IconButton
+                            size="small"
+                            onClick={handleZoomOut}
+                            disabled={paperType !== 'a4'}
+                          >
                             <ZoomOutIcon fontSize="small" />
                           </IconButton>
                         </span>
                       </Tooltip>
-                      <Typography variant="caption" sx={{ minWidth: 45, textAlign: 'center', fontWeight: 600 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ minWidth: 45, textAlign: 'center', fontWeight: 600 }}
+                      >
                         {Math.round(activePreviewScale * 100)}%
                       </Typography>
                       <Tooltip title="Zoom In">
                         <span>
-                          <IconButton size="small" onClick={handleZoomIn} disabled={paperType !== 'a4'}>
+                          <IconButton
+                            size="small"
+                            onClick={handleZoomIn}
+                            disabled={paperType !== 'a4'}
+                          >
                             <ZoomInIcon fontSize="small" />
                           </IconButton>
                         </span>
@@ -1440,7 +1628,7 @@ const PriceListPanel = ({ open, onClose }) => {
                         <span>
                           <IconButton
                             size="small"
-                            color={autoFit ? "primary" : "default"}
+                            color={autoFit ? 'primary' : 'default'}
                             onClick={handleFitToWidth}
                             disabled={paperType !== 'a4'}
                           >
@@ -1465,7 +1653,9 @@ const PriceListPanel = ({ open, onClose }) => {
                 )}
                 {barcodeWarnings.length > 0 && (
                   <Alert severity="warning" className="no-print" sx={{ mb: 1.2 }}>
-                    {barcodeWarnings.length} selected barcode(s) may be difficult to scan with the current width settings. Example: {barcodeWarnings[0].productName}. {barcodeWarnings[0].message}
+                    {barcodeWarnings.length} selected barcode(s) may be difficult to scan with the
+                    current width settings. Example: {barcodeWarnings[0].productName}.{' '}
+                    {barcodeWarnings[0].message}
                   </Alert>
                 )}
 
@@ -1486,8 +1676,8 @@ const PriceListPanel = ({ open, onClose }) => {
                     '@media print': {
                       overflow: 'visible',
                       p: 0,
-                      bgcolor: '#fff'
-                    }
+                      bgcolor: '#fff',
+                    },
                   }}
                 >
                   <Box
@@ -1498,7 +1688,10 @@ const PriceListPanel = ({ open, onClose }) => {
                       transformOrigin: 'top center',
                       bgcolor: '#fff',
                       border: isThermalPreview ? 'none' : '1px dashed #94a3b8',
-                      boxShadow: paperType === 'a4' ? '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' : 'none',
+                      boxShadow:
+                        paperType === 'a4'
+                          ? '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)'
+                          : 'none',
                       borderRadius: '4px',
                       mb: 12, // Substantial padding for bottom scaling
                       flexShrink: 0,
@@ -1507,8 +1700,8 @@ const PriceListPanel = ({ open, onClose }) => {
                         border: 'none',
                         boxShadow: 'none',
                         mb: 0,
-                        width: '100%'
-                      }
+                        width: '100%',
+                      },
                     }}
                   >
                     {isThermalPreview ? (
@@ -1531,14 +1724,14 @@ const PriceListPanel = ({ open, onClose }) => {
                                 bgcolor: '#fff',
                                 p: `${marginTopMm}mm ${marginRightMm}mm ${marginBottomMm}mm ${marginLeftMm}mm`,
                                 boxSizing: 'border-box',
-                                overflow: 'hidden'
+                                overflow: 'hidden',
                               }}
                             >
                               {renderPreviewLabelCard(label, {
                                 width: '100%',
                                 minHeight: '100%',
                                 padding: '0.8mm 1.4mm',
-                                justifyContent: 'center'
+                                justifyContent: 'center',
                               })}
                             </Box>
                           ))
@@ -1556,14 +1749,16 @@ const PriceListPanel = ({ open, onClose }) => {
                           justifyContent: 'center',
                           position: 'relative',
                           '@media print': {
-                            width: '100%'
-                          }
+                            width: '100%',
+                          },
                         }}
                       >
                         {previewLabels.map((label) => renderPreviewLabelCard(label))}
 
                         {previewLabels.length === 0 && (
-                          <Box sx={{ p: 4, textAlign: 'center', width: '100%', gridColumn: '1 / -1' }}>
+                          <Box
+                            sx={{ p: 4, textAlign: 'center', width: '100%', gridColumn: '1 / -1' }}
+                          >
                             <Typography variant="body1" color="text.secondary">
                               Your preview will appear here once you select products.
                             </Typography>
@@ -1587,18 +1782,13 @@ const PriceListPanel = ({ open, onClose }) => {
           borderTop: '1px solid #e5e7eb',
           justifyContent: 'space-between',
           gap: 1,
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
         }}
       >
         <Button variant="outlined" onClick={onClose}>
           Close
         </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<PrintIcon />}
-          onClick={handlePrint}
-        >
+        <Button variant="contained" color="primary" startIcon={<PrintIcon />} onClick={handlePrint}>
           Print Labels
         </Button>
       </DialogActions>
@@ -1618,7 +1808,7 @@ const PriceListPanel = ({ open, onClose }) => {
           {printNotice.message}
         </Alert>
       </Snackbar>
-    </Dialog >
+    </Dialog>
   );
 };
 

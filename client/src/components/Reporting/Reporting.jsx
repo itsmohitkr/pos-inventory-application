@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import api from '../../shared/api/api';
+import React, { useState, useEffect } from 'react';
+import dashboardService from '../../shared/api/dashboardService';
+import posService from '../../shared/api/posService';
 import {
   Container,
   Typography,
@@ -24,7 +25,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -34,18 +35,19 @@ import {
   Assignment as ItemSalesIcon,
   Inventory as StockIcon,
   LocalPrintshop as LooseIcon,
-  AccountBalanceWallet as SummaryIcon
-} from "@mui/icons-material";
+  AccountBalanceWallet as SummaryIcon,
+} from '@mui/icons-material';
 
 // Sub-components
-import SalesHistory from "./SalesHistory";
-import AnalyticsPanel from "./AnalyticsPanel";
-import ExpiryReportPanel from "./ExpiryReportPanel";
-import ItemSalesReportPanel from "./ItemSalesReportPanel";
-import LowStockReportPanel from "./LowStockReportPanel";
-import LooseSalesReportPanel from "./LooseSalesReportPanel";
-import useSortableTable from "../../shared/hooks/useSortableTable";
-import { getRefundStatus, getStatusDisplay } from "../../shared/utils/refundStatus";
+import SalesHistory from './SalesHistory';
+import AnalyticsPanel from './AnalyticsPanel';
+import ExpiryReportPanel from './ExpiryReportPanel';
+import ItemSalesReportPanel from './ItemSalesReportPanel';
+import LowStockReportPanel from './LowStockReportPanel';
+import LooseSalesReportPanel from './LooseSalesReportPanel';
+import useSortableTable from '../../shared/hooks/useSortableTable';
+import SortableTableHead from './SortableTableHead';
+import { getRefundStatus, getStatusDisplay } from '../../shared/utils/refundStatus';
 import {
   Paper,
   List,
@@ -54,8 +56,8 @@ import {
   ListItemIcon,
   ListItemText,
   Divider as MuiDivider,
-  Stack
-} from "@mui/material";
+  Stack,
+} from '@mui/material';
 
 const Reporting = ({ receiptSettings, shopMetadata }) => {
   const [reportData, setReportData] = useState(null);
@@ -65,22 +67,22 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
   const [loading, setLoading] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [selectedSale, setSelectedSale] = useState(null);
-  const [reportType, setReportType] = useState("financial_summary"); // financial_summary, profit_margin, category_sales, expiry_report, item_sales, low_stock
+  const [reportType, setReportType] = useState('financial_summary'); // financial_summary, profit_margin, category_sales, expiry_report, item_sales, low_stock
   const [dateRange, setDateRange] = useState({
-    startDate: "",
-    endDate: "",
+    startDate: '',
+    endDate: '',
   });
 
   const timeframes = [
-    { label: "Today", getValue: () => getRange("today") },
-    { label: "Yesterday", getValue: () => getRange("yesterday") },
-    { label: "This Week", getValue: () => getRange("thisWeek") },
-    { label: "Last Week", getValue: () => getRange("lastWeek") },
-    { label: "This Month", getValue: () => getRange("thisMonth") },
-    { label: "Last Month", getValue: () => getRange("lastMonth") },
-    { label: "This Year", getValue: () => getRange("thisYear") },
-    { label: "Last Year", getValue: () => getRange("lastYear") },
-    { label: "Custom", getValue: () => null },
+    { label: 'Today', getValue: () => getRange('today') },
+    { label: 'Yesterday', getValue: () => getRange('yesterday') },
+    { label: 'This Week', getValue: () => getRange('thisWeek') },
+    { label: 'Last Week', getValue: () => getRange('lastWeek') },
+    { label: 'This Month', getValue: () => getRange('thisMonth') },
+    { label: 'Last Month', getValue: () => getRange('lastMonth') },
+    { label: 'This Year', getValue: () => getRange('thisYear') },
+    { label: 'Last Year', getValue: () => getRange('lastYear') },
+    { label: 'Custom', getValue: () => null },
   ];
 
   const getRange = (type) => {
@@ -88,45 +90,51 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
     let start = new Date(now);
     let end = new Date(now);
 
-    const startOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
-    const endOfDay = (d) => { d.setHours(23, 59, 59, 999); return d; };
+    const startOfDay = (d) => {
+      d.setHours(0, 0, 0, 0);
+      return d;
+    };
+    const endOfDay = (d) => {
+      d.setHours(23, 59, 59, 999);
+      return d;
+    };
 
     switch (type) {
-      case "today":
+      case 'today':
         start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
-      case "yesterday":
+      case 'yesterday':
         start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
         break;
-      case "thisWeek": {
+      case 'thisWeek': {
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
         start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
         break;
       }
-      case "lastWeek": {
+      case 'lastWeek': {
         const day = now.getDay();
         const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
         start = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 7, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 1, 23, 59, 59, 999);
         break;
       }
-      case "thisMonth":
+      case 'thisMonth':
         start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         break;
-      case "lastMonth":
+      case 'lastMonth':
         start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
         break;
-      case "thisYear":
+      case 'thisYear':
         start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
         break;
-      case "lastYear":
+      case 'lastYear':
         start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
         break;
@@ -137,44 +145,52 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
       start: start.toISOString(),
       end: end.toISOString(),
       localStart: start.toLocaleDateString('en-CA'),
-      localEnd: end.toLocaleDateString('en-CA')
+      localEnd: end.toLocaleDateString('en-CA'),
     };
   };
 
-  const fetchReports = async (start, end) => {
+  const fetchReports = async (start, end, config = {}) => {
     setLoading(true);
     try {
       if (reportType === 'expiry_report') {
-        const res = await api.get("/api/reports/expiry", {
-          params: { startDate: start, endDate: end },
-        });
-        setExpiryData(res.data);
+        const data = await dashboardService.fetchExpiryReport(
+          { startDate: start, endDate: end },
+          config
+        );
+        setExpiryData(data);
       } else if (reportType === 'low_stock') {
-        const res = await api.get("/api/reports/low-stock");
-        setLowStockData(res.data);
+        const data = await dashboardService.fetchLowStockReport(config);
+        setLowStockData(data);
       } else if (reportType === 'loose_sales') {
-        const res = await api.get("/api/reports/loose-sales", {
-          params: { startDate: start, endDate: end },
-        });
-        setLooseSalesData(res.data);
+        const data = await dashboardService.fetchLooseSalesReport(
+          { startDate: start, endDate: end },
+          config
+        );
+        setLooseSalesData(data);
       } else {
-        const res = await api.get("/api/reports", {
-          params: { startDate: start, endDate: end },
-        });
-        setReportData(res.data);
+        const data = await dashboardService.fetchPeriodicData(
+          { startDate: start, endDate: end },
+          config
+        );
+        setReportData(data);
       }
     } catch (error) {
-      console.error("Error fetching reports:", error);
+      if (isRequestCanceled(error)) return;
+      console.error('Error fetching reports:', error);
     } finally {
-      setLoading(false);
+      if (!config.signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   // Initial fetch and fetch on reportType change
   useEffect(() => {
+    const controller = new AbortController();
+
     if (reportType === 'low_stock') {
-      fetchReports();
-      return;
+      fetchReports(null, null, { signal: controller.signal });
+      return () => controller.abort();
     }
 
     let range;
@@ -193,9 +209,11 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
     }
 
     if (range && range.start && range.end) {
-      fetchReports(range.start, range.end);
+      fetchReports(range.start, range.end, { signal: controller.signal });
     }
-  }, [reportType]);
+
+    return () => controller.abort();
+  }, [reportType, tabValue, dateRange]);
 
   const handleTabChange = (event) => {
     const newValue = event.target.value;
@@ -204,7 +222,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
       const range = timeframes[newValue].getValue();
       setDateRange({
         startDate: range.localStart,
-        endDate: range.localEnd
+        endDate: range.localEnd,
       });
       fetchReports(range.start, range.end);
     }
@@ -226,12 +244,12 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
   return (
     <Box
       sx={{
-        bgcolor: "background.default",
-        height: "100%",
+        bgcolor: 'background.default',
+        height: '100%',
         minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
       <Paper
@@ -240,17 +258,17 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
           m: 3,
           px: 4,
           py: 2.5,
-          background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
-          borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
+          background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
+          borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
         }}
       >
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             gap: 2,
-            flexWrap: "wrap",
+            flexWrap: 'wrap',
           }}
         >
           <Box>
@@ -268,13 +286,11 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
             {reportType !== 'low_stock' && (
               <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel>Time Frame</InputLabel>
-                <Select
-                  value={tabValue}
-                  label="Time Frame"
-                  onChange={handleTabChange}
-                >
+                <Select value={tabValue} label="Time Frame" onChange={handleTabChange}>
                   {timeframes.map((tf, idx) => (
-                    <MenuItem key={idx} value={idx}>{tf.label}</MenuItem>
+                    <MenuItem key={idx} value={idx}>
+                      {tf.label}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -287,7 +303,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                   type="date"
                   size="small"
                   InputLabelProps={{ shrink: true }}
-                  value={dateRange.startDate || ""}
+                  value={dateRange.startDate || ''}
                   onChange={(e) =>
                     setDateRange({
                       ...dateRange,
@@ -300,7 +316,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                   type="date"
                   size="small"
                   InputLabelProps={{ shrink: true }}
-                  value={dateRange.endDate || ""}
+                  value={dateRange.endDate || ''}
                   onChange={(e) =>
                     setDateRange({
                       ...dateRange,
@@ -308,11 +324,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                     })
                   }
                 />
-                <Button
-                  variant="outlined"
-                  onClick={handleApplyCustomRange}
-                  sx={{ height: 40 }}
-                >
+                <Button variant="outlined" onClick={handleApplyCustomRange} sx={{ height: 40 }}>
                   Apply
                 </Button>
               </>
@@ -324,27 +336,29 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
       <Container
         disableGutters
         maxWidth={false}
-        sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, px: 3, pb: 3 }}
+        sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, px: 3, pb: 3 }}
       >
         {loading && !reportData && !expiryData ? (
           <Box
             sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
               flex: 1,
             }}
           >
             <CircularProgress size={60} thickness={4} />
           </Box>
         ) : (
-          <Box sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
-            flex: 1,
-            minHeight: 0
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              gap: 3,
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
             {/* Left Sidebar - Report Selection */}
             <Paper
               elevation={0}
@@ -356,7 +370,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                 overflow: 'hidden',
                 flexShrink: 0,
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
               }}
             >
               <Box sx={{ p: 2, bgcolor: '#f8fafc', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -375,14 +389,22 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                         bgcolor: 'primary.main',
                         color: 'white',
                         '&:hover': { bgcolor: 'primary.dark' },
-                        '& .MuiListItemIcon-root': { color: 'white' }
-                      }
+                        '& .MuiListItemIcon-root': { color: 'white' },
+                      },
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'financial_summary' ? 'inherit' : 'primary.main' }}>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 40,
+                        color: reportType === 'financial_summary' ? 'inherit' : 'primary.main',
+                      }}
+                    >
                       <SummaryIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Financial Summary" primaryTypographyProps={{ fontWeight: 600 }} />
+                    <ListItemText
+                      primary="Financial Summary"
+                      primaryTypographyProps={{ fontWeight: 600 }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding sx={{ mb: 1 }}>
@@ -395,14 +417,22 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                         bgcolor: 'primary.main',
                         color: 'white',
                         '&:hover': { bgcolor: 'primary.dark' },
-                        '& .MuiListItemIcon-root': { color: 'white' }
-                      }
+                        '& .MuiListItemIcon-root': { color: 'white' },
+                      },
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'profit_margin' ? 'inherit' : 'secondary.main' }}>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 40,
+                        color: reportType === 'profit_margin' ? 'inherit' : 'secondary.main',
+                      }}
+                    >
                       <ProfitIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Profit & Margin" primaryTypographyProps={{ fontWeight: 600 }} />
+                    <ListItemText
+                      primary="Profit & Margin"
+                      primaryTypographyProps={{ fontWeight: 600 }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding>
@@ -415,14 +445,22 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                         bgcolor: 'primary.main',
                         color: 'white',
                         '&:hover': { bgcolor: 'primary.dark' },
-                        '& .MuiListItemIcon-root': { color: 'white' }
-                      }
+                        '& .MuiListItemIcon-root': { color: 'white' },
+                      },
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'category_sales' ? 'inherit' : 'secondary.main' }}>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 40,
+                        color: reportType === 'category_sales' ? 'inherit' : 'secondary.main',
+                      }}
+                    >
                       <CategoryIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Sales by Category" primaryTypographyProps={{ fontWeight: 600 }} />
+                    <ListItemText
+                      primary="Sales by Category"
+                      primaryTypographyProps={{ fontWeight: 600 }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding>
@@ -435,14 +473,22 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                         bgcolor: 'primary.main',
                         color: 'white',
                         '&:hover': { bgcolor: 'primary.dark' },
-                        '& .MuiListItemIcon-root': { color: 'white' }
-                      }
+                        '& .MuiListItemIcon-root': { color: 'white' },
+                      },
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'expiry_report' ? 'inherit' : 'error.main' }}>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 40,
+                        color: reportType === 'expiry_report' ? 'inherit' : 'error.main',
+                      }}
+                    >
                       <CalendarIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Expiring Products" primaryTypographyProps={{ fontWeight: 600 }} />
+                    <ListItemText
+                      primary="Expiring Products"
+                      primaryTypographyProps={{ fontWeight: 600 }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding>
@@ -455,14 +501,22 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                         bgcolor: 'primary.main',
                         color: 'white',
                         '&:hover': { bgcolor: 'primary.dark' },
-                        '& .MuiListItemIcon-root': { color: 'white' }
-                      }
+                        '& .MuiListItemIcon-root': { color: 'white' },
+                      },
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'item_sales' ? 'inherit' : 'success.main' }}>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 40,
+                        color: reportType === 'item_sales' ? 'inherit' : 'success.main',
+                      }}
+                    >
                       <ItemSalesIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Item-Wise Sales" primaryTypographyProps={{ fontWeight: 600 }} />
+                    <ListItemText
+                      primary="Item-Wise Sales"
+                      primaryTypographyProps={{ fontWeight: 600 }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding>
@@ -475,14 +529,22 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                         bgcolor: 'primary.main',
                         color: 'white',
                         '&:hover': { bgcolor: 'primary.dark' },
-                        '& .MuiListItemIcon-root': { color: 'white' }
-                      }
+                        '& .MuiListItemIcon-root': { color: 'white' },
+                      },
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'low_stock' ? 'inherit' : 'warning.main' }}>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 40,
+                        color: reportType === 'low_stock' ? 'inherit' : 'warning.main',
+                      }}
+                    >
                       <StockIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Low Stock" primaryTypographyProps={{ fontWeight: 600 }} />
+                    <ListItemText
+                      primary="Low Stock"
+                      primaryTypographyProps={{ fontWeight: 600 }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding>
@@ -495,14 +557,22 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                         bgcolor: 'primary.main',
                         color: 'white',
                         '&:hover': { bgcolor: 'primary.dark' },
-                        '& .MuiListItemIcon-root': { color: 'white' }
-                      }
+                        '& .MuiListItemIcon-root': { color: 'white' },
+                      },
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 40, color: reportType === 'loose_sales' ? 'inherit' : 'secondary.main' }}>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 40,
+                        color: reportType === 'loose_sales' ? 'inherit' : 'secondary.main',
+                      }}
+                    >
                       <LooseIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Loose Sales" primaryTypographyProps={{ fontWeight: 600 }} />
+                    <ListItemText
+                      primary="Loose Sales"
+                      primaryTypographyProps={{ fontWeight: 600 }}
+                    />
                   </ListItemButton>
                 </ListItem>
               </List>
@@ -511,10 +581,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
             {/* Main Content Area */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               {reportType === 'financial_summary' ? (
-                <AnalyticsPanel
-                  reportData={reportData}
-                  loading={loading}
-                />
+                <AnalyticsPanel reportData={reportData} loading={loading} />
               ) : reportType === 'profit_margin' ? (
                 <SalesHistory
                   sales={reportData?.sales}
@@ -536,10 +603,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                   timeframeLabel={tabValue === 8 ? 'Custom' : timeframes[tabValue].label}
                 />
               ) : reportType === 'low_stock' ? (
-                <LowStockReportPanel
-                  data={lowStockData}
-                  loading={loading}
-                />
+                <LowStockReportPanel data={lowStockData} loading={loading} />
               ) : (
                 <LooseSalesReportPanel
                   data={looseSalesData}
@@ -563,8 +627,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
               )}
             </Box>
           </Box>
-        )
-        }
+        )}
 
         {/* Sale Detail Dialog */}
         <Dialog
@@ -575,18 +638,18 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
           PaperProps={{ sx: { borderRadius: 3 } }}
           onKeyDown={(event) => {
             if (event.defaultPrevented) return;
-            if (event.key !== "Enter") return;
+            if (event.key !== 'Enter') return;
             if (event.shiftKey) return;
-            if (event.target?.tagName === "TEXTAREA") return;
+            if (event.target?.tagName === 'TEXTAREA') return;
             event.preventDefault();
             setSelectedSale(null);
           }}
         >
           <DialogTitle
             sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               p: 3,
             }}
           >
@@ -604,9 +667,9 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                   sx={{
                     mb: 4,
                     p: 3,
-                    bgcolor: "#f8fafc",
+                    bgcolor: '#f8fafc',
                     borderRadius: 3,
-                    border: "1px solid #edf2f7",
+                    border: '1px solid #edf2f7',
                   }}
                 >
                   <Grid container spacing={3}>
@@ -614,9 +677,9 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                       <Typography
                         variant="caption"
                         sx={{
-                          color: "#64748b",
+                          color: '#64748b',
                           fontWeight: 800,
-                          display: "block",
+                          display: 'block',
                           mb: 0.5,
                         }}
                       >
@@ -630,9 +693,9 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                       <Typography
                         variant="caption"
                         sx={{
-                          color: "#64748b",
+                          color: '#64748b',
                           fontWeight: 800,
-                          display: "block",
+                          display: 'block',
                           mb: 0.5,
                         }}
                       >
@@ -647,8 +710,9 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                           fontSize: '0.75rem',
                           height: 'auto',
                           py: 0.5,
-                          borderColor: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
-                          color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : 'inherit'
+                          borderColor:
+                            selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
+                          color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : 'inherit',
                         }}
                       />
                     </Grid>
@@ -656,18 +720,16 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                       <Typography
                         variant="caption"
                         sx={{
-                          color: "#64748b",
+                          color: '#64748b',
                           fontWeight: 800,
-                          display: "block",
+                          display: 'block',
                           mb: 0.5,
                         }}
                       >
                         STATUS
                       </Typography>
                       {(() => {
-                        const refundStatus = getRefundStatus(
-                          selectedSale.items,
-                        );
+                        const refundStatus = getRefundStatus(selectedSale.items);
                         const display = getStatusDisplay(refundStatus);
                         return (
                           <Chip
@@ -688,9 +750,9 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                       <Typography
                         variant="caption"
                         sx={{
-                          color: "#64748b",
+                          color: '#64748b',
                           fontWeight: 800,
-                          display: "block",
+                          display: 'block',
                           mb: 0.5,
                         }}
                       >
@@ -699,10 +761,7 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>
                         ₹
                         {selectedSale.items
-                          .reduce(
-                            (sum, item) => sum + item.mrp * item.quantity,
-                            0,
-                          )
+                          .reduce((sum, item) => sum + item.mrp * item.quantity, 0)
                           .toFixed(2)}
                       </Typography>
                     </Grid>
@@ -710,9 +769,9 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                       <Typography
                         variant="caption"
                         sx={{
-                          color: "#64748b",
+                          color: '#64748b',
                           fontWeight: 800,
-                          display: "block",
+                          display: 'block',
                           mb: 0.5,
                         }}
                       >
@@ -726,67 +785,42 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                       <Typography
                         variant="caption"
                         sx={{
-                          color: "#64748b",
+                          color: '#64748b',
                           fontWeight: 800,
-                          display: "block",
+                          display: 'block',
                           mb: 0.5,
                         }}
                       >
                         NET PROFIT
                       </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "#22c55e", fontWeight: 700 }}
-                      >
+                      <Typography variant="body2" sx={{ color: '#22c55e', fontWeight: 700 }}>
                         ₹{selectedSale.profit.toFixed(2)}
                       </Typography>
                     </Grid>
                   </Grid>
                 </Box>
 
-                <TableContainer
-                  sx={{ border: "1px solid #edf2f7", borderRadius: 2 }}
-                >
+                <TableContainer sx={{ border: '1px solid #edf2f7', borderRadius: 2 }}>
                   <Table size="small">
-                    <TableHead sx={{ bgcolor: "#f8fafc" }}>
+                    <TableHead sx={{ bgcolor: '#f8fafc' }}>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 800, color: "#64748b" }}>
-                          PRODUCT
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{ fontWeight: 800, color: "#64748b" }}
-                        >
+                        <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>PRODUCT</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b' }}>
                           QTY
                         </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{ fontWeight: 800, color: "#64748b" }}
-                        >
+                        <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
                           MRP
                         </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{ fontWeight: 800, color: "#64748b" }}
-                        >
+                        <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
                           COST PRICE
                         </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{ fontWeight: 800, color: "#64748b" }}
-                        >
+                        <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
                           UNIT PRICE
                         </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{ fontWeight: 800, color: "#64748b" }}
-                        >
+                        <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
                           PROFIT
                         </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{ fontWeight: 800, color: "#64748b" }}
-                        >
+                        <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
                           MARGIN
                         </TableCell>
                       </TableRow>
@@ -799,8 +833,8 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                             <TableCell sx={{ fontWeight: 600 }}>
                               <Box
                                 sx={{
-                                  display: "flex",
-                                  alignItems: "center",
+                                  display: 'flex',
+                                  alignItems: 'center',
                                   gap: 1,
                                 }}
                               >
@@ -809,58 +843,39 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                                     label="FREE"
                                     size="small"
                                     sx={{
-                                      bgcolor: "#e8f5e9",
-                                      color: "#2e7d32",
+                                      bgcolor: '#e8f5e9',
+                                      color: '#2e7d32',
                                       fontWeight: 800,
-                                      fontSize: "0.7rem",
-                                      height: 20
+                                      fontSize: '0.7rem',
+                                      height: 20,
                                     }}
                                   />
                                 )}
                                 <span>{item.productName}</span>
                                 {returnedQty > 0 && (
                                   <Chip
-                                    label={
-                                      returnedQty === item.quantity
-                                        ? "Refunded"
-                                        : "Returned"
-                                    }
+                                    label={returnedQty === item.quantity ? 'Refunded' : 'Returned'}
                                     size="small"
                                     sx={{
                                       bgcolor:
-                                        returnedQty === item.quantity
-                                          ? "#ffebee"
-                                          : "#e8f5e9",
-                                      color:
-                                        returnedQty === item.quantity
-                                          ? "#d32f2f"
-                                          : "#2e7d32",
+                                        returnedQty === item.quantity ? '#ffebee' : '#e8f5e9',
+                                      color: returnedQty === item.quantity ? '#d32f2f' : '#2e7d32',
                                       fontWeight: 700,
-                                      fontSize: "0.7rem",
+                                      fontSize: '0.7rem',
                                     }}
                                   />
                                 )}
                               </Box>
                             </TableCell>
-                            <TableCell align="center">
-                              {item.quantity}
+                            <TableCell align="center">{item.quantity}</TableCell>
+                            <TableCell align="right">
+                              ₹{item.mrp ? item.mrp.toFixed(2) : 'N/A'}
                             </TableCell>
                             <TableCell align="right">
-                              ₹{item.mrp ? item.mrp.toFixed(2) : "N/A"}
+                              ₹{item.costPrice ? item.costPrice.toFixed(2) : 'N/A'}
                             </TableCell>
-                            <TableCell align="right">
-                              ₹
-                              {item.costPrice
-                                ? item.costPrice.toFixed(2)
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell align="right">
-                              ₹{item.sellingPrice.toFixed(2)}
-                            </TableCell>
-                            <TableCell
-                              align="right"
-                              sx={{ color: "#2e7d32", fontWeight: 700 }}
-                            >
+                            <TableCell align="right">₹{item.sellingPrice.toFixed(2)}</TableCell>
+                            <TableCell align="right" sx={{ color: '#2e7d32', fontWeight: 700 }}>
                               ₹{item.profit.toFixed(2)}
                             </TableCell>
                             <TableCell align="right">
@@ -869,14 +884,8 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
                                 size="small"
                                 sx={{
                                   fontWeight: 700,
-                                  bgcolor:
-                                    parseFloat(item.margin) > 20
-                                      ? "#dcfce7"
-                                      : "#f0f9ff",
-                                  color:
-                                    parseFloat(item.margin) > 20
-                                      ? "#15803d"
-                                      : "#0369a1",
+                                  bgcolor: parseFloat(item.margin) > 20 ? '#dcfce7' : '#f0f9ff',
+                                  color: parseFloat(item.margin) > 20 ? '#15803d' : '#0369a1',
                                 }}
                               />
                             </TableCell>
@@ -893,25 +902,25 @@ const Reporting = ({ receiptSettings, shopMetadata }) => {
             <Button
               onClick={() => setSelectedSale(null)}
               variant="outlined"
-              sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
             >
               Close Details
             </Button>
           </DialogActions>
         </Dialog>
-      </Container >
-    </Box >
+      </Container>
+    </Box>
   );
 };
 
 const CategorySalesPanel = ({ sales }) => {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
-  const [selectedCategory, setSelectedCategory] = React.useState("All Categories");
+  const [selectedCategory, setSelectedCategory] = React.useState('All Categories');
 
   // Aggregate sales by category
   const categoryData = React.useMemo(() => {
     return (sales || []).reduce((acc, sale) => {
-      (sale?.items || []).forEach(item => {
+      (sale?.items || []).forEach((item) => {
         if (!item) return;
         const category = item.batch?.product?.category || 'Uncategorized';
         if (!acc[category]) {
@@ -920,40 +929,45 @@ const CategorySalesPanel = ({ sales }) => {
             totalSales: 0,
             totalCost: 0,
             totalProfit: 0,
-            itemCount: 0
+            itemCount: 0,
           };
         }
         acc[category].totalSales += (item.sellingPrice || 0) * (item.netQuantity || 0);
-        acc[category].totalCost += ((item.sellingPrice || 0) * (item.netQuantity || 0)) - (item.profit || 0);
-        acc[category].totalProfit += (item.profit || 0);
-        acc[category].itemCount += (item.netQuantity || 0);
+        acc[category].totalCost +=
+          (item.sellingPrice || 0) * (item.netQuantity || 0) - (item.profit || 0);
+        acc[category].totalProfit += item.profit || 0;
+        acc[category].itemCount += item.netQuantity || 0;
       });
       return acc;
     }, {});
   }, [sales]);
 
-  const allCategories = React.useMemo(() =>
-    Object.keys(categoryData).sort(),
-    [categoryData]
-  );
+  const allCategories = React.useMemo(() => Object.keys(categoryData).sort(), [categoryData]);
 
   const categoryList = React.useMemo(() => {
     let list = Object.values(categoryData);
-    if (selectedCategory !== "All Categories") {
-      list = list.filter(cat => cat.name === selectedCategory);
+    if (selectedCategory !== 'All Categories') {
+      list = list.filter((cat) => cat.name === selectedCategory);
     }
     return list;
   }, [categoryData, selectedCategory]);
 
-  const { items: sortedData, requestSort, sortConfig } = useSortableTable(categoryList, { key: 'totalSales', direction: 'desc' });
+  const {
+    items: sortedData,
+    requestSort,
+    sortConfig,
+  } = useSortableTable(categoryList, { key: 'totalSales', direction: 'desc' });
 
   const totals = React.useMemo(() => {
-    return categoryList.reduce((acc, cat) => ({
-      itemCount: acc.itemCount + (cat.itemCount || 0),
-      totalSales: acc.totalSales + (cat.totalSales || 0),
-      totalCost: acc.totalCost + (cat.totalCost || 0),
-      totalProfit: acc.totalProfit + (cat.totalProfit || 0)
-    }), { itemCount: 0, totalSales: 0, totalCost: 0, totalProfit: 0 });
+    return categoryList.reduce(
+      (acc, cat) => ({
+        itemCount: acc.itemCount + (cat.itemCount || 0),
+        totalSales: acc.totalSales + (cat.totalSales || 0),
+        totalCost: acc.totalCost + (cat.totalCost || 0),
+        totalProfit: acc.totalProfit + (cat.totalProfit || 0),
+      }),
+      { itemCount: 0, totalSales: 0, totalCost: 0, totalProfit: 0 }
+    );
   }, [categoryList]);
 
   React.useEffect(() => {
@@ -962,28 +976,37 @@ const CategorySalesPanel = ({ sales }) => {
 
   React.useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.role === "combobox") return;
+      if (
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.role === 'combobox'
+      )
+        return;
       if (categoryList.length === 0) return;
 
-      if (e.key === "ArrowDown") {
+      if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex(prev => {
+        setSelectedIndex((prev) => {
           const next = Math.min(prev + 1, categoryList.length - 1);
-          document.getElementById(`cat-row-${next}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          document
+            .getElementById(`cat-row-${next}`)
+            ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
           return next;
         });
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex(prev => {
+        setSelectedIndex((prev) => {
           const prevIdx = Math.max(prev - 1, 0);
-          document.getElementById(`cat-row-${prevIdx}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          document
+            .getElementById(`cat-row-${prevIdx}`)
+            ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
           return prevIdx;
         });
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [categoryList]);
 
   return (
@@ -997,34 +1020,37 @@ const CategorySalesPanel = ({ sales }) => {
           borderRadius: 2,
           border: '1px solid rgba(0,0,0,0.06)',
           overflow: 'hidden',
-          "@media print": {
+          '@media print': {
             p: 0,
             border: 'none',
-            "& .MuiTableContainer-root": {
-              overflow: "visible !important",
-              height: "auto !important",
+            '& .MuiTableContainer-root': {
+              overflow: 'visible !important',
+              height: 'auto !important',
             },
-            "& .MuiTableRow-root": {
-              pageBreakInside: "avoid",
-              position: "static !important",
+            '& .MuiTableRow-root': {
+              pageBreakInside: 'avoid',
+              position: 'static !important',
             },
-            "& .MuiTableCell-root": {
-              position: "static !important",
-              borderBottom: "1px solid #eee !important",
-            }
+            '& .MuiTableCell-root': {
+              position: 'static !important',
+              borderBottom: '1px solid #eee !important',
+            },
           },
         }}
       >
-        <Box className="no-print" sx={{
-          p: 3,
-          flexShrink: 0,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 2,
-          flexWrap: 'wrap',
-          borderBottom: '1px solid rgba(0,0,0,0.06)'
-        }}>
+        <Box
+          className="no-print"
+          sx={{
+            p: 3,
+            flexShrink: 0,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 2,
+            flexWrap: 'wrap',
+            borderBottom: '1px solid rgba(0,0,0,0.06)',
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Sales Performance by Category
           </Typography>
@@ -1037,9 +1063,13 @@ const CategorySalesPanel = ({ sales }) => {
               onChange={(e) => setSelectedCategory(e.target.value)}
               sx={{ borderRadius: 2, fontWeight: 600 }}
             >
-              <MenuItem value="All Categories"><em>All Categories</em></MenuItem>
-              {allCategories.map(cat => (
-                <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+              <MenuItem value="All Categories">
+                <em>All Categories</em>
+              </MenuItem>
+              {allCategories.map((cat) => (
+                <MenuItem key={cat} value={cat}>
+                  {cat}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -1053,7 +1083,14 @@ const CategorySalesPanel = ({ sales }) => {
                 { id: 'totalCost', label: 'TOTAL COST', align: 'right', sx: { width: '18%' } },
                 { id: 'totalSales', label: 'TOTAL SALES', align: 'right', sx: { width: '18%' } },
                 { id: 'totalProfit', label: 'TOTAL PROFIT', align: 'right', sx: { width: '14%' } },
-                { id: 'margin', label: 'AVG. MARGIN', align: 'right', sx: { width: '8%' }, getter: (cat) => cat.totalSales > 0 ? (cat.totalProfit / cat.totalSales) * 100 : 0 }
+                {
+                  id: 'margin',
+                  label: 'AVG. MARGIN',
+                  align: 'right',
+                  sx: { width: '8%' },
+                  getter: (cat) =>
+                    cat.totalSales > 0 ? (cat.totalProfit / cat.totalSales) * 100 : 0,
+                },
               ]}
               sortConfig={sortConfig}
               requestSort={requestSort}
@@ -1067,41 +1104,102 @@ const CategorySalesPanel = ({ sales }) => {
                   selected={selectedIndex === idx}
                   sx={{
                     cursor: 'pointer',
-                    '&.Mui-selected': { bgcolor: 'rgba(25, 118, 210, 0.08)' }
+                    '&.Mui-selected': { bgcolor: 'rgba(25, 118, 210, 0.08)' },
                   }}
                   onClick={() => setSelectedIndex(idx)}
                 >
                   <TableCell sx={{ fontWeight: 700 }}>{cat.name}</TableCell>
                   <TableCell align="center">{cat.itemCount}</TableCell>
-                  <TableCell align="right" sx={{ color: '#64748b' }}>₹{cat.totalCost.toFixed(2)}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>₹{cat.totalSales.toFixed(2)}</TableCell>
-                  <TableCell align="right" sx={{ color: '#2e7d32', fontWeight: 700 }}>₹{cat.totalProfit.toFixed(2)}</TableCell>
+                  <TableCell align="right" sx={{ color: '#64748b' }}>
+                    ₹{cat.totalCost.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    ₹{cat.totalSales.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="right" sx={{ color: '#2e7d32', fontWeight: 700 }}>
+                    ₹{cat.totalProfit.toFixed(2)}
+                  </TableCell>
                   <TableCell align="right">
                     <Chip
                       label={`${((cat.totalProfit / cat.totalSales) * 100).toFixed(1)}%`}
                       size="small"
                       sx={{
                         fontWeight: 700,
-                        bgcolor: (cat.totalProfit / cat.totalSales) > 0.2 ? '#e8f5e9' : '#f0f4f8',
-                        color: (cat.totalProfit / cat.totalSales) > 0.2 ? '#2e7d32' : '#1a73e8'
+                        bgcolor: cat.totalProfit / cat.totalSales > 0.2 ? '#e8f5e9' : '#f0f4f8',
+                        color: cat.totalProfit / cat.totalSales > 0.2 ? '#2e7d32' : '#1a73e8',
                       }}
                     />
                   </TableCell>
                 </TableRow>
               ))}
               {categoryList.length > 0 && (
-                <TableRow sx={{
-                  position: "sticky",
-                  bottom: 0,
-                  zIndex: 2,
-                  "&:hover": { bgcolor: "transparent" }
-                }}>
-                  <TableCell sx={{ fontWeight: 800, color: "#475569", py: 2, bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>TOTAL SUMMARY</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 800, color: "#0f172a", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>{totals.itemCount}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800, color: "#64748b", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>₹{totals.totalCost.toFixed(2)}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800, color: "#0f172a", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>₹{totals.totalSales.toFixed(2)}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800, color: "#16a34a", bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>₹{totals.totalProfit.toFixed(2)}</TableCell>
-                  <TableCell align="right" sx={{ bgcolor: "#f1f5f9", borderTop: "2px solid #e2e8f0" }}>
+                <TableRow
+                  sx={{
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 2,
+                    '&:hover': { bgcolor: 'transparent' },
+                  }}
+                >
+                  <TableCell
+                    sx={{
+                      fontWeight: 800,
+                      color: '#475569',
+                      py: 2,
+                      bgcolor: '#f1f5f9',
+                      borderTop: '2px solid #e2e8f0',
+                    }}
+                  >
+                    TOTAL SUMMARY
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      bgcolor: '#f1f5f9',
+                      borderTop: '2px solid #e2e8f0',
+                    }}
+                  >
+                    {totals.itemCount}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      fontWeight: 800,
+                      color: '#64748b',
+                      bgcolor: '#f1f5f9',
+                      borderTop: '2px solid #e2e8f0',
+                    }}
+                  >
+                    ₹{totals.totalCost.toFixed(2)}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      bgcolor: '#f1f5f9',
+                      borderTop: '2px solid #e2e8f0',
+                    }}
+                  >
+                    ₹{totals.totalSales.toFixed(2)}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      fontWeight: 800,
+                      color: '#16a34a',
+                      bgcolor: '#f1f5f9',
+                      borderTop: '2px solid #e2e8f0',
+                    }}
+                  >
+                    ₹{totals.totalProfit.toFixed(2)}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ bgcolor: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}
+                  >
                     <Chip
                       label={`${totals.totalSales > 0 ? ((totals.totalProfit / totals.totalSales) * 100).toFixed(1) : 0}%`}
                       size="small"
@@ -1114,7 +1212,9 @@ const CategorySalesPanel = ({ sales }) => {
               {categoryList.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-                    <Typography color="text.secondary">No category data available for this period.</Typography>
+                    <Typography color="text.secondary">
+                      No category data available for this period.
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )}

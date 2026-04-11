@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import api from '../../shared/api/api';
+import posService from '../../shared/api/posService';
+import dashboardService from '../../shared/api/dashboardService';
+import { isRequestCanceled } from '../../shared/api/api';
 import {
   Container,
   Typography,
@@ -26,15 +28,15 @@ import {
   Card,
   CardContent,
   Divider,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Print as PrintIcon,
   Replay as RefundIcon,
   CalendarToday as CalendarIcon,
   DeleteOutline as DeleteIcon,
   ShoppingBag as PosIcon,
-  Sell as LooseIcon
-} from "@mui/icons-material";
+  Sell as LooseIcon,
+} from '@mui/icons-material';
 import {
   ToggleButton,
   ToggleButtonGroup,
@@ -43,11 +45,11 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-} from "@mui/material";
+} from '@mui/material';
 
-import Receipt from "../POS/Receipt";
-import RefundDialog from "../Refund/RefundDialog";
-import { getRefundStatus, getStatusDisplay } from "../../shared/utils/refundStatus";
+import Receipt from '../POS/Receipt';
+import RefundDialog from '../Refund/RefundDialog';
+import { getRefundStatus, getStatusDisplay } from '../../shared/utils/refundStatus';
 
 const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrinter = null }) => {
   const [sales, setSales] = useState([]);
@@ -58,22 +60,23 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   const [saleType, setSaleType] = useState('pos');
   const [deleteLooseId, setDeleteLooseId] = useState(null);
   const [dateRange, setDateRange] = useState({
-    startDate: "",
-    endDate: "",
+    startDate: '',
+    endDate: '',
   });
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [refundSale, setRefundSale] = useState(null);
+  const abortControllerRef = useRef(null);
 
   const timeframes = [
-    { label: "Today", getValue: () => getRange("day") },
-    { label: "Yesterday", getValue: () => getRange("yesterday") },
-    { label: "This Week", getValue: () => getRange("this_week") },
-    { label: "Last Week", getValue: () => getRange("last_week") },
-    { label: "This Month", getValue: () => getRange("this_month") },
-    { label: "Last Month", getValue: () => getRange("last_month") },
-    { label: "This Year", getValue: () => getRange("this_year") },
-    { label: "Last Year", getValue: () => getRange("last_year") },
-    { label: "Custom", getValue: () => null },
+    { label: 'Today', getValue: () => getRange('day') },
+    { label: 'Yesterday', getValue: () => getRange('yesterday') },
+    { label: 'This Week', getValue: () => getRange('this_week') },
+    { label: 'Last Week', getValue: () => getRange('last_week') },
+    { label: 'This Month', getValue: () => getRange('this_month') },
+    { label: 'Last Month', getValue: () => getRange('last_month') },
+    { label: 'This Year', getValue: () => getRange('this_year') },
+    { label: 'Last Year', getValue: () => getRange('last_year') },
+    { label: 'Custom', getValue: () => null },
   ];
 
   const getRange = (type) => {
@@ -82,41 +85,65 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
     let end = new Date();
 
     switch (type) {
-      case "day":
+      case 'day':
         start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
-      case "yesterday":
+      case 'yesterday':
         start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
         break;
-      case "this_week": {
+      case 'this_week': {
         const dayOfWeek = now.getDay();
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+        start = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - diffToMonday,
+          0,
+          0,
+          0,
+          0
+        );
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
       }
-      case "last_week": {
+      case 'last_week': {
         const dayOfWeek = now.getDay();
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday - 7, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday - 1, 23, 59, 59, 999);
+        start = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - diffToMonday - 7,
+          0,
+          0,
+          0,
+          0
+        );
+        end = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - diffToMonday - 1,
+          23,
+          59,
+          59,
+          999
+        );
         break;
       }
-      case "this_month":
+      case 'this_month':
         start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
-      case "last_month":
+      case 'last_month':
         start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
         break;
-      case "this_year":
+      case 'this_year':
         start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         break;
-      case "last_year":
+      case 'last_year':
         start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
         end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
         break;
@@ -126,47 +153,62 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
     return { start: start.toISOString(), end: end.toISOString() };
   };
 
-  const fetchSales = async (start, end) => {
+  const fetchSales = useCallback(async (start, end) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
-      const [salesRes, looseSalesRes] = await Promise.all([
-        api.get("/api/reports", { params: { startDate: start, endDate: end } }),
-        api.get("/api/reports/loose-sales", { params: { startDate: start, endDate: end } })
+      const [salesData, looseSalesData] = await Promise.all([
+        posService.fetchSalesHistory(
+          { startDate: start, endDate: end },
+          { signal: controller.signal }
+        ),
+        dashboardService.fetchLooseSalesReport(
+          { startDate: start, endDate: end },
+          { signal: controller.signal }
+        ),
       ]);
 
-      const salesData = salesRes.data.sales || [];
-      const looseSalesData = looseSalesRes.data || [];
+      const salesList = salesData.sales || [];
+      const looseSalesList = looseSalesData || [];
 
-      setSales(salesData);
-      setLooseSales(looseSalesData);
+      setSales(salesList);
+      setLooseSales(looseSalesList);
 
-      if (salesData.length > 0) {
-        setSelectedSale(salesData[0]);
+      if (salesList.length > 0) {
+        setSelectedSale(salesList[0]);
       } else {
         setSelectedSale(null);
       }
     } catch (error) {
-      console.error("Error fetching sales:", error);
+      if (isRequestCanceled(error)) return;
+      console.error('Error fetching sales:', error);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    const range = getRange("day");
+    const range = getRange('day');
     fetchSales(range.start, range.end);
   }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Don't navigate if user is typing in an input field
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       if (sales.length === 0) return;
 
       const currentIndex = sales.findIndex((s) => s.id === selectedSale?.id);
 
-      if (e.key === "ArrowDown") {
+      if (e.key === 'ArrowDown') {
         e.preventDefault();
         const nextIndex = Math.min(currentIndex + 1, sales.length - 1);
         if (nextIndex !== currentIndex) {
@@ -174,10 +216,10 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           setSelectedSale(nextSale);
           document.getElementById(`sale-row-${nextSale.id}`)?.scrollIntoView({
             block: 'nearest',
-            behavior: 'smooth'
+            behavior: 'smooth',
           });
         }
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         const prevIndex = Math.max(currentIndex - 1, 0);
         if (prevIndex !== currentIndex) {
@@ -185,14 +227,14 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           setSelectedSale(prevSale);
           document.getElementById(`sale-row-${prevSale.id}`)?.scrollIntoView({
             block: 'nearest',
-            behavior: 'smooth'
+            behavior: 'smooth',
           });
         }
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [sales, selectedSale]);
 
   const handleTabChange = (event) => {
@@ -224,8 +266,10 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
 
     if (receiptSettings?.directPrint && window.electron) {
       const rawPrinter = receiptSettings?.printerType;
-      const isValidPrinter = rawPrinter && printers.some(p => p.name === rawPrinter);
-      const printer = isValidPrinter ? rawPrinter : (defaultPrinter || (printers.find(p => p.isDefault) || printers[0])?.name);
+      const isValidPrinter = rawPrinter && printers.some((p) => p.name === rawPrinter);
+      const printer = isValidPrinter
+        ? rawPrinter
+        : defaultPrinter || (printers.find((p) => p.isDefault) || printers[0])?.name;
       window.electron.ipcRenderer.send('print-manual', { printerName: printer });
     } else {
       window.print();
@@ -250,7 +294,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   const handleDeleteLooseSale = async () => {
     if (!deleteLooseId) return;
     try {
-      await api.delete(`/api/loose-sales/${deleteLooseId}`);
+      await posService.deleteLooseSale(deleteLooseId);
       setDeleteLooseId(null);
       // Refresh
       if (tabValue < 8) {
@@ -260,7 +304,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
         handleApplyCustomRange();
       }
     } catch (error) {
-      console.error("Failed to delete loose sale:", error);
+      console.error('Failed to delete loose sale:', error);
     }
   };
 
@@ -276,13 +320,12 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
     }
   };
 
-
   const calculateStats = (sale) => {
     if (!sale) return { total: 0, mrpDiscount: 0, extraDiscount: 0, discountPercent: 0 };
 
     // Calculate MRP discount (sum of item-level MRP discounts)
     let mrpDiscount = 0;
-    sale.items?.forEach(item => {
+    sale.items?.forEach((item) => {
       const mrp = item.mrp || item.sellingPrice;
       mrpDiscount += (mrp - item.sellingPrice) * item.quantity;
     });
@@ -295,7 +338,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
 
     // Subtotal (sum of all item MRP)
     let subtotal = 0;
-    sale.items?.forEach(item => {
+    sale.items?.forEach((item) => {
       const mrp = item.mrp || item.sellingPrice;
       subtotal += mrp * item.quantity;
     });
@@ -316,12 +359,12 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   return (
     <Box
       sx={{
-        bgcolor: "background.default",
-        height: "100%",
+        bgcolor: 'background.default',
+        height: '100%',
         minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
       <Paper
@@ -331,17 +374,17 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           m: 3,
           px: 4,
           py: 2.5,
-          background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
-          borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
+          background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
+          borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
         }}
       >
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             gap: 2,
-            flexWrap: "wrap",
+            flexWrap: 'wrap',
           }}
         >
           <Box>
@@ -374,15 +417,12 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
             </ToggleButtonGroup>
 
             <FormControl size="small" sx={{ minWidth: 150 }}>
-
               <InputLabel>Time Frame</InputLabel>
-              <Select
-                value={tabValue}
-                label="Time Frame"
-                onChange={handleTabChange}
-              >
+              <Select value={tabValue} label="Time Frame" onChange={handleTabChange}>
                 {timeframes.map((tf, idx) => (
-                  <MenuItem key={idx} value={idx}>{tf.label}</MenuItem>
+                  <MenuItem key={idx} value={idx}>
+                    {tf.label}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -394,7 +434,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                   type="date"
                   size="small"
                   InputLabelProps={{ shrink: true }}
-                  value={dateRange.startDate || ""}
+                  value={dateRange.startDate || ''}
                   onChange={(e) =>
                     setDateRange({
                       ...dateRange,
@@ -407,7 +447,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                   type="date"
                   size="small"
                   InputLabelProps={{ shrink: true }}
-                  value={dateRange.endDate || ""}
+                  value={dateRange.endDate || ''}
                   onChange={(e) =>
                     setDateRange({
                       ...dateRange,
@@ -415,11 +455,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                     })
                   }
                 />
-                <Button
-                  variant="outlined"
-                  onClick={handleApplyCustomRange}
-                  sx={{ height: 40 }}
-                >
+                <Button variant="outlined" onClick={handleApplyCustomRange} sx={{ height: 40 }}>
                   Apply
                 </Button>
               </>
@@ -434,9 +470,9 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
         sx={{
           flex: 1,
           minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
           pt: 0,
           px: 3,
           pb: 3,
@@ -445,9 +481,9 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
         {loading ? (
           <Box
             sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
               flex: 1,
             }}
           >
@@ -459,7 +495,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
             spacing={2}
             wrap="nowrap"
             className="no-print"
-            sx={{ flex: 1, minHeight: 0, overflow: "hidden", flexWrap: "nowrap" }}
+            sx={{ flex: 1, minHeight: 0, overflow: 'hidden', flexWrap: 'nowrap' }}
           >
             {/* Left Panel: Sales List */}
             <Grid
@@ -467,35 +503,36 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
               xs={saleType === 'pos' ? 6 : 12}
               md={saleType === 'pos' ? 6 : 12}
               sx={{
-                display: "flex",
-                flexDirection: "column",
+                display: 'flex',
+                flexDirection: 'column',
                 minHeight: 0,
                 minWidth: 0,
-                flexBasis: saleType === 'pos' ? "50%" : "100%",
-                maxWidth: saleType === 'pos' ? "50%" : "100%",
-                transition: "all 0.3s ease",
+                flexBasis: saleType === 'pos' ? '50%' : '100%',
+                maxWidth: saleType === 'pos' ? '50%' : '100%',
+                transition: 'all 0.3s ease',
               }}
             >
               <Paper
                 sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
                 }}
               >
                 <Box
                   sx={{
                     p: 2,
-                    borderBottom: "1px solid #eee",
+                    borderBottom: '1px solid #eee',
                     flexShrink: 0,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
                   }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {saleType === 'pos' ? 'Sales' : 'Loose Sales'} ({saleType === 'pos' ? sales.length : looseSales.length})
+                    {saleType === 'pos' ? 'Sales' : 'Loose Sales'} (
+                    {saleType === 'pos' ? sales.length : looseSales.length})
                   </Typography>
                   <Chip
                     label={(() => {
@@ -505,19 +542,42 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
 
                       return (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
-                          <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#1b5e20' }}>
-                            Total Sales: ₹{combinedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          <Typography
+                            sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#1b5e20' }}
+                          >
+                            Total Sales: ₹
+                            {combinedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </Typography>
-                          <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#64748b' }}>=</Typography>
-                          <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1565c0' }}>
+                          <Typography
+                            sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#64748b' }}
+                          >
+                            =
+                          </Typography>
+                          <Typography
+                            sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1565c0' }}
+                          >
                             {posTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </Typography>
-                          <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#64748b' }}>+</Typography>
+                          <Typography
+                            sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#64748b' }}
+                          >
+                            +
+                          </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#ef6c00' }}>
+                            <Typography
+                              sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#ef6c00' }}
+                            >
                               {looseTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </Typography>
-                            <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#f57c00', ml: 0.5, opacity: 0.9 }}>
+                            <Typography
+                              sx={{
+                                fontWeight: 600,
+                                fontSize: '0.85rem',
+                                color: '#f57c00',
+                                ml: 0.5,
+                                opacity: 0.9,
+                              }}
+                            >
                               (Loose sale)
                             </Typography>
                           </Box>
@@ -532,19 +592,19 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                       border: '2px solid #a5d6a7',
                       borderRadius: 3,
                       '& .MuiChip-label': {
-                        p: 0
-                      }
+                        p: 0,
+                      },
                     }}
                   />
                 </Box>
-                <TableContainer sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+                <TableContainer sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
                   <Table stickyHeader>
                     <TableHead>
                       <TableRow>
                         <TableCell
                           sx={{
                             fontWeight: 800,
-                            bgcolor: "#f8fafc",
+                            bgcolor: '#f8fafc',
                             minWidth: 150,
                           }}
                         >
@@ -553,7 +613,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                         <TableCell
                           sx={{
                             fontWeight: 800,
-                            bgcolor: "#f8fafc",
+                            bgcolor: '#f8fafc',
                             minWidth: 130,
                           }}
                         >
@@ -563,7 +623,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                           align="right"
                           sx={{
                             fontWeight: 800,
-                            bgcolor: "#f8fafc",
+                            bgcolor: '#f8fafc',
                             minWidth: 100,
                           }}
                         >
@@ -575,7 +635,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                               align="center"
                               sx={{
                                 fontWeight: 800,
-                                bgcolor: "#f8fafc",
+                                bgcolor: '#f8fafc',
                                 minWidth: 100,
                               }}
                             >
@@ -585,7 +645,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                               align="center"
                               sx={{
                                 fontWeight: 800,
-                                bgcolor: "#f8fafc",
+                                bgcolor: '#f8fafc',
                                 minWidth: 110,
                               }}
                             >
@@ -597,7 +657,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                           align="center"
                           sx={{
                             fontWeight: 800,
-                            bgcolor: "#f8fafc",
+                            bgcolor: '#f8fafc',
                             minWidth: 100,
                           }}
                         >
@@ -606,120 +666,144 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {saleType === 'pos' ? (
-                        sales.map((sale) => (
-                          <TableRow
-                            key={sale.id}
-                            id={`sale-row-${sale.id}`}
-                            hover
-                            selected={selectedSale?.id === sale.id}
-                            onClick={() => setSelectedSale(sale)}
-                            sx={{
-                              cursor: "pointer",
-                              "&.Mui-selected": {
-                                bgcolor: "#e3f2fd",
-                              },
-                            }}
-                          >
-                            <TableCell sx={{ fontWeight: 600 }}>ORD-{sale.id}</TableCell>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {new Date(sale.createdAt).toLocaleDateString()}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {new Date(sale.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700 }}>
-                              ₹{sale.netTotalAmount.toFixed(2)}
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={sale.paymentMethod || 'Cash'}
-                                size="small"
-                                variant="outlined"
-                                sx={{
-                                  fontWeight: 600,
-                                  fontSize: '0.7rem',
-                                  color: sale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
-                                  borderColor: sale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1'
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell align="center">
-                              {(() => {
-                                const refundStatus = getRefundStatus(sale.items);
-                                const display = getStatusDisplay(refundStatus);
-                                return (
-                                  <Chip
-                                    label={display.label}
+                      {saleType === 'pos'
+                        ? sales.map((sale) => (
+                            <TableRow
+                              key={sale.id}
+                              id={`sale-row-${sale.id}`}
+                              hover
+                              selected={selectedSale?.id === sale.id}
+                              onClick={() => setSelectedSale(sale)}
+                              sx={{
+                                cursor: 'pointer',
+                                '&.Mui-selected': {
+                                  bgcolor: '#e3f2fd',
+                                },
+                              }}
+                            >
+                              <TableCell sx={{ fontWeight: 600 }}>ORD-{sale.id}</TableCell>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {new Date(sale.createdAt).toLocaleDateString()}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {new Date(sale.createdAt).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>
+                                ₹{sale.netTotalAmount.toFixed(2)}
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  label={sale.paymentMethod || 'Cash'}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    fontWeight: 600,
+                                    fontSize: '0.7rem',
+                                    color: sale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
+                                    borderColor:
+                                      sale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell align="center">
+                                {(() => {
+                                  const refundStatus = getRefundStatus(sale.items);
+                                  const display = getStatusDisplay(refundStatus);
+                                  return (
+                                    <Chip
+                                      label={display.label}
+                                      size="small"
+                                      sx={{
+                                        bgcolor: display.bgcolor,
+                                        color: display.color,
+                                        fontWeight: 700,
+                                      }}
+                                    />
+                                  );
+                                })()}
+                              </TableCell>
+                              <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
+                                  <IconButton
                                     size="small"
-                                    sx={{
-                                      bgcolor: display.bgcolor,
-                                      color: display.color,
-                                      fontWeight: 700,
-                                    }}
-                                  />
-                                );
-                              })()}
-                            </TableCell>
-                            <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
-                                <IconButton size="small" onClick={() => handlePrintReceipt(sale)} color="success">
-                                  <PrintIcon fontSize="small" />
+                                    onClick={() => handlePrintReceipt(sale)}
+                                    color="success"
+                                  >
+                                    <PrintIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleRefund(sale)}
+                                    color="error"
+                                  >
+                                    <RefundIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        : looseSales.map((sale) => (
+                            <TableRow
+                              key={sale.id}
+                              id={`sale-row-${sale.id}`}
+                              hover
+                              selected={selectedSale?.id === sale.id}
+                              onClick={() => setSelectedSale(sale)}
+                              sx={{
+                                cursor: 'pointer',
+                                '&.Mui-selected': {
+                                  bgcolor: '#fff3e0',
+                                },
+                              }}
+                            >
+                              <TableCell>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 700, color: '#e65100' }}
+                                >
+                                  {sale.itemName || 'Loose Item'}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  LOO-{sale.id}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {new Date(sale.createdAt).toLocaleDateString()}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {new Date(sale.createdAt).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>
+                                ₹{sale.price.toFixed(2)}
+                              </TableCell>
+                              <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => setDeleteLooseId(sale.id)}
+                                >
+                                  <DeleteIcon fontSize="small" />
                                 </IconButton>
-                                <IconButton size="small" onClick={() => handleRefund(sale)} color="error">
-                                  <RefundIcon fontSize="small" />
-                                </IconButton>
-                              </Box>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        looseSales.map((sale) => (
-                          <TableRow
-                            key={sale.id}
-                            id={`sale-row-${sale.id}`}
-                            hover
-                            selected={selectedSale?.id === sale.id}
-                            onClick={() => setSelectedSale(sale)}
-                            sx={{
-                              cursor: "pointer",
-                              "&.Mui-selected": {
-                                bgcolor: "#fff3e0",
-                              },
-                            }}
-                          >
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 700, color: '#e65100' }}>
-                                {sale.itemName || 'Loose Item'}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                LOO-{sale.id}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {new Date(sale.createdAt).toLocaleDateString()}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {new Date(sale.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700 }}>
-                              ₹{sale.price.toFixed(2)}
-                            </TableCell>
-                            <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                              <IconButton size="small" color="error" onClick={() => setDeleteLooseId(sale.id)}>
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
                       {(saleType === 'pos' ? sales.length : looseSales.length) === 0 && (
                         <TableRow>
-                          <TableCell colSpan={saleType === 'pos' ? 6 : 4} align="center" sx={{ py: 8 }}>
+                          <TableCell
+                            colSpan={saleType === 'pos' ? 6 : 4}
+                            align="center"
+                            sx={{ py: 8 }}
+                          >
                             <Typography variant="body1" color="text.secondary">
                               No {saleType === 'pos' ? 'POS' : 'loose'} sales found for this period
                             </Typography>
@@ -727,7 +811,6 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                         </TableRow>
                       )}
                     </TableBody>
-
                   </Table>
                 </TableContainer>
               </Paper>
@@ -740,22 +823,22 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                 xs={6}
                 md={6}
                 sx={{
-                  display: "flex",
-                  flexDirection: "column",
+                  display: 'flex',
+                  flexDirection: 'column',
                   minHeight: 0,
                   minWidth: 0,
-                  flexBasis: "50%",
-                  maxWidth: "50%",
+                  flexBasis: '50%',
+                  maxWidth: '50%',
                 }}
               >
                 {selectedSale ? (
                   <Box
                     sx={{
-                      display: "flex",
-                      flexDirection: "column",
+                      display: 'flex',
+                      flexDirection: 'column',
                       gap: 2,
-                      height: "100%",
-                      overflow: "hidden",
+                      height: '100%',
+                      overflow: 'hidden',
                     }}
                   >
                     {saleType === 'pos' ? (
@@ -765,32 +848,44 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                           sx={{
                             p: 1.75,
                             borderRadius: 1.5,
-                            border: "1px solid #eef2f6",
-                            bgcolor: "#ffffff",
+                            border: '1px solid #eef2f6',
+                            bgcolor: '#ffffff',
                           }}
                         >
                           <Box
                             sx={{
-                              display: "flex",
-                              alignItems: "stretch",
-                              justifyContent: "space-between",
+                              display: 'flex',
+                              alignItems: 'stretch',
+                              justifyContent: 'space-between',
                               gap: 2,
-                              whiteSpace: "nowrap",
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             <Box sx={{ minWidth: 180 }}>
                               <Typography
                                 variant="subtitle2"
-                                sx={{ fontWeight: 800, color: "#1a73e8" }}
+                                sx={{ fontWeight: 800, color: '#1a73e8' }}
                               >
                                 Order ORD-{selectedSale.id}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                {new Date(selectedSale.createdAt).toLocaleDateString()} {new Date(selectedSale.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ display: 'block' }}
+                              >
+                                {new Date(selectedSale.createdAt).toLocaleDateString()}{' '}
+                                {new Date(selectedSale.createdAt).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
                               </Typography>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                                <Typography variant="caption" sx={{ fontWeight: 700, color: "#64748b" }}>
-                                  Items: {selectedSale.items.reduce((sum, item) => sum + item.quantity, 0)}
+                                <Typography
+                                  variant="caption"
+                                  sx={{ fontWeight: 700, color: '#64748b' }}
+                                >
+                                  Items:{' '}
+                                  {selectedSale.items.reduce((sum, item) => sum + item.quantity, 0)}
                                 </Typography>
                                 <Chip
                                   label={selectedSale.paymentMethod || 'Cash'}
@@ -800,8 +895,10 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                                     height: 20,
                                     fontWeight: 700,
                                     fontSize: '0.65rem',
-                                    color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
-                                    borderColor: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1'
+                                    color:
+                                      selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
+                                    borderColor:
+                                      selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
                                   }}
                                 />
                               </Box>
@@ -811,24 +908,21 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                                 flex: 1,
                                 p: 1,
                                 borderRadius: 1.5,
-                                bgcolor: "#f8fafc",
-                                border: "1px solid #eef2f6",
+                                bgcolor: '#f8fafc',
+                                border: '1px solid #eef2f6',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                justifyContent: 'center'
+                                justifyContent: 'center',
                               }}
                             >
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
-                                sx={{ fontWeight: 700, display: "block" }}
+                                sx={{ fontWeight: 700, display: 'block' }}
                               >
                                 TOTAL VALUE
                               </Typography>
-                              <Typography
-                                variant="h6"
-                                sx={{ fontWeight: 800, color: "#1976d2" }}
-                              >
+                              <Typography variant="h6" sx={{ fontWeight: 800, color: '#1976d2' }}>
                                 ₹{stats.total.toFixed(2)}
                               </Typography>
                             </Box>
@@ -837,38 +931,37 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                                 flex: 1.4,
                                 p: 1,
                                 borderRadius: 1.5,
-                                bgcolor: "#fff5f5",
-                                border: "1px solid #ffe4e6",
+                                bgcolor: '#fff5f5',
+                                border: '1px solid #ffe4e6',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                justifyContent: 'center'
+                                justifyContent: 'center',
                               }}
                             >
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
-                                sx={{ fontWeight: 700, display: "block" }}
+                                sx={{ fontWeight: 700, display: 'block' }}
                               >
                                 TOTAL DISCOUNT
                               </Typography>
-                              <Typography
-                                variant="h6"
-                                sx={{ fontWeight: 800, color: "#d32f2f" }}
-                              >
+                              <Typography variant="h6" sx={{ fontWeight: 800, color: '#d32f2f' }}>
                                 ₹{stats.totalDiscount.toFixed(2)}
                               </Typography>
                               <Typography
                                 variant="caption"
                                 sx={{
                                   fontWeight: 600,
-                                  color: "#64748b",
-                                  display: "block",
-                                  whiteSpace: "normal",
+                                  color: '#64748b',
+                                  display: 'block',
+                                  whiteSpace: 'normal',
                                   lineHeight: 1.2,
-                                  mt: 0.5
+                                  mt: 0.5,
                                 }}
                               >
-                                ₹{stats.mrpDiscount.toFixed(2)} MRP + ₹{stats.extraDiscount.toFixed(2)} Extra · {stats.discountPercent}% of MRP
+                                ₹{stats.mrpDiscount.toFixed(2)} MRP + ₹
+                                {stats.extraDiscount.toFixed(2)} Extra · {stats.discountPercent}% of
+                                MRP
                               </Typography>
                             </Box>
                           </Box>
@@ -878,33 +971,61 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                         <Paper
                           sx={{
                             flex: 1,
-                            display: "flex",
-                            flexDirection: "column",
-                            overflow: "hidden",
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
                           }}
                         >
-                          <Box sx={{ p: 2, borderBottom: "1px solid #eee", flexShrink: 0 }}>
+                          <Box sx={{ p: 2, borderBottom: '1px solid #eee', flexShrink: 0 }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                               Products ({selectedSale.items.length})
                             </Typography>
                           </Box>
-                          <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
+                          <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
                             <Table size="small" stickyHeader>
                               <TableHead>
                                 <TableRow>
-                                  <TableCell sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>PRODUCT</TableCell>
-                                  <TableCell align="center" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>QTY</TableCell>
-                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>MRP</TableCell>
-                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>PRICE</TableCell>
-                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>MRP DISCOUNT</TableCell>
-                                  <TableCell align="right" sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>EXTRA DISCOUNT</TableCell>
+                                  <TableCell sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                                    PRODUCT
+                                  </TableCell>
+                                  <TableCell
+                                    align="center"
+                                    sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}
+                                  >
+                                    QTY
+                                  </TableCell>
+                                  <TableCell
+                                    align="right"
+                                    sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}
+                                  >
+                                    MRP
+                                  </TableCell>
+                                  <TableCell
+                                    align="right"
+                                    sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}
+                                  >
+                                    PRICE
+                                  </TableCell>
+                                  <TableCell
+                                    align="right"
+                                    sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}
+                                  >
+                                    MRP DISCOUNT
+                                  </TableCell>
+                                  <TableCell
+                                    align="right"
+                                    sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}
+                                  >
+                                    EXTRA DISCOUNT
+                                  </TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
                                 {selectedSale.items.map((item) => {
                                   const mrp = item.mrp || item.sellingPrice;
                                   const itemDiscount = mrp - item.sellingPrice;
-                                  const itemDiscountPercent = mrp > 0 ? ((itemDiscount / mrp) * 100).toFixed(1) : 0;
+                                  const itemDiscountPercent =
+                                    mrp > 0 ? ((itemDiscount / mrp) * 100).toFixed(1) : 0;
                                   const returnedQty = item.returnedQuantity || 0;
 
                                   return (
@@ -914,13 +1035,23 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                                           <span>{item.productName}</span>
                                           {returnedQty > 0 && (
                                             <Chip
-                                              label={returnedQty === item.quantity ? "Refunded" : "Returned"}
+                                              label={
+                                                returnedQty === item.quantity
+                                                  ? 'Refunded'
+                                                  : 'Returned'
+                                              }
                                               size="small"
                                               sx={{
-                                                bgcolor: returnedQty === item.quantity ? "#ffebee" : "#e8f5e9",
-                                                color: returnedQty === item.quantity ? "#d32f2f" : "#2e7d32",
+                                                bgcolor:
+                                                  returnedQty === item.quantity
+                                                    ? '#ffebee'
+                                                    : '#e8f5e9',
+                                                color:
+                                                  returnedQty === item.quantity
+                                                    ? '#d32f2f'
+                                                    : '#2e7d32',
                                                 fontWeight: 700,
-                                                fontSize: "0.7rem",
+                                                fontSize: '0.7rem',
                                               }}
                                             />
                                           )}
@@ -928,10 +1059,15 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                                       </TableCell>
                                       <TableCell align="center">{item.quantity}</TableCell>
                                       <TableCell align="right">₹{mrp.toFixed(2)}</TableCell>
-                                      <TableCell align="right">₹{item.sellingPrice.toFixed(2)}</TableCell>
+                                      <TableCell align="right">
+                                        ₹{item.sellingPrice.toFixed(2)}
+                                      </TableCell>
                                       <TableCell align="right">
                                         <Box>
-                                          <Typography variant="body2" sx={{ color: "#d32f2f", fontWeight: 700 }}>
+                                          <Typography
+                                            variant="body2"
+                                            sx={{ color: '#d32f2f', fontWeight: 700 }}
+                                          >
                                             ₹{itemDiscount.toFixed(2)}
                                           </Typography>
                                           <Typography variant="caption" color="text.secondary">
@@ -940,7 +1076,10 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                                         </Box>
                                       </TableCell>
                                       <TableCell align="right">
-                                        <Typography variant="body2" sx={{ color: "#d32f2f", fontWeight: 700 }}>
+                                        <Typography
+                                          variant="body2"
+                                          sx={{ color: '#d32f2f', fontWeight: 700 }}
+                                        >
                                           ₹0.00
                                         </Typography>
                                       </TableCell>
@@ -959,42 +1098,60 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                           sx={{
                             p: 3,
                             borderRadius: 2,
-                            border: "1px solid #fff3e0",
-                            bgcolor: "#fffbf2",
+                            border: '1px solid #fff3e0',
+                            bgcolor: '#fffbf2',
                             flex: 1,
                             display: 'flex',
-                            flexDirection: 'column'
+                            flexDirection: 'column',
                           }}
                         >
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              mb: 3,
+                            }}
+                          >
                             <Box>
-                              <Typography variant="h5" sx={{ fontWeight: 800, color: "#e65100" }}>
+                              <Typography variant="h5" sx={{ fontWeight: 800, color: '#e65100' }}>
                                 Loose Sale Details
                               </Typography>
                               <Typography variant="caption" color="text.secondary" fontWeight={700}>
                                 TRANSACTION ID: LOO-{selectedSale.id}
                               </Typography>
                             </Box>
-                            <Chip label="One-time Sale" color="warning" size="small" sx={{ fontWeight: 700 }} />
+                            <Chip
+                              label="One-time Sale"
+                              color="warning"
+                              size="small"
+                              sx={{ fontWeight: 700 }}
+                            />
                           </Box>
 
                           <Divider sx={{ mb: 3 }} />
 
                           <Grid container spacing={4}>
                             <Grid item xs={12}>
-                              <Typography variant="caption" color="text.secondary" fontWeight={700}>ITEM DESCRIPTION / NOTES</Typography>
+                              <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                                ITEM DESCRIPTION / NOTES
+                              </Typography>
                               <Typography variant="h6" fontWeight={700} sx={{ mt: 0.5 }}>
                                 {selectedSale.itemName || 'Untitled Loose Item'}
                               </Typography>
                             </Grid>
                             <Grid item xs={6}>
-                              <Typography variant="caption" color="text.secondary" fontWeight={700}>DATE</Typography>
+                              <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                                DATE
+                              </Typography>
                               <Typography variant="body1" fontWeight={600}>
                                 {new Date(selectedSale.createdAt).toLocaleDateString()}
                               </Typography>
                             </Grid>
                             <Grid item xs={6}>
-                              <Typography variant="caption" color="text.secondary" fontWeight={700}>TIME</Typography>
+                              <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                                TIME
+                              </Typography>
                               <Typography variant="body1" fontWeight={600}>
                                 {new Date(selectedSale.createdAt).toLocaleTimeString()}
                               </Typography>
@@ -1002,8 +1159,15 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                           </Grid>
 
                           <Box sx={{ mt: 'auto', pt: 4 }}>
-                            <Paper sx={{ p: 3, bgcolor: '#e65100', color: 'white', borderRadius: 2 }}>
-                              <Typography variant="subtitle2" sx={{ opacity: 0.9, fontWeight: 700 }}>TOTAL AMOUNT PAID</Typography>
+                            <Paper
+                              sx={{ p: 3, bgcolor: '#e65100', color: 'white', borderRadius: 2 }}
+                            >
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ opacity: 0.9, fontWeight: 700 }}
+                              >
+                                TOTAL AMOUNT PAID
+                              </Typography>
                               <Typography variant="h3" sx={{ fontWeight: 900 }}>
                                 ₹{selectedSale.price.toFixed(2)}
                               </Typography>
@@ -1029,14 +1193,14 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                   <Paper
                     sx={{
                       p: 4,
-                      textAlign: "center",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      textAlign: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       flex: 1,
                       border: '2px dashed #e2e8f0',
                       bgcolor: '#f8fafc',
-                      borderRadius: 3
+                      borderRadius: 3,
                     }}
                   >
                     <Box>
@@ -1044,7 +1208,8 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                         No Transaction Selected
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Select a {saleType === 'pos' ? 'POS' : 'loose'} sale from the list to view its full details.
+                        Select a {saleType === 'pos' ? 'POS' : 'loose'} sale from the list to view
+                        its full details.
                       </Typography>
                     </Box>
                   </Paper>
@@ -1055,43 +1220,47 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
         )}
 
         {/* Hidden Print Container for Direct Printing in Sale History */}
-        <Box sx={{
-          position: 'absolute',
-          left: '-9999px',
-          top: '-9999px',
-          height: 0,
-          overflow: 'hidden',
-          '@media print': {
+        <Box
+          sx={{
             position: 'absolute',
-            left: 0,
-            top: 0,
-            width: '100%',
-            height: 'auto',
-            overflow: 'visible',
-            display: 'block',
-            zIndex: 9999
-          }
-        }}>
+            left: '-9999px',
+            top: '-9999px',
+            height: 0,
+            overflow: 'hidden',
+            '@media print': {
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: '100%',
+              height: 'auto',
+              overflow: 'visible',
+              display: 'block',
+              zIndex: 9999,
+            },
+          }}
+        >
           <div id="thermal-receipt-print">
             {selectedSale && (
               <Receipt
                 sale={selectedSale}
-                settings={receiptSettings || {
-                  shopName: true,
-                  header: true,
-                  footer: true,
-                  mrp: true,
-                  price: true,
-                  discount: true,
-                  totalValue: true,
-                  productName: true,
-                  exp: true,
-                  barcode: true,
-                  totalSavings: true,
-                  customShopName: localStorage.getItem("posShopName") || "Bachat Bazaar",
-                  customHeader: "123 Business Street, City",
-                  customFooter: "Thank You! Visit Again",
-                }}
+                settings={
+                  receiptSettings || {
+                    shopName: true,
+                    header: true,
+                    footer: true,
+                    mrp: true,
+                    price: true,
+                    discount: true,
+                    totalValue: true,
+                    productName: true,
+                    exp: true,
+                    barcode: true,
+                    totalSavings: true,
+                    customShopName: localStorage.getItem('posShopName') || 'Bachat Bazaar',
+                    customHeader: '123 Business Street, City',
+                    customFooter: 'Thank You! Visit Again',
+                  }
+                }
                 shopMetadata={shopMetadata}
               />
             )}
@@ -1111,17 +1280,26 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           open={Boolean(deleteLooseId)}
           onClose={() => setDeleteLooseId(null)}
           PaperProps={{
-            sx: { borderRadius: 3, p: 1 }
+            sx: { borderRadius: 3, p: 1 },
           }}
         >
-          <DialogTitle sx={{ fontWeight: 800, color: '#d32f2f', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <DialogTitle
+            sx={{
+              fontWeight: 800,
+              color: '#d32f2f',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+            }}
+          >
             <DeleteIcon color="error" />
             Delete Loose Sale?
           </DialogTitle>
           <DialogContent>
             <DialogContentText sx={{ fontWeight: 500 }}>
-              Are you sure you want to permanently delete this loose sale record (LOO-{deleteLooseId})?
-              This action cannot be undone and will be removed from all financial reports.
+              Are you sure you want to permanently delete this loose sale record (LOO-
+              {deleteLooseId})? This action cannot be undone and will be removed from all financial
+              reports.
             </DialogContentText>
           </DialogContent>
           <DialogActions sx={{ p: 2, gap: 1 }}>
@@ -1143,7 +1321,6 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
             </Button>
           </DialogActions>
         </Dialog>
-
       </Container>
     </Box>
   );

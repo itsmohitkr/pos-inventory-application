@@ -1,6 +1,6 @@
-const prisma = require("../../config/prisma");
+const prisma = require('../../config/prisma');
 const { getDateRange } = require('../../shared/utils/dateUtils');
-const { Prisma } = require("@prisma/client");
+const { Prisma } = require('@prisma/client');
 const categoryService = require('../category/category.service');
 
 const normalizeCategory = (value) => {
@@ -9,26 +9,22 @@ const normalizeCategory = (value) => {
   if (!trimmed) return null;
   // Standardize slashes: trim spaces around slashes
   return trimmed
-    .split("/")
+    .split('/')
     .map((s) => s.trim())
     .filter(Boolean)
-    .join("/");
+    .join('/');
 };
 
 const normalizeSearch = (value) => {
-  if (value === null || value === undefined) return "";
+  if (value === null || value === undefined) return '';
   return String(value).trim();
 };
 
-const _validateBarcodesUniqueness = async (
-  tx,
-  barcodeStr,
-  excludeProductId = null,
-) => {
+const _validateBarcodesUniqueness = async (tx, barcodeStr, excludeProductId = null) => {
   if (!barcodeStr || !barcodeStr.trim()) return;
 
   const barcodes = barcodeStr
-    .split("|")
+    .split('|')
     .map((b) => b.trim())
     .filter(Boolean);
   for (const singleBarcode of barcodes) {
@@ -46,7 +42,7 @@ const _validateBarcodesUniqueness = async (
 
     if (existing) {
       throw new Error(
-        `BARCODE_CONFLICT: Barcode '${singleBarcode}' is already associated with product '${existing.name}'`,
+        `BARCODE_CONFLICT: Barcode '${singleBarcode}' is already associated with product '${existing.name}'`
       );
     }
   }
@@ -56,19 +52,19 @@ const generateBatchCode = () => {
   // Generate timestamp-based batch code: B-YYYYMMDDHHMMSSmmm
   const now = new Date();
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
-  const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
   return `B-${year}${month}${day}${hours}${minutes}${seconds}${milliseconds}`;
 };
 
 // Proper RFC 4180 CSV parser that handles quoted values with commas and special characters
 const parseCSVLine = (line) => {
   const result = [];
-  let current = "";
+  let current = '';
   let inQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
@@ -84,10 +80,10 @@ const parseCSVLine = (line) => {
         // Toggle quote state
         inQuotes = !inQuotes;
       }
-    } else if (char === "," && !inQuotes) {
+    } else if (char === ',' && !inQuotes) {
       // Column separator (only if not inside quotes)
       result.push(current.trim());
-      current = "";
+      current = '';
     } else {
       current += char;
     }
@@ -98,38 +94,21 @@ const parseCSVLine = (line) => {
   return result;
 };
 
-const validatePricing = ({
-  mrp,
-  costPrice,
-  sellingPrice,
-  wholesalePrice,
-  wholesaleEnabled,
-}) => {
-  if (
-    mrp === undefined ||
-    costPrice === undefined ||
-    sellingPrice === undefined
-  )
-    return;
-  if (
-    Number.isNaN(mrp) ||
-    Number.isNaN(costPrice) ||
-    Number.isNaN(sellingPrice)
-  ) {
-    throw new Error("Invalid pricing values");
+const validatePricing = ({ mrp, costPrice, sellingPrice, wholesalePrice, wholesaleEnabled }) => {
+  if (mrp === undefined || costPrice === undefined || sellingPrice === undefined) return;
+  if (Number.isNaN(mrp) || Number.isNaN(costPrice) || Number.isNaN(sellingPrice)) {
+    throw new Error('Invalid pricing values');
   }
   if (sellingPrice < costPrice || sellingPrice > mrp) {
-    throw new Error("Selling price must be between cost price and MRP");
+    throw new Error('Selling price must be between cost price and MRP');
   }
 
   if (wholesaleEnabled && wholesalePrice !== undefined) {
     if (Number.isNaN(wholesalePrice)) {
-      throw new Error("Invalid wholesale price");
+      throw new Error('Invalid wholesale price');
     }
     if (wholesalePrice < costPrice || wholesalePrice > sellingPrice) {
-      throw new Error(
-        "Wholesale price must be between cost price and regular selling price",
-      );
+      throw new Error('Wholesale price must be between cost price and regular selling price');
     }
   }
 };
@@ -144,14 +123,12 @@ const buildWhereSql = ({ search, category }) => {
     clauses.push(Prisma.sql`(p.name LIKE ${like} OR p.barcode LIKE ${like})`);
   }
 
-  if (category && category !== "all") {
-    if (category === "uncategorized") {
+  if (category && category !== 'all') {
+    if (category === 'uncategorized') {
       clauses.push(Prisma.sql`(p.category IS NULL OR TRIM(p.category) = '')`);
     } else {
       const like = `${category}/%`;
-      clauses.push(
-        Prisma.sql`(p.category = ${category} OR p.category LIKE ${like})`,
-      );
+      clauses.push(Prisma.sql`(p.category = ${category} OR p.category LIKE ${like})`);
     }
   }
 
@@ -182,21 +159,14 @@ const buildWhereFilter = ({ search, category }) => {
   if (normalizedSearch) {
     // Support multi-barcode search: search for exact match or as part of pipe-separated list
     andFilters.push({
-      OR: [
-        { name: { contains: normalizedSearch } },
-        { barcode: { contains: normalizedSearch } },
-      ],
+      OR: [{ name: { contains: normalizedSearch } }, { barcode: { contains: normalizedSearch } }],
     });
   }
 
-  if (category && category !== "all") {
-    if (category === "uncategorized") {
+  if (category && category !== 'all') {
+    if (category === 'uncategorized') {
       andFilters.push({
-        OR: [
-          { category: null },
-          { category: "" },
-          { category: { equals: " " } },
-        ],
+        OR: [{ category: null }, { category: '' }, { category: { equals: ' ' } }],
       });
     } else {
       andFilters.push({
@@ -212,21 +182,21 @@ const buildWhereFilter = ({ search, category }) => {
 const getAllProducts = async ({
   page = 1,
   pageSize = 25,
-  search = "",
-  category = "all",
-  sortBy = "name",
-  sortOrder = "asc",
+  search = '',
+  category = 'all',
+  sortBy = 'name',
+  sortOrder = 'asc',
 } = {}) => {
   const safeSortBy =
     {
-      name: "p.name",
-      barcode: "p.barcode",
-      createdAt: "p.createdAt",
-      stock: "total_stock",
-      lowStockWarningEnabled: "p.lowStockWarningEnabled",
-      batchTrackingEnabled: "p.batchTrackingEnabled"
-    }[sortBy] || "p.name";
-  const safeOrder = sortOrder === "desc" ? "DESC" : "ASC";
+      name: 'p.name',
+      barcode: 'p.barcode',
+      createdAt: 'p.createdAt',
+      stock: 'total_stock',
+      lowStockWarningEnabled: 'p.lowStockWarningEnabled',
+      batchTrackingEnabled: 'p.batchTrackingEnabled',
+    }[sortBy] || 'p.name';
+  const safeOrder = sortOrder === 'desc' ? 'DESC' : 'ASC';
   const whereSql = buildWhereSql({ search, category });
   const offset = Math.max(0, (Number(page) - 1) * Number(pageSize));
   const limit = Math.max(1, Number(pageSize));
@@ -264,19 +234,16 @@ const getAllProducts = async ({
       ...row,
       total_stock: Number(row.total_stock || 0),
       total_cost: Number(row.total_cost || 0),
-      total_selling: Number(row.total_selling || 0)
+      total_selling: Number(row.total_selling || 0),
     })),
     total,
   };
 };
 
-const getAllProductsWithBatches = async ({
-  search = "",
-  category = "all",
-} = {}) => {
-  const baseWhere = buildWhereFilter({ search, category: "all" });
+const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {}) => {
+  const baseWhere = buildWhereFilter({ search, category: 'all' });
   const where =
-    category === "all" || category === "uncategorized"
+    category === 'all' || category === 'uncategorized'
       ? baseWhere
       : buildWhereFilter({ search, category });
   let products = [];
@@ -285,7 +252,7 @@ const getAllProductsWithBatches = async ({
       where,
       include: {
         batches: {
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: 'asc' },
         },
         promotions: {
           where: {
@@ -321,23 +288,20 @@ const getAllProductsWithBatches = async ({
     return {
       ...product,
       category: normalizeCategory(product.category),
-      total_stock: product.batches.reduce(
-        (sum, batch) => sum + batch.quantity,
-        0,
-      ),
+      total_stock: product.batches.reduce((sum, batch) => sum + batch.quantity, 0),
       promoPrice,
       isOnSale: promoPrice !== null,
     };
   });
 
-  if (category === "uncategorized") {
+  if (category === 'uncategorized') {
     return normalized.filter((product) => !normalizeCategory(product.category));
   }
 
   return normalized;
 };
 
-const getProductSummary = async ({ search = "", category = "all" } = {}) => {
+const getProductSummary = async ({ search = '', category = 'all' } = {}) => {
   const whereSql = buildWhereSql({ search, category });
   const whereFilter = buildWhereFilter({ search, category });
   const rows = await prisma.$queryRaw`
@@ -355,17 +319,15 @@ const getProductSummary = async ({ search = "", category = "all" } = {}) => {
   const summaryRow = rows?.[0] || {};
 
   const categorySourceFilter =
-    category === "uncategorized"
-      ? buildWhereFilter({ search, category: "all" })
-      : whereFilter;
+    category === 'uncategorized' ? buildWhereFilter({ search, category: 'all' }) : whereFilter;
 
   // Optimized: use groupBy to get counts per category directly from DB
   const categoryGroups = await prisma.product.groupBy({
     by: ['category'],
     where: categorySourceFilter,
     _count: {
-      id: true
-    }
+      id: true,
+    },
   });
 
   const categoryCounts = {};
@@ -382,8 +344,8 @@ const getProductSummary = async ({ search = "", category = "all" } = {}) => {
       return;
     }
 
-    const parts = normalizedCategory.split("/");
-    let path = "";
+    const parts = normalizedCategory.split('/');
+    let path = '';
     parts.forEach((part) => {
       path = path ? `${path}/${part}` : part;
       categoryCounts[path] = (categoryCounts[path] || 0) + count;
@@ -409,21 +371,15 @@ const getProductById = async (id) => {
     where: { id: parseInt(id) },
     include: {
       batches: {
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: 'asc' },
       },
     },
   });
   if (!product) return null;
 
   const total_stock = product.batches.reduce((sum, b) => sum + b.quantity, 0);
-  const total_cost = product.batches.reduce(
-    (sum, b) => sum + b.costPrice * b.quantity,
-    0,
-  );
-  const total_selling = product.batches.reduce(
-    (sum, b) => sum + b.sellingPrice * b.quantity,
-    0,
-  );
+  const total_cost = product.batches.reduce((sum, b) => sum + b.costPrice * b.quantity, 0);
+  const total_selling = product.batches.reduce((sum, b) => sum + b.sellingPrice * b.quantity, 0);
 
   return {
     ...product,
@@ -451,7 +407,7 @@ const getProductByBarcode = async (barcode) => {
     include: {
       batches: {
         where: { quantity: { gt: 0 } },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: 'asc' },
       },
     },
   });
@@ -491,24 +447,15 @@ const createOrUpdateProduct = async ({
         category: normalizeCategory(category),
         batchTrackingEnabled: enableBatchTracking === true,
         lowStockWarningEnabled: lowStockWarningEnabled === true,
-        lowStockThreshold: lowStockWarningEnabled
-          ? parseInt(lowStockThreshold) || 0
-          : 0,
+        lowStockThreshold: lowStockWarningEnabled ? parseInt(lowStockThreshold) || 0 : 0,
       },
       include: {
-        batches: { orderBy: { createdAt: "asc" } },
+        batches: { orderBy: { createdAt: 'asc' } },
       },
     });
 
     if (initialBatch) {
-      const {
-        quantity,
-        mrp,
-        cost_price,
-        selling_price,
-        batch_code,
-        expiryDate,
-      } = initialBatch;
+      const { quantity, mrp, cost_price, selling_price, batch_code, expiryDate } = initialBatch;
       const qtyToAdd = parseInt(quantity) || 0;
       validateQuantity(qtyToAdd);
       const mrpValue = parseFloat(mrp) || 0;
@@ -549,9 +496,9 @@ const createOrUpdateProduct = async ({
           data: {
             productId: product.id,
             batchId: createdBatch.id,
-            type: "added",
+            type: 'added',
             quantity: qtyToAdd,
-            note: "Initial stock",
+            note: 'Initial stock',
           },
         });
       } else {
@@ -569,9 +516,9 @@ const createOrUpdateProduct = async ({
             data: {
               productId: product.id,
               batchId: existingBatch.id,
-              type: "added",
+              type: 'added',
               quantity: qtyToAdd,
-              note: "Initial stock",
+              note: 'Initial stock',
             },
           });
         } else {
@@ -597,39 +544,34 @@ const createOrUpdateProduct = async ({
             data: {
               productId: product.id,
               batchId: createdBatch.id,
-              type: "added",
+              type: 'added',
               quantity: qtyToAdd,
-              note: "Initial stock",
+              note: 'Initial stock',
             },
           });
         }
       }
     }
     // Background sync to ensure Category table reflects new strings
-    categoryService.ensureCategoriesFromProducts().catch(err => console.error("Category sync error:", err));
+    categoryService
+      .ensureCategoriesFromProducts()
+      .catch((err) => console.error('Category sync error:', err));
     return product;
   });
 };
 
 const addBatch = async (batchData) => {
-  const {
-    product_id,
-    batch_code,
-    quantity,
-    mrp,
-    cost_price,
-    selling_price,
-    expiryDate,
-  } = batchData;
+  const { product_id, batch_code, quantity, mrp, cost_price, selling_price, expiryDate } =
+    batchData;
   const product = await prisma.product.findUnique({
     where: { id: parseInt(product_id) },
     include: {
-      batches: { orderBy: { createdAt: "asc" } },
+      batches: { orderBy: { createdAt: 'asc' } },
     },
   });
 
   if (!product) {
-    throw new Error("Product not found");
+    throw new Error('Product not found');
   }
 
   const qtyToAdd = parseInt(quantity) || 0;
@@ -659,12 +601,8 @@ const addBatch = async (batchData) => {
         costPrice: costValue,
         sellingPrice: sellingValue,
         wholesaleEnabled: batchData.wholesaleEnabled === true,
-        wholesalePrice: batchData.wholesalePrice
-          ? parseFloat(batchData.wholesalePrice)
-          : null,
-        wholesaleMinQty: batchData.wholesaleMinQty
-          ? parseInt(batchData.wholesaleMinQty)
-          : null,
+        wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
+        wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
         expiryDate: expiryDate ? new Date(expiryDate) : null,
       },
     });
@@ -672,9 +610,9 @@ const addBatch = async (batchData) => {
       data: {
         productId: product.id,
         batchId: createdBatch.id,
-        type: "added",
+        type: 'added',
         quantity: qtyToAdd,
-        note: "Stock added",
+        note: 'Stock added',
       },
     });
     return createdBatch;
@@ -693,9 +631,9 @@ const addBatch = async (batchData) => {
       data: {
         productId: product.id,
         batchId: existingBatch.id,
-        type: "added",
+        type: 'added',
         quantity: qtyToAdd,
-        note: "Stock added",
+        note: 'Stock added',
       },
     });
     return updatedBatch;
@@ -710,12 +648,8 @@ const addBatch = async (batchData) => {
       costPrice: costValue,
       sellingPrice: sellingValue,
       wholesaleEnabled: batchData.wholesaleEnabled === true,
-      wholesalePrice: batchData.wholesalePrice
-        ? parseFloat(batchData.wholesalePrice)
-        : null,
-      wholesaleMinQty: batchData.wholesaleMinQty
-        ? parseInt(batchData.wholesaleMinQty)
-        : null,
+      wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
+      wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
       expiryDate: expiryDate ? new Date(expiryDate) : null,
     },
   });
@@ -723,9 +657,9 @@ const addBatch = async (batchData) => {
     data: {
       productId: product.id,
       batchId: createdBatch.id,
-      type: "added",
+      type: 'added',
       quantity: qtyToAdd,
-      note: "Stock added",
+      note: 'Stock added',
     },
   });
   return createdBatch;
@@ -766,7 +700,9 @@ const updateProduct = async (id, productData) => {
 
   // Background sync to ensure Category table reflects potentially new strings
   const categoryService = require('../category/category.service');
-  categoryService.ensureCategoriesFromProducts().catch(err => console.error("Category sync error:", err));
+  categoryService
+    .ensureCategoriesFromProducts()
+    .catch((err) => console.error('Category sync error:', err));
 
   return updated;
 };
@@ -815,29 +751,23 @@ const deleteProduct = async (id) => {
 };
 
 const updateBatch = async (id, batchData) => {
-  const { batchCode, quantity, mrp, costPrice, sellingPrice, expiryDate } =
-    batchData;
+  const { batchCode, quantity, mrp, costPrice, sellingPrice, expiryDate } = batchData;
   const existing = await prisma.batch.findUnique({
     where: { id: parseInt(id) },
   });
   if (!existing) {
-    throw new Error("Batch not found");
+    throw new Error('Batch not found');
   }
   const nextMrp = mrp !== undefined ? parseFloat(mrp) : existing.mrp;
-  const nextCost =
-    costPrice !== undefined ? parseFloat(costPrice) : existing.costPrice;
-  const nextSelling =
-    sellingPrice !== undefined
-      ? parseFloat(sellingPrice)
-      : existing.sellingPrice;
+  const nextCost = costPrice !== undefined ? parseFloat(costPrice) : existing.costPrice;
+  const nextSelling = sellingPrice !== undefined ? parseFloat(sellingPrice) : existing.sellingPrice;
   validatePricing({
     mrp: nextMrp,
     costPrice: nextCost,
     sellingPrice: nextSelling,
   });
 
-  const nextQuantity =
-    quantity !== undefined ? parseInt(quantity) : existing.quantity;
+  const nextQuantity = quantity !== undefined ? parseInt(quantity) : existing.quantity;
   validateQuantity(nextQuantity);
   const updatedBatch = await prisma.batch.update({
     where: { id: parseInt(id) },
@@ -846,20 +776,13 @@ const updateBatch = async (id, batchData) => {
       quantity: quantity !== undefined ? parseInt(quantity) : undefined,
       mrp: mrp !== undefined ? parseFloat(mrp) : undefined,
       costPrice: costPrice !== undefined ? parseFloat(costPrice) : undefined,
-      sellingPrice:
-        sellingPrice !== undefined ? parseFloat(sellingPrice) : undefined,
+      sellingPrice: sellingPrice !== undefined ? parseFloat(sellingPrice) : undefined,
       wholesaleEnabled:
-        batchData.wholesaleEnabled !== undefined
-          ? batchData.wholesaleEnabled
-          : undefined,
+        batchData.wholesaleEnabled !== undefined ? batchData.wholesaleEnabled : undefined,
       wholesalePrice:
-        batchData.wholesalePrice !== undefined
-          ? parseFloat(batchData.wholesalePrice)
-          : undefined,
+        batchData.wholesalePrice !== undefined ? parseFloat(batchData.wholesalePrice) : undefined,
       wholesaleMinQty:
-        batchData.wholesaleMinQty !== undefined
-          ? parseInt(batchData.wholesaleMinQty)
-          : undefined,
+        batchData.wholesaleMinQty !== undefined ? parseInt(batchData.wholesaleMinQty) : undefined,
       expiryDate: expiryDate ? new Date(expiryDate) : null,
     },
   });
@@ -869,9 +792,9 @@ const updateBatch = async (id, batchData) => {
       data: {
         productId: existing.productId,
         batchId: existing.id,
-        type: delta > 0 ? "adjustment_in" : "adjustment_out",
+        type: delta > 0 ? 'adjustment_in' : 'adjustment_out',
         quantity: Math.abs(delta),
-        note: "Manual batch edit",
+        note: 'Manual batch edit',
       },
     });
   }
@@ -883,7 +806,7 @@ const deleteBatch = async (id) => {
     where: { id: parseInt(id) },
   });
   if (!existing) {
-    throw new Error("Batch not found");
+    throw new Error('Batch not found');
   }
   return await prisma.$transaction(async (tx) => {
     await tx.stockMovement.deleteMany({
@@ -900,16 +823,16 @@ const deleteBatch = async (id) => {
 
 // Helper function to escape CSV values according to RFC 4180
 const escapeCSVValue = (value) => {
-  if (value === null || value === undefined) return "";
+  if (value === null || value === undefined) return '';
 
   const stringValue = String(value);
 
   // If value contains comma, quote, or newline, wrap in quotes and escape internal quotes
   if (
-    stringValue.includes(",") ||
+    stringValue.includes(',') ||
     stringValue.includes('"') ||
-    stringValue.includes("\n") ||
-    stringValue.includes("\r")
+    stringValue.includes('\n') ||
+    stringValue.includes('\r')
   ) {
     return `"${stringValue.replace(/"/g, '""')}"`;
   }
@@ -926,7 +849,7 @@ const exportProducts = async () => {
 
   const csvRows = [];
   csvRows.push(
-    "name,barcode,category,quantity,mrp,cost_price,selling_price,wholesale_price,wholesale_min_qty,wholesale_enabled,batch_code,expiry_date"
+    'name,barcode,category,quantity,mrp,cost_price,selling_price,wholesale_price,wholesale_min_qty,wholesale_enabled,batch_code,expiry_date'
   );
 
   for (const product of products) {
@@ -935,45 +858,45 @@ const exportProducts = async () => {
         csvRows.push(
           [
             escapeCSVValue(product.name),
-            product.barcode ? `="${product.barcode}"` : "",
+            product.barcode ? `="${product.barcode}"` : '',
             escapeCSVValue(product.category),
             batch.quantity,
             batch.mrp,
             batch.costPrice,
             batch.sellingPrice,
-            batch.wholesalePrice || "",
-            batch.wholesaleMinQty || "",
-            batch.wholesaleEnabled ? "TRUE" : "FALSE",
+            batch.wholesalePrice || '',
+            batch.wholesaleMinQty || '',
+            batch.wholesaleEnabled ? 'TRUE' : 'FALSE',
             escapeCSVValue(batch.batchCode),
-            batch.expiryDate ? batch.expiryDate.toISOString().split("T")[0] : ""
-          ].join(",")
+            batch.expiryDate ? batch.expiryDate.toISOString().split('T')[0] : '',
+          ].join(',')
         );
       }
     } else {
       csvRows.push(
         [
           escapeCSVValue(product.name),
-          product.barcode ? `="${product.barcode}"` : "",
+          product.barcode ? `="${product.barcode}"` : '',
           escapeCSVValue(product.category),
           0,
           0,
           0,
           0,
-          "",
-          "",
-          "FALSE",
-          "",
-          ""
-        ].join(",")
+          '',
+          '',
+          'FALSE',
+          '',
+          '',
+        ].join(',')
       );
     }
   }
 
-  return csvRows.join("\n");
+  return csvRows.join('\n');
 };
 
 const importProducts = async (csvData) => {
-  const lines = csvData.split("\n").filter((line) => line.trim());
+  const lines = csvData.split('\n').filter((line) => line.trim());
   const headerValues = parseCSVLine(lines[0]);
   const headers = headerValues.map((h) => h.trim().toLowerCase());
 
@@ -1012,7 +935,7 @@ const importProducts = async (csvData) => {
       const values = parseCSVLine(lines[i]);
       const row = {};
       headers.forEach((header, index) => {
-        row[header] = values[index] ? values[index].trim() : "";
+        row[header] = values[index] ? values[index].trim() : '';
       });
 
       const name = row.name;
@@ -1024,7 +947,7 @@ const importProducts = async (csvData) => {
       }
 
       if (barcode && /^\d+\.00$/.test(barcode)) {
-        barcode = barcode.replace(".00", "");
+        barcode = barcode.replace('.00', '');
       }
 
       // The headers are mapped to lowercase in importProducts
@@ -1042,7 +965,7 @@ const importProducts = async (csvData) => {
       } = row;
 
       if (!name || !name.trim()) {
-        results.errors.push({ line: lineNumber, message: "Missing name" });
+        results.errors.push({ line: lineNumber, message: 'Missing name' });
         results.failed++;
         continue;
       }
@@ -1062,10 +985,10 @@ const importProducts = async (csvData) => {
         try {
           await _validateBarcodesUniqueness(prisma, trimmedBarcode);
         } catch (error) {
-          if (error.message.startsWith("BARCODE_CONFLICT:")) {
+          if (error.message.startsWith('BARCODE_CONFLICT:')) {
             results.errors.push({
               line: lineNumber,
-              message: error.message.replace("BARCODE_CONFLICT: ", ""),
+              message: error.message.replace('BARCODE_CONFLICT: ', ''),
             });
             results.failed++;
             continue;
@@ -1076,7 +999,7 @@ const importProducts = async (csvData) => {
         if (csvBarcodes.has(lowerBarcode)) {
           results.errors.push({
             line: lineNumber,
-            message: "Duplicate barcode in CSV",
+            message: 'Duplicate barcode in CSV',
           });
           results.failed++;
           continue;
@@ -1094,9 +1017,7 @@ const importProducts = async (csvData) => {
         mrpVal,
         costVal,
         sellingVal,
-        wholesaleEnabled: !!(
-          wholesale_enabled && wholesale_enabled.toUpperCase() === "TRUE"
-        ),
+        wholesaleEnabled: !!(wholesale_enabled && wholesale_enabled.toUpperCase() === 'TRUE'),
         wholesalePrice: parseFloat(wholesale_price) || null,
         wholesaleMinQty: parseInt(wholesale_min_qty) || null,
         batch_code,
@@ -1114,7 +1035,7 @@ const importProducts = async (csvData) => {
     results.success = false;
     results.errors.push({
       line: 0,
-      message: "No valid products found in file",
+      message: 'No valid products found in file',
     });
     return results;
   }
@@ -1153,9 +1074,9 @@ const importProducts = async (csvData) => {
           data: {
             productId: product.id,
             batchId: createdBatch.id,
-            type: "added",
+            type: 'added',
             quantity: prod.qty,
-            note: "Imported stock",
+            note: 'Imported stock',
           },
         });
       }
@@ -1163,7 +1084,9 @@ const importProducts = async (csvData) => {
   });
 
   // Background sync to ensure Category table reflects new strings
-  categoryService.ensureCategoriesFromProducts().catch(err => console.error("Category sync error:", err));
+  categoryService
+    .ensureCategoriesFromProducts()
+    .catch((err) => console.error('Category sync error:', err));
 
   results.success = true;
   return results;
@@ -1188,7 +1111,7 @@ const validateBarcodes = async (barcodes) => {
 
     // Check exact match (case-insensitive)
     const hasExactMatch = allProducts.some(
-      (p) => p.barcode && p.barcode.toLowerCase() === lowerBarcode,
+      (p) => p.barcode && p.barcode.toLowerCase() === lowerBarcode
     );
 
     if (hasExactMatch) {
@@ -1223,10 +1146,7 @@ const buildHistoryRange = ({ range, startDate, endDate }) => {
   };
 };
 
-const getProductHistory = async (
-  productId,
-  { range = "today", startDate, endDate } = {},
-) => {
+const getProductHistory = async (productId, { range = 'today', startDate, endDate } = {}) => {
   const id = parseInt(productId);
   const { from, to } = buildHistoryRange({ range, startDate, endDate });
   const where = { productId: id };
@@ -1242,7 +1162,7 @@ const getProductHistory = async (
       batch: true,
     },
     orderBy: {
-      createdAt: "desc",
+      createdAt: 'desc',
     },
   });
 
@@ -1259,23 +1179,23 @@ const getProductHistory = async (
   const applyMovement = (target, movement) => {
     const qty = movement.quantity || 0;
     switch (movement.type) {
-      case "added":
+      case 'added':
         target.added += qty;
         target.net += qty;
         break;
-      case "sold":
+      case 'sold':
         target.sold += qty;
         target.net -= qty;
         break;
-      case "returned":
+      case 'returned':
         target.returned += qty;
         target.net += qty;
         break;
-      case "adjustment_in":
+      case 'adjustment_in':
         target.adjustmentIn += qty;
         target.net += qty;
         break;
-      case "adjustment_out":
+      case 'adjustment_out':
         target.adjustmentOut += qty;
         target.net -= qty;
         break;
@@ -1285,7 +1205,7 @@ const getProductHistory = async (
   };
 
   movements.forEach((movement) => {
-    const dateKey = movement.createdAt.toISOString().split("T")[0];
+    const dateKey = movement.createdAt.toISOString().split('T')[0];
     if (!summaryMap.has(dateKey)) {
       summaryMap.set(dateKey, {
         date: dateKey,
@@ -1303,7 +1223,7 @@ const getProductHistory = async (
   });
 
   const summaryByDate = Array.from(summaryMap.values()).sort((a, b) =>
-    b.date.localeCompare(a.date),
+    b.date.localeCompare(a.date)
   );
 
   return {
@@ -1321,7 +1241,7 @@ const bulkCreateProducts = async (products) => {
     const results = {
       success: true,
       count: 0,
-      errors: []
+      errors: [],
     };
 
     for (let i = 0; i < products.length; i++) {
@@ -1349,21 +1269,12 @@ const bulkCreateProducts = async (products) => {
             category: normalizeCategory(category),
             batchTrackingEnabled: enableBatchTracking === true,
             lowStockWarningEnabled: lowStockWarningEnabled === true,
-            lowStockThreshold: lowStockWarningEnabled
-              ? parseInt(lowStockThreshold) || 0
-              : 0,
-          }
+            lowStockThreshold: lowStockWarningEnabled ? parseInt(lowStockThreshold) || 0 : 0,
+          },
         });
 
         if (initialBatch) {
-          const {
-            quantity,
-            mrp,
-            cost_price,
-            selling_price,
-            batch_code,
-            expiryDate,
-          } = initialBatch;
+          const { quantity, mrp, cost_price, selling_price, batch_code, expiryDate } = initialBatch;
           const qtyToAdd = parseInt(quantity) || 0;
           const mrpValue = parseFloat(mrp) || 0;
           const costValue = parseFloat(cost_price) || 0;
@@ -1404,9 +1315,9 @@ const bulkCreateProducts = async (products) => {
               data: {
                 productId: product.id,
                 batchId: createdBatch.id,
-                type: "added",
+                type: 'added',
                 quantity: qtyToAdd,
-                note: "Bulk Initial stock",
+                note: 'Bulk Initial stock',
               },
             });
           }

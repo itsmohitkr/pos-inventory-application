@@ -3,7 +3,7 @@ const schemaPath = 'server/prisma/schema.prisma';
 let schema = fs.readFileSync(schemaPath, 'utf8');
 
 if (!schema.includes('model PriceHistory')) {
-    const priceHistoryModel = `
+  const priceHistoryModel = `
 model PriceHistory {
   id              Int      @id @default(autoincrement())
   batchId         Int
@@ -17,13 +17,13 @@ model PriceHistory {
   batch           Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
 }
 `;
-    schema += priceHistoryModel;
+  schema += priceHistoryModel;
 }
 
 if (!schema.includes('vendorName      String?')) {
-    schema = schema.replace(
-        'saleItems        SaleItem[]',
-        'vendorName       String?\n  history          PriceHistory[]\n  saleItems        SaleItem[]'
-    );
+  schema = schema.replace(
+    'saleItems        SaleItem[]',
+    'vendorName       String?\n  history          PriceHistory[]\n  saleItems        SaleItem[]'
+  );
 }
 fs.writeFileSync(schemaPath, schema);

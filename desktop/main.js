@@ -1,5 +1,14 @@
 // Electron and core imports FIRST
-const { app, BrowserWindow, ipcMain, dialog, Menu, screen, shell, webContents } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  Menu,
+  screen,
+  shell,
+  webContents,
+} = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -80,20 +89,23 @@ ipcMain.on('print-manual', (event, { printerName }) => {
   console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
 
   // Optimize for thermal printer speed and reliability
-  mainWindow.webContents.print({
-    silent: true,
-    deviceName: printerName || undefined,
-    printBackground: true,
-    color: true,
-    margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
-    scaleFactor: 100
-  }, (success, failureReason) => {
-    if (!success) {
-      console.error(`[PRINT ERROR] Failed to print: ${failureReason}`);
-    } else {
-      console.log('[PRINT SUCCESS] Direct print sent to printer.');
+  mainWindow.webContents.print(
+    {
+      silent: true,
+      deviceName: printerName || undefined,
+      printBackground: true,
+      color: true,
+      margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
+      scaleFactor: 100,
+    },
+    (success, failureReason) => {
+      if (!success) {
+        console.error(`[PRINT ERROR] Failed to print: ${failureReason}`);
+      } else {
+        console.log('[PRINT SUCCESS] Direct print sent to printer.');
+      }
     }
-  });
+  );
 });
 
 ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize }) => {
@@ -109,8 +121,8 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: true
-      }
+        sandbox: true,
+      },
     });
 
     const htmlUrl = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
@@ -125,13 +137,13 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
       printBackground: true,
       color: true,
       margins: { marginType: 'none' },
-      scaleFactor: 100
+      scaleFactor: 100,
     };
 
     if (pageSize && Number(pageSize.widthMicrons) > 0 && Number(pageSize.heightMicrons) > 0) {
       printOptions.pageSize = {
         width: Math.round(Number(pageSize.widthMicrons)),
-        height: Math.round(Number(pageSize.heightMicrons))
+        height: Math.round(Number(pageSize.heightMicrons)),
       };
     }
 
@@ -155,7 +167,6 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
     }
   }
 });
-
 
 // -------------------------------------------------------------------------
 // CRITICAL: INITIALIZATION ORDER
@@ -185,13 +196,19 @@ const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 
 console.log = (...args) => {
-  const msg = `[${new Date().toISOString()}] [LOG] ` + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') + '\n';
+  const msg =
+    `[${new Date().toISOString()}] [LOG] ` +
+    args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') +
+    '\n';
   logStream.write(msg);
   originalConsoleLog.apply(console, args);
 };
 
 console.error = (...args) => {
-  const msg = `[${new Date().toISOString()}] [ERROR] ` + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') + '\n';
+  const msg =
+    `[${new Date().toISOString()}] [ERROR] ` +
+    args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') +
+    '\n';
   logStream.write(msg);
   originalConsoleError.apply(console, args);
 };
@@ -202,7 +219,7 @@ console.log('Log file:', logFile);
 // -------------------------------------------------------------------------
 // DATABASE BOOTSTRAPPING
 // -------------------------------------------------------------------------
-// On fresh installs, we need to copy our bundled schema-ready pos.db 
+// On fresh installs, we need to copy our bundled schema-ready pos.db
 // from the application resources to the user's data directory.
 const dbFile = path.join(appDataPath, 'pos.db');
 
@@ -251,13 +268,12 @@ if (shouldBootstrap) {
 }
 
 // Set environment variable for Prisma DB path using a robust literal format.
-// URL encoding (pathToFileURL) can turn spaces into %20, which Prisma/SQLite 
+// URL encoding (pathToFileURL) can turn spaces into %20, which Prisma/SQLite
 // sometimes fails to decode correctly on Windows.
 // Standardizing on 'file:C:/path' for Windows and 'file:///path' for Unix.
 const formattedDbPath = dbFile.replace(/\\/g, '/');
-process.env.DATABASE_URL = process.platform === 'win32'
-  ? `file:${formattedDbPath}`
-  : `file://${formattedDbPath}`;
+process.env.DATABASE_URL =
+  process.platform === 'win32' ? `file:${formattedDbPath}` : `file://${formattedDbPath}`;
 
 // Ensure Prisma uses the engine library
 process.env.PRISMA_CLIENT_ENGINE_TYPE = 'library';
@@ -268,9 +284,10 @@ const engineDir = isDev
   : path.join(process.resourcesPath, 'app.asar.unpacked/node_modules/.prisma/client');
 
 // Windows often uses .dll.node for the library engine, but we check both common names
-const possibleEngineNames = process.platform === 'win32'
-  ? ['query_engine-windows.dll.node', 'libquery_engine-windows.dll.node']
-  : ['libquery_engine-darwin-arm64.dylib.node', 'libquery_engine-darwin.dylib.node'];
+const possibleEngineNames =
+  process.platform === 'win32'
+    ? ['query_engine-windows.dll.node', 'libquery_engine-windows.dll.node']
+    : ['libquery_engine-darwin-arm64.dylib.node', 'libquery_engine-darwin.dylib.node'];
 
 let enginePath = null;
 for (const name of possibleEngineNames) {
@@ -309,14 +326,14 @@ const createWindow = () => {
     icon: fs.existsSync(iconPath) ? iconPath : undefined,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false // Needed for simple IPC in splash
-    }
+      contextIsolation: false, // Needed for simple IPC in splash
+    },
   });
 
   const splashUrl = url.format({
     pathname: path.join(__dirname, 'splash/splash.html'),
     protocol: 'file:',
-    slashes: true
+    slashes: true,
   });
 
   splashWindow.loadURL(splashUrl);
@@ -336,8 +353,8 @@ const createWindow = () => {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      sandbox: true
-    }
+      sandbox: true,
+    },
   };
 
   if (fs.existsSync(iconPath)) {
@@ -359,10 +376,10 @@ const createWindow = () => {
   const startUrl = isDev
     ? 'http://localhost:5173'
     : url.format({
-      pathname: path.resolve(__dirname, '../client/dist/index.html'),
-      protocol: 'file:',
-      slashes: true
-    });
+        pathname: path.resolve(__dirname, '../client/dist/index.html'),
+        protocol: 'file:',
+        slashes: true,
+      });
 
   mainWindow.once('ready-to-show', () => {
     if (splashWindow && !splashWindow.isDestroyed()) {
@@ -381,15 +398,18 @@ const createWindow = () => {
 
   startServer()
     .then(() => {
-      console.log("Server started, loading frontend...");
+      console.log('Server started, loading frontend...');
       if (splashWindow && !splashWindow.isDestroyed()) {
         splashWindow.webContents.send('splash-status', 'Loading User Interface...');
       }
       mainWindow.loadURL(startUrl);
     })
-    .catch(err => {
+    .catch((err) => {
       console.error('Failed to start server:', err);
-      dialog.showErrorBox('Server Error', `Background server failed to start.\n\nDetails: ${err.message}`);
+      dialog.showErrorBox(
+        'Server Error',
+        `Background server failed to start.\n\nDetails: ${err.message}`
+      );
       if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
     });
 };
@@ -416,7 +436,7 @@ const waitForServer = async (port, timeout = 15000) => {
   while (Date.now() - start < timeout) {
     const isReady = await checkPort(port);
     if (isReady) return true;
-    await new Promise(r => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, 250));
   }
   return false;
 };
@@ -481,9 +501,7 @@ app.on('ready', async () => {
     const template = [
       {
         label: 'File',
-        submenu: [
-          { role: 'quit' }
-        ]
+        submenu: [{ role: 'quit' }],
       },
       {
         label: 'View',
@@ -496,23 +514,18 @@ app.on('ready', async () => {
           { role: 'zoomIn' },
           { role: 'zoomOut' },
           { type: 'separator' },
-          { role: 'togglefullscreen' }
-        ]
+          { role: 'togglefullscreen' },
+        ],
       },
       {
         label: 'Window',
         submenu: [
           { role: 'minimize' },
           { role: 'zoom' },
-          ...(process.platform === 'darwin' ? [
-            { type: 'separator' },
-            { role: 'front' },
-            { type: 'separator' },
-            { role: 'window' }
-          ] : [
-            { role: 'close' }
-          ])
-        ]
+          ...(process.platform === 'darwin'
+            ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }]
+            : [{ role: 'close' }]),
+        ],
       },
       {
         label: 'Debug',
@@ -525,8 +538,9 @@ app.on('ready', async () => {
                 buttons: ['Cancel', 'Wipe Data'],
                 defaultId: 0,
                 title: 'Confirm Wipe',
-                message: 'This will delete ALL local data, products, and logs. The application will restart automatically. Continue?',
-                cancelId: 0
+                message:
+                  'This will delete ALL local data, products, and logs. The application will restart automatically. Continue?',
+                cancelId: 0,
               });
 
               if (choice === 1) {
@@ -537,7 +551,7 @@ app.on('ready', async () => {
                   stopServer();
 
                   // 2. Small delay to ensure hooks are released
-                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  await new Promise((resolve) => setTimeout(resolve, 1000));
 
                   // 3. Recursive delete of everything in userData
                   // We use rmSync with recursive: true to handle subdirectories
@@ -557,14 +571,17 @@ app.on('ready', async () => {
                   app.relaunch();
                   app.exit(0);
                 } catch (err) {
-                  dialog.showErrorBox('Wipe Failed', `A critical error occurred: ${err.message}\n\nPlease try manually deleting the folder: ${appDataPath}`);
+                  dialog.showErrorBox(
+                    'Wipe Failed',
+                    `A critical error occurred: ${err.message}\n\nPlease try manually deleting the folder: ${appDataPath}`
+                  );
                 }
               }
-            }
+            },
           },
           { type: 'separator' },
-          { role: 'toggleDevTools' }
-        ]
+          { role: 'toggleDevTools' },
+        ],
       },
       {
         label: 'Help',
@@ -582,26 +599,26 @@ Version: ${app.getVersion()}
 
 --- RECENT LOGS ---
 ${(() => {
-                  try {
-                    if (fs.existsSync(logFile)) {
-                      const logs = fs.readFileSync(logFile, 'utf8');
-                      const lines = logs.split('\n').filter(Boolean);
-                      return lines.slice(-150).join('\n');
-                    }
-                    return 'No log file found.';
-                  } catch (e) {
-                    return 'Error reading logs: ' + e.message;
-                  }
-                })()}
+  try {
+    if (fs.existsSync(logFile)) {
+      const logs = fs.readFileSync(logFile, 'utf8');
+      const lines = logs.split('\n').filter(Boolean);
+      return lines.slice(-150).join('\n');
+    }
+    return 'No log file found.';
+  } catch (e) {
+    return 'Error reading logs: ' + e.message;
+  }
+})()}
               `.trim();
               dialog.showMessageBoxSync(mainWindow, {
                 type: 'info',
                 title: 'System Diagnostic',
                 message: 'Bachat Bazaar Diagnostics',
                 detail: info,
-                buttons: ['OK']
+                buttons: ['OK'],
               });
-            }
+            },
           },
           { type: 'separator' },
           {
@@ -609,10 +626,10 @@ ${(() => {
             accelerator: 'F12',
             click: () => {
               if (mainWindow) mainWindow.webContents.toggleDevTools();
-            }
-          }
-        ]
-      }
+            },
+          },
+        ],
+      },
     ];
 
     const menu = Menu.buildFromTemplate(template);

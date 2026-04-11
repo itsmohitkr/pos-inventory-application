@@ -5,19 +5,21 @@ This directory should contain icon files for building the Electron app.
 ## Required Icon Files
 
 ### macOS
+
 - `icon.icns` - macOS icon (512x512 or larger)
   - Required for `.dmg` installer
   - Format: Apple Icon Image format
 
 ### Windows
+
 - `icon.ico` - Windows icon (256x256 or larger)
   - Required for `.exe` installer
   - Format: ICO format
 
-
 ## Creating Icon Files
 
 ### Option 1: Using Online Tools
+
 1. Go to [favicon-generator.org](https://www.favicon-generator.org/) or [convertio.co](https://convertio.co/)
 2. Upload a high-quality image (1024x1024 or larger)
 3. Generate icons for each platform
@@ -26,6 +28,7 @@ This directory should contain icon files for building the Electron app.
 ### Option 2: Using CLI Tools
 
 #### On macOS with Homebrew:
+
 ```bash
 # Install iconutil
 brew install imagemagick
@@ -38,6 +41,7 @@ python3 icon_converter.py
 ```
 
 #### Windows with ImageMagick:
+
 ```bash
 # Install ImageMagick
 choco install imagemagick
@@ -47,6 +51,7 @@ convert icon.png -define icon:auto-resize=256,128,96,64,48,32,16 icon.ico
 ```
 
 ### Option 3: Using Online Icon Converter
+
 1. Create a high-quality PNG image (512x512 or 1024x1024)
 2. Use [icoconvert.com](https://icoconvert.com/)
 3. Download the `.ico` file
@@ -55,23 +60,25 @@ convert icon.png -define icon:auto-resize=256,128,96,64,48,32,16 icon.ico
 ## Icon Specifications
 
 ### macOS (icon.icns)
+
 - Minimum: 512x512 pixels
 - Recommended: 1024x1024 pixels
 - Format: ICNS (Apple Icon Image)
 - Colors: RGB or RGBA
 
 ### Windows (icon.ico)
+
 - Minimum: 256x256 pixels
 - Recommended: 256x256 pixels
 - Format: ICO (Windows Icon)
 - Colors: RGB or RGBA
-
 
 ## Quick Setup
 
 If you don't have custom icons, you can use placeholder icons:
 
 Generate a simple icon:
+
 ```bash
 # Using ImageMagick (assuming you have it installed)
 convert -size 512x512 xc:blue -fill white -gravity center -pointsize 60 \
