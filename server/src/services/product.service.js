@@ -162,6 +162,19 @@ const buildWhereSql = ({ search, category }) => {
   return Prisma.sql`WHERE ${Prisma.join(clauses, Prisma.sql` AND `)}`;
 };
 
+const MAX_STOCK_QUANTITY = 2147483647;
+
+const validateQuantity = (quantity) => {
+  const qty = parseInt(quantity);
+  if (isNaN(qty)) return;
+  if (qty > MAX_STOCK_QUANTITY) {
+    throw new Error(`Quantity exceeds maximum allowed limit (${MAX_STOCK_QUANTITY})`);
+  }
+  if (qty < -MAX_STOCK_QUANTITY) {
+    throw new Error(`Quantity is below minimum allowed limit (-${MAX_STOCK_QUANTITY})`);
+  }
+};
+
 const buildWhereFilter = ({ search, category }) => {
   const andFilters = [];
 
@@ -497,6 +510,7 @@ const createOrUpdateProduct = async ({
         expiryDate,
       } = initialBatch;
       const qtyToAdd = parseInt(quantity) || 0;
+      validateQuantity(qtyToAdd);
       const mrpValue = parseFloat(mrp) || 0;
       const costValue = parseFloat(cost_price) || 0;
       const sellingValue = parseFloat(selling_price) || 0;
@@ -550,6 +564,7 @@ const createOrUpdateProduct = async ({
               quantity: existingBatch.quantity + qtyToAdd,
             },
           });
+          validateQuantity(existingBatch.quantity + qtyToAdd);
           await tx.stockMovement.create({
             data: {
               productId: product.id,
@@ -618,6 +633,7 @@ const addBatch = async (batchData) => {
   }
 
   const qtyToAdd = parseInt(quantity) || 0;
+  validateQuantity(qtyToAdd);
   const mrpValue = parseFloat(mrp) || 0;
   const costValue = parseFloat(cost_price) || 0;
   const sellingValue = parseFloat(selling_price) || 0;
@@ -672,6 +688,7 @@ const addBatch = async (batchData) => {
         quantity: existingBatch.quantity + qtyToAdd,
       },
     });
+    validateQuantity(existingBatch.quantity + qtyToAdd);
     await prisma.stockMovement.create({
       data: {
         productId: product.id,
@@ -755,12 +772,44 @@ const updateProduct = async (id, productData) => {
 };
 
 const deleteProduct = async (id) => {
+  const productId = parseInt(id);
   return await prisma.$transaction(async (tx) => {
-    await tx.batch.deleteMany({
-      where: { productId: parseInt(id) },
+    // 1. Delete stock movements
+    await tx.stockMovement.deleteMany({
+      where: { productId },
     });
+
+    // 2. Delete promotion items
+    await tx.promotionItem.deleteMany({
+      where: { productId },
+    });
+
+    // 3. Delete purchase items
+    await tx.purchaseItem.deleteMany({
+      where: { productId },
+    });
+
+    // 4. Delete sale items linked to this product's batches
+    const batches = await tx.batch.findMany({
+      where: { productId },
+      select: { id: true },
+    });
+    const batchIds = batches.map((b) => b.id);
+
+    if (batchIds.length > 0) {
+      await tx.saleItem.deleteMany({
+        where: { batchId: { in: batchIds } },
+      });
+    }
+
+    // 5. Delete batches
+    await tx.batch.deleteMany({
+      where: { productId },
+    });
+
+    // 6. Delete the product
     await tx.product.delete({
-      where: { id: parseInt(id) },
+      where: { id: productId },
     });
   });
 };
@@ -789,6 +838,7 @@ const updateBatch = async (id, batchData) => {
 
   const nextQuantity =
     quantity !== undefined ? parseInt(quantity) : existing.quantity;
+  validateQuantity(nextQuantity);
   const updatedBatch = await prisma.batch.update({
     where: { id: parseInt(id) },
     data: {
@@ -998,6 +1048,7 @@ const importProducts = async (csvData) => {
       }
 
       const qty = parseInt(quantity) || 0;
+      validateQuantity(qty);
       const mrpVal = parseFloat(mrp) || 0;
       const costVal = parseFloat(cost_price) || 0;
       const sellingVal = parseFloat(selling_price) || 0;
