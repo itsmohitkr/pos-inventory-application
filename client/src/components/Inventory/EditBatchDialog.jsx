@@ -3,6 +3,7 @@ import { Dialog, DialogTitle, DialogContent, Grid, TextField, InputAdornment, Bo
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import api from '../../shared/api/api';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
+import CustomDialog from '../common/CustomDialog';
 import WholesaleConfiguration from './WholesaleConfiguration';
 
 const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {

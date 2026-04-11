@@ -27,6 +27,7 @@ import {
 import { Autocomplete } from '@mui/material';
 import api from '../../shared/api/api';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
+import CustomDialog from '../common/CustomDialog';
 
 const INITIAL_ROW = {
     name: '',

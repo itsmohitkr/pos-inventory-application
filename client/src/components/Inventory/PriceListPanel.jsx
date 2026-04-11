@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import api from '../../shared/api/api';
+import api, { isRequestCanceled } from '../../shared/api/api';
 import {
   Alert,
   Autocomplete,
@@ -377,23 +377,29 @@ const PriceListPanel = ({ open, onClose }) => {
   const previewPageWidthPx = useMemo(() => Math.max(1, previewPageWidthMm * MM_TO_PX), [previewPageWidthMm]);
   const activePreviewScale = paperType === 'a4' ? previewScale : 1;
 
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (signal) => {
     setLoadingProducts(true);
     try {
       const response = await api.get('/api/products', {
         params: {
           includeBatches: true,
           category: 'all'
-        }
+        },
+        signal
       });
       const rows = Array.isArray(response.data?.data) ? response.data.data : [];
       const sorted = [...rows].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
       setProducts(sorted);
     } catch (error) {
+      if (isRequestCanceled(error)) {
+        return;
+      }
       console.error('Failed to load products for price list:', error);
       setProducts([]);
     } finally {
-      setLoadingProducts(false);
+      if (!signal?.aborted) {
+        setLoadingProducts(false);
+      }
     }
   }, []);
 
@@ -417,10 +423,14 @@ const PriceListPanel = ({ open, onClose }) => {
 
   useEffect(() => {
     if (!open) {
-      return;
+      return undefined;
     }
-    fetchProducts();
+
+    const controller = new AbortController();
+    fetchProducts(controller.signal);
     fetchPrinters();
+
+    return () => controller.abort();
   }, [open, fetchProducts, fetchPrinters]);
 
   // Persistence Saving

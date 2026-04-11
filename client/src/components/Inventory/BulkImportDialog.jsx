@@ -28,6 +28,7 @@ import {
   Download as DownloadIcon
 } from '@mui/icons-material';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
+import CustomDialog from '../common/CustomDialog';
 
 const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
   const { dialogState, showError, closeDialog } = useCustomDialog();

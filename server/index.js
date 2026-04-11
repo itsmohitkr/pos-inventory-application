@@ -6,18 +6,20 @@ const prisma = require('./src/config/prisma');
 console.error('[BOOT] index.js loaded. Starting server initialization...');
 
 // Import modular routes
-const productRoutes = require('./src/routes/product.routes');
-const saleRoutes = require('./src/routes/sale.routes');
-const reportRoutes = require('./src/routes/report.routes');
-const authRoutes = require('./src/routes/auth.routes');
-const categoryRoutes = require('./src/routes/category.routes');
-const looseSaleRoutes = require('./src/routes/loose-sale.routes');
-const promotionRoutes = require('./src/routes/promotion.routes');
-const expenseRoutes = require('./src/routes/expense.routes');
-const purchaseRoutes = require('./src/routes/purchase.routes');
-const settingRoutes = require('./src/routes/setting.routes');
-const settingService = require('./src/services/setting.service');
+const productRoutes = require('./src/domains/product/routes');
+const categoryRoutes = require('./src/domains/category/routes');
+const saleRoutes = require('./src/domains/sale/routes');
+const reportRoutes = require('./src/domains/report/routes');
+const authRoutes = require('./src/domains/auth/routes');
+const looseSaleRoutes = require('./src/domains/loose-sale/routes');
+const promotionRoutes = require('./src/domains/promotion/routes');
+const expenseRoutes = require('./src/domains/expense/routes');
+const purchaseRoutes = require('./src/domains/purchase/routes');
+const settingRoutes = require('./src/domains/setting/routes');
+const settingService = require('./src/domains/setting/service');
 const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/config/constants');
+const pathNotFound = require('./src/shared/error/pathNotFound');
+const errorHandler = require('./src/shared/error/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -45,16 +47,8 @@ apiRouter.use('/purchases', purchaseRoutes);
 apiRouter.use('/settings', settingRoutes);
 
 app.use('/api', apiRouter);
-
-// Global Error Handler
-app.use((err, req, res, next) => {
-    console.error('SERVER ERROR:', err);
-    res.status(500).json({
-        error: 'Internal Server Error',
-        message: err.message,
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
-});
+app.use(pathNotFound);
+app.use(errorHandler);
 
 const { execSync } = require('child_process');
 const path = require('path');

@@ -48,19 +48,14 @@ import {
   ArrowBack as ArrowBackIcon,
   LocalPrintshop as LocalPrintshopIcon
 } from '@mui/icons-material';
-import AddProductForm from './components/Inventory/AddProductForm';
-import ProductList from './components/Inventory/ProductList';
-import InventoryTree from './components/Inventory/InventoryTree';
-import BulkImportDialog from './components/Inventory/BulkImportDialog';
-import InventoryExcelView from './components/Inventory/InventoryExcelView';
-import BulkAddGrid from './components/Inventory/BulkAddGrid';
-import PriceListPanel from './components/Inventory/PriceListPanel';
-import POS from './components/POS/POS';
+import POSPage from './pages/POSPage';
+import InventoryPage from './pages/InventoryPage';
+import DashboardPage from './pages/DashboardPage';
+import OverviewPage from './pages/OverviewPage';
 import Reporting from './components/Reporting/Reporting';
 import ExpenseManagement from './components/Expenses/ExpenseManagement';
 import Refund from './components/Refund/Refund';
 import ReceiptPreviewDialog from './components/POS/ReceiptPreviewDialog';
-import DashboardPage from './components/Dashboard/Dashboard';
 import SaleHistory from './components/SaleHistory/SaleHistory';
 import PromotionManagement from './components/Promotions/PromotionManagement';
 import LoginPage from './components/Auth/LoginPage';
@@ -179,361 +174,6 @@ const NavButton = ({ to, children, ...props }) => {
   );
 };
 
-const DashboardCard = ({ to, title, description, icon, tone }) => (
-  <Paper
-    component={RouterLink}
-    to={to}
-    elevation={0}
-    sx={{
-      p: 3,
-      textDecoration: 'none',
-      color: 'inherit',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 1.2,
-      borderRadius: 2,
-      background: 'linear-gradient(135deg, #ffffff 0%, #f9f3ea 100%)',
-      transition: 'transform 150ms ease, box-shadow 150ms ease',
-      '&:hover': {
-        transform: 'translateY(-3px)',
-        boxShadow: '0 18px 35px rgba(11, 29, 57, 0.14)'
-      }
-    }}
-  >
-    <Box
-      sx={{
-        width: 52,
-        height: 52,
-        borderRadius: 2.4,
-        display: 'grid',
-        placeItems: 'center',
-        bgcolor: tone.bg,
-        color: tone.color
-      }}
-    >
-      {icon}
-    </Box>
-    <Typography variant="h6">{title}</Typography>
-    <Typography variant="body2" color="text.secondary">
-      {description}
-    </Typography>
-  </Paper>
-);
-
-const Overview = ({ shopName, userRole }) => (
-  <Container maxWidth="lg" sx={{ mt: { xs: 4, md: 7 }, mb: 8 }}>
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 3, md: 4 },
-        mb: 4,
-        borderRadius: 2,
-        background: 'linear-gradient(135deg, rgba(11, 29, 57, 0.95) 0%, rgba(27, 62, 111, 0.9) 100%)',
-        color: '#f8f5f0',
-        border: 'none'
-      }}
-    >
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ xs: 'flex-start', md: 'center' }}>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h3" sx={{ mb: 1.2 }}>
-            {shopName} POS Suite
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(248, 245, 240, 0.8)', maxWidth: 520 }}>
-            {userRole === 'cashier'
-              ? 'Process transactions quickly with our focused checkout interface.'
-              : userRole === 'admin'
-                ? 'Complete control over inventory, sales, and user management.'
-                : 'Comprehensive sales and return management capabilities.'}
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1.5} flexWrap="wrap">
-          {userRole === 'admin' && (
-            <>
-              <Chip label="Inventory & Sales" sx={{ bgcolor: 'rgba(242, 181, 68, 0.18)', color: '#f2b544' }} />
-              <Chip label="Full analytics" sx={{ bgcolor: 'rgba(255, 255, 255, 0.15)', color: '#f8f5f0' }} />
-            </>
-          )}
-          {userRole === 'cashier' && (
-            <Chip label="Fast checkout" sx={{ bgcolor: 'rgba(31, 138, 91, 0.2)', color: '#c7f0dc' }} />
-          )}
-          {userRole === 'salesman' && (
-            <>
-              <Chip label="Sales & returns" sx={{ bgcolor: 'rgba(31, 138, 91, 0.2)', color: '#c7f0dc' }} />
-            </>
-          )}
-        </Stack>
-      </Stack>
-    </Paper>
-
-    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 3 }}>
-      <DashboardCard
-        to="/pos"
-        title="POS Terminal"
-        description="Scan, add discounts, and print receipts in seconds."
-        icon={<PointOfSaleIcon fontSize="medium" />}
-        tone={{ bg: 'rgba(11, 29, 57, 0.12)', color: 'primary.main' }}
-      />
-      {userRole === 'admin' && (
-        <>
-          <DashboardCard
-            to="/inventory"
-            title="Inventory Management"
-            description="Control batches, pricing, and expiry in one clean table."
-            icon={<InventoryIcon fontSize="medium" />}
-            tone={{ bg: 'rgba(242, 181, 68, 0.18)', color: '#b76e00' }}
-          />
-          <DashboardCard
-            to="/reports"
-            title="Reports & Analytics"
-            description="Track sales performance with rich, digestible analytics."
-            icon={<AssessmentIcon fontSize="medium" />}
-            tone={{ bg: 'rgba(31, 138, 91, 0.18)', color: '#1f8a5b' }}
-          />
-          <DashboardCard
-            to="/promotions"
-            title="Sales & Promotions"
-            description="Manage temporary discounts and holiday sale events."
-            icon={<PromoIcon fontSize="medium" />}
-            tone={{ bg: 'rgba(124, 58, 237, 0.15)', color: '#7c3aed' }}
-          />
-        </>
-      )}
-      {(userRole === 'admin' || userRole === 'salesman') && (
-        <DashboardCard
-          to="/refund"
-          title="Returns"
-          description="Handle returns confidently with guided workflows."
-          icon={<ReplayIcon fontSize="medium" />}
-          tone={{ bg: 'rgba(217, 119, 6, 0.18)', color: '#b45309' }}
-        />
-      )}
-      {userRole === 'admin' && (
-        <DashboardCard
-          to="/dashboard"
-          title="Live Analytics"
-          description="Deep insights into daily sales, revenue, and trends."
-          icon={<AssessmentIcon fontSize="medium" />}
-          tone={{ bg: 'rgba(31, 138, 91, 0.18)', color: '#1f8a5b' }}
-        />
-      )}
-    </Box>
-  </Container>
-);
-
-const Inventory = () => {
-  const { showError, showSuccess } = useCustomDialog();
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [showBulkAdd, setShowBulkAdd] = useState(false);
-  const [showPriceList, setShowPriceList] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [excelViewOpen, setExcelViewOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [inventoryKey, setInventoryKey] = useState(0);
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [isPending, startTransition] = React.useTransition();
-  const inventoryRef = React.useRef(null);
-
-  const handleCategoryChange = (val) => {
-    startTransition(() => {
-      setCategoryFilter(val);
-    });
-  };
-
-  const handleSearchChange = (val) => {
-    startTransition(() => {
-      setDebouncedSearch(val);
-    });
-  };
-
-  const handleProductAdded = () => {
-    setInventoryKey(prev => prev + 1);
-    if (inventoryRef.current?.refresh) {
-      inventoryRef.current.refresh();
-    }
-    setShowAddProduct(false);
-    setShowBulkAdd(false);
-  };
-
-  const handleOpenPriceList = () => {
-    setShowPriceList(true);
-    setShowAddProduct(false);
-    setShowBulkAdd(false);
-  };
-
-  const handleImportComplete = () => {
-    setInventoryKey(prev => prev + 1);
-    if (inventoryRef.current?.refresh) {
-      inventoryRef.current.refresh();
-    }
-    setShowImport(false);
-  };
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const response = await api.get('/api/products/export', { responseType: 'blob' });
-      const blob = response.data;
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Export failed:', error);
-      showError('Failed to export products');
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  return (
-    <Box
-      sx={{
-        bgcolor: "background.default",
-        height: "100%",
-        minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <Paper
-        elevation={0}
-        sx={{
-          m: 3,
-          px: 4,
-          py: 2.5,
-          background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
-          borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexShrink: 0
-        }}
-      >
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom color="primary">
-            Inventory Management
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Browse products by category and manage stock efficiently.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1, justifyContent: 'flex-end' }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<UploadIcon />}
-            onClick={() => setShowImport(true)}
-            sx={{ minWidth: 120 }}
-          >
-            Import CSV
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<DownloadIcon />}
-            onClick={handleExport}
-            disabled={exporting}
-            sx={{ minWidth: 120 }}
-          >
-            {exporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<ViewListIcon />}
-            onClick={() => setExcelViewOpen(true)}
-            sx={{ minWidth: 160 }}
-          >
-            Spreadsheet View
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<LocalPrintshopIcon />}
-            onClick={handleOpenPriceList}
-            sx={{ minWidth: 130 }}
-          >
-            Price List
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setShowBulkAdd(true)}
-            sx={{ minWidth: 140 }}
-          >
-            Bulk Add
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setShowAddProduct(true)}
-            sx={{ minWidth: 140 }}
-          >
-            Add Product
-          </Button>
-        </Stack>
-      </Paper>
-
-      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 3, pb: 3 }}>
-        {showBulkAdd ? (
-          <BulkAddGrid
-            onProductsAdded={handleProductAdded}
-            onCancel={() => setShowBulkAdd(false)}
-          />
-        ) : showAddProduct ? (
-          <Container maxWidth="md" sx={{ height: '100%', overflowY: 'auto' }}>
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                <Button
-                  size="small"
-                  startIcon={<ArrowBackIcon />}
-                  onClick={() => setShowAddProduct(false)}
-                >
-                  Back to Inventory
-                </Button>
-              </Box>
-              <AddProductForm onProductAdded={handleProductAdded} />
-            </Paper>
-          </Container>
-        ) : (
-          <ProductList
-            key={inventoryKey}
-            ref={inventoryRef}
-            categoryFilter={categoryFilter}
-            onCategoryChange={handleCategoryChange}
-            debouncedSearch={debouncedSearch}
-            onSearchChange={handleSearchChange}
-            isPending={isPending}
-          />
-        )}
-      </Box>
-
-      <BulkImportDialog
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        onImportComplete={handleImportComplete}
-      />
-
-      <InventoryExcelView
-        open={excelViewOpen}
-        onClose={() => setExcelViewOpen(false)}
-        categoryFilter={categoryFilter}
-        externalSearch={debouncedSearch}
-      />
-
-      <PriceListPanel
-        open={showPriceList}
-        onClose={() => setShowPriceList(false)}
-      />
-    </Box>
-  );
-};
 
 function App() {
   const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
@@ -989,30 +629,20 @@ function App() {
         <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
           <Routes>
             <Route path="/" element={<Navigate to="/pos" replace />} />
-            <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><POS receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} /></Box>} />
-            <Route path="/overview" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><Overview shopName={shopName} userRole={currentUser.role} /></Box>} />
+            <Route path="/pos" element={<POSPage receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} />} />
+            <Route path="/overview" element={<OverviewPage shopName={shopName} userRole={currentUser.role} />} />
             {canAccessSaleHistory && (
               <Route
                 path="/sale-history"
-                element={
-                  <Box
-                    sx={{
-                      bgcolor: 'background.default',
-                      height: '100%',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <SaleHistory receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} />
-                  </Box>
-                }
+                element={<SaleHistory receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} />}
               />
             )}
-            {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Inventory /></Box>} />}
-            {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} /></Box>} />}
-            {canAccessExpenses && <Route path="/expenses" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><ExpenseManagement /></Box>} />}
-            {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Refund /></Box>} />}
-            {canAccessPromotions && <Route path="/promotions" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><PromotionManagement /></Box>} />}
-            {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><DashboardPage shopName={shopName} userRole={currentUser.role} /></Box>} />}
+            {canAccessInventory && <Route path="/inventory" element={<InventoryPage />} />}
+            {canAccessReports && <Route path="/reports" element={<Reporting receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} />} />}
+            {canAccessExpenses && <Route path="/expenses" element={<ExpenseManagement />} />}
+            {canAccessRefund && <Route path="/refund" element={<Refund />} />}
+            {canAccessPromotions && <Route path="/promotions" element={<PromotionManagement />} />}
+            {canAccessDashboard && <Route path="/dashboard" element={<DashboardPage shopName={shopName} userRole={currentUser.role} />} />}
           </Routes>
         </Box>
 

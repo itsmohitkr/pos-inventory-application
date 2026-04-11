@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
+import CustomDialog from '../common/CustomDialog';
 import WholesaleConfiguration from './WholesaleConfiguration';
 
 const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {

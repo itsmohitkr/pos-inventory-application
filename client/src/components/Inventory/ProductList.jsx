@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import api from '../../shared/api/api';
+import api, { isRequestCanceled } from '../../shared/api/api';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Paper, Typography, TextField, Box, InputAdornment, IconButton,
@@ -270,7 +270,7 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
                 if (refreshed) setSelectedProduct(refreshed);
             }
         } catch (error) {
-            if (error.name === 'CanceledError' || error.name === 'AbortError') return;
+            if (isRequestCanceled(error)) return;
             console.error(error);
         }
     }, [sortBy, sortOrder]);
@@ -322,28 +322,35 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
             setUncategorizedCount(sidebarData.uncategorizedCount || 0);
             setTotalCount(sidebarData.totalCount || 0);
         } catch (error) {
-            if (error.name === 'CanceledError' || error.name === 'AbortError') return;
+            if (isRequestCanceled(error)) return;
             console.error(error);
         }
     }, [debouncedSearch, categoryFilter]);
 
-    const fetchCategories = async () => {
+    const fetchCategories = async (signal) => {
         try {
-            const res = await api.get('/api/categories');
+            const res = await api.get('/api/categories', { signal });
             setCategories(res.data.data || []);
         } catch (error) {
+            if (isRequestCanceled(error)) return;
             console.error(error);
         }
     };
 
     useEffect(() => {
-        fetchCategories();
-        // Explicit focus on mount
-        setTimeout(() => {
+        const controller = new AbortController();
+        const focusTimer = window.setTimeout(() => {
             if (searchInputRef.current) {
                 searchInputRef.current.focus();
             }
         }, 100);
+
+        fetchCategories(controller.signal);
+
+        return () => {
+            controller.abort();
+            window.clearTimeout(focusTimer);
+        };
     }, []);
 
     // Live search debouncing is handled directly in the TextField's onChange 
@@ -396,42 +403,61 @@ const ProductList = forwardRef(({ categoryFilter, onCategoryChange, debouncedSea
     useEffect(() => {
         if (!selectedProduct?.id) {
             setSelectedProductDetails(null);
-            return;
+            return undefined;
         }
+
+        const controller = new AbortController();
 
         const fetchSelectedDetails = async () => {
             setIsLoadingBatches(true);
             try {
-                const res = await api.get(`/api/products/id/${selectedProduct.id}`);
+                const res = await api.get(`/api/products/id/${selectedProduct.id}`, {
+                    signal: controller.signal
+                });
                 setSelectedProductDetails(res.data.data || null);
             } catch (error) {
+                if (isRequestCanceled(error)) return;
                 console.error(error);
                 setSelectedProductDetails(null);
             } finally {
-                setIsLoadingBatches(false);
+                if (!controller.signal.aborted) {
+                    setIsLoadingBatches(false);
+                }
             }
         };
 
         fetchSelectedDetails();
+
+        return () => controller.abort();
     }, [selectedProduct?.id, selectedProductRefresh]);
 
     useEffect(() => {
-        if (!historyOpen || !selectedProduct?.id) return;
+        if (!historyOpen || !selectedProduct?.id) return undefined;
+
+        const controller = new AbortController();
+
         const fetchHistory = async () => {
             setIsHistoryLoading(true);
             try {
                 const res = await api.get(`/api/products/${selectedProduct.id}/history`, {
-                    params: { range: historyRange }
+                    params: { range: historyRange },
+                    signal: controller.signal
                 });
                 setHistoryData(res.data.data || null);
             } catch (error) {
+                if (isRequestCanceled(error)) return;
                 console.error(error);
                 setHistoryData(null);
             } finally {
-                setIsHistoryLoading(false);
+                if (!controller.signal.aborted) {
+                    setIsHistoryLoading(false);
+                }
             }
         };
+
         fetchHistory();
+
+        return () => controller.abort();
     }, [historyOpen, historyRange, selectedProduct?.id]);
 
     // Filter products based on stock status
