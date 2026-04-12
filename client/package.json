@@ -22,7 +22,7 @@
     "@mui/material": "^7.3.7",
     "@tanstack/react-virtual": "^3.13.23",
     "axios": "^1.13.4",
-    "jspdf": "^4.2.0",
+    "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "react": "^19.2.0",
     "react-barcode": "^1.6.1",
