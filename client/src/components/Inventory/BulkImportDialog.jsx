@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../../api';
+import inventoryService from '../../shared/api/inventoryService';
 import {
   Dialog,
   DialogTitle,
@@ -18,17 +18,17 @@ import {
   TableRow,
   Paper,
   IconButton,
-  Chip
+  Chip,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
   Close as CloseIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
-  Download as DownloadIcon
+  Download as DownloadIcon,
 } from '@mui/icons-material';
+import useCustomDialog from '../../shared/hooks/useCustomDialog';
 import CustomDialog from '../common/CustomDialog';
-import useCustomDialog from '../../hooks/useCustomDialog';
 
 const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
   const { dialogState, showError, closeDialog } = useCustomDialog();
@@ -88,7 +88,7 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target.result;
-      const lines = text.split('\n').filter(line => line.trim());
+      const lines = text.split('\n').filter((line) => line.trim());
 
       if (lines.length < 2) {
         showError('CSV file is empty or invalid');
@@ -97,7 +97,7 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
 
       // Parse header and data using proper CSV parser
       const headerValues = parseCSVLine(lines[0]);
-      const headers = headerValues.map(h => h.trim().toLowerCase());
+      const headers = headerValues.map((h) => h.trim().toLowerCase());
 
       const allData = lines.slice(1).map((line, index) => {
         const values = parseCSVLine(line);
@@ -157,30 +157,27 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
 
     // Second pass: check for existing barcodes in database (only for non-empty barcodes)
     try {
-      const uniqueBarcodes = Array.from(seenBarcodes.keys()).filter(b => b);
+      const uniqueBarcodes = Array.from(seenBarcodes.keys()).filter((b) => b);
 
       if (uniqueBarcodes.length > 0) {
         // Send original barcode values (not lowercase) for database check
         const originalBarcodes = allData
-          .filter(row => row.barcode && row.barcode.trim())
-          .map(row => row.barcode.trim());
+          .filter((row) => row.barcode && row.barcode.trim())
+          .map((row) => row.barcode.trim());
 
-        const response = await api.post('/api/products/validate-barcodes', {
-          barcodes: originalBarcodes
-        });
-
-        const { existingBarcodes } = response.data;
+        const data = await inventoryService.validateBarcodes(originalBarcodes);
+        const { existingBarcodes } = data;
 
         // Mark rows with existing barcodes as errors (case-insensitive comparison)
         for (const row of allData) {
           if (row.barcode && row.barcode.trim()) {
             const rowBarcode = row.barcode.trim().toLowerCase();
-            const exists = existingBarcodes.some(eb => eb.toLowerCase() === rowBarcode);
+            const exists = existingBarcodes.some((eb) => eb.toLowerCase() === rowBarcode);
             if (exists) {
               const error = 'Barcode already exists in database';
               row.errors.push(error);
 
-              const existingError = errors.find(e => e.line === row.lineNumber);
+              const existingError = errors.find((e) => e.line === row.lineNumber);
               if (existingError) {
                 existingError.messages.push(error);
               } else {
@@ -209,11 +206,7 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
     formData.append('file', file);
 
     try {
-      const response = await api.post('/api/products/import', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      const data = response.data;
+      const data = await inventoryService.importProducts(formData);
       setResult(data);
 
       if (data.success && onImportComplete) {
@@ -226,7 +219,7 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
         success: false,
         imported: 0,
         failed: 0,
-        errors: [{ line: 0, message: 'Failed to connect to server' }]
+        errors: [{ line: 0, message: 'Failed to connect to server' }],
       });
     } finally {
       setImporting(false);
@@ -289,15 +282,18 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
             <>
               <Alert severity="warning" sx={{ mb: 2 }}>
                 <Typography variant="body2" gutterBottom fontWeight={600}>
-                  CSV Format: name, barcode, category, quantity, mrp, cost_price, selling_price, batch_code, expiry_date
+                  CSV Format: name, barcode, category, quantity, mrp, cost_price, selling_price,
+                  batch_code, expiry_date
                 </Typography>
                 <Typography variant="caption" display="block" sx={{ mt: 1 }}>
                   • Product names with commas should be in quotes (e.g., "Tea, 250g")
-                  <br />• Barcodes should be in quotes to prevent Excel decimals (e.g., "8900000000001")
+                  <br />• Barcodes should be in quotes to prevent Excel decimals (e.g.,
+                  "8900000000001")
                   <br />• All special characters are preserved as-is
                   <br />• Use | (pipe) to separate multiple barcodes (e.g., "123|456|789")
                   <br />• Barcode is optional - leave empty if product doesn't have one
-                  <br />• Each barcode must be UNIQUE (case-insensitive) - duplicates will be rejected
+                  <br />• Each barcode must be UNIQUE (case-insensitive) - duplicates will be
+                  rejected
                   <br />• Leave batch_code empty to disable batch tracking (simple inventory mode)
                   <br />• Provide batch_code to enable batch tracking for that product
                   <br />• All rows must pass validation - a single error will prevent import
@@ -348,18 +344,31 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
 
               {preview.length > 0 && !validating && (
                 <>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="subtitle2">
-                      All Rows ({preview.length} total):
-                    </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle2">All Rows ({preview.length} total):</Typography>
                     {hasErrors ? (
-                      <Chip label={`${validationErrors.length} Error(s)`} color="error" size="small" />
+                      <Chip
+                        label={`${validationErrors.length} Error(s)`}
+                        color="error"
+                        size="small"
+                      />
                     ) : (
                       <Chip label="All Valid" color="success" size="small" icon={<SuccessIcon />} />
                     )}
                   </Box>
 
-                  <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400, mb: 2 }}>
+                  <TableContainer
+                    component={Paper}
+                    variant="outlined"
+                    sx={{ maxHeight: 400, mb: 2 }}
+                  >
                     <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
@@ -376,8 +385,14 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
                           <TableRow
                             key={row.lineNumber}
                             sx={{
-                              bgcolor: row.errors && row.errors.length > 0 ? 'error.lighter' : 'inherit',
-                              '&:hover': { bgcolor: row.errors && row.errors.length > 0 ? 'error.light' : 'action.hover' }
+                              bgcolor:
+                                row.errors && row.errors.length > 0 ? 'error.lighter' : 'inherit',
+                              '&:hover': {
+                                bgcolor:
+                                  row.errors && row.errors.length > 0
+                                    ? 'error.light'
+                                    : 'action.hover',
+                              },
                             }}
                           >
                             <TableCell>{row.lineNumber}</TableCell>
@@ -393,13 +408,15 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
                                       variant="outlined"
                                       sx={{
                                         fontFamily: 'monospace',
-                                        fontSize: '0.75rem'
+                                        fontSize: '0.75rem',
                                       }}
                                     />
                                   ))}
                                 </Box>
                               ) : (
-                                <Typography variant="body2" color="text.secondary">—</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  —
+                                </Typography>
                               )}
                             </TableCell>
                             <TableCell>{row.quantity || '0'}</TableCell>
@@ -457,14 +474,23 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
             </>
           ) : (
             <Box>
-              <Alert severity={result.success ? "success" : "error"} icon={result.success ? <SuccessIcon /> : <ErrorIcon />}>
+              <Alert
+                severity={result.success ? 'success' : 'error'}
+                icon={result.success ? <SuccessIcon /> : <ErrorIcon />}
+              >
                 <Typography variant="body1" gutterBottom>
                   {result.success ? (
-                    <><strong>{result.imported}</strong> products imported successfully</>
+                    <>
+                      <strong>{result.imported}</strong> products imported successfully
+                    </>
                   ) : (
                     <>Import Failed. No products were added.</>
                   )}
-                  {result.failed > 0 && result.success && <>, <strong>{result.failed}</strong> failed</>}
+                  {result.failed > 0 && result.success && (
+                    <>
+                      , <strong>{result.failed}</strong> failed
+                    </>
+                  )}
                 </Typography>
               </Alert>
 
@@ -496,7 +522,11 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
                     </Table>
                   </TableContainer>
                   {result.errors.length > 20 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ mt: 1, display: 'block' }}
+                    >
                       ... and {result.errors.length - 20} more errors
                     </Typography>
                   )}
@@ -509,7 +539,9 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
         <DialogActions>
           {!result ? (
             <>
-              <Button onClick={handleClose} startIcon={<CloseIcon />}>Cancel</Button>
+              <Button onClick={handleClose} startIcon={<CloseIcon />}>
+                Cancel
+              </Button>
               <Button
                 onClick={handleImport}
                 variant="contained"

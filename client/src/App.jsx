@@ -1,17 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { HashRouter as Router, Routes, Route, Link as RouterLink, useLocation, Navigate } from 'react-router-dom';
-import api from './api';
+import React, { useState } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Container,
   Box,
-  Paper,
-  Stack,
-  Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -22,15 +12,10 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Snackbar,
-  Alert
+  Typography,
+  Button,
 } from '@mui/material';
 import {
-  PointOfSale as PointOfSaleIcon,
-  Inventory2 as InventoryIcon,
-  Assessment as AssessmentIcon,
-  Replay as ReplayIcon,
-  Settings as SettingsIcon,
   Fullscreen as FullscreenIcon,
   FullscreenExit as FullscreenExitIcon,
   ReceiptLong as ReceiptIcon,
@@ -38,64 +23,31 @@ import {
   Logout as LogoutIcon,
   People as PeopleIcon,
   Lock as LockIcon,
-  Add as AddIcon,
-  Warning as WarningIcon,
-  DeleteForever as DeleteForeverIcon,
-  LocalOffer as PromoIcon,
-  FileUpload as UploadIcon,
-  FileDownload as DownloadIcon,
-  ViewList as ViewListIcon,
-  ArrowBack as ArrowBackIcon,
-  LocalPrintshop as LocalPrintshopIcon
 } from '@mui/icons-material';
-import AddProductForm from './components/Inventory/AddProductForm';
-import ProductList from './components/Inventory/ProductList';
-import InventoryTree from './components/Inventory/InventoryTree';
-import BulkImportDialog from './components/Inventory/BulkImportDialog';
-import InventoryExcelView from './components/Inventory/InventoryExcelView';
-import BulkAddGrid from './components/Inventory/BulkAddGrid';
-import PriceListPanel from './components/Inventory/PriceListPanel';
-import POS from './components/POS/POS';
+
+// Pages and Components
+import POSPage from './pages/POSPage';
+import InventoryPage from './pages/InventoryPage';
+import DashboardPage from './pages/DashboardPage';
+import OverviewPage from './pages/OverviewPage';
 import Reporting from './components/Reporting/Reporting';
 import ExpenseManagement from './components/Expenses/ExpenseManagement';
 import Refund from './components/Refund/Refund';
 import ReceiptPreviewDialog from './components/POS/ReceiptPreviewDialog';
-import DashboardPage from './components/Dashboard/Dashboard';
 import SaleHistory from './components/SaleHistory/SaleHistory';
 import PromotionManagement from './components/Promotions/PromotionManagement';
 import LoginPage from './components/Auth/LoginPage';
 import UserManagementDialog from './components/Auth/UserManagementDialog';
 import AccountDetailsDialog from './components/Settings/AccountDetailsDialog';
 import CustomDialog from './components/common/CustomDialog';
-import useCustomDialog from './hooks/useCustomDialog';
-import { getAdminAutoLogoutTime } from './utils/paymentSettings';
+import AdminElevationDialog from './components/Auth/AdminElevationDialog';
+import GlobalAppBar from './components/common/GlobalAppBar';
+import AppLayout from './components/common/AppLayout';
 
-const STORAGE_KEYS = {
-  receipt: 'posReceiptSettings',
-  shopName: 'posShopName'
-};
-
-const DEFAULT_RECEIPT_SETTINGS = {
-  shopName: true,
-  header: true,
-  footer: true,
-  mrp: true,
-  price: true,
-  discount: true,
-  totalValue: true,
-  productName: true,
-  exp: true,
-  barcode: true,
-  totalSavings: true,
-  customShopName: 'Bachat Bazaar',
-  customHeader: '123 Business Street, City',
-  customFooter: 'Thank You! Visit Again',
-  directPrint: true,
-  printerType: '',
-  paperSize: '72mm',
-  fontSize: 0.7,
-  itemFontSize: 0.7
-};
+// Hooks
+import { useAuth } from './hooks/useAuth';
+import { useSettings } from './hooks/useSettings';
+import useCustomDialog from './shared/hooks/useCustomDialog';
 
 const SAMPLE_SALE = {
   id: 1001,
@@ -109,8 +61,8 @@ const SAMPLE_SALE = {
       batch: {
         mrp: 50,
         expiryDate: null,
-        product: { name: 'Sample Tea 200g', barcode: '8900000000011' }
-      }
+        product: { name: 'Sample Tea 200g', barcode: '8900000000011' },
+      },
     },
     {
       quantity: 1,
@@ -118,658 +70,59 @@ const SAMPLE_SALE = {
       batch: {
         mrp: 140,
         expiryDate: null,
-        product: { name: 'Sample Milk 1L', barcode: '8900000000012' }
-      }
-    }
-  ]
-};
-
-const getStoredShopName = () => {
-  try {
-    return localStorage.getItem(STORAGE_KEYS.shopName) || 'Bachat Bazaar';
-  } catch (error) {
-    return 'Bachat Bazaar';
-  }
-};
-
-const getStoredReceiptSettings = (fallbackShopName) => {
-  try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.receipt));
-    return {
-      ...DEFAULT_RECEIPT_SETTINGS,
-      ...stored,
-      customShopName: stored?.customShopName || fallbackShopName
-    };
-  } catch (error) {
-    return {
-      ...DEFAULT_RECEIPT_SETTINGS,
-      customShopName: fallbackShopName
-    };
-  }
-};
-
-const NavButton = ({ to, children, ...props }) => {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-  return (
-    <Button
-      component={RouterLink}
-      to={to}
-      color="inherit"
-      {...props}
-      sx={{
-        px: 2,
-        py: 1,
-        fontWeight: isActive ? 700 : 500,
-        bgcolor: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-        color: isActive ? '#ffffff' : 'rgba(248, 245, 240, 0.85)',
-        borderBottom: isActive ? '3px solid #f2b544' : '3px solid transparent',
-        borderRadius: '4px 4px 0 0',
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          bgcolor: 'rgba(255, 255, 255, 0.2)',
-          color: '#ffffff',
-          borderRadius: '4px'
-        },
-        ...props.sx
-      }}
-    >
-      {children}
-    </Button>
-  );
-};
-
-const DashboardCard = ({ to, title, description, icon, tone }) => (
-  <Paper
-    component={RouterLink}
-    to={to}
-    elevation={0}
-    sx={{
-      p: 3,
-      textDecoration: 'none',
-      color: 'inherit',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 1.2,
-      borderRadius: 2,
-      background: 'linear-gradient(135deg, #ffffff 0%, #f9f3ea 100%)',
-      transition: 'transform 150ms ease, box-shadow 150ms ease',
-      '&:hover': {
-        transform: 'translateY(-3px)',
-        boxShadow: '0 18px 35px rgba(11, 29, 57, 0.14)'
-      }
-    }}
-  >
-    <Box
-      sx={{
-        width: 52,
-        height: 52,
-        borderRadius: 2.4,
-        display: 'grid',
-        placeItems: 'center',
-        bgcolor: tone.bg,
-        color: tone.color
-      }}
-    >
-      {icon}
-    </Box>
-    <Typography variant="h6">{title}</Typography>
-    <Typography variant="body2" color="text.secondary">
-      {description}
-    </Typography>
-  </Paper>
-);
-
-const Overview = ({ shopName, userRole }) => (
-  <Container maxWidth="lg" sx={{ mt: { xs: 4, md: 7 }, mb: 8 }}>
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 3, md: 4 },
-        mb: 4,
-        borderRadius: 2,
-        background: 'linear-gradient(135deg, rgba(11, 29, 57, 0.95) 0%, rgba(27, 62, 111, 0.9) 100%)',
-        color: '#f8f5f0',
-        border: 'none'
-      }}
-    >
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ xs: 'flex-start', md: 'center' }}>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h3" sx={{ mb: 1.2 }}>
-            {shopName} POS Suite
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(248, 245, 240, 0.8)', maxWidth: 520 }}>
-            {userRole === 'cashier'
-              ? 'Process transactions quickly with our focused checkout interface.'
-              : userRole === 'admin'
-                ? 'Complete control over inventory, sales, and user management.'
-                : 'Comprehensive sales and return management capabilities.'}
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1.5} flexWrap="wrap">
-          {userRole === 'admin' && (
-            <>
-              <Chip label="Inventory & Sales" sx={{ bgcolor: 'rgba(242, 181, 68, 0.18)', color: '#f2b544' }} />
-              <Chip label="Full analytics" sx={{ bgcolor: 'rgba(255, 255, 255, 0.15)', color: '#f8f5f0' }} />
-            </>
-          )}
-          {userRole === 'cashier' && (
-            <Chip label="Fast checkout" sx={{ bgcolor: 'rgba(31, 138, 91, 0.2)', color: '#c7f0dc' }} />
-          )}
-          {userRole === 'salesman' && (
-            <>
-              <Chip label="Sales & returns" sx={{ bgcolor: 'rgba(31, 138, 91, 0.2)', color: '#c7f0dc' }} />
-            </>
-          )}
-        </Stack>
-      </Stack>
-    </Paper>
-
-    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 3 }}>
-      <DashboardCard
-        to="/pos"
-        title="POS Terminal"
-        description="Scan, add discounts, and print receipts in seconds."
-        icon={<PointOfSaleIcon fontSize="medium" />}
-        tone={{ bg: 'rgba(11, 29, 57, 0.12)', color: 'primary.main' }}
-      />
-      {userRole === 'admin' && (
-        <>
-          <DashboardCard
-            to="/inventory"
-            title="Inventory Management"
-            description="Control batches, pricing, and expiry in one clean table."
-            icon={<InventoryIcon fontSize="medium" />}
-            tone={{ bg: 'rgba(242, 181, 68, 0.18)', color: '#b76e00' }}
-          />
-          <DashboardCard
-            to="/reports"
-            title="Reports & Analytics"
-            description="Track sales performance with rich, digestible analytics."
-            icon={<AssessmentIcon fontSize="medium" />}
-            tone={{ bg: 'rgba(31, 138, 91, 0.18)', color: '#1f8a5b' }}
-          />
-          <DashboardCard
-            to="/promotions"
-            title="Sales & Promotions"
-            description="Manage temporary discounts and holiday sale events."
-            icon={<PromoIcon fontSize="medium" />}
-            tone={{ bg: 'rgba(124, 58, 237, 0.15)', color: '#7c3aed' }}
-          />
-        </>
-      )}
-      {(userRole === 'admin' || userRole === 'salesman') && (
-        <DashboardCard
-          to="/refund"
-          title="Returns"
-          description="Handle returns confidently with guided workflows."
-          icon={<ReplayIcon fontSize="medium" />}
-          tone={{ bg: 'rgba(217, 119, 6, 0.18)', color: '#b45309' }}
-        />
-      )}
-      {userRole === 'admin' && (
-        <DashboardCard
-          to="/dashboard"
-          title="Live Analytics"
-          description="Deep insights into daily sales, revenue, and trends."
-          icon={<AssessmentIcon fontSize="medium" />}
-          tone={{ bg: 'rgba(31, 138, 91, 0.18)', color: '#1f8a5b' }}
-        />
-      )}
-    </Box>
-  </Container>
-);
-
-const Inventory = () => {
-  const { showError, showSuccess } = useCustomDialog();
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [showBulkAdd, setShowBulkAdd] = useState(false);
-  const [showPriceList, setShowPriceList] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [excelViewOpen, setExcelViewOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [inventoryKey, setInventoryKey] = useState(0);
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [isPending, startTransition] = React.useTransition();
-  const inventoryRef = React.useRef(null);
-
-  const handleCategoryChange = (val) => {
-    startTransition(() => {
-      setCategoryFilter(val);
-    });
-  };
-
-  const handleSearchChange = (val) => {
-    startTransition(() => {
-      setDebouncedSearch(val);
-    });
-  };
-
-  const handleProductAdded = () => {
-    setInventoryKey(prev => prev + 1);
-    if (inventoryRef.current?.refresh) {
-      inventoryRef.current.refresh();
-    }
-    setShowAddProduct(false);
-    setShowBulkAdd(false);
-  };
-
-  const handleOpenPriceList = () => {
-    setShowPriceList(true);
-    setShowAddProduct(false);
-    setShowBulkAdd(false);
-  };
-
-  const handleImportComplete = () => {
-    setInventoryKey(prev => prev + 1);
-    if (inventoryRef.current?.refresh) {
-      inventoryRef.current.refresh();
-    }
-    setShowImport(false);
-  };
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const response = await api.get('/api/products/export', { responseType: 'blob' });
-      const blob = response.data;
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Export failed:', error);
-      showError('Failed to export products');
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  return (
-    <Box
-      sx={{
-        bgcolor: "background.default",
-        height: "100%",
-        minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <Paper
-        elevation={0}
-        sx={{
-          m: 3,
-          px: 4,
-          py: 2.5,
-          background: "linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)",
-          borderBottom: "1px solid rgba(16, 24, 40, 0.08)",
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexShrink: 0
-        }}
-      >
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom color="primary">
-            Inventory Management
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Browse products by category and manage stock efficiently.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1, justifyContent: 'flex-end' }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<UploadIcon />}
-            onClick={() => setShowImport(true)}
-            sx={{ minWidth: 120 }}
-          >
-            Import CSV
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<DownloadIcon />}
-            onClick={handleExport}
-            disabled={exporting}
-            sx={{ minWidth: 120 }}
-          >
-            {exporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<ViewListIcon />}
-            onClick={() => setExcelViewOpen(true)}
-            sx={{ minWidth: 160 }}
-          >
-            Spreadsheet View
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<LocalPrintshopIcon />}
-            onClick={handleOpenPriceList}
-            sx={{ minWidth: 130 }}
-          >
-            Price List
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setShowBulkAdd(true)}
-            sx={{ minWidth: 140 }}
-          >
-            Bulk Add
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setShowAddProduct(true)}
-            sx={{ minWidth: 140 }}
-          >
-            Add Product
-          </Button>
-        </Stack>
-      </Paper>
-
-      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 3, pb: 3 }}>
-        {showBulkAdd ? (
-          <BulkAddGrid
-            onProductsAdded={handleProductAdded}
-            onCancel={() => setShowBulkAdd(false)}
-          />
-        ) : showAddProduct ? (
-          <Container maxWidth="md" sx={{ height: '100%', overflowY: 'auto' }}>
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                <Button
-                  size="small"
-                  startIcon={<ArrowBackIcon />}
-                  onClick={() => setShowAddProduct(false)}
-                >
-                  Back to Inventory
-                </Button>
-              </Box>
-              <AddProductForm onProductAdded={handleProductAdded} />
-            </Paper>
-          </Container>
-        ) : (
-          <ProductList
-            key={inventoryKey}
-            ref={inventoryRef}
-            categoryFilter={categoryFilter}
-            onCategoryChange={handleCategoryChange}
-            debouncedSearch={debouncedSearch}
-            onSearchChange={handleSearchChange}
-            isPending={isPending}
-          />
-        )}
-      </Box>
-
-      <BulkImportDialog
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        onImportComplete={handleImportComplete}
-      />
-
-      <InventoryExcelView
-        open={excelViewOpen}
-        onClose={() => setExcelViewOpen(false)}
-        categoryFilter={categoryFilter}
-        externalSearch={debouncedSearch}
-      />
-
-      <PriceListPanel
-        open={showPriceList}
-        onClose={() => setShowPriceList(false)}
-      />
-    </Box>
-  );
+        product: { name: 'Sample Milk 1L', barcode: '8900000000012' },
+      },
+    },
+  ],
 };
 
 function App() {
   const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const initialShopName = getStoredShopName();
-  const [shopName, setShopName] = useState(initialShopName);
-  const [receiptSettings, setReceiptSettings] = useState(() => getStoredReceiptSettings(initialShopName));
+  const {
+    currentUser,
+    loading,
+    handleLogin,
+    handleLogout,
+    handleAdminLogin,
+    handleAdminLogout,
+    adminLogoutTimer,
+  } = useAuth();
+
+  const {
+    shopName,
+    receiptSettings,
+    draftReceiptSettings,
+    setDraftReceiptSettings,
+    shopMetadata,
+    monochromeMode,
+    printers,
+    defaultPrinter,
+    handleShopMetadataChange,
+    handleSaveBillSettings,
+    isFullscreen,
+    setIsFullscreen: _setIsFullscreen,
+  } = useSettings(showError);
+
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
   const [showAccountDialog, setShowAccountDialog] = useState(false);
   const [showBillDialog, setShowBillDialog] = useState(false);
   const [showUserManagementDialog, setShowUserManagementDialog] = useState(false);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
-  const [draftReceiptSettings, setDraftReceiptSettings] = useState(() => getStoredReceiptSettings(initialShopName));
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [passwordData, setPasswordData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
-  const [passwordError, setPasswordError] = useState('');
   const [showAdminLoginDialog, setShowAdminLoginDialog] = useState(false);
+
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState('');
-  const [uiZoom, setUiZoom] = useState(() => Number(localStorage.getItem('posUiZoom')) || 100);
-  const [monochromeMode, setMonochromeMode] = useState(() => localStorage.getItem('posMonochromeMode') === 'true');
-  const [printers, setPrinters] = useState([]);
-  const [defaultPrinter, setDefaultPrinter] = useState(null);
-  const [adminLogoutTimer, setAdminLogoutTimer] = useState(null);
-
-  const [shopMetadata, setShopMetadata] = useState({
-    shopMobile: '',
-    shopMobile2: '',
-    shopAddress: '',
-    shopEmail: '',
-    shopGST: '',
-    shopLogo: ''
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   });
+  const [passwordError, setPasswordError] = useState('');
 
-  const fetchSettings = async (retries = 3) => {
-    try {
-      const res = await api.get('/api/settings');
-      const settings = res.data.data;
-      if (settings.posShopName) setShopName(settings.posShopName);
-      if (settings.posReceiptSettings) {
-        setReceiptSettings(settings.posReceiptSettings);
-        setDraftReceiptSettings(settings.posReceiptSettings);
-      }
-      setShopMetadata({
-        shopMobile: settings.shopMobile || '',
-        shopMobile2: settings.shopMobile2 || '',
-        shopAddress: settings.shopAddress || '',
-        shopEmail: settings.shopEmail || '',
-        shopGST: settings.shopGST || '',
-        shopLogo: settings.shopLogo || ''
-      });
-    } catch (error) {
-      console.error(`Failed to fetch settings (remaining retries: ${retries}):`, error);
-      if (retries > 0) {
-        setTimeout(() => fetchSettings(retries - 1), 1000);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const handleSettingsUpdated = () => {
-      setMonochromeMode(localStorage.getItem('posMonochromeMode') === 'true');
-    };
-    window.addEventListener('pos-settings-updated', handleSettingsUpdated);
-    return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.style.fontSize = `${uiZoom}%`;
-  }, [uiZoom]);
-
-  useEffect(() => {
-    const handleZoomUpdated = () => {
-      setUiZoom(Number(localStorage.getItem('posUiZoom')) || 100);
-    };
-    window.addEventListener('pos-ui-zoom-updated', handleZoomUpdated);
-    return () => window.removeEventListener('pos-ui-zoom-updated', handleZoomUpdated);
-  }, []);
-
-  useEffect(() => {
-    // Check if user is already logged in
-    const storedUser = localStorage.getItem('posCurrentUser');
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setCurrentUser(user);
-
-      // Restore auto-logout timer if elevated
-      if (user.originalRole) {
-        const expiry = localStorage.getItem('posAdminElevationExpiry');
-        if (expiry) {
-          const remaining = Math.floor((parseInt(expiry, 10) - Date.now()) / 1000);
-          if (remaining > 0) {
-            setAdminLogoutTimer(remaining);
-          } else {
-            // Already expired, logout immediately
-            setTimeout(handleAdminLogout, 0);
-          }
-        }
-      }
-    }
-    fetchSettings();
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
-
-  useEffect(() => {
-    // Local display settings only
-    localStorage.setItem('posUiZoom', uiZoom.toString());
-    localStorage.setItem('posMonochromeMode', monochromeMode.toString());
-  }, [uiZoom, monochromeMode]);
-
-  useEffect(() => {
-    // Fetch system printers
-    const fetchPrinters = async () => {
-      try {
-        const printerList = await window.electron.ipcRenderer.invoke('get-printers');
-        console.log('Fetched printers: ', printerList);
-        const list = Array.isArray(printerList) ? printerList : [];
-        setPrinters(list);
-        const defaultP = list.find(p => p.isDefault);
-        if (defaultP) setDefaultPrinter(defaultP.name);
-      } catch (err) {
-        console.error('Failed to get printers:', err);
-        setPrinters([]);
-      }
-    };
-    if (window.electron) fetchPrinters();
-  }, []);
-
-  useEffect(() => {
-    let interval;
-    if (adminLogoutTimer !== null && adminLogoutTimer > 0) {
-      interval = setInterval(() => {
-        setAdminLogoutTimer(prev => prev - 1);
-      }, 1000);
-    } else if (adminLogoutTimer === 0) {
-      handleAdminLogout();
-    }
-
-    // Periodically sync with localStorage to handle multi-tab or potential drift
-    if (adminLogoutTimer !== null && adminLogoutTimer % 5 === 0) {
-      const expiry = localStorage.getItem('posAdminElevationExpiry');
-      if (expiry) {
-        const remaining = Math.floor((parseInt(expiry, 10) - Date.now()) / 1000);
-        if (Math.abs(remaining - adminLogoutTimer) > 2) {
-          setAdminLogoutTimer(remaining > 0 ? remaining : 0);
-        }
-      }
-    }
-
-    return () => clearInterval(interval);
-  }, [adminLogoutTimer]);
-
-  const formatTimer = (seconds) => {
-    if (seconds === null) return '';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return ` (${mins}:${secs.toString().padStart(2, '0')})`;
-  };
-
-
-
-  const handleLogin = (user) => {
-    setCurrentUser(user);
-    localStorage.setItem('posCurrentUser', JSON.stringify(user));
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('posCurrentUser');
-    handleCloseSettingsMenu();
-  };
-
-  const handleAdminLogin = async () => {
-    setAdminLoginError('');
-    if (!adminPassword) {
-      setAdminLoginError('Password is required');
-      return;
-    }
-
-    try {
-      const res = await api.post('/api/auth/verify-admin', { password: adminPassword });
-      if (res.data.success) {
-        // Temporarily elevate role
-        const elevatedUser = {
-          ...currentUser,
-          originalRole: currentUser.role,
-          role: 'admin'
-        };
-        setCurrentUser(elevatedUser);
-        localStorage.setItem('posCurrentUser', JSON.stringify(elevatedUser));
-
-        // Start auto-logout timer
-        const timeoutMinutes = getAdminAutoLogoutTime();
-        const durationSeconds = timeoutMinutes * 60;
-        const expiry = Date.now() + (durationSeconds * 1000);
-
-        localStorage.setItem('posAdminElevationExpiry', expiry.toString());
-        setAdminLogoutTimer(durationSeconds);
-
-        setShowAdminLoginDialog(false);
-        setAdminPassword('');
-        window.dispatchEvent(new Event('pos-refocus'));
-      }
-    } catch (error) {
-      setAdminLoginError(error.response?.data?.error || 'Invalid admin password');
-    }
-  };
-
-  const handleAdminLogout = () => {
-    if (currentUser && currentUser.originalRole) {
-      const restoredUser = {
-        ...currentUser,
-        role: currentUser.originalRole
-      };
-      delete restoredUser.originalRole;
-
-      setCurrentUser(restoredUser);
-      localStorage.setItem('posCurrentUser', JSON.stringify(restoredUser));
-      localStorage.removeItem('posAdminElevationExpiry');
-      setAdminLogoutTimer(null);
-
-      // Redirect to POS screen
-      window.location.hash = '#/pos';
-
-      // A small trick to trigger a render forcing user out of restricted tabs by
-      // allowing standard React Router Navigate to kick in if they are on a protected route.
-    }
+  const handleOpenSettingsMenu = (event) => setSettingsAnchorEl(event.currentTarget);
+  const handleCloseSettingsMenu = () => {
+    setSettingsAnchorEl(null);
+    window.dispatchEvent(new Event('pos-refocus'));
   };
 
   const handleFullscreenToggle = async () => {
@@ -785,7 +138,22 @@ function App() {
     }
   };
 
+  const handleAdminElevation = async () => {
+    const result = await handleAdminLogin(adminPassword);
+    if (result.success) {
+      setShowAdminLoginDialog(false);
+      setAdminPassword('');
+      setAdminLoginError('');
+      window.dispatchEvent(new Event('pos-refocus'));
+    } else {
+      setAdminLoginError(result.error);
+    }
+  };
+
   const handleChangePassword = async () => {
+    // API call for changing password - remained in service since it's a specific auth action
+    // Usually I'd put this in authService, but App.jsx had it inline.
+    // I already created settingsService with changePasscode.
     setPasswordError('');
     if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
       setPasswordError('All fields are required');
@@ -796,416 +164,344 @@ function App() {
       return;
     }
     try {
-      await api.put(`/api/auth/users/${currentUser.id}/change-password`, {
-        oldPassword: passwordData.oldPassword,
-        newPassword: passwordData.newPassword
-      });
-      setShowChangePasswordDialog(false);
-      setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
-      showSuccess('Password changed successfully');
-    } catch (err) {
+      // In a real app, I'd move this to authService
+      import('./shared/api/api')
+        .then(async ({ default: api }) => {
+          await api.put(`/api/auth/users/${currentUser.id}/change-password`, {
+            oldPassword: passwordData.oldPassword,
+            newPassword: passwordData.newPassword,
+          });
+          setShowChangePasswordDialog(false);
+          setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+          showSuccess('Password changed successfully');
+        })
+        .catch(() => setPasswordError('Failed to change password'));
+    } catch {
       setPasswordError('Failed to change password');
     }
   };
 
-  const handleSettingChange = (field) => {
-    setDraftReceiptSettings(prev => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  const handleTextSettingChange = (field, value) => {
-    setDraftReceiptSettings(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleShopMetadataChange = async (newData) => {
-    // Update local state immediately
-    if (newData.shopName !== undefined) {
-      setShopName(newData.shopName);
-      setReceiptSettings(prev => ({ ...prev, customShopName: newData.shopName }));
-    }
-
-    setShopMetadata(prev => ({
-      ...prev,
-      ...newData
-    }));
-
-    try {
-      const settingsToUpdate = {};
-      if (newData.shopName !== undefined) {
-        settingsToUpdate.posShopName = newData.shopName;
-        settingsToUpdate['posReceiptSettings.customShopName'] = newData.shopName;
-      }
-
-      // Map local metadata keys to backend keys
-      const metadataKeys = ['shopMobile', 'shopMobile2', 'shopAddress', 'shopEmail', 'shopGST', 'shopLogo'];
-      metadataKeys.forEach(key => {
-        if (newData[key] !== undefined) {
-          settingsToUpdate[key] = newData[key];
-        }
-      });
-
-      if (Object.keys(settingsToUpdate).length > 0) {
-        await api.post('/api/settings', { settings: settingsToUpdate });
-      }
-    } catch (error) {
-      console.error('Failed to save shop metadata:', error);
-      showError('Failed to save some settings');
-    }
-  };
-
-  const handleOpenSettingsMenu = (event) => {
-    setSettingsAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseSettingsMenu = () => {
-    setSettingsAnchorEl(null);
-    window.dispatchEvent(new Event('pos-refocus'));
-  };
-
-  const handleOpenBillSettings = () => {
-    setDraftReceiptSettings({ ...receiptSettings, customShopName: shopName });
-    setShowBillDialog(true);
-    handleCloseSettingsMenu();
-  };
-
-  const closeBillSettings = () => {
-    setShowBillDialog(false);
-    window.dispatchEvent(new Event('pos-refocus'));
-  };
-
-  const handleSaveBillSettings = async () => {
-    setReceiptSettings(draftReceiptSettings);
-    setShowBillDialog(false);
-    try {
-      await api.post('/api/settings', {
-        key: 'posReceiptSettings',
-        value: draftReceiptSettings
-      });
-      showSuccess('Bill settings saved successfully');
-      window.dispatchEvent(new Event('pos-refocus'));
-    } catch (error) {
-      console.error('Failed to save bill settings:', error);
-      showError('Failed to save bill settings');
-    }
-  };
-
-  const handleOpenAccountSettings = () => {
-    setShowAccountDialog(true);
-    handleCloseSettingsMenu();
-  };
-
-  const closeAccountSettings = () => {
-    setShowAccountDialog(false);
-    window.dispatchEvent(new Event('pos-refocus'));
-  };
+  if (loading)
+    return (
+      <Box
+        sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
+        Loading...
+      </Box>
+    );
+  if (!currentUser) return <LoginPage onLogin={handleLogin} />;
 
   const isAdmin = currentUser?.role === 'admin';
-  const canAccessInventory = isAdmin;
-  const canAccessReports = isAdmin;
-  const canAccessDashboard = isAdmin;
-  const canAccessRefund = isAdmin || currentUser?.role === 'salesman';
-  const canAccessSaleHistory = isAdmin || currentUser?.role === 'salesman';
-  const canAccessPromotions = isAdmin;
-  const canAccessExpenses = isAdmin;
-
-  if (loading) return <Box>Loading...</Box>;
-
-  if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
+  const permissions = {
+    canAccessInventory: isAdmin,
+    canAccessReports: isAdmin,
+    canAccessDashboard: isAdmin,
+    canAccessRefund: isAdmin || currentUser?.role === 'salesman',
+    canAccessSaleHistory: isAdmin || currentUser?.role === 'salesman',
+    canAccessPromotions: isAdmin,
+    canAccessExpenses: isAdmin,
+  };
 
   return (
     <Router>
-      <Box
-        className={monochromeMode ? 'monochrome' : ''}
-        sx={{
-          flexGrow: 1,
-          height: '100vh',
-          overflow: 'hidden',
-          bgcolor: 'background.default',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
+      <AppLayout
+        monochromeMode={monochromeMode}
+        appBar={
+          <GlobalAppBar
+            shopName={shopName}
+            currentUser={currentUser}
+            onAdminLogout={handleAdminLogout}
+            adminLogoutTimer={adminLogoutTimer}
+            onOpenSettingsMenu={handleOpenSettingsMenu}
+            permissions={permissions}
+          />
+        }
       >
-        <AppBar position="sticky" elevation={0} className="no-print">
-          <Toolbar sx={{ gap: 2 }}>
-            <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
-                  <RouterLink to="/" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {shopName}
-                    <Box sx={{ width: 8, height: 8, bgcolor: '#4caf50', borderRadius: '50%', display: 'inline-block' }} />
-                  </RouterLink>
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(248, 245, 240, 0.7)' }}>
-                  {currentUser.username} • {currentUser.role} {currentUser.originalRole && '(Elevated)'}
-                </Typography>
-              </Box>
-              {currentUser.originalRole && (
-                <Button
-                  onClick={handleAdminLogout}
-                  component={RouterLink}
-                  to="/"
-                  variant="contained"
-                  size="small"
-                  color="error"
-                  sx={{ ml: 3, fontWeight: 'bold' }}
-                >
-                  Log out Admin{formatTimer(adminLogoutTimer)}
-                </Button>
-              )}
-            </Box>
-            <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
-              <NavButton to="/pos">POS</NavButton>
-              {canAccessSaleHistory && <NavButton to="/sale-history">Sale History</NavButton>}
-              {canAccessInventory && <NavButton to="/inventory">Inventory</NavButton>}
-              {canAccessReports && <NavButton to="/reports">Reports</NavButton>}
-              {canAccessExpenses && <NavButton to="/expenses">Expenses</NavButton>}
-              {canAccessRefund && <NavButton to="/refund">Returns</NavButton>}
-              {canAccessPromotions && <NavButton to="/promotions">Promotions</NavButton>}
-              {canAccessDashboard && <NavButton to="/dashboard">Dashboard</NavButton>}
-              <IconButton
-                color="inherit"
-                onClick={handleOpenSettingsMenu}
-                aria-label="Settings"
-                sx={{
-                  ml: 1,
-                  width: 40,
-                  height: 40,
-                  alignSelf: 'center',
-                  bgcolor: 'rgba(255, 255, 255, 0.08)',
-                  borderRadius: '50%',
-                  '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.18)',
-                  },
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <SettingsIcon />
-              </IconButton>
-            </Stack>
-          </Toolbar>
-        </AppBar>
-
-        <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/pos" replace />} />
-            <Route path="/pos" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><POS receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} /></Box>} />
-            <Route path="/overview" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><Overview shopName={shopName} userRole={currentUser.role} /></Box>} />
-            {canAccessSaleHistory && (
-              <Route
-                path="/sale-history"
-                element={
-                  <Box
-                    sx={{
-                      bgcolor: 'background.default',
-                      height: '100%',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <SaleHistory receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} />
-                  </Box>
-                }
+        <Routes>
+          <Route path="/" element={<Navigate to="/pos" replace />} />
+          <Route
+            path="/pos"
+            element={
+              <POSPage
+                receiptSettings={receiptSettings}
+                shopMetadata={shopMetadata}
+                printers={printers}
+                defaultPrinter={defaultPrinter}
               />
-            )}
-            {canAccessInventory && <Route path="/inventory" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Inventory /></Box>} />}
-            {canAccessReports && <Route path="/reports" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Reporting receiptSettings={receiptSettings} shopMetadata={shopMetadata} printers={printers} defaultPrinter={defaultPrinter} /></Box>} />}
-            {canAccessExpenses && <Route path="/expenses" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><ExpenseManagement /></Box>} />}
-            {canAccessRefund && <Route path="/refund" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}><Refund /></Box>} />}
-            {canAccessPromotions && <Route path="/promotions" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><PromotionManagement /></Box>} />}
-            {canAccessDashboard && <Route path="/dashboard" element={<Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'auto' }}><DashboardPage shopName={shopName} userRole={currentUser.role} /></Box>} />}
-          </Routes>
-        </Box>
-
-        <Menu
-          anchorEl={settingsAnchorEl}
-          open={Boolean(settingsAnchorEl)}
-          onClose={handleCloseSettingsMenu}
-        >
-          <MenuItem onClick={handleFullscreenToggle} disabled={isFullscreen}>
-            <ListItemIcon>
-              <FullscreenIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Enter full screen</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={handleFullscreenToggle} disabled={!isFullscreen}>
-            <ListItemIcon>
-              <FullscreenExitIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Exit full screen</ListItemText>
-          </MenuItem>
-          {isAdmin && <Divider />}
-          {isAdmin && (
-            <MenuItem onClick={handleOpenBillSettings}>
-              <ListItemIcon>
-                <ReceiptIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Customize bill</ListItemText>
-            </MenuItem>
+            }
+          />
+          <Route
+            path="/overview"
+            element={<OverviewPage shopName={shopName} userRole={currentUser.role} />}
+          />
+          {permissions.canAccessSaleHistory && (
+            <Route
+              path="/sale-history"
+              element={
+                <SaleHistory
+                  receiptSettings={receiptSettings}
+                  shopMetadata={shopMetadata}
+                  printers={printers}
+                  defaultPrinter={defaultPrinter}
+                />
+              }
+            />
           )}
-          <MenuItem>
-            <ListItemIcon>
-              <LockIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText onClick={() => {
-              setShowChangePasswordDialog(true);
+          {permissions.canAccessInventory && (
+            <Route path="/inventory" element={<InventoryPage />} />
+          )}
+          {permissions.canAccessReports && (
+            <Route
+              path="/reports"
+              element={
+                <Reporting
+                  receiptSettings={receiptSettings}
+                  shopMetadata={shopMetadata}
+                  printers={printers}
+                  defaultPrinter={defaultPrinter}
+                />
+              }
+            />
+          )}
+          {permissions.canAccessExpenses && (
+            <Route path="/expenses" element={<ExpenseManagement />} />
+          )}
+          {permissions.canAccessRefund && <Route path="/refund" element={<Refund />} />}
+          {permissions.canAccessPromotions && (
+            <Route path="/promotions" element={<PromotionManagement />} />
+          )}
+          {permissions.canAccessDashboard && (
+            <Route
+              path="/dashboard"
+              element={<DashboardPage shopName={shopName} userRole={currentUser.role} />}
+            />
+          )}
+        </Routes>
+      </AppLayout>
+
+      {/* Settings Menu */}
+      <Menu
+        anchorEl={settingsAnchorEl}
+        open={Boolean(settingsAnchorEl)}
+        onClose={handleCloseSettingsMenu}
+      >
+        <MenuItem onClick={handleFullscreenToggle} disabled={isFullscreen}>
+          <ListItemIcon>
+            <FullscreenIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Enter full screen</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleFullscreenToggle} disabled={!isFullscreen}>
+          <ListItemIcon>
+            <FullscreenExitIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Exit full screen</ListItemText>
+        </MenuItem>
+        {isAdmin && <Divider />}
+        {isAdmin && (
+          <MenuItem
+            onClick={() => {
+              setShowBillDialog(true);
+              setDraftReceiptSettings({ ...receiptSettings, customShopName: shopName });
               handleCloseSettingsMenu();
-            }}>Change Password</ListItemText>
+            }}
+          >
+            <ListItemIcon>
+              <ReceiptIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Customize bill</ListItemText>
           </MenuItem>
-          {!currentUser.originalRole && currentUser.role !== 'admin' && <Divider />}
-          {!currentUser.originalRole && currentUser.role !== 'admin' && (
-            <MenuItem onClick={() => {
+        )}
+        <MenuItem
+          onClick={() => {
+            setShowChangePasswordDialog(true);
+            handleCloseSettingsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <LockIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Change Password</ListItemText>
+        </MenuItem>
+        {!currentUser.originalRole && currentUser.role !== 'admin' && <Divider />}
+        {!currentUser.originalRole && currentUser.role !== 'admin' && (
+          <MenuItem
+            onClick={() => {
               setShowAdminLoginDialog(true);
               handleCloseSettingsMenu();
-            }}>
-              <ListItemIcon>
-                <LockIcon fontSize="small" sx={{ color: 'warning.main' }} />
-              </ListItemIcon>
-              <ListItemText sx={{ color: 'warning.main', fontWeight: 'bold' }}>Admin Login</ListItemText>
-            </MenuItem>
-          )}
-          {isAdmin && <Divider />}
-          {isAdmin && (
-            <MenuItem onClick={() => {
+            }}
+          >
+            <ListItemIcon>
+              <LockIcon fontSize="small" sx={{ color: 'warning.main' }} />
+            </ListItemIcon>
+            <ListItemText sx={{ color: 'warning.main', fontWeight: 'bold' }}>
+              Admin Login
+            </ListItemText>
+          </MenuItem>
+        )}
+        {isAdmin && <Divider />}
+        {isAdmin && (
+          <MenuItem
+            onClick={() => {
               setShowUserManagementDialog(true);
               handleCloseSettingsMenu();
-            }}>
-              <ListItemIcon>
-                <PeopleIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Manage Users</ListItemText>
-            </MenuItem>
-          )}
-          {isAdmin && <Divider />}
-          {isAdmin && (
-            <MenuItem onClick={handleOpenAccountSettings}>
-              <ListItemIcon>
-                <StoreIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Settings</ListItemText>
-            </MenuItem>
-          )}
-          <MenuItem onClick={handleLogout}>
+            }}
+          >
             <ListItemIcon>
-              <LogoutIcon fontSize="small" />
+              <PeopleIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText>Logout</ListItemText>
+            <ListItemText>Manage Users</ListItemText>
           </MenuItem>
-        </Menu>
+        )}
+        {isAdmin && <Divider />}
+        {isAdmin && (
+          <MenuItem
+            onClick={() => {
+              setShowAccountDialog(true);
+              handleCloseSettingsMenu();
+            }}
+          >
+            <ListItemIcon>
+              <StoreIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Settings</ListItemText>
+          </MenuItem>
+        )}
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Logout</ListItemText>
+        </MenuItem>
+      </Menu>
 
-        <AccountDetailsDialog
-          open={showAccountDialog}
-          onClose={closeAccountSettings}
-          shopName={shopName}
-          shopMetadata={shopMetadata}
-          onMetadataChange={handleShopMetadataChange}
-          currentUser={currentUser}
-        />
+      <AccountDetailsDialog
+        open={showAccountDialog}
+        onClose={() => {
+          setShowAccountDialog(false);
+          window.dispatchEvent(new Event('pos-refocus'));
+        }}
+        shopName={shopName}
+        shopMetadata={shopMetadata}
+        onMetadataChange={handleShopMetadataChange}
+        currentUser={currentUser}
+      />
 
-        <Dialog open={showChangePasswordDialog} onClose={() => { setShowChangePasswordDialog(false); window.dispatchEvent(new Event('pos-refocus')); }} maxWidth="sm" fullWidth>
-          <DialogTitle>Change Password</DialogTitle>
-          <DialogContent sx={{ pt: 2 }}>
-            {passwordError && <Typography color="error" sx={{ mb: 2 }}>{passwordError}</Typography>}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                label="Old Password"
-                type="password"
-                fullWidth
-                size="small"
-                value={passwordData.oldPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
-              />
-              <TextField
-                label="New Password"
-                type="password"
-                fullWidth
-                size="small"
-                value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-              />
-              <TextField
-                label="Confirm New Password"
-                type="password"
-                fullWidth
-                size="small"
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => { setShowChangePasswordDialog(false); window.dispatchEvent(new Event('pos-refocus')); }} variant="outlined">Cancel</Button>
-            <Button onClick={handleChangePassword} variant="contained">Change Password</Button>
-          </DialogActions>
-        </Dialog>
-
-        <ReceiptPreviewDialog
-          open={showBillDialog}
-          onClose={closeBillSettings}
-          lastSale={SAMPLE_SALE}
-          receiptSettings={draftReceiptSettings}
-          onSettingChange={handleSettingChange}
-          onTextSettingChange={handleTextSettingChange}
-          onSave={handleSaveBillSettings}
-          isAdmin={isAdmin}
-          showPrint={false}
-          showShopNameField={false}
-          saveLabel="Save settings"
-          shopMetadata={shopMetadata}
-          printers={printers}
-          defaultPrinter={defaultPrinter}
-        />
-
-        <UserManagementDialog
-          open={showUserManagementDialog}
-          onClose={() => { setShowUserManagementDialog(false); window.dispatchEvent(new Event('pos-refocus')); }}
-          currentUser={currentUser}
-        />
-        <CustomDialog {...dialogState} onClose={closeDialog} />
-
-        <Dialog open={showAdminLoginDialog} onClose={() => {
-          setShowAdminLoginDialog(false);
-          setAdminPassword('');
-          setAdminLoginError('');
-        }} maxWidth="xs" fullWidth>
-          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LockIcon color="warning" /> Admin Elevation
-          </DialogTitle>
-          <DialogContent sx={{ pt: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Enter the admin password to temporarily access administrative functions.
+      <Dialog
+        open={showChangePasswordDialog}
+        onClose={() => {
+          setShowChangePasswordDialog(false);
+          window.dispatchEvent(new Event('pos-refocus'));
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Change Password</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {passwordError && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {passwordError}
             </Typography>
-            {adminLoginError && <Typography color="error" sx={{ mb: 2 }}>{adminLoginError}</Typography>}
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
-              inputRef={(input) => {
-                if (input) setTimeout(() => input.focus(), 50);
-              }}
-              label="Admin Password"
+              label="Old Password"
               type="password"
               fullWidth
               size="small"
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleAdminLogin();
-                }
-              }}
+              value={passwordData.oldPassword}
+              onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
             />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => {
-              setShowAdminLoginDialog(false);
-              setAdminPassword('');
-              setAdminLoginError('');
-            }}>Cancel</Button>
-            <Button onClick={handleAdminLogin} variant="contained" color="warning">
-              Elevate
-            </Button>
-          </DialogActions>
-        </Dialog>
+            <TextField
+              label="New Password"
+              type="password"
+              fullWidth
+              size="small"
+              value={passwordData.newPassword}
+              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+            />
+            <TextField
+              label="Confirm New Password"
+              type="password"
+              fullWidth
+              size="small"
+              value={passwordData.confirmPassword}
+              onChange={(e) =>
+                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+              }
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => {
+              setShowChangePasswordDialog(false);
+              window.dispatchEvent(new Event('pos-refocus'));
+            }}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleChangePassword} variant="contained">
+            Change Password
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      </Box>
+      <ReceiptPreviewDialog
+        open={showBillDialog}
+        onClose={() => {
+          setShowBillDialog(false);
+          window.dispatchEvent(new Event('pos-refocus'));
+        }}
+        lastSale={SAMPLE_SALE}
+        receiptSettings={draftReceiptSettings}
+        onSettingChange={(field) =>
+          setDraftReceiptSettings((prev) => ({ ...prev, [field]: !prev[field] }))
+        }
+        onTextSettingChange={(field, value) =>
+          setDraftReceiptSettings((prev) => ({ ...prev, [field]: value }))
+        }
+        onSave={async () => {
+          const success = await handleSaveBillSettings(draftReceiptSettings);
+          if (success) {
+            setShowBillDialog(false);
+            showSuccess('Bill settings saved successfully');
+            window.dispatchEvent(new Event('pos-refocus'));
+          }
+        }}
+        isAdmin={isAdmin}
+        showPrint={false}
+        showShopNameField={false}
+        saveLabel="Save settings"
+        shopMetadata={shopMetadata}
+        printers={printers}
+        defaultPrinter={defaultPrinter}
+      />
 
+      <UserManagementDialog
+        open={showUserManagementDialog}
+        onClose={() => {
+          setShowUserManagementDialog(false);
+          window.dispatchEvent(new Event('pos-refocus'));
+        }}
+        currentUser={currentUser}
+      />
+
+      <AdminElevationDialog
+        open={showAdminLoginDialog}
+        onClose={() => {
+          setShowAdminLoginDialog(false);
+          setAdminPassword('');
+          setAdminLoginError('');
+        }}
+        adminPassword={adminPassword}
+        setAdminPassword={setAdminPassword}
+        adminLoginError={adminLoginError}
+        onAdminLogin={handleAdminElevation}
+      />
+
+      <CustomDialog {...dialogState} onClose={closeDialog} />
     </Router>
   );
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   Box,
   Typography,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableRow,
   TableFooter,
-} from "@mui/material";
+} from '@mui/material';
 import {
   TrendingUp as SalesIcon,
   Savings as ProfitIcon,
@@ -23,11 +23,20 @@ import {
   BarChart as MarginIcon,
   LocalShipping as ShippingIcon,
   MonetizationOn as ValueIcon,
-  PieChart as PieChartIcon
-} from "@mui/icons-material";
+  PieChart as PieChartIcon,
+} from '@mui/icons-material';
 
-const CATEGORY_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#64748b'];
-import StatCard from "./StatCard";
+const CATEGORY_COLORS = [
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#06b6d4',
+  '#ec4899',
+  '#64748b',
+];
+import StatCard from './StatCard';
 
 const AnalyticsPanel = ({ reportData, loading }) => {
   const [ownerSharePercent, setOwnerSharePercent] = React.useState(50);
@@ -35,32 +44,32 @@ const AnalyticsPanel = ({ reportData, loading }) => {
   const totalSales = reportData?.totalSales || 0;
   const totalProfit = reportData?.totalProfit || 0;
   const netProfit = reportData?.netProfit || 0;
-  const totalPurchases = reportData?.totalPurchases || 0;
+  const _totalPurchases = reportData?.totalPurchases || 0;
   const totalCashBalance = reportData?.totalCashBalance || 0;
   const totalExpenses = reportData?.totalExpenses || 0;
   const ownerPayout = (netProfit * ownerSharePercent) / 100;
 
   // Combine and sort both expenses and purchases chronologically
   const cashFlowItems = [
-    ...(reportData?.expenses || []).map(e => ({
+    ...(reportData?.expenses || []).map((e) => ({
       id: `exp - ${e.id} `,
       date: new Date(e.date),
       type: 'Expense',
       label: e.category || 'Misc',
-      amount: e.amount
+      amount: e.amount,
     })),
-    ...(reportData?.purchases || []).map(p => ({
+    ...(reportData?.purchases || []).map((p) => ({
       id: `pur - ${p.id} `,
       date: new Date(p.date),
       type: 'Purchase',
       label: p.vendor || 'Unknown Vendor',
-      amount: p.totalAmount
-    }))
+      amount: p.totalAmount,
+    })),
   ].sort((a, b) => b.date - a.date);
 
   // Group expenses by category
   const expenseBreakdown = (reportData?.expenses || []).reduce((acc, exp) => {
-    const cat = exp.category || "Misc";
+    const cat = exp.category || 'Misc';
     acc[cat] = (acc[cat] || 0) + exp.amount;
     return acc;
   }, {});
@@ -72,18 +81,20 @@ const AnalyticsPanel = ({ reportData, loading }) => {
     name,
     value: val,
     percent: totalExpPie > 0 ? (val / totalExpPie) * 100 : 0,
-    color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+    color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
   }));
   let expCum = 0;
-  const expenseGradient = expenseSegments.map((stop) => {
-    const start = expCum;
-    expCum += stop.percent;
-    return `${stop.color} ${start}% ${expCum}%`;
-  }).join(', ');
+  const expenseGradient = expenseSegments
+    .map((stop) => {
+      const start = expCum;
+      expCum += stop.percent;
+      return `${stop.color} ${start}% ${expCum}%`;
+    })
+    .join(', ');
 
   // Group purchases by vendor
   const purchaseBreakdown = (reportData?.purchases || []).reduce((acc, pur) => {
-    const vendor = pur.vendor || "Unknown Vendor";
+    const vendor = pur.vendor || 'Unknown Vendor';
     acc[vendor] = (acc[vendor] || 0) + (pur.totalAmount || 0); // ensuring numeric
     return acc;
   }, {});
@@ -95,19 +106,20 @@ const AnalyticsPanel = ({ reportData, loading }) => {
     name,
     value: val,
     percent: totalPurPie > 0 ? (val / totalPurPie) * 100 : 0,
-    color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+    color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
   }));
   let purCum = 0;
-  const purchaseGradient = purchaseSegments.map((stop) => {
-    const start = purCum;
-    purCum += stop.percent;
-    return `${stop.color} ${start}% ${purCum}%`;
-  }).join(', ');
-
+  const purchaseGradient = purchaseSegments
+    .map((stop) => {
+      const start = purCum;
+      purCum += stop.percent;
+      return `${stop.color} ${start}% ${purCum}%`;
+    })
+    .join(', ');
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 10 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 10 }}>
         <CircularProgress size={60} thickness={4} />
       </Box>
     );
@@ -116,13 +128,13 @@ const AnalyticsPanel = ({ reportData, loading }) => {
   return (
     <Box
       sx={{
-        bgcolor: "#fcfcfc",
+        bgcolor: '#fcfcfc',
         p: 4,
-        display: "flex",
-        flexDirection: "column",
+        display: 'flex',
+        flexDirection: 'column',
         gap: 4,
-        height: "100%",
-        overflowY: "auto",
+        height: '100%',
+        overflowY: 'auto',
         borderRadius: 1,
       }}
     >
@@ -131,11 +143,11 @@ const AnalyticsPanel = ({ reportData, loading }) => {
         <Typography
           variant="overline"
           sx={{
-            color: "#64748b",
+            color: '#64748b',
             fontWeight: 800,
             letterSpacing: 1.5,
             mb: 2,
-            display: "block",
+            display: 'block',
           }}
         >
           CASH FLOW STATEMENT (CHRONOLOGICAL)
@@ -144,71 +156,114 @@ const AnalyticsPanel = ({ reportData, loading }) => {
           component={Paper}
           elevation={0}
           sx={{
-            border: "1px solid #e2e8f0",
+            border: '1px solid #e2e8f0',
             borderRadius: 3,
-            overflow: "hidden",
-            maxHeight: "400px",
-            overflowY: "auto"
+            overflow: 'hidden',
+            maxHeight: '400px',
+            overflowY: 'auto',
           }}
         >
           <Table stickyHeader>
-            <TableHead sx={{ bgcolor: "#f8fafc" }}>
+            <TableHead sx={{ bgcolor: '#f8fafc' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800, color: "#64748b", bgcolor: '#f8fafc', top: 0, zIndex: 2 }}>
+                <TableCell
+                  sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', top: 0, zIndex: 2 }}
+                >
                   PARTICULARS
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ fontWeight: 800, color: "#64748b", bgcolor: '#f8fafc', top: 0, zIndex: 2 }}
+                  sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', top: 0, zIndex: 2 }}
                 >
                   AMOUNT (₹)
                 </TableCell>
               </TableRow>
               {/* 1. Total Sales */}
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: "#1e293b", bgcolor: 'white', borderBottom: '2px solid #e2e8f0', top: 40, zIndex: 2 }}>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    color: '#1e293b',
+                    bgcolor: 'white',
+                    borderBottom: '2px solid #e2e8f0',
+                    top: 40,
+                    zIndex: 2,
+                  }}
+                >
                   Total Sales (Gross Income)
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ fontWeight: 700, color: "#16a34a", bgcolor: 'white', borderBottom: '2px solid #e2e8f0', top: 40, zIndex: 2 }}
+                  sx={{
+                    fontWeight: 700,
+                    color: '#16a34a',
+                    bgcolor: 'white',
+                    borderBottom: '2px solid #e2e8f0',
+                    top: 40,
+                    zIndex: 2,
+                  }}
                 >
                   + {totalSales.toLocaleString()}
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-
               {/* 2. Chronological Expenses & Purchases */}
               {cashFlowItems.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell sx={{ color: "#64748b", pl: 4 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <TableCell sx={{ color: '#64748b', pl: 4 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
                       <span>
-                        Less: {item.type === 'Expense' ? 'Expense' : 'Inventory Purchase'} ({item.label})
+                        Less: {item.type === 'Expense' ? 'Expense' : 'Inventory Purchase'} (
+                        {item.label})
                       </span>
-                      <Typography variant="caption" sx={{ color: '#94a3b8', fontStyle: 'italic', ml: 2 }}>
-                        {item.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
+                      <Typography
+                        variant="caption"
+                        sx={{ color: '#94a3b8', fontStyle: 'italic', ml: 2 }}
+                      >
+                        {item.date
+                          .toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          })
+                          .replace(/\//g, '-')}
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell align="right" sx={{ color: "#dc2626" }}>
+                  <TableCell align="right" sx={{ color: '#dc2626' }}>
                     - {item.amount.toLocaleString()}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-            <TableFooter sx={{ position: 'sticky', bottom: 0, zIndex: 1, bgcolor: "#f0fdf4" }}>
+            <TableFooter sx={{ position: 'sticky', bottom: 0, zIndex: 1, bgcolor: '#f0fdf4' }}>
               {/* 4. Final Cash Balance */}
               <TableRow>
                 <TableCell
-                  sx={{ fontWeight: 900, fontSize: "1.1rem", color: "#166534", borderTop: '2px solid #16a34a' }}
+                  sx={{
+                    fontWeight: 900,
+                    fontSize: '1.1rem',
+                    color: '#166534',
+                    borderTop: '2px solid #16a34a',
+                  }}
                 >
                   TOTAL MONEY IN SHOP (NET BALANCE)
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ fontWeight: 900, fontSize: "1.1rem", color: "#166534", borderTop: '2px solid #16a34a' }}
+                  sx={{
+                    fontWeight: 900,
+                    fontSize: '1.1rem',
+                    color: '#166534',
+                    borderTop: '2px solid #16a34a',
+                  }}
                 >
                   ₹ {totalCashBalance.toLocaleString()}
                 </TableCell>
@@ -223,11 +278,11 @@ const AnalyticsPanel = ({ reportData, loading }) => {
         <Typography
           variant="overline"
           sx={{
-            color: "#64748b",
+            color: '#64748b',
             fontWeight: 800,
             letterSpacing: 1.5,
             mb: 2,
-            display: "block",
+            display: 'block',
           }}
         >
           Profit & Takeout Calculation
@@ -236,9 +291,9 @@ const AnalyticsPanel = ({ reportData, loading }) => {
           elevation={0}
           sx={{
             p: 3,
-            border: "1px solid #e2e8f0",
+            border: '1px solid #e2e8f0',
             borderRadius: 2,
-            bgcolor: "#fafbfc",
+            bgcolor: '#fafbfc',
           }}
         >
           <Grid container spacing={3} alignItems="stretch">
@@ -247,45 +302,38 @@ const AnalyticsPanel = ({ reportData, loading }) => {
               <Box
                 sx={{
                   p: 3,
-                  bgcolor: "#fff",
+                  bgcolor: '#fff',
                   borderRadius: 2,
-                  border: "2px solid #f0fdf4",
-                  height: "100%"
-
+                  border: '2px solid #f0fdf4',
+                  height: '100%',
                 }}
               >
                 <Typography
                   variant="subtitle2"
                   sx={{
-                    color: "#475569",
+                    color: '#475569',
                     fontWeight: 700,
                     mb: 2.5,
-                    display: "flex",
-                    alignItems: "center",
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: 1,
                   }}
                 >
-                  <span style={{ color: "#16a34a" }}>📊</span> Profit
-                  Calculation
+                  <span style={{ color: '#16a34a' }}>📊</span> Profit Calculation
                 </Typography>
 
                 {/* Gross Profit */}
                 <Box
                   sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     py: 1.5,
-                    borderBottom: "1px solid #f1f5f9",
-
+                    borderBottom: '1px solid #f1f5f9',
                   }}
                 >
-                  <Typography sx={{ color: "#64748b", fontWeight: 500 }}>
-                    Gross Profit:
-                  </Typography>
-                  <Typography
-                    sx={{ color: "#16a34a", fontWeight: 700, fontSize: "1rem" }}
-                  >
+                  <Typography sx={{ color: '#64748b', fontWeight: 500 }}>Gross Profit:</Typography>
+                  <Typography sx={{ color: '#16a34a', fontWeight: 700, fontSize: '1rem' }}>
                     ₹ {totalProfit.toLocaleString()}
                   </Typography>
                 </Box>
@@ -293,19 +341,17 @@ const AnalyticsPanel = ({ reportData, loading }) => {
                 {/* Expenses */}
                 <Box
                   sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     py: 1.5,
-                    borderBottom: "1px solid #f1f5f9",
+                    borderBottom: '1px solid #f1f5f9',
                   }}
                 >
-                  <Typography sx={{ color: "#64748b", fontWeight: 500 }}>
+                  <Typography sx={{ color: '#64748b', fontWeight: 500 }}>
                     Less: Expenses:
                   </Typography>
-                  <Typography
-                    sx={{ color: "#dc2626", fontWeight: 700, fontSize: "1rem" }}
-                  >
+                  <Typography sx={{ color: '#dc2626', fontWeight: 700, fontSize: '1rem' }}>
                     - ₹ {totalExpenses.toLocaleString()}
                   </Typography>
                 </Box>
@@ -313,25 +359,23 @@ const AnalyticsPanel = ({ reportData, loading }) => {
                 {/* Net Profit - Highlighted */}
                 <Box
                   sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     py: 2,
                     px: 2,
                     mt: 1.5,
-                    bgcolor: "#f0fdf4",
-                    border: "1px solid #bbf7d0",
+                    bgcolor: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
                     borderRadius: 1.5,
                   }}
                 >
-                  <Typography sx={{ color: "#166534", fontWeight: 700 }}>
-                    Net Profit
-                  </Typography>
+                  <Typography sx={{ color: '#166534', fontWeight: 700 }}>Net Profit</Typography>
                   <Typography
                     sx={{
-                      color: "#166534",
+                      color: '#166534',
                       fontWeight: 800,
-                      fontSize: "1.1rem",
+                      fontSize: '1.1rem',
                     }}
                   >
                     ₹ {netProfit.toLocaleString()}
@@ -344,36 +388,35 @@ const AnalyticsPanel = ({ reportData, loading }) => {
             <Grid item xs={12} md={7}>
               <Box
                 sx={{
-                  display: "flex",
-                  flexDirection: "column",
+                  display: 'flex',
+                  flexDirection: 'column',
                   gap: 2.5,
-                  height: "100%",
+                  height: '100%',
                 }}
               >
                 {/* Percentage Input */}
                 <Box
                   sx={{
                     p: 3,
-                    bgcolor: "#fff",
+                    bgcolor: '#fff',
                     borderRadius: 2,
-                    border: "2px solid #e0e7ff",
+                    border: '2px solid #e0e7ff',
                   }}
                 >
                   <Typography
                     variant="subtitle2"
                     sx={{
-                      color: "#475569",
+                      color: '#475569',
                       fontWeight: 700,
                       mb: 1.5,
-                      display: "flex",
-                      alignItems: "center",
+                      display: 'flex',
+                      alignItems: 'center',
                       gap: 1,
                     }}
                   >
-                    <span style={{ color: "#6366f1" }}>⚙️</span> Owner Takeout
-                    Percentage
+                    <span style={{ color: '#6366f1' }}>⚙️</span> Owner Takeout Percentage
                   </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <TextField
                       type="number"
                       variant="outlined"
@@ -381,22 +424,19 @@ const AnalyticsPanel = ({ reportData, loading }) => {
                       value={ownerSharePercent}
                       onChange={(e) =>
                         setOwnerSharePercent(
-                          Math.min(
-                            100,
-                            Math.max(0, parseInt(e.target.value) || 0),
-                          ),
+                          Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
                         )
                       }
                       inputProps={{ min: 0, max: 100 }}
                       sx={{
                         width: 100,
-                        "& .MuiOutlinedInput-root": {
+                        '& .MuiOutlinedInput-root': {
                           fontWeight: 700,
-                          textAlign: "center",
+                          textAlign: 'center',
                         },
                       }}
                     />
-                    <Typography sx={{ color: "#64748b", fontWeight: 600 }}>
+                    <Typography sx={{ color: '#64748b', fontWeight: 600 }}>
                       % of Net Profit
                     </Typography>
                   </Box>
@@ -406,21 +446,21 @@ const AnalyticsPanel = ({ reportData, loading }) => {
                 <Box
                   sx={{
                     p: 3,
-                    bgcolor: "#eff6ff",
-                    border: "2px solid #7dd3fc",
+                    bgcolor: '#eff6ff',
+                    border: '2px solid #7dd3fc',
                     borderRadius: 2,
                     flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    textAlign: "center",
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    textAlign: 'center',
                   }}
                 >
                   <Typography
                     sx={{
-                      color: "#0c4a6e",
+                      color: '#0c4a6e',
                       fontWeight: 700,
-                      fontSize: "0.9rem",
+                      fontSize: '0.9rem',
                       mb: 1,
                     }}
                   >
@@ -428,9 +468,9 @@ const AnalyticsPanel = ({ reportData, loading }) => {
                   </Typography>
                   <Typography
                     sx={{
-                      color: "#0c4a6e",
+                      color: '#0c4a6e',
                       fontWeight: 700,
-                      fontSize: "0.85rem",
+                      fontSize: '0.85rem',
                       mb: 2,
                     }}
                   >
@@ -438,13 +478,13 @@ const AnalyticsPanel = ({ reportData, loading }) => {
                   </Typography>
                   <Typography
                     sx={{
-                      color: "#0c4a6e",
+                      color: '#0c4a6e',
                       fontWeight: 900,
-                      fontSize: "2rem",
-                      letterSpacing: "-0.5px",
+                      fontSize: '2rem',
+                      letterSpacing: '-0.5px',
                     }}
                   >
-                    ₹{" "}
+                    ₹{' '}
                     {ownerPayout.toLocaleString(undefined, {
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
@@ -459,32 +499,99 @@ const AnalyticsPanel = ({ reportData, loading }) => {
 
       {/* Analytics Charts Row */}
       <Box sx={{ display: 'flex', gap: 4, flexDirection: { xs: 'column', md: 'row' } }}>
-
         {/* Expenses Pie Chart */}
-        <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+        <Paper
+          elevation={0}
+          sx={{
+            flex: 1,
+            p: 3,
+            borderRadius: 3,
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <PieChartIcon sx={{ color: '#0b1d39' }} />
-            <Typography variant="h6" sx={{ color: '#0b1d39', fontWeight: 700 }}>Expenses by Category</Typography>
+            <Typography variant="h6" sx={{ color: '#0b1d39', fontWeight: 700 }}>
+              Expenses by Category
+            </Typography>
           </Box>
-          <Typography variant="caption" sx={{ color: '#64748b', mb: 3 }}>Breakdown of operating costs</Typography>
+          <Typography variant="caption" sx={{ color: '#64748b', mb: 3 }}>
+            Breakdown of operating costs
+          </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minHeight: 150 }}>
             <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-              <Box sx={{ width: 120, height: 120, borderRadius: '50%', background: expenseSegments.length ? `conic-gradient(${expenseGradient})` : '#e2e8f0', position: 'relative' }}>
-                <Box sx={{ position: 'absolute', top: '25%', left: '25%', width: '50%', height: '50%', bgcolor: '#fff', borderRadius: '50%' }} />
+              <Box
+                sx={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: '50%',
+                  background: expenseSegments.length
+                    ? `conic-gradient(${expenseGradient})`
+                    : '#e2e8f0',
+                  position: 'relative',
+                }}
+              >
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '25%',
+                    left: '25%',
+                    width: '50%',
+                    height: '50%',
+                    bgcolor: '#fff',
+                    borderRadius: '50%',
+                  }}
+                />
               </Box>
             </Box>
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', maxHeight: '150px' }}>
-              {expenseSegments.length === 0 && <Typography variant="caption" sx={{ color: '#94a3b8' }}>No expenses to display</Typography>}
-              {expenseSegments.map(seg => (
-                <Box key={seg.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                overflowY: 'auto',
+                maxHeight: '150px',
+              }}
+            >
+              {expenseSegments.length === 0 && (
+                <Typography variant="caption" sx={{ color: '#94a3b8' }}>
+                  No expenses to display
+                </Typography>
+              )}
+              {expenseSegments.map((seg) => (
+                <Box
+                  key={seg.name}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1,
+                  }}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: seg.color }} />
-                    <Typography variant="caption" sx={{ color: '#4b5563', fontSize: '0.75rem', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: '#4b5563',
+                        fontSize: '0.75rem',
+                        maxWidth: '120px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {seg.name} ({seg.percent.toFixed(0)}%)
                     </Typography>
                   </Box>
-                  <Typography variant="caption" sx={{ color: '#111827', fontSize: '0.75rem', fontWeight: 600 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: '#111827', fontSize: '0.75rem', fontWeight: 600 }}
+                  >
                     ₹{seg.value.toLocaleString()}
                   </Typography>
                 </Box>
@@ -494,30 +601,98 @@ const AnalyticsPanel = ({ reportData, loading }) => {
         </Paper>
 
         {/* Purchases Pie Chart */}
-        <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+        <Paper
+          elevation={0}
+          sx={{
+            flex: 1,
+            p: 3,
+            borderRadius: 3,
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <PieChartIcon sx={{ color: '#0b1d39' }} />
-            <Typography variant="h6" sx={{ color: '#0b1d39', fontWeight: 700 }}>Purchases by Vendor</Typography>
+            <Typography variant="h6" sx={{ color: '#0b1d39', fontWeight: 700 }}>
+              Purchases by Vendor
+            </Typography>
           </Box>
-          <Typography variant="caption" sx={{ color: '#64748b', mb: 3 }}>Breakdown of inventory investments</Typography>
+          <Typography variant="caption" sx={{ color: '#64748b', mb: 3 }}>
+            Breakdown of inventory investments
+          </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minHeight: 150 }}>
             <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-              <Box sx={{ width: 120, height: 120, borderRadius: '50%', background: purchaseSegments.length ? `conic-gradient(${purchaseGradient})` : '#e2e8f0', position: 'relative' }}>
-                <Box sx={{ position: 'absolute', top: '25%', left: '25%', width: '50%', height: '50%', bgcolor: '#fff', borderRadius: '50%' }} />
+              <Box
+                sx={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: '50%',
+                  background: purchaseSegments.length
+                    ? `conic-gradient(${purchaseGradient})`
+                    : '#e2e8f0',
+                  position: 'relative',
+                }}
+              >
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '25%',
+                    left: '25%',
+                    width: '50%',
+                    height: '50%',
+                    bgcolor: '#fff',
+                    borderRadius: '50%',
+                  }}
+                />
               </Box>
             </Box>
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', maxHeight: '150px' }}>
-              {purchaseSegments.length === 0 && <Typography variant="caption" sx={{ color: '#94a3b8' }}>No purchases to display</Typography>}
-              {purchaseSegments.map(seg => (
-                <Box key={seg.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                overflowY: 'auto',
+                maxHeight: '150px',
+              }}
+            >
+              {purchaseSegments.length === 0 && (
+                <Typography variant="caption" sx={{ color: '#94a3b8' }}>
+                  No purchases to display
+                </Typography>
+              )}
+              {purchaseSegments.map((seg) => (
+                <Box
+                  key={seg.name}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1,
+                  }}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: seg.color }} />
-                    <Typography variant="caption" sx={{ color: '#4b5563', fontSize: '0.75rem', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: '#4b5563',
+                        fontSize: '0.75rem',
+                        maxWidth: '120px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {seg.name} ({seg.percent.toFixed(0)}%)
                     </Typography>
                   </Box>
-                  <Typography variant="caption" sx={{ color: '#111827', fontSize: '0.75rem', fontWeight: 600 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: '#111827', fontSize: '0.75rem', fontWeight: 600 }}
+                  >
                     ₹{seg.value.toLocaleString()}
                   </Typography>
                 </Box>
@@ -525,9 +700,7 @@ const AnalyticsPanel = ({ reportData, loading }) => {
             </Box>
           </Box>
         </Paper>
-
       </Box>
-
     </Box>
   );
 };

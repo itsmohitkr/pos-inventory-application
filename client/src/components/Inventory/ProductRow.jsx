@@ -1,107 +1,132 @@
-import React, { useState } from 'react';
-import { TableRow, TableCell, IconButton, Collapse, Box, Typography, Button, Chip } from '@mui/material';
-import {
-    KeyboardArrowDown as KeyboardArrowDownIcon,
-    KeyboardArrowUp as KeyboardArrowUpIcon,
-    Edit as EditIcon,
-    Delete as DeleteIcon,
-    Add as AddIcon
-} from '@mui/icons-material';
-import BatchTable from './BatchTable';
+import React from 'react';
+import { TableRow, TableCell, IconButton, Box, Typography, Chip } from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon, Circle as CircleIcon } from '@mui/icons-material';
+import BarcodeChips from './BarcodeChips';
 
-// Helper to render barcodes as chips
-const renderBarcodeChips = (barcode) => {
-    if (!barcode) return <Typography variant="body2" color="text.secondary">—</Typography>;
-
-    const barcodes = barcode.split('|').map(b => b.trim()).filter(Boolean);
-    if (barcodes.length === 0) return <Typography variant="body2" color="text.secondary">—</Typography>;
-
-    return (
-        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-            {barcodes.map((bc, idx) => (
-                <Chip
-                    key={idx}
-                    label={bc}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                        fontFamily: 'monospace',
-                        fontSize: '0.75rem'
-                    }}
-                />
-            ))}
-        </Box>
-    );
+const getStockStatus = (product) => {
+  if (product.total_stock === 0) return 'zero';
+  if (product.lowStockWarningEnabled && product.total_stock <= product.lowStockThreshold)
+    return 'low';
+  return 'sufficient';
 };
 
-const ProductRow = ({ product, onDelete, onEdit, onEditBatch, onAddStock, onBatchUpdated }) => {
-    const [open, setOpen] = useState(false);
-    const hasBatches = product.batches && product.batches.length > 0;
+const ProductRow = React.memo(
+  ({ product, index, isSelected, onSelect, onEdit, onDelete, onDoubleClick, onDragStart }) => {
+    const stockStatus = getStockStatus(product);
+    const statusColor =
+      stockStatus === 'zero' ? '#ef4444' : stockStatus === 'low' ? '#7c3aed' : '#10b981';
 
     return (
-        <React.Fragment>
-            <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-                <TableCell>
-                    {hasBatches && (
-                        <IconButton
-                            aria-label="expand row"
-                            size="small"
-                            onClick={() => setOpen(!open)}
-                        >
-                            {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                        </IconButton>
-                    )}
-                </TableCell>
-                <TableCell component="th" scope="row">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <span>{product.name}</span>
-                        {product.batchTrackingEnabled && (
-                            <Chip label="Batch" size="small" variant="filled" sx={{ height: '20px' }} />
-                        )}
-                    </Box>
-                </TableCell>
-                <TableCell>{renderBarcodeChips(product.barcode)}</TableCell>
-                <TableCell>{product.category}</TableCell>
-                <TableCell align="right">{product.total_stock}</TableCell>
-                <TableCell align="right">
-                    <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<AddIcon />}
-                        onClick={() => onAddStock(product)}
-                        sx={{ mr: 1, textTransform: 'none' }}
-                    >
-                        Add Stock
-                    </Button>
-                    <IconButton color="primary" size="medium" onClick={() => onEdit(product)}>
-                        <EditIcon fontSize="medium" />
-                    </IconButton>
-                    <IconButton color="error" size="medium" onClick={() => onDelete(product.id)}>
-                        <DeleteIcon fontSize="medium" />
-                    </IconButton>
-                </TableCell>
-            </TableRow>
-            {hasBatches && (
-                <TableRow>
-                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-                        <Collapse in={open} timeout="auto" unmountOnExit>
-                            <Box sx={{ margin: 1 }}>
-                                <Typography variant="h6" gutterBottom component="div">
-                                    Batch Details
-                                </Typography>
-                                <BatchTable
-                                    batches={product.batches}
-                                    onEditBatch={onEditBatch}
-                                    onBatchUpdated={onBatchUpdated}
-                                    productName={product.name}
-                                />
-                            </Box>
-                        </Collapse>
-                    </TableCell>
-                </TableRow>
-            )}
-        </React.Fragment>
+      <TableRow
+        hover
+        draggable={true}
+        onDragStart={(e) => onDragStart(e, product)}
+        onClick={(e) => onSelect(product, e)}
+        onDoubleClick={() => onDoubleClick && onDoubleClick()}
+        sx={{
+          cursor: 'pointer',
+          bgcolor: isSelected ? 'rgba(11, 29, 57, 0.08)' : 'transparent',
+          '& td': { py: 0.5, px: 1.5 },
+        }}
+      >
+        <TableCell
+          sx={{ py: 0.5, px: 1.5, fontWeight: 600, color: 'text.secondary', width: '30px' }}
+        >
+          {index + 1}
+        </TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CircleIcon sx={{ fontSize: 12, color: statusColor }} />
+            <Box>
+              <Typography variant="body1">{product.name}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {product.category || 'Uncategorized'}
+              </Typography>
+            </Box>
+          </Box>
+        </TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+          <BarcodeChips barcode={product.barcode} size="small" />
+        </TableCell>
+        <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+          <Chip
+            label={product.batchTrackingEnabled ? 'Enabled' : 'Disabled'}
+            size="small"
+            color={product.batchTrackingEnabled ? 'primary' : 'default'}
+            variant={product.batchTrackingEnabled ? 'filled' : 'outlined'}
+            sx={{ height: '20px', fontSize: '0.65rem', fontWeight: 700 }}
+          />
+        </TableCell>
+        <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+          <Chip
+            label={product.lowStockWarningEnabled ? 'Enabled' : 'Disabled'}
+            size="small"
+            color={product.lowStockWarningEnabled ? 'warning' : 'default'}
+            variant={product.lowStockWarningEnabled ? 'filled' : 'outlined'}
+            sx={{
+              height: '20px',
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              ...(product.lowStockWarningEnabled && {
+                bgcolor: 'rgba(217, 119, 6, 0.1)',
+                color: '#d97706',
+                borderColor: '#d97706',
+              }),
+            }}
+          />
+        </TableCell>
+        <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+          <Typography variant="body1">{product.total_stock}</Typography>
+        </TableCell>
+        <TableCell
+          align="right"
+          onClick={(e) => e.stopPropagation()}
+          sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}
+        >
+          <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+              <IconButton
+                size="small"
+                onClick={() => onEdit(product)}
+                sx={{
+                  bgcolor: 'rgba(31, 41, 55, 0.08)',
+                  color: '#1f2937',
+                  '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.15)' },
+                }}
+              >
+                <EditIcon fontSize="small" data-testid="EditIcon" />
+              </IconButton>
+              <Typography
+                variant="caption"
+                sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}
+              >
+                Edit
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+              <IconButton
+                size="small"
+                onClick={() => onDelete(product.id)}
+                sx={{
+                  bgcolor: 'rgba(239, 68, 68, 0.1)',
+                  color: '#ef4444',
+                  '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' },
+                }}
+              >
+                <DeleteIcon fontSize="small" data-testid="DeleteIcon" />
+              </IconButton>
+              <Typography
+                variant="caption"
+                sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ef4444' }}
+              >
+                Delete
+              </Typography>
+            </Box>
+          </Box>
+        </TableCell>
+      </TableRow>
     );
-};
+  }
+);
 
 export default ProductRow;

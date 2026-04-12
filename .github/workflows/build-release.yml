@@ -14,7 +14,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: '20.x'
       - name: Update version
         run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
       - name: Clean node_modules
@@ -47,7 +47,6 @@ jobs:
             dist/*.dmg
             dist/latest-mac.yml
 
-
   build-win:
     runs-on: windows-latest
     steps:
@@ -55,7 +54,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: '20.x'
       - name: Update version
         run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
       - name: Clean node_modules
@@ -86,7 +85,6 @@ jobs:
           path: |
             dist/*.exe
             dist/latest.yml
-
 
   release:
     needs: [build-mac, build-win]
