@@ -2,8 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const prisma = require('./src/config/prisma');
-console.error('[BOOT] index.js loaded. Starting server initialization...');
+const logger = require('./src/shared/utils/logger');
+
+logger.info('[BOOT] index.js loaded. Starting server initialization...');
 
 // Import modular routes
 const productRoutes = require('./src/domains/product/product.router');
@@ -24,18 +28,29 @@ const errorHandler = require('./src/shared/error/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-app.use(cors());
+// Production security middleware
+app.use(helmet());
+app.use(cors()); // Configure specific origins in production if needed
 app.use(bodyParser.json());
+
+// Rate limiting for sensitive routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { error: 'Too many authentication attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Request logging middleware
 app.use((req, res, next) => {
-  // ...existing code...
+  logger.info({ method: req.method, url: req.url, ip: req.ip }, 'Incoming Request');
   next();
 });
 
 // Main API Router
 const apiRouter = express.Router();
-apiRouter.use('/auth', authRoutes);
+apiRouter.use('/auth', authLimiter, authRoutes);
 apiRouter.use(productRoutes);
 apiRouter.use(categoryRoutes);
 apiRouter.use(saleRoutes);
@@ -66,7 +81,7 @@ const execAsync = util.promisify(require('child_process').exec);
 
 // Auto-run Prisma migrations on startup
 async function runPrismaMigrations() {
-  console.error('[BOOT MIGRATION] Running automated Prisma migrations...');
+  logger.info('[BOOT MIGRATION] Running automated Prisma migrations...');
   sendSplashMsg('Applying database schemas...');
 
   try {
@@ -87,23 +102,22 @@ async function runPrismaMigrations() {
       nodeExecutable = process.execPath;
     }
 
-    console.error('[BOOT MIGRATION] Prisma CLI Path:', prismaCliPath);
-    console.error('[BOOT MIGRATION] Schema Path:', schemaPath);
+    logger.debug({ prismaCliPath, schemaPath }, '[BOOT MIGRATION] Paths');
 
     try {
       // Use execAsync so DB migrations do not block electron main process event loop
-      const { stdout, stderr } = await execAsync(
+      const { stdout } = await execAsync(
         `"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`,
         {
           env: pEnv,
           encoding: 'utf-8',
         }
       );
-      console.error('[BOOT MIGRATION] Successful:\n', stdout);
+      logger.info('[BOOT MIGRATION] Successful');
     } catch (deployError) {
       const errorMsg = deployError.stderr || deployError.stdout || deployError.message || '';
       if (errorMsg.includes('P3005')) {
-        console.error('[BOOT MIGRATION] P3005 Detected: Database schema not empty. Baselining...');
+        logger.warn('[BOOT MIGRATION] P3005 Detected: Database schema not empty. Baselining...');
 
         const migrationsDir = path.join(path.dirname(schemaPath), 'migrations');
         if (fs.existsSync(migrationsDir)) {
@@ -122,13 +136,13 @@ async function runPrismaMigrations() {
                   env: pEnv,
                 }
               );
-              console.error(`[BOOT MIGRATION] Baselined migration: ${migration}`);
+              logger.info(`[BOOT MIGRATION] Baselined migration: ${migration}`);
             } catch (resolveErr) {
               // If it fails (e.g., already applied), just ignore and continue
             }
           }
 
-          console.error('[BOOT MIGRATION] Running final deploy after baselining...');
+          logger.info('[BOOT MIGRATION] Running final deploy after baselining...');
           const { stdout } = await execAsync(
             `"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`,
             {
@@ -136,14 +150,14 @@ async function runPrismaMigrations() {
               encoding: 'utf-8',
             }
           );
-          console.error('[BOOT MIGRATION] Post-Baseline Deploy Successful:\n', stdout);
+          logger.info('[BOOT MIGRATION] Post-Baseline Deploy Successful');
         }
       } else {
         throw deployError;
       }
     }
   } catch (error) {
-    console.error('[BOOT MIGRATION FATAL]:\n', error.stderr || error.stdout || error.message);
+    logger.error({ error: error.message }, '[BOOT MIGRATION FATAL]');
   }
 }
 
@@ -158,32 +172,30 @@ async function checkAndSeed() {
     const userCount = await prisma.user.count();
 
     if (userCount === 0) {
-      // ...existing code...
-
       // Run essential seed script only (admin user etc)
       const { seedEssential } = require('./seed');
       await seedEssential();
-      console.log('Database initialized successfully!');
+      logger.info('Database initialized successfully!');
     } else {
-      console.log('Database already seeded.');
+      logger.info('Database already seeded.');
     }
 
     // Always ensure default settings exist
     const shopName = await settingService.getSettingByKey('posShopName');
     if (!shopName) {
-      console.log('Seeding default shop name...');
+      logger.info('Seeding default shop name...');
       await settingService.updateSetting('posShopName', 'Bachat Bazaar');
     }
 
     const receiptSettings = await settingService.getSettingByKey('posReceiptSettings');
     if (!receiptSettings) {
-      console.log('Seeding default receipt settings...');
+      logger.info('Seeding default receipt settings...');
       await settingService.updateSetting('posReceiptSettings', DEFAULT_RECEIPT_SETTINGS);
     }
 
     const paymentSettings = await settingService.getSettingByKey('posPaymentSettings');
     if (!paymentSettings) {
-      console.log('Seeding default payment settings...');
+      logger.info('Seeding default payment settings...');
       await settingService.updateSetting('posPaymentSettings', {
         enabledMethods: ['cash'],
         allowMultplePayment: false,
@@ -195,18 +207,18 @@ async function checkAndSeed() {
     for (const [key, defaultValue] of Object.entries(DEFAULT_SHOP_METADATA)) {
       const existing = await settingService.getSettingByKey(key);
       if (!existing) {
-        console.log(`Seeding default ${key}...`);
+        logger.info(`Seeding default ${key}...`);
         await settingService.updateSetting(key, defaultValue);
       }
     }
   } catch (error) {
-    console.error('Error checking/seeding database:', error);
+    logger.error({ error: error.message }, 'Error checking/seeding database');
   }
 }
 
 async function startServer() {
   try {
-    console.error('[BOOT] Starting checkAndSeed with timeout...');
+    logger.info('[BOOT] Starting checkAndSeed with timeout...');
     sendSplashMsg('Starting core database engine...');
     // Set a timeout for DB check to prevent boot hangs
     const bootstrapPromise = checkAndSeed();
@@ -216,20 +228,20 @@ async function startServer() {
 
     try {
       await Promise.race([bootstrapPromise, timeoutPromise]);
-      console.error('[BOOT] Database initialization finished successfully.');
+      logger.info('[BOOT] Database initialization finished successfully.');
     } catch (bootstrapError) {
-      console.error(
-        '[BOOT WARNING] Database initialization stalled or failed:',
-        bootstrapError.message
+      logger.warn(
+        { message: bootstrapError.message },
+        '[BOOT WARNING] Database initialization stalled or failed'
       );
-      console.error('[BOOT] Proceeding to start server anyway...');
+      logger.info('[BOOT] Proceeding to start server anyway...');
     }
   } catch (e) {
-    console.error('Critical error during application pre-startup:', e);
+    logger.error({ error: e.message }, 'Critical error during application pre-startup');
   }
 
   app.listen(PORT, () => {
-    console.error(`[BOOT SUCCESS] Server running on port ${PORT}`);
+    logger.info(`[BOOT SUCCESS] Server running on port ${PORT}`);
     sendSplashMsg('Starting UI Interface...');
   });
 }
@@ -237,8 +249,8 @@ async function startServer() {
 try {
   startServer();
 } catch (e) {
-  console.error('SERVER BOOT FATAL:', e);
+  logger.error({ error: e.message }, 'SERVER BOOT FATAL');
 }
 
 // Keep process alive hack
-setInterval(() => {}, 10000);
+setInterval(() => { }, 10000);

@@ -25,36 +25,11 @@ import {
   Button,
   ToggleButton,
   ToggleButtonGroup,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider,
   TableSortLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Menu,
-  MenuItem,
-  Collapse,
-  Tooltip,
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  Folder as FolderIcon,
-  FolderOpen as FolderOpenIcon,
-  SortByAlpha as SortByAlphaIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  History as HistoryIcon,
-  Inventory2 as InventoryIcon,
   Print as PrintIcon,
-  Circle as CircleIcon,
-  FilterList as FilterListIcon,
   Clear as ClearIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
@@ -69,176 +44,13 @@ import QuickInventoryDialog from './QuickInventoryDialog';
 import BarcodePrintDialog from './BarcodePrintDialog';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
+import ProductRow from './ProductRow';
+import ProductSummaryBar from './ProductSummaryBar';
+import CategorySidebar from './CategorySidebar';
+import ProductDetailPanel from './ProductDetailPanel';
 
-// Helper to render barcodes as chips
-const renderBarcodeChips = (barcode, size = 'small') => {
-  if (!barcode)
-    return (
-      <Typography variant="body2" color="text.secondary">
-        —
-      </Typography>
-    );
 
-  const barcodes = barcode
-    .split('|')
-    .map((b) => b.trim())
-    .filter(Boolean);
-  if (barcodes.length === 0)
-    return (
-      <Typography variant="body2" color="text.secondary">
-        —
-      </Typography>
-    );
 
-  return (
-    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-      {barcodes.map((bc, idx) => (
-        <Chip
-          key={idx}
-          label={bc}
-          size={size}
-          variant="outlined"
-          sx={{
-            fontFamily: 'monospace',
-            fontSize: size === 'small' ? '0.75rem' : '0.875rem',
-          }}
-        />
-      ))}
-    </Box>
-  );
-};
-
-// Helper to get stock status
-const getStockStatus = (product) => {
-  if (product.total_stock === 0) return 'zero';
-  if (product.lowStockWarningEnabled && product.total_stock <= product.lowStockThreshold)
-    return 'low';
-  return 'sufficient';
-};
-
-// Memoized individual row for high performance with 1,000+ items
-const ProductRow = React.memo(
-  ({ product, index, isSelected, onSelect, onEdit, onDelete, onDoubleClick, onDragStart }) => {
-    const stockStatus = getStockStatus(product);
-    const statusColor =
-      stockStatus === 'zero' ? '#ef4444' : stockStatus === 'low' ? '#7c3aed' : '#10b981';
-
-    return (
-      <TableRow
-        hover
-        draggable={true}
-        onDragStart={(e) => onDragStart(e, product)}
-        onClick={(e) => onSelect(product, e)}
-        onDoubleClick={() => onDoubleClick && onDoubleClick()}
-        sx={{
-          cursor: 'pointer',
-          bgcolor: isSelected ? 'rgba(11, 29, 57, 0.08)' : 'transparent',
-          '& td': { py: 0.5, px: 1.5 },
-        }}
-      >
-        <TableCell
-          sx={{ py: 0.5, px: 1.5, fontWeight: 600, color: 'text.secondary', width: '30px' }}
-        >
-          {index + 1}
-        </TableCell>
-        <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CircleIcon sx={{ fontSize: 12, color: statusColor }} />
-            <Box>
-              <Typography variant="body1">{product.name}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {product.category || 'Uncategorized'}
-              </Typography>
-            </Box>
-          </Box>
-        </TableCell>
-        <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
-          {renderBarcodeChips(product.barcode, 'small')}
-        </TableCell>
-        <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
-          <Chip
-            label={product.batchTrackingEnabled ? 'Enabled' : 'Disabled'}
-            size="small"
-            color={product.batchTrackingEnabled ? 'primary' : 'default'}
-            variant={product.batchTrackingEnabled ? 'filled' : 'outlined'}
-            sx={{ height: '20px', fontSize: '0.65rem', fontWeight: 700 }}
-          />
-        </TableCell>
-        <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
-          <Chip
-            label={product.lowStockWarningEnabled ? 'Enabled' : 'Disabled'}
-            size="small"
-            color={product.lowStockWarningEnabled ? 'warning' : 'default'}
-            variant={product.lowStockWarningEnabled ? 'filled' : 'outlined'}
-            sx={{
-              height: '20px',
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              ...(product.lowStockWarningEnabled && {
-                bgcolor: 'rgba(217, 119, 6, 0.1)',
-                color: '#d97706',
-                borderColor: '#d97706',
-              }),
-            }}
-          />
-        </TableCell>
-        <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
-          <Typography variant="body1">{product.total_stock}</Typography>
-        </TableCell>
-        <TableCell
-          align="right"
-          onClick={(e) => e.stopPropagation()}
-          sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}
-        >
-          <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-              <IconButton
-                size="small"
-                onClick={() => onEdit(product)}
-                sx={{
-                  bgcolor: 'rgba(31, 41, 55, 0.08)',
-                  color: '#1f2937',
-                  '&:hover': {
-                    bgcolor: 'rgba(31, 41, 55, 0.15)',
-                  },
-                }}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-              <Typography
-                variant="caption"
-                sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}
-              >
-                Edit
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-              <IconButton
-                size="small"
-                onClick={() => onDelete(product.id)}
-                sx={{
-                  bgcolor: 'rgba(239, 68, 68, 0.1)',
-                  color: '#ef4444',
-                  '&:hover': {
-                    bgcolor: 'rgba(239, 68, 68, 0.2)',
-                  },
-                }}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-              <Typography
-                variant="caption"
-                sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ef4444' }}
-              >
-                Delete
-              </Typography>
-            </Box>
-          </Box>
-        </TableCell>
-      </TableRow>
-    );
-  }
-);
 
 const ProductList = forwardRef(
   ({ categoryFilter, onCategoryChange, debouncedSearch, onSearchChange, isPending }, ref) => {
@@ -787,6 +599,11 @@ const ProductList = forwardRef(
     };
 
     const hasUncategorized = uncategorizedCount > 0;
+    const handleCategorySelect = (path) => {
+      onCategoryChange(path);
+      setSelectedProduct(null);
+      setSelectedProductDetails(null);
+    };
     const averageMargin = useMemo(() => {
       if (summaryTotals.totalSelling > 0) {
         return (
@@ -1022,62 +839,6 @@ const ProductList = forwardRef(
     };
     const sortedCategoryTree = sortCategoryTree(categories);
 
-    const renderCategoryNode = (node, depth = 0) => {
-      const hasChildren = node.children && node.children.length > 0;
-      const isExpanded = expandedCategoryIds[node.id];
-      const isSelected = categoryFilter === node.path;
-
-      return (
-        <Box key={node.id}>
-          <ListItemButton
-            selected={isSelected}
-            onClick={() => {
-              onCategoryChange(node.path);
-              setSelectedProduct(null);
-              setSelectedProductDetails(null);
-            }}
-            onContextMenu={(event) => openCategoryMenu(event, node)}
-            onDragOver={handleCategoryDragOver}
-            onDrop={(event) => handleCategoryDrop(event, node.path)}
-            sx={{ borderRadius: 1.5, mb: 0.5, pl: 2 + depth * 2 }}
-          >
-            <ListItemIcon sx={{ minWidth: 32 }}>
-              {isSelected ? (
-                <FolderOpenIcon fontSize="small" color="primary" />
-              ) : (
-                <FolderIcon fontSize="small" color="action" />
-              )}
-            </ListItemIcon>
-            <ListItemText
-              primary={node.name}
-              secondary={`${categoryCounts[node.path] || 0} items`}
-            />
-            {hasChildren && (
-              <IconButton
-                size="small"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleToggleExpand(node.id);
-                }}
-              >
-                {isExpanded ? (
-                  <ExpandLessIcon fontSize="small" />
-                ) : (
-                  <ExpandMoreIcon fontSize="small" />
-                )}
-              </IconButton>
-            )}
-          </ListItemButton>
-          {hasChildren && (
-            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-              <List disablePadding>
-                {node.children.map((child) => renderCategoryNode(child, depth + 1))}
-              </List>
-            </Collapse>
-          )}
-        </Box>
-      );
-    };
 
     return (
       <Box
@@ -1101,165 +862,42 @@ const ProductList = forwardRef(
       >
         {/* Category List */}
         {showCategories && (
-          <Paper
-            elevation={0}
+          <CategorySidebar
+            sortedCategoryTree={sortedCategoryTree}
+            categoryCounts={categoryCounts}
+            expandedCategoryIds={expandedCategoryIds}
+            categoryFilter={categoryFilter}
+            totalCount={totalCount}
+            uncategorizedCount={uncategorizedCount}
+            hasUncategorized={hasUncategorized}
+            categorySortOrder={categorySortOrder}
+            isResizingLeft={isResizingLeft}
+            contextMenu={contextMenu}
+            activeCategory={activeCategory}
+            addCategoryOpen={addCategoryOpen}
+            newCategoryName={newCategoryName}
+            categoryDialogMode={categoryDialogMode}
+            categoryDialogParent={categoryDialogParent}
+            onCategorySelect={handleCategorySelect}
+            onCategorySortToggle={() =>
+              setCategorySortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+            }
+            onAddCategoryDialog={openAddCategoryDialog}
+            onCategoryDragOver={handleCategoryDragOver}
+            onCategoryDrop={handleCategoryDrop}
+            onToggleExpand={handleToggleExpand}
+            onOpenCategoryMenu={openCategoryMenu}
+            onCloseContextMenu={closeCategoryMenu}
+            onAddSubcategory={openAddCategoryDialog}
+            onEditCategory={openEditCategoryDialog}
+            onDeleteCategory={handleDeleteCategory}
+            onCategoryDialogClose={() => setAddCategoryOpen(false)}
+            onCategoryNameChange={setNewCategoryName}
+            onSaveCategory={handleSaveCategory}
+            onResizeStart={() => setIsResizingLeft(true)}
             onDoubleClick={displayProduct ? handleOpenHistory : undefined}
-            sx={{
-              p: 2,
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              position: 'relative',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                mb: 1.5,
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Categories
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <IconButton
-                  size="small"
-                  onClick={() => setCategorySortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-                  title={`Sort ${categorySortOrder === 'asc' ? 'A-Z' : 'Z-A'}`}
-                >
-                  <SortByAlphaIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  onClick={() => openAddCategoryDialog(null)}
-                  title="Add category"
-                >
-                  <AddIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            </Box>
-            <Divider sx={{ mb: 1.5 }} />
-            <List disablePadding sx={{ overflow: 'auto', flex: 1 }}>
-              <ListItemButton
-                selected={categoryFilter === 'all'}
-                onClick={() => {
-                  onCategoryChange('all');
-                  setSelectedProduct(null);
-                  setSelectedProductDetails(null);
-                }}
-                sx={{ borderRadius: 1.5, mb: 0.5 }}
-              >
-                <ListItemIcon sx={{ minWidth: 32 }}>
-                  {categoryFilter === 'all' ? (
-                    <FolderOpenIcon fontSize="small" color="primary" />
-                  ) : (
-                    <FolderIcon fontSize="small" color="action" />
-                  )}
-                </ListItemIcon>
-                <ListItemText primary="All Categories" secondary={`${totalCount} items`} />
-              </ListItemButton>
-              {hasUncategorized && (
-                <ListItemButton
-                  selected={categoryFilter === 'uncategorized'}
-                  onClick={() => {
-                    onCategoryChange('uncategorized');
-                    setSelectedProduct(null);
-                    setSelectedProductDetails(null);
-                  }}
-                  onDragOver={handleCategoryDragOver}
-                  onDrop={(event) => handleCategoryDrop(event, 'uncategorized')}
-                  sx={{ borderRadius: 1.5, mb: 0.5 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    {categoryFilter === 'uncategorized' ? (
-                      <FolderOpenIcon fontSize="small" color="primary" />
-                    ) : (
-                      <FolderIcon fontSize="small" color="action" />
-                    )}
-                  </ListItemIcon>
-                  <ListItemText primary="Uncategorized" secondary={`${uncategorizedCount} items`} />
-                </ListItemButton>
-              )}
-              {sortedCategoryTree.map((category) => renderCategoryNode(category))}
-            </List>
-            <Box
-              onMouseDown={(e) => {
-                e.preventDefault();
-                setIsResizingLeft(true);
-              }}
-              sx={{
-                display: { xs: 'none', lg: 'flex' },
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: '8px',
-                height: '100%',
-                cursor: 'col-resize',
-                alignItems: 'center',
-                justifyContent: 'center',
-                '&:hover .handle': {
-                  bgcolor: 'primary.main',
-                  width: '4px',
-                },
-                zIndex: 10,
-              }}
-            >
-              <Box
-                className="handle"
-                sx={{
-                  width: '2px',
-                  height: '60px',
-                  bgcolor: isResizingLeft ? 'primary.main' : 'divider',
-                  borderRadius: '4px',
-                  transition: 'all 0.2s',
-                  ...(isResizingLeft && { width: '4px' }),
-                }}
-              />
-            </Box>
-          </Paper>
+          />
         )}
-
-        <Menu
-          open={Boolean(contextMenu)}
-          onClose={closeCategoryMenu}
-          anchorReference="anchorPosition"
-          anchorPosition={
-            contextMenu ? { top: contextMenu.mouseY, left: contextMenu.mouseX } : undefined
-          }
-        >
-          <MenuItem
-            onClick={() => {
-              closeCategoryMenu();
-              if (activeCategory) {
-                openAddCategoryDialog(activeCategory);
-              }
-            }}
-          >
-            Add subcategory
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              closeCategoryMenu();
-              if (activeCategory) {
-                openEditCategoryDialog(activeCategory);
-              }
-            }}
-          >
-            Edit category
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              closeCategoryMenu();
-              if (activeCategory) {
-                handleDeleteCategory(activeCategory);
-              }
-            }}
-          >
-            Delete category
-          </MenuItem>
-        </Menu>
         {/* Left Side: Product List */}
         <Paper
           elevation={0}
@@ -1485,191 +1123,11 @@ const ProductList = forwardRef(
               </Box>
             </Box>
             {/* Stats Row */}
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 2.5,
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                pt: 1.5,
-                borderTop: '1px solid rgba(31, 41, 55, 0.2)',
-              }}
-            >
-              <Box
-                sx={{
-                  border: '2px dotted #3b82f6',
-                  borderRadius: 1,
-                  p: 1.5,
-                  bgcolor: 'rgba(59, 130, 246, 0.08)',
-                  minWidth: 100,
-                  flex: '1 1 120px',
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: '#1e40af',
-                    textTransform: 'uppercase',
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.3px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Products
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: '#1e3a8a' }}
-                >
-                  {summaryTotals.productCount}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  border: '2px dotted #8b5cf6',
-                  borderRadius: 1,
-                  p: 1.5,
-                  bgcolor: 'rgba(139, 92, 246, 0.08)',
-                  minWidth: 100,
-                  flex: '1 1 120px',
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: '#6d28d9',
-                    textTransform: 'uppercase',
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.3px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Total Stock
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: '#5b21b6' }}
-                >
-                  {summaryTotals.totalQty}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  border: '2px dotted #f59e0b',
-                  borderRadius: 1,
-                  p: 1.5,
-                  bgcolor: 'rgba(245, 158, 11, 0.08)',
-                  minWidth: 110,
-                  flex: '1 1 130px',
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: '#d97706',
-                    textTransform: 'uppercase',
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.3px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Cost Value
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: '#b45309' }}
-                >
-                  ₹{summaryTotals.totalCost.toFixed(2)}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  border: '2px dotted #10b981',
-                  borderRadius: 1,
-                  p: 1.5,
-                  bgcolor: 'rgba(16, 185, 129, 0.08)',
-                  minWidth: 110,
-                  flex: '1 1 130px',
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: '#059669',
-                    textTransform: 'uppercase',
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.3px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Selling Value
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: '#047857' }}
-                >
-                  ₹{summaryTotals.totalSelling.toFixed(2)}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  border: '2px dotted #ec4899',
-                  borderRadius: 1,
-                  p: 1.5,
-                  bgcolor: 'rgba(236, 72, 153, 0.08)',
-                  minWidth: 100,
-                  flex: '1 1 120px',
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: '#db2777',
-                    textTransform: 'uppercase',
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.3px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Avg Margin
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: '#be185d' }}
-                >
-                  {averageMargin}%
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  border: '2px dotted #f43f5e',
-                  borderRadius: 1,
-                  p: 1.5,
-                  bgcolor: 'rgba(244, 63, 94, 0.08)',
-                  minWidth: 100,
-                  flex: '1 1 120px',
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: '#e11d48',
-                    textTransform: 'uppercase',
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.3px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Avg Discount
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: '#9f1239' }}
-                >
-                  {averageDiscount}%
-                </Typography>
-              </Box>
-            </Box>
+            <ProductSummaryBar
+              summaryTotals={summaryTotals}
+              averageMargin={averageMargin}
+              averageDiscount={averageDiscount}
+            />
           </Box>
           <TableContainer
             sx={{
@@ -1770,428 +1228,18 @@ const ProductList = forwardRef(
 
         {/* Right Side: Batch Details */}
         {displayProduct && (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              position: 'relative',
-            }}
-          >
-            <Box
-              onMouseDown={(e) => {
-                e.preventDefault();
-                setIsResizingRight(true);
-              }}
-              sx={{
-                display: { xs: 'none', lg: 'flex' },
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '8px',
-                height: '100%',
-                cursor: 'col-resize',
-                alignItems: 'center',
-                justifyContent: 'center',
-                '&:hover .handle': {
-                  bgcolor: 'primary.main',
-                  width: '4px',
-                },
-                zIndex: 10,
-              }}
-            >
-              <Box
-                className="handle"
-                sx={{
-                  width: '2px',
-                  height: '60px',
-                  bgcolor: isResizingRight ? 'primary.main' : 'divider',
-                  borderRadius: '4px',
-                  transition: 'all 0.2s',
-                  ...(isResizingRight && { width: '4px' }),
-                }}
-              />
-            </Box>
-            {displayProduct ? (
-              <>
-                <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid rgba(16, 24, 40, 0.08)' }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: { xs: 'flex-start', sm: 'center' },
-                      flexDirection: { xs: 'column', sm: 'row' },
-                      justifyContent: 'space-between',
-                      gap: 2,
-                      mb: 2,
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                      <Typography variant="h5" component="h2" sx={{ wordBreak: 'break-word' }}>
-                        {displayProduct.name}
-                      </Typography>
-                      {displayProduct.batchTrackingEnabled && (
-                        <Chip
-                          label="Batch Tracking Enabled"
-                          size="small"
-                          color="primary"
-                          variant="filled"
-                        />
-                      )}
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                      {displayProduct.batchTrackingEnabled && (
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: 0.5,
-                          }}
-                        >
-                          <IconButton
-                            size="medium"
-                            onClick={() => handleAddStock(displayProduct)}
-                            sx={{
-                              bgcolor: '#1f8a5b',
-                              color: '#fff',
-                              '&:hover': {
-                                bgcolor: '#166d47',
-                              },
-                            }}
-                          >
-                            <AddIcon />
-                          </IconButton>
-                          <Typography
-                            variant="caption"
-                            sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#1f8a5b' }}
-                          >
-                            Batch
-                          </Typography>
-                        </Box>
-                      )}
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: 0.5,
-                        }}
-                      >
-                        <IconButton
-                          size="medium"
-                          onClick={handleOpenHistory}
-                          sx={{
-                            bgcolor: 'rgba(31, 41, 55, 0.08)',
-                            color: '#1f2937',
-                            '&:hover': {
-                              bgcolor: 'rgba(31, 41, 55, 0.15)',
-                            },
-                          }}
-                        >
-                          <HistoryIcon />
-                        </IconButton>
-                        <Typography
-                          variant="caption"
-                          sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#1f2937' }}
-                        >
-                          History
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Barcode
-                      </Typography>
-                      {renderBarcodeChips(displayProduct.barcode, 'medium')}
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Category
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {displayProduct.category || 'N/A'}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Total Stock
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {displayProduct.total_stock}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Batch Tracking
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {displayProduct.batchTrackingEnabled ? 'Enabled' : 'Disabled'}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-                {isLoadingBatches ? (
-                  <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-                    <Typography variant="body2">Loading batches...</Typography>
-                  </Box>
-                ) : displayProduct.batches && displayProduct.batches.length > 0 ? (
-                  <Box sx={{ flex: 1, overflow: 'auto' }}>
-                    <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                      Stock Lots / Batches
-                    </Typography>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow sx={{ bgcolor: 'background.default' }}>
-                          {displayProduct.batchTrackingEnabled && (
-                            <TableCell sx={{ fontWeight: 'bold' }}>Batch Code</TableCell>
-                          )}
-                          <TableCell sx={{ fontWeight: 'bold' }}>Qty</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                            MRP
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                            Cost
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                            Selling
-                          </TableCell>
-                          <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                            Disc %
-                          </TableCell>
-                          <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                            Margin
-                          </TableCell>
-                          {displayProduct.batchTrackingEnabled && (
-                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                              Expiry
-                            </TableCell>
-                          )}
-                          <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                            Action
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {displayProduct.batches.map((batch) => {
-                          const margin =
-                            batch.sellingPrice > 0
-                              ? (
-                                ((batch.sellingPrice - batch.costPrice) / batch.sellingPrice) *
-                                100
-                              ).toFixed(1)
-                              : 0;
-                          const discount =
-                            batch.mrp > 0
-                              ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1)
-                              : 0;
-                          return (
-                            <TableRow key={batch.id}>
-                              {displayProduct.batchTrackingEnabled && (
-                                <TableCell>{batch.batchCode || 'N/A'}</TableCell>
-                              )}
-                              <TableCell>{batch.quantity}</TableCell>
-                              <TableCell align="right">₹{batch.mrp}</TableCell>
-                              <TableCell align="right">₹{batch.costPrice}</TableCell>
-                              <TableCell align="right">₹{batch.sellingPrice}</TableCell>
-                              <TableCell align="center">
-                                <Box sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-                                  {discount}%
-                                </Box>
-                              </TableCell>
-                              <TableCell align="center">
-                                <Box
-                                  sx={{
-                                    color:
-                                      margin > 20
-                                        ? 'success.main'
-                                        : margin > 10
-                                          ? 'warning.main'
-                                          : 'error.main',
-                                    fontWeight: 'bold',
-                                  }}
-                                >
-                                  {margin}%
-                                </Box>
-                              </TableCell>
-                              {displayProduct.batchTrackingEnabled && (
-                                <TableCell align="right">
-                                  {batch.expiryDate
-                                    ? new Date(batch.expiryDate).toLocaleDateString()
-                                    : 'N/A'}
-                                </TableCell>
-                              )}
-                              <TableCell align="center">
-                                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      alignItems: 'center',
-                                      gap: 0.3,
-                                    }}
-                                  >
-                                    <IconButton
-                                      size="small"
-                                      onClick={() => handleQuickInventoryOpen(batch)}
-                                      sx={{
-                                        bgcolor: 'rgba(31, 138, 91, 0.1)',
-                                        color: '#1f8a5b',
-                                        '&:hover': {
-                                          bgcolor: 'rgba(31, 138, 91, 0.2)',
-                                        },
-                                      }}
-                                    >
-                                      <InventoryIcon fontSize="small" />
-                                    </IconButton>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: '0.65rem',
-                                        fontWeight: 600,
-                                        color: '#1f8a5b',
-                                      }}
-                                    >
-                                      Stock
-                                    </Typography>
-                                  </Box>
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      alignItems: 'center',
-                                      gap: 0.3,
-                                    }}
-                                  >
-                                    <IconButton
-                                      size="small"
-                                      onClick={() => handleBatchEditClick(batch)}
-                                      sx={{
-                                        bgcolor: 'rgba(31, 41, 55, 0.08)',
-                                        color: '#1f2937',
-                                        '&:hover': {
-                                          bgcolor: 'rgba(31, 41, 55, 0.15)',
-                                        },
-                                      }}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: '0.65rem',
-                                        fontWeight: 600,
-                                        color: '#1f2937',
-                                      }}
-                                    >
-                                      Edit
-                                    </Typography>
-                                  </Box>
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      alignItems: 'center',
-                                      gap: 0.3,
-                                    }}
-                                  >
-                                    <IconButton
-                                      size="small"
-                                      onClick={() => handleBatchDelete(batch.id)}
-                                      sx={{
-                                        bgcolor: 'rgba(239, 68, 68, 0.1)',
-                                        color: '#ef4444',
-                                        '&:hover': {
-                                          bgcolor: 'rgba(239, 68, 68, 0.2)',
-                                        },
-                                      }}
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: '0.65rem',
-                                        fontWeight: 600,
-                                        color: '#ef4444',
-                                      }}
-                                    >
-                                      Delete
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </Box>
-                ) : (
-                  <Box sx={{ py: 4, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No stock available
-                    </Typography>
-                  </Box>
-                )}
-              </>
-            ) : (
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}
-              >
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    Select a product
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Click on any product from the list to view details
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-          </Paper>
+          <ProductDetailPanel
+            displayProduct={displayProduct}
+            isLoadingBatches={isLoadingBatches}
+            isResizingRight={isResizingRight}
+            onResizeStart={() => setIsResizingRight(true)}
+            onAddStock={handleAddStock}
+            onOpenHistory={handleOpenHistory}
+            onBatchEditClick={handleBatchEditClick}
+            onBatchDelete={handleBatchDelete}
+            onQuickInventoryOpen={handleQuickInventoryOpen}
+          />
         )}
-
-        <Dialog
-          open={addCategoryOpen}
-          onClose={() => setAddCategoryOpen(false)}
-          onKeyDown={(event) => {
-            if (event.defaultPrevented) return;
-            if (event.key !== 'Enter') return;
-            if (event.shiftKey) return;
-            if (event.target?.tagName === 'TEXTAREA') return;
-            event.preventDefault();
-            handleSaveCategory();
-          }}
-        >
-          <DialogTitle>
-            {categoryDialogMode === 'edit' ? 'Edit Category' : 'Add Category'}
-          </DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="Category name"
-              fullWidth
-              value={newCategoryName}
-              onChange={(event) => setNewCategoryName(event.target.value)}
-              helperText={
-                categoryDialogMode === 'add' && categoryDialogParent
-                  ? `Parent: ${categoryDialogParent.name}`
-                  : 'The / character is reserved for nesting'
-              }
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setAddCategoryOpen(false)}>Cancel</Button>
-            <Button variant="contained" onClick={handleSaveCategory}>
-              {categoryDialogMode === 'edit' ? 'Save' : 'Add'}
-            </Button>
-          </DialogActions>
-        </Dialog>
 
         <ProductHistoryDialog
           open={historyOpen}

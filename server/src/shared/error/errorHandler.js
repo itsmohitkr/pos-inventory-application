@@ -1,5 +1,6 @@
 const { StatusCodes, ReasonPhrases } = require('http-status-codes');
 const { sendErrorResponse } = require('../utils/helper/responseHelpers');
+const logger = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -19,7 +20,7 @@ const errorHandler = (err, req, res, next) => {
       ? ReasonPhrases.INTERNAL_SERVER_ERROR
       : 'Request Failed');
 
-  console.error('SERVER ERROR:', err);
+  logger.error({ err, path: req.path, method: req.method }, 'Request error occurred');
 
   return sendErrorResponse(res, statusCode, message, errorLabel, {
     details: err?.details,

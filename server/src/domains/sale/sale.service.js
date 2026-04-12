@@ -1,30 +1,38 @@
 const prisma = require('../../config/prisma');
 
-const getEffectivePromoPrice = async (tx, productId, date = new Date()) => {
+/**
+ * Fetches all effective promotion prices for a list of product IDs at a given date.
+ * Returns a Map where key is productId and value is the lowest promo price.
+ */
+const getBulkEffectivePromoPrices = async (tx, productIds, date = new Date()) => {
+  if (!productIds.length) return new Map();
+
   const activePromos = await tx.promotion.findMany({
     where: {
       isActive: true,
       startDate: { lte: date },
       endDate: { gte: date },
-      items: { some: { productId: parseInt(productId) } },
+      items: { some: { productId: { in: productIds } } },
     },
     include: {
-      items: { where: { productId: parseInt(productId) } },
+      items: {
+        where: { productId: { in: productIds } },
+      },
     },
   });
 
-  if (activePromos.length === 0) return null;
+  const priceMap = new Map();
 
-  let lowestPrice = Infinity;
   activePromos.forEach((promo) => {
     promo.items.forEach((item) => {
-      if (item.promoPrice < lowestPrice) {
-        lowestPrice = item.promoPrice;
+      const currentLowest = priceMap.get(item.productId) || Infinity;
+      if (item.promoPrice < currentLowest) {
+        priceMap.set(item.productId, item.promoPrice);
       }
     });
   });
 
-  return lowestPrice === Infinity ? null : lowestPrice;
+  return priceMap;
 };
 
 const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMethod = 'Cash' }) => {
@@ -33,11 +41,21 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
     const saleItemsData = [];
     const movementData = [];
 
+    // 1. Fetch all batches and products in one go to validate and get basic info
+    const batchIds = items.map((i) => i.batch_id);
+    const batches = await tx.batch.findMany({
+      where: { id: { in: batchIds } },
+      include: { product: true },
+    });
+
+    const batchMap = new Map(batches.map((b) => [b.id, b]));
+    const productIds = [...new Set(batches.map((b) => b.productId))];
+
+    // 2. Fetch all promotions in one go for all unique product IDs
+    const promoMap = await getBulkEffectivePromoPrices(tx, productIds);
+
     for (const item of items) {
-      const batch = await tx.batch.findUnique({
-        where: { id: item.batch_id },
-        include: { product: true },
-      });
+      const batch = batchMap.get(item.batch_id);
 
       if (!batch) {
         throw new Error(`Batch ID ${item.batch_id} not found.`);
@@ -50,13 +68,14 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
         );
       }
 
+      // Update stock
       await tx.batch.update({
         where: { id: item.batch_id },
-        data: { quantity: batch.quantity - item.quantity },
+        data: { quantity: { decrement: item.quantity } },
       });
 
-      // Promotion Lookup
-      const promoPrice = await getEffectivePromoPrice(tx, batch.productId);
+      // Promotion Lookup from bulk map
+      const promoPrice = promoMap.get(batch.productId) || null;
 
       // Determine effective price
       let effectivePrice = batch.sellingPrice;
@@ -87,7 +106,7 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
       saleItemsData.push({
         batchId: item.batch_id,
         quantity: item.quantity,
-        sellingPrice: effectivePrice, // Record the actual price sold at
+        sellingPrice: effectivePrice,
         costPrice: batch.costPrice,
         mrp: batch.mrp,
         isWholesale: isWholesaleItem,

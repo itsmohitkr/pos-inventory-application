@@ -6,34 +6,26 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  TextField,
   Box,
   Typography,
-  Divider,
   IconButton,
-  Alert,
-  Paper,
-  Avatar,
-  Stack,
   Tabs,
   Tab,
-  Switch,
-  FormControlLabel,
-  Snackbar,
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Store as StoreIcon,
   DeleteForever as DeleteForeverIcon,
   Warning as WarningIcon,
-  PhotoCamera as PhotoCameraIcon,
   Payment as PaymentIcon,
   DisplaySettings as DisplayIcon,
-  SystemUpdate as UpdateIcon,
 } from '@mui/icons-material';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
 import PaymentSettingsPanel from './PaymentSettingsPanel';
+import AccountDetailsTab from './AccountDetailsTab';
+import DisplaySettingsTab from './DisplaySettingsTab';
+import WipeDatabaseConfirmation from './WipeDatabaseConfirmation';
 import {
   getChangeCalculatorEnabled,
   setChangeCalculatorEnabled,
@@ -353,260 +345,31 @@ const AccountDetailsDialog = ({
         <DialogContent dividers>
           {/* Tab 0: Account Details */}
           {tabValue === 0 && !showWipeConfirm && (
-            <Box>
-              <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <StoreIcon fontSize="small" color="primary" />
-                  Shop Information
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-
-                <Stack spacing={2}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      mb: 2,
-                    }}
-                  >
-                    <Avatar src={logoUrl} sx={{ width: 80, height: 80, bgcolor: 'primary.light' }}>
-                      {editedShopName?.charAt(0) || 'S'}
-                    </Avatar>
-                    <Box sx={{ flex: 1 }}>
-                      <TextField
-                        label="Logo URL"
-                        size="small"
-                        fullWidth
-                        value={logoUrl}
-                        onChange={(e) => setLogoUrl(e.target.value)}
-                        placeholder="https://example.com/logo.png"
-                        InputProps={{
-                          endAdornment: <PhotoCameraIcon color="action" />,
-                        }}
-                      />
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ mt: 0.5, display: 'block' }}
-                      >
-                        Enter a URL for your shop logo
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <TextField
-                    label="Shop Name"
-                    fullWidth
-                    value={editedShopName}
-                    onChange={(e) => setEditedShopName(e.target.value)}
-                    placeholder="My Shop"
-                  />
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <TextField
-                      label="Mobile Number 1"
-                      fullWidth
-                      value={shopMobile}
-                      onChange={(e) => setShopMobile(e.target.value)}
-                      placeholder="+91 98765 43210"
-                    />
-                    <TextField
-                      label="Mobile Number 2 (Optional)"
-                      fullWidth
-                      value={shopMobile2}
-                      onChange={(e) => setShopMobile2(e.target.value)}
-                      placeholder="+91 88888 88888"
-                    />
-                  </Box>
-
-                  <TextField
-                    label="Email Address"
-                    fullWidth
-                    type="email"
-                    value={shopEmail}
-                    onChange={(e) => setShopEmail(e.target.value)}
-                    placeholder="shop@example.com"
-                  />
-
-                  <TextField
-                    label="Shop Address"
-                    fullWidth
-                    multiline
-                    rows={2}
-                    value={shopAddress}
-                    onChange={(e) => setShopAddress(e.target.value)}
-                    placeholder="123 Business Street, City - 400001"
-                  />
-
-                  <TextField
-                    label="GST Number (Optional)"
-                    fullWidth
-                    value={shopGST}
-                    onChange={(e) => setShopGST(e.target.value)}
-                    placeholder="22AAAAA0000A1Z5"
-                  />
-                </Stack>
-              </Paper>
-
-              <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <UpdateIcon fontSize="small" color="primary" />
-                  Application Updates
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}
-                >
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={handleCheckForUpdates}
-                    disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
-                    size="small"
-                  >
-                    {updateStatus === 'checking' ? 'Checking...' : 'Check for Updates'}
-                  </Button>
-
-                  {updateStatus === 'available' && (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={handleStartDownload}
-                      size="small"
-                    >
-                      Update Now
-                    </Button>
-                  )}
-
-                  {updateStatus === 'downloaded' && (
-                    <Button
-                      variant="contained"
-                      color="success"
-                      onClick={handleRestartApp}
-                      size="small"
-                    >
-                      Restart Now
-                    </Button>
-                  )}
-
-                  {updateStatus && (
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color:
-                          updateStatus === 'error'
-                            ? 'error.main'
-                            : updateStatus === 'available'
-                              ? 'info.main'
-                              : updateStatus === 'downloaded'
-                                ? 'success.main'
-                                : 'text.secondary',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {updateStatus === 'downloading'
-                        ? `Downloading: ${downloadProgress}%`
-                        : updateMessage}
-                    </Typography>
-                  )}
-                </Box>
-
-                <Box sx={{ display: 'flex', gap: 4 }}>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: 'block', mb: 0.5 }}
-                    >
-                      Current Version
-                    </Typography>
-                    <Typography variant="body2" fontWeight={700} sx={{ color: 'primary.main' }}>
-                      {appMetadata.version}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: 'block', mb: 0.5 }}
-                    >
-                      Last System Update
-                    </Typography>
-                    <Typography variant="body2" fontWeight={700} sx={{ color: 'primary.main' }}>
-                      {appMetadata.lastUpdate}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Paper>
-
-              {/* Database Settings Section - Admin Only */}
-              {currentUser?.role === 'admin' && (
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 2, border: '2px solid', borderColor: 'error.light' }}
-                >
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      color: 'error.main',
-                    }}
-                  >
-                    <WarningIcon />
-                    Database Settings
-                  </Typography>
-                  <Divider sx={{ mb: 2 }} />
-
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    <Typography variant="body2" fontWeight="bold" gutterBottom>
-                      Danger Zone
-                    </Typography>
-                    <Typography variant="body2">
-                      These actions are irreversible. Use with extreme caution.
-                    </Typography>
-                  </Alert>
-
-                  <Box
-                    sx={{
-                      p: 2,
-                      bgcolor: 'grey.50',
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'grey.300',
-                    }}
-                  >
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      Wipe All Data
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Permanently delete all products, sales records, categories, and user accounts
-                      (except yours). This action cannot be undone.
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      startIcon={<DeleteForeverIcon />}
-                      onClick={() => setShowWipeConfirm(true)}
-                    >
-                      Wipe Database
-                    </Button>
-                  </Box>
-                </Paper>
-              )}
-            </Box>
+            <AccountDetailsTab
+              editedShopName={editedShopName}
+              shopMobile={shopMobile}
+              shopMobile2={shopMobile2}
+              shopAddress={shopAddress}
+              shopEmail={shopEmail}
+              shopGST={shopGST}
+              logoUrl={logoUrl}
+              setEditedShopName={setEditedShopName}
+              setShopMobile={setShopMobile}
+              setShopMobile2={setShopMobile2}
+              setShopAddress={setShopAddress}
+              setShopEmail={setShopEmail}
+              setShopGST={setShopGST}
+              setLogoUrl={setLogoUrl}
+              updateStatus={updateStatus}
+              updateMessage={updateMessage}
+              downloadProgress={downloadProgress}
+              appMetadata={appMetadata}
+              handleCheckForUpdates={handleCheckForUpdates}
+              handleStartDownload={handleStartDownload}
+              handleRestartApp={handleRestartApp}
+              currentUser={currentUser}
+              setShowWipeConfirm={setShowWipeConfirm}
+            />
           )}
 
           {/* Tab 1: Payment Settings */}
@@ -614,343 +377,39 @@ const AccountDetailsDialog = ({
 
           {/* Tab 2: UI Settings */}
           {tabValue === 2 && (
-            <Box>
-              <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <DisplayIcon fontSize="small" color="primary" />
-                  Display & Zoom Settings
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-
-                <Stack spacing={3}>
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      Application Zoom
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Increase the size of text and buttons across the entire application. This is
-                      particularly useful for touchscreens or high-resolution displays.
-                    </Typography>
-
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                      {[100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150].map((level) => (
-                        <Button
-                          key={level}
-                          variant={uiZoom === level ? 'contained' : 'outlined'}
-                          onClick={() => {
-                            setUiZoom(level);
-                            // Apply immediately for live preview
-                            localStorage.setItem('posUiZoom', level.toString());
-                            window.dispatchEvent(new Event('pos-ui-zoom-updated'));
-                          }}
-                          sx={{
-                            minWidth: 80,
-                            py: 1.5,
-                            fontWeight: 'bold',
-                            borderRadius: 2,
-                          }}
-                        >
-                          {level}%
-                        </Button>
-                      ))}
-                    </Box>
-
-                    <Box
-                      sx={{
-                        mt: 3,
-                        p: 2,
-                        bgcolor: 'primary.light',
-                        borderRadius: 2,
-                        opacity: 0.8,
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: 'primary.contrastText',
-                          fontStyle: 'italic',
-                        }}
-                      >
-                        Preview: This is how your buttons and text will look.
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Divider />
-
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      Visual Mode
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Switch to monochrome mode for a high-contrast, black-and-white interface.
-                    </Typography>
-
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={monochrome}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setMonochrome(val);
-                            // Apply immediately for live preview
-                            localStorage.setItem('posMonochromeMode', val.toString());
-                            window.dispatchEvent(new Event('pos-settings-updated'));
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography variant="body1" fontWeight={600}>
-                          Enable Monochrome Mode
-                        </Typography>
-                      }
-                    />
-                  </Box>
-
-                  <Divider />
-
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      POS Features
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Enable or disable specific features on the POS terminal.
-                    </Typography>
-
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={looseSaleEnabled}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setLooseSaleEnabled(val);
-                            // Apply immediately for live preview and persistence
-                            localStorage.setItem('posLooseSaleEnabled', val.toString());
-                            window.dispatchEvent(new Event('pos-settings-updated'));
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography variant="body1" fontWeight={600}>
-                          Enable Loose Sale Button
-                        </Typography>
-                      }
-                    />
-
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={fullscreenEnabled}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setFullscreenEnabled(val);
-                            localStorage.setItem(
-                              STORAGE_KEYS.enableFullscreen,
-                              JSON.stringify(val)
-                            );
-                            window.dispatchEvent(new Event('pos-settings-updated'));
-                          }}
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1" fontWeight={600}>
-                            Enable Fullscreen Toggle
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Shows a fullscreen button in the bottom-left corner of the POS screen
-                          </Typography>
-                        </Box>
-                      }
-                    />
-
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={weightedAverageCostEnabled}
-                          onChange={(e) => setWeightedAverageCostEnabled(e.target.checked)}
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1" fontWeight={600}>
-                            Enable Weighted Average Cost
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Automatically calculate new cost price when adding stock in Quick
-                            Inventory
-                          </Typography>
-                        </Box>
-                      }
-                    />
-
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={extraDiscountEnabled}
-                          onChange={(e) => {
-                            setExtraDiscountEnabledState(e.target.checked);
-                          }}
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1" fontWeight={600}>
-                            Enable Extra Discount Field
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Shows an extra discount field in the POS transaction panel
-                          </Typography>
-                        </Box>
-                      }
-                    />
-
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body1" fontWeight={600} gutterBottom>
-                        Notification Duration
-                      </Typography>
-                      <TextField
-                        type="number"
-                        size="small"
-                        value={notificationDuration}
-                        onChange={(e) => setNotificationDurationState(parseFloat(e.target.value))}
-                        inputProps={{ min: 1, max: 10, step: 0.5 }}
-                        label="Duration (seconds)"
-                        helperText="How long success notifications are displayed (1-10 seconds)"
-                        sx={{ maxWidth: 250, mt: 1 }}
-                      />
-                    </Box>
-
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body1" fontWeight={600} gutterBottom>
-                        Admin Elevation Auto-Logout
-                      </Typography>
-                      <TextField
-                        type="number"
-                        size="small"
-                        value={adminAutoLogoutTime}
-                        onChange={(e) => setAdminAutoLogoutTimeState(parseInt(e.target.value))}
-                        inputProps={{ min: 1, max: 120, step: 1 }}
-                        label="Time (minutes)"
-                        helperText="How long admin elevation remains active before timing out"
-                        sx={{ maxWidth: 250, mt: 1 }}
-                      />
-                    </Box>
-
-                    <Divider sx={{ my: 2 }} />
-
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={calculatorEnabled}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setCalculatorEnabledState(val);
-                            setCalculatorEnabled(val);
-                          }}
-                        />
-                      }
-                      label={
-                        <Box>
-                          <Typography variant="body1" fontWeight={600}>
-                            Enable POS Calculator
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Shows a calculator button on the POS screen for quick math.
-                          </Typography>
-                        </Box>
-                      }
-                    />
-
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={changeCalculatorEnabled}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setChangeCalculatorEnabledState(val);
-                            // Apply immediately for live preview
-                            setChangeCalculatorEnabled(val);
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography variant="body1" fontWeight={600}>
-                          Enable Change Calculator
-                        </Typography>
-                      }
-                    />
-
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={paymentMethodsEnabled}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setPaymentMethodsEnabledState(val);
-                            // Apply immediately for live preview
-                            setPaymentMethodsEnabled(val);
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography variant="body1" fontWeight={600}>
-                          Enable Payment Methods
-                        </Typography>
-                      }
-                    />
-                  </Box>
-                </Stack>
-              </Paper>
-            </Box>
+            <DisplaySettingsTab
+              uiZoom={uiZoom}
+              setUiZoom={setUiZoom}
+              monochrome={monochrome}
+              setMonochrome={setMonochrome}
+              looseSaleEnabled={looseSaleEnabled}
+              setLooseSaleEnabled={setLooseSaleEnabled}
+              fullscreenEnabled={fullscreenEnabled}
+              setFullscreenEnabled={setFullscreenEnabled}
+              weightedAverageCostEnabled={weightedAverageCostEnabled}
+              setWeightedAverageCostEnabled={setWeightedAverageCostEnabled}
+              extraDiscountEnabled={extraDiscountEnabled}
+              setExtraDiscountEnabledState={setExtraDiscountEnabledState}
+              notificationDuration={notificationDuration}
+              setNotificationDurationState={setNotificationDurationState}
+              adminAutoLogoutTime={adminAutoLogoutTime}
+              setAdminAutoLogoutTimeState={setAdminAutoLogoutTimeState}
+              calculatorEnabled={calculatorEnabled}
+              setCalculatorEnabledState={setCalculatorEnabledState}
+              changeCalculatorEnabled={changeCalculatorEnabled}
+              setChangeCalculatorEnabledState={setChangeCalculatorEnabledState}
+              paymentMethodsEnabled={paymentMethodsEnabled}
+              setPaymentMethodsEnabledState={setPaymentMethodsEnabledState}
+            />
           )}
 
           {/* Wipe Database Confirmation */}
           {tabValue === 0 && showWipeConfirm && (
-            <Box>
-              <Alert severity="error" icon={<WarningIcon />} sx={{ mb: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  ⚠️ FINAL WARNING
-                </Typography>
-                <Typography variant="body1" gutterBottom>
-                  You are about to permanently delete:
-                </Typography>
-                <Box component="ul" sx={{ mt: 1, pl: 2 }}>
-                  <li>All products and inventory batches</li>
-                  <li>All sales records and transaction history</li>
-                  <li>All categories and subcategories</li>
-                  <li>All user accounts (except yours)</li>
-                </Box>
-                <Typography variant="body2" sx={{ mt: 2, fontWeight: 'bold' }}>
-                  This action is IRREVERSIBLE and will take effect immediately!
-                </Typography>
-              </Alert>
-
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                To proceed, enter your admin password:
-              </Typography>
-
-              <TextField
-                label="Admin Password"
-                type="password"
-                fullWidth
-                value={wipePassword}
-                onChange={(e) => setWipePassword(e.target.value)}
-                autoFocus
-                error={wipePassword.length > 0 && wipePassword.length < 4}
-                helperText={
-                  wipePassword.length > 0 && wipePassword.length < 4 ? 'Password too short' : ''
-                }
-              />
-
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                Logged in as: <strong>{currentUser?.username}</strong> (Admin)
-              </Typography>
-            </Box>
+            <WipeDatabaseConfirmation
+              wipePassword={wipePassword}
+              setWipePassword={setWipePassword}
+              currentUser={currentUser}
+            />
           )}
         </DialogContent>
 

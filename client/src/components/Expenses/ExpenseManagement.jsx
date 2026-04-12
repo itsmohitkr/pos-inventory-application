@@ -41,6 +41,11 @@ import {
   MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import posService from '../../shared/api/posService';
+import ExpenseFormDialog from './ExpenseFormDialog';
+import PurchaseFormDialog from './PurchaseFormDialog';
+import RecordPaymentDialog from './RecordPaymentDialog';
+import PaymentHistoryDialog from './PaymentHistoryDialog';
+import PaymentActionMenu from './PaymentActionMenu';
 
 // Helper to get local date string YYYY-MM-DD
 const getLocalTodayString = () => {
@@ -1132,553 +1137,84 @@ const ExpenseManagement = () => {
         </Paper>
 
         {/* Expense Form Dialog */}
-        <Dialog
+        <ExpenseFormDialog
           open={expenseDialogOpen}
           onClose={() => setExpenseDialogOpen(false)}
-          fullWidth
-          maxWidth="sm"
-        >
-          <form onSubmit={handleCreateExpense}>
-            <DialogTitle>{expenseForm.id ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
-            <DialogContent>
-              <Box sx={{ mt: 2 }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-                    <TextField
-                      sx={{ flex: 1 }}
-                      required
-                      label="Amount"
-                      type="number"
-                      value={expenseForm.amount}
-                      onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                    />
-                    <Autocomplete
-                      sx={{ flex: 1 }}
-                      freeSolo
-                      options={categories}
-                      value={expenseForm.category}
-                      onChange={(event, newValue) => {
-                        setExpenseForm({ ...expenseForm, category: newValue || '' });
-                      }}
-                      onInputChange={(event, newInputValue) => {
-                        setExpenseForm({ ...expenseForm, category: newInputValue });
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          required
-                          label="Expenses for?"
-                          placeholder="Enter category details..."
-                        />
-                      )}
-                    />
-                  </Box>
-                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-                    <TextField
-                      sx={{ flex: 1 }}
-                      required
-                      label="Date"
-                      type="date"
-                      value={expenseForm.date}
-                      onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                    <TextField
-                      sx={{ flex: 1 }}
-                      label="Amount Paid Now"
-                      type="number"
-                      disabled={!!expenseForm.id}
-                      inputProps={{ min: 0, max: expenseForm.amount || 0, step: '0.01' }}
-                      value={expenseForm.paidAmount}
-                      onChange={(e) =>
-                        setExpenseForm({ ...expenseForm, paidAmount: e.target.value })
-                      }
-                      helperText={
-                        expenseForm.amount && !expenseForm.id
-                          ? `Due: ₹${Math.max(0, (parseFloat(expenseForm.amount) || 0) - (parseFloat(expenseForm.paidAmount) || 0)).toLocaleString()}`
-                          : ''
-                      }
-                    />
-                    <TextField
-                      sx={{ flex: 1 }}
-                      select
-                      label="Method"
-                      value={expenseForm.paymentMethod}
-                      onChange={(e) =>
-                        setExpenseForm({ ...expenseForm, paymentMethod: e.target.value })
-                      }
-                      SelectProps={{ native: true }}
-                    >
-                      <option value="Cash">Cash</option>
-                      <option value="Card">Card</option>
-                      <option value="UPI">UPI</option>
-                      <option value="Bank Transfer">Bank Transfer</option>
-                    </TextField>
-                  </Box>
-                  <TextField
-                    fullWidth
-                    label="Description"
-                    multiline
-                    rows={3}
-                    value={expenseForm.description}
-                    onChange={(e) =>
-                      setExpenseForm({ ...expenseForm, description: e.target.value })
-                    }
-                  />
-                </Box>
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setExpenseDialogOpen(false)}>Cancel</Button>
-              <Button
-                variant="contained"
-                type="submit"
-                disabled={!expenseForm.amount || !expenseForm.category || !expenseForm.date}
-                sx={{
-                  color: '#ffffff',
-                  bgcolor: '#0b1d39',
-                  '&:hover': { bgcolor: '#1a365d' },
-                  '&.Mui-disabled': {
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    bgcolor: 'rgba(11, 29, 57, 0.5)',
-                  },
-                }}
-              >
-                Successful
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
+          onSubmit={handleCreateExpense}
+          expenseForm={expenseForm}
+          onFormChange={(updates) => setExpenseForm((prev) => ({ ...prev, ...updates }))}
+          categories={categories}
+        />
 
         {/* Purchase Form Dialog */}
-        <Dialog
+        <PurchaseFormDialog
           open={purchaseDialogOpen}
           onClose={() => setPurchaseDialogOpen(false)}
-          fullWidth
-          maxWidth="sm"
-        >
-          <form onSubmit={handleCreatePurchase}>
-            <DialogTitle>
-              {purchaseForm.id ? 'Edit Purchase' : 'Log Inventory Purchase'}
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ mt: 2 }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-                    <Autocomplete
-                      sx={{ flex: 1 }}
-                      freeSolo
-                      options={vendorOptions}
-                      value={purchaseForm.vendor}
-                      onChange={(event, newValue) => {
-                        setPurchaseForm({ ...purchaseForm, vendor: newValue || '' });
-                      }}
-                      onInputChange={(event, newInputValue) => {
-                        setPurchaseForm({ ...purchaseForm, vendor: newInputValue });
-                      }}
-                      renderInput={(params) => <TextField {...params} label="Vendor Name" />}
-                    />
-                    <TextField
-                      sx={{ flex: 1 }}
-                      required
-                      disabled={!!purchaseForm.id}
-                      label="Total Amount"
-                      type="number"
-                      value={purchaseForm.totalAmount}
-                      onChange={(e) =>
-                        setPurchaseForm({ ...purchaseForm, totalAmount: e.target.value })
-                      }
-                    />
-                  </Box>
-
-                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-                    <TextField
-                      sx={{ flex: 1 }}
-                      label="Date"
-                      type="date"
-                      value={purchaseForm.date}
-                      onChange={(e) => setPurchaseForm({ ...purchaseForm, date: e.target.value })}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                    <TextField
-                      sx={{ flex: 1 }}
-                      label="Amount Paid Now"
-                      type="number"
-                      disabled={!!purchaseForm.id}
-                      inputProps={{ min: 0, max: purchaseForm.totalAmount || 0, step: '0.01' }}
-                      value={purchaseForm.paidAmount}
-                      onChange={(e) =>
-                        setPurchaseForm({ ...purchaseForm, paidAmount: e.target.value })
-                      }
-                      helperText={
-                        purchaseForm.totalAmount && !purchaseForm.id
-                          ? `Due: ₹${Math.max(0, (parseFloat(purchaseForm.totalAmount) || 0) - (parseFloat(purchaseForm.paidAmount) || 0)).toLocaleString()}`
-                          : ''
-                      }
-                    />
-                    <TextField
-                      sx={{ flex: 1 }}
-                      select
-                      label="Method"
-                      value={purchaseForm.paymentMethod}
-                      onChange={(e) =>
-                        setPurchaseForm({ ...purchaseForm, paymentMethod: e.target.value })
-                      }
-                      SelectProps={{ native: true }}
-                    >
-                      <option value="Cash">Cash</option>
-                      <option value="Card">Card</option>
-                      <option value="UPI">UPI</option>
-                      <option value="Bank Transfer">Bank Transfer</option>
-                    </TextField>
-                  </Box>
-
-                  <TextField
-                    fullWidth
-                    label="Note"
-                    multiline
-                    rows={3}
-                    value={purchaseForm.note}
-                    onChange={(e) => setPurchaseForm({ ...purchaseForm, note: e.target.value })}
-                  />
-                </Box>
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setPurchaseDialogOpen(false)}>Cancel</Button>
-              <Button
-                variant="contained"
-                type="submit"
-                disabled={!purchaseForm.totalAmount}
-                sx={{
-                  color: '#ffffff',
-                  bgcolor: '#0b1d39',
-                  '&:hover': { bgcolor: '#1a365d' },
-                  '&.Mui-disabled': {
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    bgcolor: 'rgba(11, 29, 57, 0.5)',
-                  },
-                }}
-              >
-                Successful
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
+          onSubmit={handleCreatePurchase}
+          purchaseForm={purchaseForm}
+          onFormChange={(updates) => setPurchaseForm((prev) => ({ ...prev, ...updates }))}
+          vendorOptions={vendorOptions}
+        />
 
         {/* Make Payment Dialog */}
-        <Dialog
+        <RecordPaymentDialog
           open={paymentDialogOpen}
           onClose={() => setPaymentDialogOpen(false)}
-          fullWidth
-          maxWidth="xs"
-        >
-          <form onSubmit={handleCreatePayment}>
-            <DialogTitle>Make Payment</DialogTitle>
-            <DialogContent>
-              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {selectedPurchase && (
-                  <Box sx={{ mb: 1, p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Amount: ₹{selectedPurchase.totalAmount.toLocaleString()}
-                    </Typography>
-                    <Typography variant="body1" fontWeight="bold" color="error.main">
-                      Due Amount: ₹{selectedPurchase.dueAmount?.toLocaleString()}
-                    </Typography>
-                  </Box>
-                )}
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
-                    required
-                    sx={{ flex: 2 }}
-                    label="Payment Amount"
-                    type="number"
-                    inputProps={{ max: selectedPurchase?.dueAmount || 0, step: '0.01' }}
-                    value={paymentForm.amount}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  />
-                  <TextField
-                    required
-                    sx={{ flex: 1 }}
-                    select
-                    label="Method"
-                    value={paymentForm.paymentMethod}
-                    onChange={(e) =>
-                      setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })
-                    }
-                    SelectProps={{ native: true }}
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Card</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                  </TextField>
-                </Box>
-                <TextField
-                  required
-                  fullWidth
-                  label="Payment Date"
-                  type="date"
-                  inputProps={{
-                    min: selectedPurchase?.date ? splitIsoDate(selectedPurchase.date) : '',
-                  }}
-                  value={paymentForm.date}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  fullWidth
-                  label="Note (Optional)"
-                  multiline
-                  rows={2}
-                  value={paymentForm.note}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
-                />
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setPaymentDialogOpen(false)}>Cancel</Button>
-              <Button
-                variant="contained"
-                type="submit"
-                color="success"
-                disabled={
-                  !paymentForm.amount ||
-                  parseFloat(paymentForm.amount) <= 0 ||
-                  parseFloat(paymentForm.amount) > (selectedPurchase?.dueAmount || 0)
-                }
-              >
-                Record Payment
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
+          onSubmit={handleCreatePayment}
+          title="Make Payment"
+          totalLabel="Total Amount"
+          totalValue={selectedPurchase?.totalAmount}
+          dueAmount={selectedPurchase?.dueAmount}
+          paymentForm={paymentForm}
+          onPaymentFormChange={(updates) => setPaymentForm((prev) => ({ ...prev, ...updates }))}
+          minDate={selectedPurchase?.date ? splitIsoDate(selectedPurchase.date) : ''}
+        />
 
         {/* Payment History Dialog */}
-        <Dialog
+        <PaymentHistoryDialog
           open={paymentHistoryDialogOpen}
           onClose={() => setPaymentHistoryDialogOpen(false)}
-          fullWidth
-          maxWidth="sm"
-        >
-          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <HistoryIcon color="primary" /> Payment History
-          </DialogTitle>
-          <DialogContent dividers>
-            {selectedPurchase && (
-              <Box>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}
-                >
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Amount
-                    </Typography>
-                    <Typography variant="h6" fontWeight="bold">
-                      ₹{selectedPurchase.totalAmount.toLocaleString()}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Paid
-                    </Typography>
-                    <Typography variant="h6" fontWeight="bold" color="success.main">
-                      ₹{selectedPurchase.totalPaid?.toLocaleString()}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Due Amount
-                    </Typography>
-                    <Typography variant="h6" fontWeight="bold" color="error.main">
-                      ₹{selectedPurchase.dueAmount?.toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Stack>
+          title="Payment History"
+          subject={selectedPurchase}
+          totalField="totalAmount"
+          onOpenPaymentMenu={handleOpenPaymentMenu}
+        />
 
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                  Recorded Payments
-                </Typography>
-                {selectedPurchase.payments && selectedPurchase.payments.length > 0 ? (
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table size="small">
-                      <TableHead sx={{ bgcolor: 'action.hover' }}>
-                        <TableRow>
-                          <TableCell>Date & Time</TableCell>
-                          <TableCell>Method</TableCell>
-                          <TableCell>Note</TableCell>
-                          <TableCell align="right">Amount</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {[...(selectedPurchase.payments || [])].reverse().map((payment, _index) => {
-                          const _isMostRecent = _index === 0;
-                          return (
-                            <TableRow key={payment.id}>
-                              <TableCell>
-                                {new Date(payment.date).toLocaleString('en-GB', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  hour12: true,
-                                })}
-                              </TableCell>
-                              <TableCell>{payment.paymentMethod || 'Cash'}</TableCell>
-                              <TableCell>{payment.note || '-'}</TableCell>
-                              <TableCell align="right">
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'flex-end',
-                                    gap: 1,
-                                  }}
-                                >
-                                  <Typography sx={{ fontWeight: 'medium', color: 'success.main' }}>
-                                    ₹{payment.amount.toLocaleString()}
-                                  </Typography>
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => handleOpenPaymentMenu(e, payment)}
-                                  >
-                                    <MoreVertIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                ) : (
-                  <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-                    No payment records found.
-                  </Box>
-                )}
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setPaymentHistoryDialogOpen(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Payment Action Menu */}
-        <Menu
-          anchorEl={paymentMenuAnchor}
-          open={Boolean(paymentMenuAnchor)}
-          onClose={handleClosePaymentMenu}
-        >
-          <MenuItem
-            onClick={handleOpenEditPayment}
-            disabled={
-              selectedPurchase
-                ? !selectedPurchase.payments?.length ||
+        {/* Payment Action Menu + Edit Sub-Dialog */}
+        <PaymentActionMenu
+          menuAnchor={paymentMenuAnchor}
+          onCloseMenu={handleClosePaymentMenu}
+          isEditDisabled={
+            selectedPurchase
+              ? !selectedPurchase.payments?.length ||
                 !selectedPayment ||
                 selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
-                selectedPayment.id
-                : !selectedExpense?.payments?.length ||
+                  selectedPayment.id
+              : !selectedExpense?.payments?.length ||
                 !selectedPayment ||
                 selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
-                selectedPayment.id
-            }
-          >
-            <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              handleDeletePaymentAction(selectedPayment.id);
-              handleClosePaymentMenu();
-            }}
-            disabled={
-              selectedPurchase
-                ? !selectedPurchase.payments?.length ||
+                  selectedPayment.id
+          }
+          isDeleteDisabled={
+            selectedPurchase
+              ? !selectedPurchase.payments?.length ||
                 !selectedPayment ||
                 selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
-                selectedPayment.id
-                : !selectedExpense?.payments?.length ||
+                  selectedPayment.id
+              : !selectedExpense?.payments?.length ||
                 !selectedPayment ||
                 selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
-                selectedPayment.id
-            }
-            sx={{ color: 'error.main' }}
-          >
-            <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Delete
-          </MenuItem>
-        </Menu>
-
-        {/* Edit Payment Sub-Dialog */}
-        <Dialog
-          open={paymentEditDialogOpen}
-          onClose={() => setPaymentEditDialogOpen(false)}
-          fullWidth
-          maxWidth="xs"
-        >
-          <form onSubmit={handleEditPaymentSubmission}>
-            <DialogTitle>Edit Payment Record</DialogTitle>
-            <DialogContent>
-              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
-                    required
-                    sx={{ flex: 2 }}
-                    label="Amount"
-                    type="number"
-                    value={editPaymentForm.amount}
-                    onChange={(e) =>
-                      setEditPaymentForm({ ...editPaymentForm, amount: e.target.value })
-                    }
-                  />
-                  <TextField
-                    required
-                    sx={{ flex: 1 }}
-                    select
-                    label="Method"
-                    value={editPaymentForm.paymentMethod}
-                    onChange={(e) =>
-                      setEditPaymentForm({ ...editPaymentForm, paymentMethod: e.target.value })
-                    }
-                    SelectProps={{ native: true }}
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Card</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                  </TextField>
-                </Box>
-                <TextField
-                  required
-                  label="Date"
-                  type="date"
-                  inputProps={{
-                    min: selectedPurchase?.date ? splitIsoDate(selectedPurchase.date) : '',
-                  }}
-                  value={editPaymentForm.date}
-                  onChange={(e) => setEditPaymentForm({ ...editPaymentForm, date: e.target.value })}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  label="Note"
-                  multiline
-                  rows={2}
-                  value={editPaymentForm.note}
-                  onChange={(e) => setEditPaymentForm({ ...editPaymentForm, note: e.target.value })}
-                />
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setPaymentEditDialogOpen(false)}>Cancel</Button>
-              <Button variant="contained" type="submit" color="primary">
-                Update Payment
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
+                  selectedPayment.id
+          }
+          onOpenEditPayment={handleOpenEditPayment}
+          onDeletePayment={() => handleDeletePaymentAction(selectedPayment.id)}
+          editDialogOpen={paymentEditDialogOpen}
+          onCloseEditDialog={() => setPaymentEditDialogOpen(false)}
+          onEditSubmit={handleEditPaymentSubmission}
+          editPaymentForm={editPaymentForm}
+          onEditFormChange={(updates) => setEditPaymentForm((prev) => ({ ...prev, ...updates }))}
+          minDate={selectedPurchase?.date ? splitIsoDate(selectedPurchase.date) : ''}
+        />
 
         {/* Custom Delete Confirmation Dialog */}
         <Dialog
@@ -1707,205 +1243,30 @@ const ExpenseManagement = () => {
         </Dialog>
 
         {/* Expense Payment Dialog */}
-        <Dialog
+        <RecordPaymentDialog
           open={expensePaymentDialogOpen}
           onClose={() => setExpensePaymentDialogOpen(false)}
-          fullWidth
-          maxWidth="xs"
-        >
-          <form onSubmit={handleCreateExpensePayment}>
-            <DialogTitle>Record Expense Payment</DialogTitle>
-            <DialogContent>
-              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {selectedExpense && (
-                  <Box sx={{ mb: 1, p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Expense: ₹{selectedExpense.amount.toLocaleString()}
-                    </Typography>
-                    <Typography variant="body1" fontWeight="bold" color="error.main">
-                      Due Amount: ₹{selectedExpense.dueAmount?.toLocaleString()}
-                    </Typography>
-                  </Box>
-                )}
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <TextField
-                    required
-                    sx={{ flex: 2 }}
-                    label="Payment Amount"
-                    type="number"
-                    inputProps={{ max: selectedExpense?.dueAmount || 0, step: '0.01' }}
-                    value={paymentForm.amount}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  />
-                  <TextField
-                    required
-                    sx={{ flex: 1 }}
-                    select
-                    label="Method"
-                    value={paymentForm.paymentMethod}
-                    onChange={(e) =>
-                      setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })
-                    }
-                    SelectProps={{ native: true }}
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Card</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                  </TextField>
-                </Box>
-                <TextField
-                  required
-                  fullWidth
-                  label="Payment Date"
-                  type="date"
-                  value={paymentForm.date}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, date: e.target.value })}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  fullWidth
-                  label="Note (Optional)"
-                  multiline
-                  rows={2}
-                  value={paymentForm.note}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
-                />
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setExpensePaymentDialogOpen(false)}>Cancel</Button>
-              <Button
-                variant="contained"
-                type="submit"
-                color="success"
-                disabled={
-                  !paymentForm.amount ||
-                  parseFloat(paymentForm.amount) <= 0 ||
-                  parseFloat(paymentForm.amount) > (selectedExpense?.dueAmount || 0)
-                }
-              >
-                Record Payment
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
+          onSubmit={handleCreateExpensePayment}
+          title="Record Expense Payment"
+          totalLabel="Total Expense"
+          totalValue={selectedExpense?.amount}
+          dueAmount={selectedExpense?.dueAmount}
+          paymentForm={paymentForm}
+          onPaymentFormChange={(updates) => setPaymentForm((prev) => ({ ...prev, ...updates }))}
+        />
 
         {/* Expense Payment History Dialog */}
-        <Dialog
+        <PaymentHistoryDialog
           open={expensePaymentHistoryDialogOpen}
           onClose={() => setExpensePaymentHistoryDialogOpen(false)}
-          fullWidth
-          maxWidth="sm"
-        >
-          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <HistoryIcon color="primary" /> Expense Payment History
-          </DialogTitle>
-          <DialogContent dividers>
-            {selectedExpense && (
-              <Box>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}
-                >
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Amount
-                    </Typography>
-                    <Typography variant="h6" fontWeight="bold">
-                      ₹{selectedExpense.amount.toLocaleString()}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Paid
-                    </Typography>
-                    <Typography variant="h6" fontWeight="bold" color="success.main">
-                      ₹{selectedExpense.totalPaid?.toLocaleString()}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Due Amount
-                    </Typography>
-                    <Typography variant="h6" fontWeight="bold" color="error.main">
-                      ₹{selectedExpense.dueAmount?.toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Stack>
-
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                  Recorded Payments
-                </Typography>
-                {selectedExpense.payments && selectedExpense.payments.length > 0 ? (
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table size="small">
-                      <TableHead sx={{ bgcolor: 'action.hover' }}>
-                        <TableRow>
-                          <TableCell>Date & Time</TableCell>
-                          <TableCell>Method</TableCell>
-                          <TableCell>Note</TableCell>
-                          <TableCell align="right">Amount</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {[...(selectedExpense.payments || [])].reverse().map((payment) => {
-                          return (
-                            <TableRow key={payment.id}>
-                              <TableCell>
-                                {new Date(payment.date).toLocaleString('en-GB', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  hour12: true,
-                                })}
-                              </TableCell>
-                              <TableCell>{payment.paymentMethod || 'Cash'}</TableCell>
-                              <TableCell>{payment.note || '-'}</TableCell>
-                              <TableCell align="right">
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'flex-end',
-                                    gap: 1,
-                                  }}
-                                >
-                                  <Typography sx={{ fontWeight: 'medium', color: 'success.main' }}>
-                                    ₹{payment.amount.toLocaleString()}
-                                  </Typography>
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                      setSelectedPurchase(null);
-                                      handleOpenPaymentMenu(e, payment);
-                                    }}
-                                  >
-                                    <MoreVertIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                ) : (
-                  <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-                    No payment records found.
-                  </Box>
-                )}
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setExpensePaymentHistoryDialogOpen(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
+          title="Expense Payment History"
+          subject={selectedExpense}
+          totalField="amount"
+          onOpenPaymentMenu={(e, payment) => {
+            setSelectedPurchase(null);
+            handleOpenPaymentMenu(e, payment);
+          }}
+        />
       </Box>
     </Box>
   );

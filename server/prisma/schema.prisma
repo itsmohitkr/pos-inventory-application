@@ -63,6 +63,8 @@ model Batch {
   product          Product         @relation(fields: [productId], references: [id])
   saleItems        SaleItem[]
   movements        StockMovement[]
+
+  @@index([productId])
 }
 
 model Sale {
@@ -73,6 +75,8 @@ model Sale {
   paymentMethod String     @default("Cash")
   createdAt     DateTime   @default(now())
   items         SaleItem[]
+
+  @@index([createdAt])
 }
 
 model SaleItem {
@@ -87,7 +91,10 @@ model SaleItem {
   isWholesale      Boolean @default(false)
   isFree           Boolean @default(false)
   batch            Batch   @relation(fields: [batchId], references: [id])
-  sale             Sale    @relation(fields: [saleId], references: [id])
+  sale             Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([batchId])
 }
 
 model StockMovement {
@@ -100,6 +107,10 @@ model StockMovement {
   createdAt DateTime @default(now())
   batch     Batch?   @relation(fields: [batchId], references: [id])
   product   Product  @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([batchId])
+  @@index([createdAt])
 }
 
 model LooseSale {
@@ -107,6 +118,8 @@ model LooseSale {
   itemName  String?
   price     Float
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model Promotion {
@@ -118,6 +131,8 @@ model Promotion {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   items     PromotionItem[]
+
+  @@index([startDate, endDate])
 }
 
 model PromotionItem {
@@ -129,6 +144,9 @@ model PromotionItem {
   createdAt          DateTime  @default(now())
   product            Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   promotion          Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
+  @@index([productId])
 }
 
 model Setting {
@@ -149,6 +167,8 @@ model Expense {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   payments      ExpensePayment[]
+
+  @@index([date])
 }
 
 model ExpensePayment {
@@ -160,6 +180,9 @@ model ExpensePayment {
   note          String?
   createdAt     DateTime @default(now())
   expense       Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@index([date])
 }
 
 model Purchase {
@@ -174,6 +197,8 @@ model Purchase {
   updatedAt     DateTime        @updatedAt
   items         PurchaseItem[]
   payments      PurchasePayment[]
+
+  @@index([date])
 }
 
 model PurchaseItem {
@@ -184,6 +209,9 @@ model PurchaseItem {
   quantity   Int
   costPrice  Float
   purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId])
+  @@index([productId])
 }
 
 model PurchasePayment {
@@ -195,4 +223,7 @@ model PurchasePayment {
   note          String?
   createdAt     DateTime @default(now())
   purchase      Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId])
+  @@index([date])
 }
