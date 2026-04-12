@@ -26,6 +26,12 @@ import {
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import Receipt from './Receipt';
+import {
+  fetchPrintersForPreview,
+  handleEnterKeySaveOrClose,
+  handleManualPrint,
+  RECEIPT_VISIBILITY_FIELDS,
+} from './receiptPreviewDialogUtils';
 
 const ReceiptPreviewDialog = ({
   open,
@@ -44,17 +50,9 @@ const ReceiptPreviewDialog = ({
   defaultPrinter = null,
 }) => {
   const [snackbar, setSnackbar] = React.useState({ open: false, message: '', severity: 'info' });
+
   const handleKeyDown = (event) => {
-    if (event.defaultPrevented) return;
-    if (event.key !== 'Enter') return;
-    if (event.shiftKey) return;
-    if (event.target?.tagName === 'TEXTAREA') return;
-    event.preventDefault();
-    if (onSave) {
-      onSave();
-      return;
-    }
-    onClose();
+    handleEnterKeySaveOrClose({ event, onSave, onClose });
   };
 
   return (
@@ -226,28 +224,12 @@ const ReceiptPreviewDialog = ({
                     size="small"
                     startIcon={<RefreshIcon />}
                     onClick={async () => {
-                      if (window.electron) {
-                        try {
-                          const list = await window.electron.ipcRenderer.invoke('get-printers');
-                          setSnackbar({
-                            open: true,
-                            message: `Found ${list ? list.length : 0} printers`,
-                            severity: 'success',
-                          });
-                        } catch (e) {
-                          setSnackbar({
-                            open: true,
-                            message: `Error: ${e.message}`,
-                            severity: 'error',
-                          });
-                        }
-                      } else {
-                        setSnackbar({
-                          open: true,
-                          message: 'Not in Electron environment',
-                          severity: 'warning',
-                        });
-                      }
+                      const result = await fetchPrintersForPreview();
+                      setSnackbar({
+                        open: true,
+                        message: result.message,
+                        severity: result.severity,
+                      });
                     }}
                     sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0 }}
                   >
@@ -408,20 +390,7 @@ const ReceiptPreviewDialog = ({
                   CONTENT VISIBILITY
                 </Typography>
 
-                {[
-                  'shopName',
-                  'header',
-                  'footer',
-                  'productName',
-                  'mrp',
-                  'price',
-                  'discount',
-                  'totalItems',
-                  'totalValue',
-                  'exp',
-                  'barcode',
-                  'totalSavings',
-                ].map((field) => (
+                {RECEIPT_VISIBILITY_FIELDS.map((field) => (
                   <Box
                     key={field}
                     sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
@@ -467,16 +436,7 @@ const ReceiptPreviewDialog = ({
           <Button
             variant="outlined"
             onClick={() => {
-              if (receiptSettings.directPrint && window.electron) {
-                const rawPrinter = receiptSettings.printerType;
-                const isValidPrinter = rawPrinter && printers?.some((p) => p.name === rawPrinter);
-                const printer = isValidPrinter
-                  ? rawPrinter
-                  : defaultPrinter || (printers?.find((p) => p.isDefault) || printers?.[0])?.name;
-                window.electron.ipcRenderer.send('print-manual', { printerName: printer });
-              } else {
-                window.print();
-              }
+              handleManualPrint({ receiptSettings, printers, defaultPrinter });
             }}
           >
             Print Test Page
@@ -493,17 +453,7 @@ const ReceiptPreviewDialog = ({
             color="primary"
             startIcon={<PrintIcon />}
             onClick={() => {
-              if (receiptSettings.directPrint && window.electron) {
-                // Use the specifically selected printerType, fallback to defaultPrinter, then first printer
-                const rawPrinter = receiptSettings.printerType;
-                const isValidPrinter = rawPrinter && printers.some((p) => p.name === rawPrinter);
-                const printer = isValidPrinter
-                  ? rawPrinter
-                  : defaultPrinter || (printers.find((p) => p.isDefault) || printers[0])?.name;
-                window.electron.ipcRenderer.send('print-manual', { printerName: printer });
-              } else {
-                window.print();
-              }
+              handleManualPrint({ receiptSettings, printers, defaultPrinter });
             }}
           >
             Print Receipt

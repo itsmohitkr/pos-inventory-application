@@ -391,9 +391,7 @@ const ProductDetailPanel = ({
           )}
         </>
       ) : (
-        <Box
-          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}
-        >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
               Select a product

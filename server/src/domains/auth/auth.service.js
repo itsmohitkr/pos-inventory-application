@@ -43,7 +43,10 @@ const login = async ({ username, password }) => {
     isValid = user.password === password;
     if (isValid) {
       needsMigration = true;
-      logger.info({ username }, 'User authenticated with plain-text password. Flagged for migration.');
+      logger.info(
+        { username },
+        'User authenticated with plain-text password. Flagged for migration.'
+      );
     }
   }
 

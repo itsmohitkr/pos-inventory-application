@@ -58,10 +58,16 @@ const ThresholdSettingsPanel = ({
           label={<Typography sx={{ fontWeight: 600 }}>Enable Threshold Promotions</Typography>}
         />
         <Typography variant="body2" color="text.secondary">
-          Customers receive a free product when their order total meets the thresholds defined in the table below.
+          Customers receive a free product when their order total meets the thresholds defined in
+          the table below.
         </Typography>
       </Grid>
-      <Grid item xs={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+      <Grid
+        item
+        xs={12}
+        md={3}
+        sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}
+      >
         <Button
           variant="contained"
           startIcon={<SaveIcon />}
@@ -97,13 +103,22 @@ const ThresholdSettingsPanel = ({
               sx={{ width: 180 }}
               InputProps={{ sx: { borderRadius: 2 } }}
             />
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={onAddThreshold} sx={{ borderRadius: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={onAddThreshold}
+              sx={{ borderRadius: 2 }}
+            >
               Add Row
             </Button>
           </Box>
         </Box>
 
-        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <TableContainer
+          component={Paper}
+          variant="outlined"
+          sx={{ borderRadius: 2, overflow: 'hidden' }}
+        >
           <Table size="small">
             <TableHead sx={{ bgcolor: '#f8fafc' }}>
               <TableRow>
@@ -116,7 +131,9 @@ const ThresholdSettingsPanel = ({
                 <TableCell sx={{ fontWeight: 700, width: '15%' }}>Disallowed Groups</TableCell>
                 <TableCell sx={{ fontWeight: 700, width: '9%' }}>Max Gifts</TableCell>
                 <TableCell sx={{ fontWeight: 700, width: '12%' }}>Sort By</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, width: '10%' }}>Actions</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, width: '10%' }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -126,7 +143,9 @@ const ThresholdSettingsPanel = ({
                     <Switch
                       size="small"
                       checked={config.isActive !== false}
-                      onChange={(e) => onUpdateConfig(config.threshold, 'isActive', e.target.checked)}
+                      onChange={(e) =>
+                        onUpdateConfig(config.threshold, 'isActive', e.target.checked)
+                      }
                       color="success"
                       sx={{
                         '& .MuiSwitch-switchBase:not(.Mui-checked)': { color: '#ef4444' },
@@ -137,14 +156,25 @@ const ThresholdSettingsPanel = ({
                       }}
                     />
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 800, color: '#0b1d39' }}>₹{config.threshold}</TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: '#0b1d39' }}>
+                    ₹{config.threshold}
+                  </TableCell>
                   <TableCell>
                     <TextField
                       size="small"
                       type="number"
                       value={config.profitPercentage}
-                      onChange={(e) => onUpdateConfig(config.threshold, 'profitPercentage', parseFloat(e.target.value) || 0)}
-                      InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment>, sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
+                      onChange={(e) =>
+                        onUpdateConfig(
+                          config.threshold,
+                          'profitPercentage',
+                          parseFloat(e.target.value) || 0
+                        )
+                      }
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                        sx: { borderRadius: 1.5, fontSize: '0.875rem' },
+                      }}
                     />
                   </TableCell>
                   <TableCell>
@@ -152,8 +182,17 @@ const ThresholdSettingsPanel = ({
                       size="small"
                       type="number"
                       value={config.minCostPrice}
-                      onChange={(e) => onUpdateConfig(config.threshold, 'minCostPrice', parseFloat(e.target.value) || 0)}
-                      InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
+                      onChange={(e) =>
+                        onUpdateConfig(
+                          config.threshold,
+                          'minCostPrice',
+                          parseFloat(e.target.value) || 0
+                        )
+                      }
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                        sx: { borderRadius: 1.5, fontSize: '0.875rem' },
+                      }}
                     />
                   </TableCell>
                   <TableCell>
@@ -162,8 +201,17 @@ const ThresholdSettingsPanel = ({
                       type="number"
                       placeholder="Auto (% Profit)"
                       value={config.maxCostPrice === null ? '' : config.maxCostPrice}
-                      onChange={(e) => onUpdateConfig(config.threshold, 'maxCostPrice', e.target.value === '' ? null : parseFloat(e.target.value))}
-                      InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
+                      onChange={(e) =>
+                        onUpdateConfig(
+                          config.threshold,
+                          'maxCostPrice',
+                          e.target.value === '' ? null : parseFloat(e.target.value)
+                        )
+                      }
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                        sx: { borderRadius: 1.5, fontSize: '0.875rem' },
+                      }}
                     />
                   </TableCell>
                   <TableCell>
@@ -172,17 +220,26 @@ const ThresholdSettingsPanel = ({
                       size="small"
                       options={categories}
                       value={config.allowedGroups || []}
-                      onChange={(e, newValue) => onUpdateConfig(config.threshold, 'allowedGroups', newValue)}
+                      onChange={(e, newValue) =>
+                        onUpdateConfig(config.threshold, 'allowedGroups', newValue)
+                      }
                       renderInput={(params) => (
                         <TextField
                           {...params}
                           placeholder="All Groups"
-                          sx={{ '& .MuiInputBase-root': { borderRadius: 1.5, fontSize: '0.75rem' } }}
+                          sx={{
+                            '& .MuiInputBase-root': { borderRadius: 1.5, fontSize: '0.75rem' },
+                          }}
                         />
                       )}
                       renderTags={(value, getTagProps) =>
                         value.map((option, index) => (
-                          <Chip variant="outlined" label={option.split('/').pop()} size="small" {...getTagProps({ index })} />
+                          <Chip
+                            variant="outlined"
+                            label={option.split('/').pop()}
+                            size="small"
+                            {...getTagProps({ index })}
+                          />
                         ))
                       }
                     />
@@ -193,17 +250,26 @@ const ThresholdSettingsPanel = ({
                       size="small"
                       options={categories}
                       value={config.disallowedGroups || []}
-                      onChange={(e, newValue) => onUpdateConfig(config.threshold, 'disallowedGroups', newValue)}
+                      onChange={(e, newValue) =>
+                        onUpdateConfig(config.threshold, 'disallowedGroups', newValue)
+                      }
                       renderInput={(params) => (
                         <TextField
                           {...params}
                           placeholder="None"
-                          sx={{ '& .MuiInputBase-root': { borderRadius: 1.5, fontSize: '0.75rem' } }}
+                          sx={{
+                            '& .MuiInputBase-root': { borderRadius: 1.5, fontSize: '0.75rem' },
+                          }}
                         />
                       )}
                       renderTags={(value, getTagProps) =>
                         value.map((option, index) => (
-                          <Chip variant="outlined" label={option.split('/').pop()} size="small" {...getTagProps({ index })} />
+                          <Chip
+                            variant="outlined"
+                            label={option.split('/').pop()}
+                            size="small"
+                            {...getTagProps({ index })}
+                          />
                         ))
                       }
                     />
@@ -213,7 +279,13 @@ const ThresholdSettingsPanel = ({
                       size="small"
                       type="number"
                       value={config.maxGiftsToShow}
-                      onChange={(e) => onUpdateConfig(config.threshold, 'maxGiftsToShow', parseInt(e.target.value) || 0)}
+                      onChange={(e) =>
+                        onUpdateConfig(
+                          config.threshold,
+                          'maxGiftsToShow',
+                          parseInt(e.target.value) || 0
+                        )
+                      }
                       InputProps={{ sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
                     />
                   </TableCell>
@@ -223,8 +295,13 @@ const ThresholdSettingsPanel = ({
                       size="small"
                       fullWidth
                       value={config.sortBySales || 'none'}
-                      onChange={(e) => onUpdateConfig(config.threshold, 'sortBySales', e.target.value)}
-                      SelectProps={{ native: true, sx: { borderRadius: 1.5, fontSize: '0.875rem' } }}
+                      onChange={(e) =>
+                        onUpdateConfig(config.threshold, 'sortBySales', e.target.value)
+                      }
+                      SelectProps={{
+                        native: true,
+                        sx: { borderRadius: 1.5, fontSize: '0.875rem' },
+                      }}
                     >
                       <option value="none">Default</option>
                       <option value="most">Most</option>

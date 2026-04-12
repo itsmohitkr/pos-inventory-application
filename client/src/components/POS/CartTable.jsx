@@ -18,21 +18,29 @@ import {
   Remove as RemoveIcon,
   ShoppingCart as ShoppingCartIcon,
 } from '@mui/icons-material';
+import {
+  getBatchCodeDisplay,
+  getCartItemDiscount,
+  getCartItemTotal,
+  getCartRowId,
+  shouldHighlightCartRow,
+} from './cartTableUtils';
 
 const ShortBatchCode = ({ batchCode }) => {
-  if (!batchCode || batchCode === 'N/A') {
+  const batchDisplay = getBatchCodeDisplay(batchCode);
+
+  if (batchDisplay.type === 'missing') {
     return (
       <Typography variant="caption" color="text.secondary">
-        No batch
+        {batchDisplay.label}
       </Typography>
     );
   }
 
-  // If batch code is short (<=8 chars), display it normally
-  if (batchCode.length <= 8) {
+  if (batchDisplay.type === 'full') {
     return (
       <Chip
-        label={batchCode}
+        label={batchDisplay.label}
         size="small"
         variant="outlined"
         sx={{
@@ -44,12 +52,10 @@ const ShortBatchCode = ({ batchCode }) => {
     );
   }
 
-  // For longer codes, show first 6 chars + "..."
-  const shortCode = batchCode.substring(0, 6) + '...';
   return (
-    <Tooltip title={`Batch: ${batchCode}`} arrow placement="top">
+    <Tooltip title={`Batch: ${batchDisplay.fullLabel}`} arrow placement="top">
       <Chip
-        label={shortCode}
+        label={batchDisplay.label}
         size="small"
         variant="outlined"
         sx={{
@@ -74,7 +80,7 @@ const CartTable = ({
 
   useEffect(() => {
     if (lastAddedItemId) {
-      const rowElement = document.getElementById(`cart-row-${lastAddedItemId}`);
+      const rowElement = document.getElementById(getCartRowId(lastAddedItemId));
       if (rowElement) {
         rowElement.scrollIntoView({
           behavior: 'smooth',
@@ -117,16 +123,16 @@ const CartTable = ({
           </TableHead>
           <TableBody>
             {cart.map((item, index) => {
-              const discountPerUnit = item.mrp - item.price;
-              const totalDiscount = discountPerUnit * item.quantity;
+              const totalDiscount = getCartItemDiscount(item);
               return (
                 <TableRow
                   key={item.batch_id}
-                  id={`cart-row-${item.batch_id}`}
+                  id={getCartRowId(item.batch_id)}
                   hover
                   sx={{
-                    backgroundColor:
-                      item.batch_id === lastAddedItemId ? 'rgba(76, 175, 80, 0.15)' : 'inherit',
+                    backgroundColor: shouldHighlightCartRow(item.batch_id, lastAddedItemId)
+                      ? 'rgba(76, 175, 80, 0.15)'
+                      : 'inherit',
                     transition: 'background-color 0.5s ease',
                   }}
                 >
@@ -290,7 +296,7 @@ const CartTable = ({
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" fontWeight="bold">
-                      ₹{(item.price * item.quantity).toFixed(2)}
+                      ₹{getCartItemTotal(item).toFixed(2)}
                     </Typography>
                   </TableCell>
                   <TableCell>

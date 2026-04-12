@@ -102,8 +102,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
                       fontSize: '0.75rem',
                       height: 'auto',
                       py: 0.5,
-                      borderColor:
-                        selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
+                      borderColor: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
                       color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : 'inherit',
                     }}
                   />
@@ -249,8 +248,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
                                 label={returnedQty === item.quantity ? 'Refunded' : 'Returned'}
                                 size="small"
                                 sx={{
-                                  bgcolor:
-                                    returnedQty === item.quantity ? '#ffebee' : '#e8f5e9',
+                                  bgcolor: returnedQty === item.quantity ? '#ffebee' : '#e8f5e9',
                                   color: returnedQty === item.quantity ? '#d32f2f' : '#2e7d32',
                                   fontWeight: 700,
                                   fontSize: '0.7rem',

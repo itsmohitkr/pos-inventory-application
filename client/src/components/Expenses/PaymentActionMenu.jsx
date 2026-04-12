@@ -10,10 +10,7 @@ import {
   Menu,
   MenuItem,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 const PAYMENT_METHODS = ['Cash', 'Card', 'UPI', 'Bank Transfer'];
 

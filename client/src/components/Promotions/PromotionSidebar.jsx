@@ -1,9 +1,6 @@
 import React from 'react';
 import { Box, Paper, Typography, Button } from '@mui/material';
-import {
-  Settings as SettingsIcon,
-  CalendarToday as CalendarIcon,
-} from '@mui/icons-material';
+import { Settings as SettingsIcon, CalendarToday as CalendarIcon } from '@mui/icons-material';
 
 const PromotionSidebar = ({ activeTab, onChangeTab }) => (
   <Paper
@@ -40,7 +37,9 @@ const PromotionSidebar = ({ activeTab, onChangeTab }) => (
           textTransform: 'none',
           '&:hover': { bgcolor: 'rgba(11, 29, 57, 0.08)' },
         }}
-        startIcon={<SettingsIcon sx={{ color: activeTab === 'threshold' ? '#0b1d39' : '#94a3b8' }} />}
+        startIcon={
+          <SettingsIcon sx={{ color: activeTab === 'threshold' ? '#0b1d39' : '#94a3b8' }} />
+        }
       >
         Order Thresholding
       </Button>

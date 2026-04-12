@@ -17,10 +17,7 @@ import {
   Paper,
   IconButton,
 } from '@mui/material';
-import {
-  History as HistoryIcon,
-  MoreVert as MoreVertIcon,
-} from '@mui/icons-material';
+import { History as HistoryIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 
 /**
  * Unified payment history dialog for both purchases and expenses.
@@ -110,10 +107,7 @@ const PaymentHistoryDialog = ({ open, onClose, title, subject, totalField, onOpe
                           <Typography sx={{ fontWeight: 'medium', color: 'success.main' }}>
                             ₹{payment.amount.toLocaleString()}
                           </Typography>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => onOpenPaymentMenu(e, payment)}
-                          >
+                          <IconButton size="small" onClick={(e) => onOpenPaymentMenu(e, payment)}>
                             <MoreVertIcon fontSize="small" />
                           </IconButton>
                         </Box>

@@ -106,7 +106,10 @@ const PriceListPreviewPanel = ({
                   </IconButton>
                 </span>
               </Tooltip>
-              <Typography variant="caption" sx={{ minWidth: 45, textAlign: 'center', fontWeight: 600 }}>
+              <Typography
+                variant="caption"
+                sx={{ minWidth: 45, textAlign: 'center', fontWeight: 600 }}
+              >
                 {Math.round(activePreviewScale * 100)}%
               </Typography>
               <Tooltip title="Zoom In">

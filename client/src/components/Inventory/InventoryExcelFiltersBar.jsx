@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  Paper,
-  Box,
-  TextField,
-  InputAdornment,
-  Chip,
-} from '@mui/material';
+import { Paper, Box, TextField, InputAdornment, Chip } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
 
 const InventoryExcelFiltersBar = ({

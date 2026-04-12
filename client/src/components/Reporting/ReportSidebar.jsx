@@ -116,10 +116,7 @@ const ReportSidebar = ({ reportType, onReportTypeChange }) => {
                 >
                   <IconComponent />
                 </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{ fontWeight: 600 }}
-                />
+                <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600 }} />
               </ListItemButton>
             </ListItem>
           );

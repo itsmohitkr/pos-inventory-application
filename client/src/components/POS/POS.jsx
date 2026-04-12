@@ -1,27 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  IconButton,
-  Tooltip,
-  Chip,
-  ButtonBase,
-} from '@mui/material';
-import {
-  Fullscreen as FullscreenIcon,
-  FullscreenExit as FullscreenExitIcon,
-  LocalOffer as PromoIcon,
-  Close as CloseIcon,
-  Calculate as CalculateIcon,
-} from '@mui/icons-material';
+import { Box, Paper, Button, Chip } from '@mui/material';
+import { LocalOffer as PromoIcon } from '@mui/icons-material';
 
 import POSSearchBar from './POSSearchBar';
 import CartTable from './CartTable';
@@ -31,7 +12,8 @@ import ReceiptPreviewDialog from './ReceiptPreviewDialog';
 import QuantityDialog from './QuantityDialog';
 import LooseSaleDialog from './LooseSaleDialog';
 import POSTabs from './POSTabs';
-import Receipt from './Receipt';
+import POSPrintContainer from './POSPrintContainer';
+import POSFloatingActions from './POSFloatingActions';
 import Calculator from './Calculator';
 import NumpadDialog from './NumpadDialog';
 import PromoGiftsList from './PromoGiftsList';
@@ -55,60 +37,7 @@ import {
   getDecodedPricesEnabled,
 } from '../../shared/utils/paymentSettings';
 
-const STORAGE_KEYS = {
-  receipt: 'posReceiptSettings',
-  shopName: 'posShopName',
-};
-
-const DEFAULT_RECEIPT_SETTINGS = {
-  shopName: true,
-  header: true,
-  footer: true,
-  mrp: true,
-  price: true,
-  discount: true,
-  totalValue: true,
-  productName: true,
-  exp: true,
-  barcode: true,
-  totalSavings: true,
-  customShopName: 'Bachat Bazaar',
-  customHeader: '123 Business Street, City',
-  customHeader2: '',
-  customHeader3: '',
-  customFooter: 'Thank You! Visit Again',
-  customFooter2: '',
-  directPrint: true,
-  printerType: '',
-  paperSize: '72mm',
-  marginTop: 0,
-  marginBottom: 0,
-  marginSide: 4,
-  roundOff: true,
-  billFormat: 'Standard',
-  fontSize: 0.7,
-  itemFontSize: 0.7,
-  lineHeight: 1.1,
-  invoiceLabel: 'Tax Invoice',
-  showBranding: false,
-  titleAlign: 'center',
-  headerAlign: 'center',
-  footerAlign: 'center',
-};
-
-const getStoredReceiptSettings = () => {
-  try {
-    const shopName = localStorage.getItem(STORAGE_KEYS.shopName) || 'Bachat Bazaar';
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.receipt));
-    return {
-      ...DEFAULT_RECEIPT_SETTINGS,
-      customShopName: shopName,
-      ...stored,
-    };
-  } catch {
-    return { ...DEFAULT_RECEIPT_SETTINGS };
-  }
-};
+import { STORAGE_KEYS, getStoredReceiptSettings } from './posReceiptSettings';
 
 const POS = ({
   receiptSettings: propReceiptSettings,
@@ -277,9 +206,9 @@ const POS = ({
 
       return Boolean(
         target.closest('.no-print') ||
-          target.closest('[role="dialog"]') ||
-          target.closest('.MuiAutocomplete-popper') ||
-          target.closest('.MuiPopover-root')
+        target.closest('[role="dialog"]') ||
+        target.closest('.MuiAutocomplete-popper') ||
+        target.closest('.MuiPopover-root')
       );
     };
 
@@ -734,69 +663,13 @@ const POS = ({
           position: 'relative',
         }}
       >
-        {/* Fullscreen Toggle Button - Bottom Left */}
-        {fullscreenEnabled && (
-          <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}>
-            <IconButton
-              className="pos-action-btn"
-              onClick={handleFullscreenToggle}
-              size="large"
-              sx={{
-                position: 'fixed',
-                bottom: 20,
-                left: 20,
-                zIndex: 999,
-                width: 56,
-                height: 56,
-                bgcolor: '#1976d2',
-                color: 'white',
-                boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
-                border: 'none',
-                '&:hover': {
-                  bgcolor: '#1565c0',
-                  boxShadow: '0 6px 16px rgba(25, 118, 210, 0.5)',
-                },
-                transition: 'all 0.2s ease',
-              }}
-            >
-              {isFullscreen ? (
-                <FullscreenExitIcon sx={{ fontSize: '1.8rem' }} />
-              ) : (
-                <FullscreenIcon sx={{ fontSize: '1.8rem' }} />
-              )}
-            </IconButton>
-          </Tooltip>
-        )}
-
-        {/* Calculator Button - Bottom Left (above fullscreen) */}
-        {isCalculatorEnabled && (
-          <Tooltip title="Open POS Calculator">
-            <IconButton
-              className="pos-action-btn"
-              onClick={() => setShowCalculator(true)}
-              size="large"
-              sx={{
-                position: 'fixed',
-                bottom: fullscreenEnabled ? 86 : 20,
-                left: 20,
-                zIndex: 999,
-                width: 56,
-                height: 56,
-                bgcolor: '#0284c7',
-                color: 'white',
-                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
-                border: 'none',
-                '&:hover': {
-                  bgcolor: '#0369a1',
-                  boxShadow: '0 6px 16px rgba(2, 132, 199, 0.5)',
-                },
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <CalculateIcon sx={{ fontSize: '1.8rem' }} />
-            </IconButton>
-          </Tooltip>
-        )}
+        <POSFloatingActions
+          fullscreenEnabled={fullscreenEnabled}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleFullscreenToggle}
+          isCalculatorEnabled={isCalculatorEnabled}
+          onOpenCalculator={() => setShowCalculator(true)}
+        />
 
         <Paper
           elevation={0}
@@ -1002,32 +875,11 @@ const POS = ({
       </Box>
       <CustomDialog {...dialogState} onClose={closeDialog} />
 
-      {/* Hidden Print Container for Direct Printing */}
-      <Box
-        sx={{
-          position: 'absolute',
-          left: '-9999px',
-          top: '-9999px',
-          height: 0,
-          overflow: 'hidden',
-          '@media print': {
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            width: '100%',
-            height: 'auto',
-            overflow: 'visible',
-            display: 'block',
-            zIndex: 9999,
-          },
-        }}
-      >
-        <div id="thermal-receipt-print">
-          {lastSale && (
-            <Receipt sale={lastSale} settings={receiptSettings} shopMetadata={shopMetadata} />
-          )}
-        </div>
-      </Box>
+      <POSPrintContainer
+        lastSale={lastSale}
+        receiptSettings={receiptSettings}
+        shopMetadata={shopMetadata}
+      />
 
       <Calculator
         open={showCalculator}

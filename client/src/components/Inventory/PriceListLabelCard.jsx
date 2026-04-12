@@ -35,7 +35,10 @@ const PriceListLabelCard = ({ label, options = {}, layout, displayOptions }) => 
       }}
     >
       {displayOptions.barcode && label.barcodeValue ? (
-        <Box className="barcode-block" sx={{ display: 'flex', justifyContent: 'center', px: 0.5, mb: 0.5 }}>
+        <Box
+          className="barcode-block"
+          sx={{ display: 'flex', justifyContent: 'center', px: 0.5, mb: 0.5 }}
+        >
           <Barcode
             value={label.barcodeValue}
             format={layout.barcodeFormat || 'CODE128'}
@@ -63,22 +66,34 @@ const PriceListLabelCard = ({ label, options = {}, layout, displayOptions }) => 
         }}
       >
         {displayOptions.productName && (
-          <Typography className="label-line label-name" sx={{ fontSize: '0.68rem', fontWeight: 700, textAlign: resolvedTextAlign }}>
+          <Typography
+            className="label-line label-name"
+            sx={{ fontSize: '0.68rem', fontWeight: 700, textAlign: resolvedTextAlign }}
+          >
             {label.product.name}
           </Typography>
         )}
         {displayOptions.mrp && (
-          <Typography className="label-line" sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}>
+          <Typography
+            className="label-line"
+            sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}
+          >
             MRP: Rs {formatCurrency(label.batch?.mrp)}
           </Typography>
         )}
         {displayOptions.salePrice && (
-          <Typography className="label-line" sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}>
+          <Typography
+            className="label-line"
+            sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}
+          >
             Sale: Rs {formatCurrency(label.batch?.sellingPrice)}
           </Typography>
         )}
         {displayOptions.batchNumber && (
-          <Typography className="label-line" sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}>
+          <Typography
+            className="label-line"
+            sx={{ fontSize: '0.64rem', textAlign: resolvedTextAlign }}
+          >
             Batch: {label.batch?.batchCode || '-'}
           </Typography>
         )}

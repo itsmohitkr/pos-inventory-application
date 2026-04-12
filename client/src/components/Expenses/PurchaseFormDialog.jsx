@@ -22,9 +22,7 @@ const PurchaseFormDialog = ({
 }) => (
   <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
     <form onSubmit={onSubmit}>
-      <DialogTitle>
-        {purchaseForm.id ? 'Edit Purchase' : 'Log Inventory Purchase'}
-      </DialogTitle>
+      <DialogTitle>{purchaseForm.id ? 'Edit Purchase' : 'Log Inventory Purchase'}</DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

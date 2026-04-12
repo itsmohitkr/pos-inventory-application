@@ -43,14 +43,38 @@ const PromotionFormDialog = ({
   onRemoveItem,
   onSubmit,
 }) => (
-  <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
-    <DialogTitle sx={{ fontWeight: 800, fontSize: '1.5rem', color: '#0b1d39', borderBottom: '1px solid #f0f0f0', pb: 2 }}>
+  <Dialog
+    open={open}
+    onClose={onClose}
+    maxWidth="md"
+    fullWidth
+    PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+  >
+    <DialogTitle
+      sx={{
+        fontWeight: 800,
+        fontSize: '1.5rem',
+        color: '#0b1d39',
+        borderBottom: '1px solid #f0f0f0',
+        pb: 2,
+      }}
+    >
       {isEditMode ? 'Edit Sale Event' : 'Schedule New Sale Event'}
     </DialogTitle>
     <DialogContent sx={{ mt: 3, '&::-webkit-scrollbar': { display: 'none' } }}>
       <Grid container spacing={4}>
         <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#1b3e6f', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              mb: 2,
+              color: '#1b3e6f',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
             <CalendarIcon fontSize="small" /> Event Details
           </Typography>
           <Grid container spacing={3}>
@@ -97,11 +121,24 @@ const PromotionFormDialog = ({
         </Grid>
 
         <Grid item xs={12}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#1b3e6f', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              mb: 2,
+              color: '#1b3e6f',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
             <PromoIcon fontSize="small" /> Add Products
           </Typography>
 
-          <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, bgcolor: '#fbfbfd', border: '1px solid #e2e8f0', mb: 3 }}>
+          <Paper
+            variant="outlined"
+            sx={{ p: 3, borderRadius: 2, bgcolor: '#fbfbfd', border: '1px solid #e2e8f0', mb: 3 }}
+          >
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
               <Autocomplete
                 sx={{ flexGrow: 1, minWidth: 350 }}
@@ -146,62 +183,136 @@ const PromotionFormDialog = ({
 
             {productPriceInfo && (
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Box sx={{ flex: 1, p: 1.5, bgcolor: 'white', border: '1px solid #e2e8f0', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
+                <Box
+                  sx={{
+                    flex: 1,
+                    p: 1.5,
+                    bgcolor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 2,
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}
+                  >
                     MRP
                   </Typography>
                   <Typography variant="body1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                     ₹{productPriceInfo.mrp}
                   </Typography>
                 </Box>
-                <Box sx={{ flex: 1, p: 1.5, bgcolor: 'white', border: '1px solid #e2e8f0', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
+                <Box
+                  sx={{
+                    flex: 1,
+                    p: 1.5,
+                    bgcolor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 2,
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}
+                  >
                     Cost Price
                   </Typography>
                   <Typography variant="body1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                     ₹{productPriceInfo.costPrice}
                   </Typography>
                 </Box>
-                <Box sx={{ flex: 1, p: 1.5, bgcolor: 'white', border: '1px solid #e2e8f0', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
+                <Box
+                  sx={{
+                    flex: 1,
+                    p: 1.5,
+                    bgcolor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 2,
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}
+                  >
                     Current SP
                   </Typography>
                   <Typography variant="body1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                     ₹{productPriceInfo.sellingPrice}
                   </Typography>
                 </Box>
-                <Box sx={{ flex: 1, p: 1.5, bgcolor: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography variant="caption" sx={{ color: '#db2777', display: 'block', mb: 0.5, fontWeight: 700 }}>
+                <Box
+                  sx={{
+                    flex: 1,
+                    p: 1.5,
+                    bgcolor: '#fdf2f8',
+                    border: '1px solid #fbcfe8',
+                    borderRadius: 2,
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ color: '#db2777', display: 'block', mb: 0.5, fontWeight: 700 }}
+                  >
                     Discount Amount
                   </Typography>
                   <Typography variant="body1" sx={{ fontWeight: 800, color: '#be185d' }}>
-                    ₹{Math.max(0, productPriceInfo.sellingPrice - parseFloat(promoPrice || 0)).toFixed(2)}
+                    ₹
+                    {Math.max(
+                      0,
+                      productPriceInfo.sellingPrice - parseFloat(promoPrice || 0)
+                    ).toFixed(2)}
                   </Typography>
                 </Box>
               </Box>
             )}
           </Paper>
 
-          <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{ border: '1px solid #e2e8f0', borderRadius: 2, overflow: 'hidden' }}
+          >
             <Table size="small">
               <TableHead sx={{ bgcolor: '#f8fafc' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, color: '#475569', py: 2 }}>Product</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: '#475569', py: 2 }}>MRP</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: '#475569', py: 2 }}>Current SP</TableCell>
-                  <TableCell sx={{ fontWeight: 800, color: '#0b1d39', py: 2 }}>Sale Price</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: '#475569', py: 2 }}>
+                    Current SP
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 800, color: '#0b1d39', py: 2 }}>
+                    Sale Price
+                  </TableCell>
                   <TableCell align="right" sx={{ py: 2 }} />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {formData.items.map((item, index) => (
-                  <TableRow key={index} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                  <TableRow
+                    key={index}
+                    hover
+                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  >
                     <TableCell sx={{ fontWeight: 500 }}>{item.productName}</TableCell>
                     <TableCell sx={{ color: '#64748b' }}>₹{item.mrp}</TableCell>
                     <TableCell sx={{ color: '#64748b' }}>₹{item.sellingPrice}</TableCell>
-                    <TableCell sx={{ fontWeight: 800, color: '#16a34a', fontSize: '1.05rem' }}>₹{item.promoPrice}</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: '#16a34a', fontSize: '1.05rem' }}>
+                      ₹{item.promoPrice}
+                    </TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" onClick={() => onRemoveItem(index)} color="error" sx={{ bgcolor: '#fef2f2', '&:hover': { bgcolor: '#fee2e2' } }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => onRemoveItem(index)}
+                        color="error"
+                        sx={{ bgcolor: '#fef2f2', '&:hover': { bgcolor: '#fee2e2' } }}
+                      >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </TableCell>

@@ -10,7 +10,11 @@ import {
   Button,
 } from '@mui/material';
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
-
+import {
+  dispatchBarcodeNotFound,
+  POS_SEARCH_TIMINGS,
+  resolveEnterKeyProduct,
+} from './posSearchBarUtils';
 
 const POSSearchBar = React.forwardRef(
   (
@@ -43,7 +47,7 @@ const POSSearchBar = React.forwardRef(
           setAnimating(false);
           setTypewriterBarcode('');
           onSearchInputChange('');
-        }, 10);
+        }, POS_SEARCH_TIMINGS.SELECTION_RESET_DELAY);
       },
       [onSearchInputChange, onSelectProduct]
     );
@@ -62,7 +66,7 @@ const POSSearchBar = React.forwardRef(
         if (inputRef.current) {
           inputRef.current.focus();
         }
-      }, 150);
+      }, POS_SEARCH_TIMINGS.AUTO_FOCUS_DELAY);
 
       // Cleanup timer on unmount
       return () => {
@@ -75,7 +79,7 @@ const POSSearchBar = React.forwardRef(
       if (!searchQuery && !animating && inputRef.current) {
         const focusTimer = setTimeout(() => {
           inputRef.current?.focus();
-        }, 20);
+        }, POS_SEARCH_TIMINGS.AUTO_FOCUS_REFOCUS_DELAY);
         return () => clearTimeout(focusTimer);
       }
     }, [searchQuery, animating]);
@@ -90,18 +94,20 @@ const POSSearchBar = React.forwardRef(
     const handleKeyDown = (event) => {
       if (event.key === 'Enter' && searchQuery.trim()) {
         event.preventDefault();
-        const filtered = filterOptions(products, { inputValue: searchQuery });
-        const selectedProduct = highlightedOptionRef.current || filtered[0] || null;
+        const selectedProduct = resolveEnterKeyProduct({
+          products,
+          filterOptions,
+          searchQuery,
+          highlighted: highlightedOptionRef.current,
+        });
 
         if (!selectedProduct) {
-          if (window && window.dispatchEvent) {
-            window.dispatchEvent(new CustomEvent('pos-barcode-not-found', { detail: searchQuery }));
-          }
+          dispatchBarcodeNotFound(searchQuery);
           setTypewriterBarcode(searchQuery);
           window.setTimeout(() => {
             setTypewriterBarcode('');
             onSearchInputChange('');
-          }, 300);
+          }, POS_SEARCH_TIMINGS.BARCODE_NOT_FOUND_CLEAR_DELAY);
           return;
         }
 

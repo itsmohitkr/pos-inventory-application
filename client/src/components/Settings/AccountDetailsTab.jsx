@@ -46,7 +46,11 @@ const AccountDetailsTab = ({
   return (
     <Box>
       <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+        >
           <StoreIcon fontSize="small" color="primary" />
           Shop Information
         </Typography>
@@ -76,7 +80,11 @@ const AccountDetailsTab = ({
                   endAdornment: <PhotoCameraIcon color="action" />,
                 }}
               />
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, display: 'block' }}
+              >
                 Enter a URL for your shop logo
               </Typography>
             </Box>
@@ -137,7 +145,11 @@ const AccountDetailsTab = ({
       </Paper>
 
       <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+        >
           <UpdateIcon fontSize="small" color="primary" />
           Application Updates
         </Typography>

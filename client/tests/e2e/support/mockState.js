@@ -53,7 +53,9 @@ const buildSummary = (products) => {
 };
 
 const buildCategoryTree = (products) => {
-  const uniqueCategories = [...new Set(products.map((product) => product.category).filter(Boolean))];
+  const uniqueCategories = [
+    ...new Set(products.map((product) => product.category).filter(Boolean)),
+  ];
 
   return uniqueCategories.map((category) => ({
     id: category.toLowerCase().replace(/\s+/g, '-'),
@@ -84,7 +86,10 @@ const ensureUiShape = (product) => ({
 });
 
 const recalculateProductTotals = (product) => {
-  const totalStock = (product.batches || []).reduce((sum, batch) => sum + toNumeric(batch.quantity, 0), 0);
+  const totalStock = (product.batches || []).reduce(
+    (sum, batch) => sum + toNumeric(batch.quantity, 0),
+    0
+  );
   product.totalQuantity = totalStock;
   product.total_stock = totalStock;
 };
@@ -107,13 +112,14 @@ export const createMockState = () => {
         0,
         ...salesFixture.flatMap((sale) => (sale.items || []).map((item) => Number(item.id) || 0))
       ) + 1,
-    nextLooseSaleId:
-      Math.max(0, ...looseSalesFixture.map((sale) => Number(sale.id) || 0)) + 1,
+    nextLooseSaleId: Math.max(0, ...looseSalesFixture.map((sale) => Number(sale.id) || 0)) + 1,
   };
 
   const findProductAndBatchByBatchId = (batchId) => {
     for (const product of state.products) {
-      const batch = (product.batches || []).find((candidate) => String(candidate.id) === String(batchId));
+      const batch = (product.batches || []).find(
+        (candidate) => String(candidate.id) === String(batchId)
+      );
       if (batch) {
         return { product, batch };
       }
@@ -125,7 +131,8 @@ export const createMockState = () => {
     state.products.find((item) => String(item.id) === String(productId)) || null;
 
   const getProductByBarcodeInternal = (barcode) =>
-    state.products.find((item) => item.barcode?.split('|').some((entry) => entry === barcode)) || null;
+    state.products.find((item) => item.barcode?.split('|').some((entry) => entry === barcode)) ||
+    null;
 
   return {
     getProducts: () => state.products,
@@ -197,37 +204,39 @@ export const createMockState = () => {
     },
     processSale: (payload) => {
       const rawItems = payload.items || [];
-      const saleItems = rawItems.map((item) => {
-        const match = findProductAndBatchByBatchId(item.batch_id);
-        const quantity = toNumeric(item.quantity, 0);
-        const sellingPrice = toNumeric(item.sellingPrice, 0);
+      const saleItems = rawItems
+        .map((item) => {
+          const match = findProductAndBatchByBatchId(item.batch_id);
+          const quantity = toNumeric(item.quantity, 0);
+          const sellingPrice = toNumeric(item.sellingPrice, 0);
 
-        if (!match || quantity <= 0) {
-          return null;
-        }
+          if (!match || quantity <= 0) {
+            return null;
+          }
 
-        const { product, batch } = match;
-        batch.quantity = Math.max(0, toNumeric(batch.quantity, 0) - quantity);
-        recalculateProductTotals(product);
+          const { product, batch } = match;
+          batch.quantity = Math.max(0, toNumeric(batch.quantity, 0) - quantity);
+          recalculateProductTotals(product);
 
-        return {
-          id: state.nextSaleItemId++,
-          batchId: batch.id,
-          quantity,
-          returnedQuantity: 0,
-          sellingPrice,
-          isFree: Boolean(item.isFree),
-          productName: product.name,
-          batch: {
-            id: batch.id,
-            batchCode: batch.batchCode || batch.batchNumber || null,
-            product: {
-              id: product.id,
-              name: product.name,
+          return {
+            id: state.nextSaleItemId++,
+            batchId: batch.id,
+            quantity,
+            returnedQuantity: 0,
+            sellingPrice,
+            isFree: Boolean(item.isFree),
+            productName: product.name,
+            batch: {
+              id: batch.id,
+              batchCode: batch.batchCode || batch.batchNumber || null,
+              product: {
+                id: product.id,
+                name: product.name,
+              },
             },
-          },
-        };
-      }).filter(Boolean);
+          };
+        })
+        .filter(Boolean);
 
       const saleId = state.nextSaleId++;
       const totalAmount = saleItems.reduce(
@@ -255,7 +264,9 @@ export const createMockState = () => {
       if (!sale) return null;
 
       for (const returnedItem of items || []) {
-        const saleItem = sale.items.find((entry) => String(entry.id) === String(returnedItem.saleItemId));
+        const saleItem = sale.items.find(
+          (entry) => String(entry.id) === String(returnedItem.saleItemId)
+        );
         if (!saleItem) {
           continue;
         }
@@ -286,11 +297,14 @@ export const createMockState = () => {
     },
     deletePromotion: (id) => {
       const before = state.promotions.length;
-      state.promotions = state.promotions.filter((promotion) => String(promotion.id) !== String(id));
+      state.promotions = state.promotions.filter(
+        (promotion) => String(promotion.id) !== String(id)
+      );
       return before !== state.promotions.length;
     },
     createPromotion: (payload) => {
-      const nextId = Math.max(0, ...state.promotions.map((promotion) => Number(promotion.id) || 0)) + 1;
+      const nextId =
+        Math.max(0, ...state.promotions.map((promotion) => Number(promotion.id) || 0)) + 1;
       const newPromotion = {
         id: nextId,
         ...payload,
@@ -331,7 +345,8 @@ export const createMockState = () => {
     updateExpense: (id, payload) => {
       const expense = state.expenses.find((item) => String(item.id) === String(id));
       if (!expense) return null;
-      expense.amount = payload.amount !== undefined ? toNumeric(payload.amount, expense.amount) : expense.amount;
+      expense.amount =
+        payload.amount !== undefined ? toNumeric(payload.amount, expense.amount) : expense.amount;
       expense.category = payload.category ?? expense.category;
       expense.description = payload.description ?? expense.description;
       expense.date = payload.date ? new Date(payload.date).toISOString() : expense.date;
@@ -345,7 +360,8 @@ export const createMockState = () => {
     },
     getPurchases: () => state.purchases,
     createPurchase: (payload) => {
-      const nextId = Math.max(0, ...state.purchases.map((purchase) => Number(purchase.id) || 0)) + 1;
+      const nextId =
+        Math.max(0, ...state.purchases.map((purchase) => Number(purchase.id) || 0)) + 1;
       const totalAmount = toNumeric(payload.totalAmount, 0);
       const totalPaid = toNumeric(payload.paidAmount, 0);
       const dueAmount = Math.max(0, totalAmount - totalPaid);

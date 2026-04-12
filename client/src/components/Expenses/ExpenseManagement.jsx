@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -47,14 +47,14 @@ import RecordPaymentDialog from './RecordPaymentDialog';
 import PaymentHistoryDialog from './PaymentHistoryDialog';
 import PaymentActionMenu from './PaymentActionMenu';
 import { getResponseArray } from '../../shared/utils/responseGuards';
-
-// Helper to get local date string YYYY-MM-DD
-const getLocalTodayString = () => {
-  const tzoffset = new Date().getTimezoneOffset() * 60000;
-  return new Date(Date.now() - tzoffset).toISOString().slice(0, -1).split('T')[0];
-};
-
-const splitIsoDate = (isoString) => isoString.split('T')[0];
+import {
+  getLocalTodayString,
+  splitIsoDate,
+  getExpenseDateRange,
+  filterExpenses,
+  filterPurchases,
+  calculateExpenseTotals,
+} from './expenseManagementUtils';
 
 const ExpenseManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -133,81 +133,11 @@ const ExpenseManagement = () => {
 
   const categories = ['Electricity', 'Rent', 'Wages', 'WiFi', 'Maintenance', 'Misc'];
 
-  const getDateRange = useCallback(
-    (type) => {
-      const now = new Date();
-      let start = new Date(now);
-      let end = new Date(now);
-
-      switch (type) {
-        case 'today':
-          start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-          break;
-        case 'yesterday':
-          start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-          end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-          break;
-        case 'thisWeek': {
-          const day = now.getDay();
-          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-          start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-          break;
-        }
-        case 'lastWeek': {
-          const day = now.getDay();
-          const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
-          start = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 7, 0, 0, 0, 0);
-          end = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 1, 23, 59, 59, 999);
-          break;
-        }
-        case 'thisMonth':
-          start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-          break;
-        case 'lastMonth':
-          start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-          end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-          break;
-        case 'thisYear':
-          start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-          break;
-        case 'lastYear':
-          start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
-          end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
-          break;
-        case 'custom': {
-          const start = customDates.start
-            ? (() => {
-              const [y, m, d] = customDates.start.split('-').map(Number);
-              return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString();
-            })()
-            : undefined;
-
-          const end = customDates.end
-            ? (() => {
-              const [y, m, d] = customDates.end.split('-').map(Number);
-              return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
-            })()
-            : undefined;
-
-          return { startDate: start, endDate: end };
-        }
-        default:
-          return {};
-      }
-      return { startDate: start.toISOString(), endDate: end.toISOString() };
-    },
-    [customDates]
-  );
-
   const fetchData = useCallback(
     async (callback) => {
       setError(null);
       try {
-        const range = getDateRange(dateFilter);
+        const range = getExpenseDateRange(dateFilter, customDates);
         const { startDate, endDate } = range;
 
         const params = {};
@@ -235,7 +165,7 @@ const ExpenseManagement = () => {
         // Data fetch attempt finished
       }
     },
-    [dateFilter, getDateRange]
+    [dateFilter, customDates]
   );
 
   useEffect(() => {
@@ -571,35 +501,22 @@ const ExpenseManagement = () => {
   // Derived totals
   const vendorOptions = Array.from(new Set(purchases.map((p) => p.vendor).filter(Boolean)));
 
-  // Filtering expenses
-  const filteredExpenses = expenses.filter((e) => {
-    if (expenseCategoryFilter !== 'All' && e.category !== expenseCategoryFilter) return false;
-    if (
-      expenseSearchFilter &&
-      !e.description?.toLowerCase().includes(expenseSearchFilter.toLowerCase()) &&
-      !e.category.toLowerCase().includes(expenseSearchFilter.toLowerCase())
-    )
-      return false;
-    return true;
-  });
+  const filteredExpenses = useMemo(
+    () => filterExpenses(expenses, expenseCategoryFilter, expenseSearchFilter),
+    [expenses, expenseCategoryFilter, expenseSearchFilter]
+  );
 
-  // Filtering purchases
-  const filteredPurchases = purchases.filter((p) => {
-    if (purchaseStatusFilter !== 'All' && p.paymentStatus !== purchaseStatusFilter) return false;
-    if (purchaseVendorFilter !== 'All' && p.vendor !== purchaseVendorFilter) return false;
-    if (purchaseSearchFilter) {
-      const search = purchaseSearchFilter.toLowerCase();
-      const vendorMatch = p.vendor?.toLowerCase().includes(search);
-      const noteMatch = p.note?.toLowerCase().includes(search);
-      if (!vendorMatch && !noteMatch) return false;
-    }
-    return true;
-  });
+  const filteredPurchases = useMemo(
+    () =>
+      filterPurchases(purchases, purchaseStatusFilter, purchaseVendorFilter, purchaseSearchFilter),
+    [purchases, purchaseStatusFilter, purchaseVendorFilter, purchaseSearchFilter]
+  );
 
-  const totalExpensesAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalExpensesDue = filteredExpenses.reduce((sum, e) => sum + (e.dueAmount || 0), 0); // New
-  const totalPurchasesAmount = filteredPurchases.reduce((sum, p) => sum + p.totalAmount, 0);
-  const totalPurchasesDue = filteredPurchases.reduce((sum, p) => sum + (p.dueAmount || 0), 0);
+  const { totalExpensesAmount, totalExpensesDue, totalPurchasesAmount, totalPurchasesDue } =
+    useMemo(
+      () => calculateExpenseTotals(filteredExpenses, filteredPurchases),
+      [filteredExpenses, filteredPurchases]
+    );
 
   return (
     <Box
@@ -1188,24 +1105,24 @@ const ExpenseManagement = () => {
           isEditDisabled={
             selectedPurchase
               ? !selectedPurchase.payments?.length ||
-              !selectedPayment ||
-              selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
-              selectedPayment.id
+                !selectedPayment ||
+                selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
+                  selectedPayment.id
               : !selectedExpense?.payments?.length ||
-              !selectedPayment ||
-              selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
-              selectedPayment.id
+                !selectedPayment ||
+                selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
+                  selectedPayment.id
           }
           isDeleteDisabled={
             selectedPurchase
               ? !selectedPurchase.payments?.length ||
-              !selectedPayment ||
-              selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
-              selectedPayment.id
+                !selectedPayment ||
+                selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
+                  selectedPayment.id
               : !selectedExpense?.payments?.length ||
-              !selectedPayment ||
-              selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
-              selectedPayment.id
+                !selectedPayment ||
+                selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
+                  selectedPayment.id
           }
           onOpenEditPayment={handleOpenEditPayment}
           onDeletePayment={() => handleDeletePaymentAction(selectedPayment.id)}

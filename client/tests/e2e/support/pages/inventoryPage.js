@@ -56,8 +56,11 @@ export const createInventoryPage = (page) => {
       const row = getProductRow(productName);
       await row.locator('button:has(svg[data-testid="DeleteIcon"])').click();
       await Promise.all([
-        page.waitForResponse((response) => response.url().includes('/api/products') && response.request().method() === 'DELETE'),
-        page.getByRole('button', { name: 'Yes' }).click()
+        page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/products') && response.request().method() === 'DELETE'
+        ),
+        page.getByRole('button', { name: 'Yes' }).click(),
       ]);
     },
     openQuickInventoryForProduct: async (productName) => {

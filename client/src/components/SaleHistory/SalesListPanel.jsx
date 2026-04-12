@@ -53,13 +53,15 @@ const SalesListPanel = ({
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          {saleType === 'pos' ? 'Sales' : 'Loose Sales'} ({saleType === 'pos' ? sales.length : looseSales.length})
+          {saleType === 'pos' ? 'Sales' : 'Loose Sales'} (
+          {saleType === 'pos' ? sales.length : looseSales.length})
         </Typography>
         <Chip
           label={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
               <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#1b5e20' }}>
-                Total Sales: ₹{combinedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                Total Sales: ₹
+                {combinedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Typography>
               <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#64748b' }}>
                 =
@@ -115,10 +117,16 @@ const SalesListPanel = ({
               </TableCell>
               {saleType === 'pos' && (
                 <>
-                  <TableCell align="center" sx={{ fontWeight: 800, bgcolor: '#f8fafc', minWidth: 100 }}>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 800, bgcolor: '#f8fafc', minWidth: 100 }}
+                  >
                     PAYMENT
                   </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 800, bgcolor: '#f8fafc', minWidth: 110 }}>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 800, bgcolor: '#f8fafc', minWidth: 110 }}
+                  >
                     STATUS
                   </TableCell>
                 </>
@@ -186,7 +194,11 @@ const SalesListPanel = ({
                     </TableCell>
                     <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
-                        <IconButton size="small" onClick={() => onPrintReceipt(sale)} color="success">
+                        <IconButton
+                          size="small"
+                          onClick={() => onPrintReceipt(sale)}
+                          color="success"
+                        >
                           <PrintIcon fontSize="small" />
                         </IconButton>
                         <IconButton size="small" onClick={() => onRefund(sale)} color="error">

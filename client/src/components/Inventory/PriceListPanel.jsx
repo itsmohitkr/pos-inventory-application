@@ -14,10 +14,7 @@ import {
   Typography,
   useMediaQuery,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Print as PrintIcon,
-} from '@mui/icons-material';
+import { Close as CloseIcon, Print as PrintIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import PriceListConfigurationPanel from './PriceListConfigurationPanel';
 import PriceListPreviewPanel from './PriceListPreviewPanel';

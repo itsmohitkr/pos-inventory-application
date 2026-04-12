@@ -1,30 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dashboardService from '../../shared/api/dashboardService';
 import { isRequestCanceled } from '../../shared/api/api';
-import {
-  Container,
-  Typography,
-  Box,
-  CircularProgress,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Paper,
-  Stack,
-} from '@mui/material';
+import { Container, Typography, Box, CircularProgress, Paper, Stack } from '@mui/material';
 
-// Sub-components
-import SalesHistory from './SalesHistory';
-import AnalyticsPanel from './AnalyticsPanel';
-import ExpiryReportPanel from './ExpiryReportPanel';
-import ItemSalesReportPanel from './ItemSalesReportPanel';
-import LowStockReportPanel from './LowStockReportPanel';
-import LooseSalesReportPanel from './LooseSalesReportPanel';
-import CategorySalesPanel from './CategorySalesPanel';
 import ReportSidebar from './ReportSidebar';
 import SaleDetailDialog from './SaleDetailDialog';
+import ReportingTimeframeControls from './ReportingTimeframeControls';
+import ReportingContent from './ReportingContent';
+import { getReportRange, buildInclusiveRangeFromLocalDates } from './reportingTimeframeUtils';
 import { getResponseArray, getResponseObject } from '../../shared/utils/responseGuards';
 
 const Reporting = () => {
@@ -41,74 +24,19 @@ const Reporting = () => {
     endDate: '',
   });
 
-  const getRange = useCallback((type) => {
-    const now = new Date();
-    let start = new Date(now);
-    let end = new Date(now);
-
-    switch (type) {
-      case 'today':
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        break;
-      case 'yesterday':
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-        break;
-      case 'thisWeek': {
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), diff + 6, 23, 59, 59, 999);
-        break;
-      }
-      case 'lastWeek': {
-        const day = now.getDay();
-        const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
-        start = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 7, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), diffToMonday - 1, 23, 59, 59, 999);
-        break;
-      }
-      case 'thisMonth':
-        start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        break;
-      case 'lastMonth':
-        start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-        break;
-      case 'thisYear':
-        start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-        break;
-      case 'lastYear':
-        start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
-        break;
-      default:
-        break;
-    }
-    return {
-      start: start.toISOString(),
-      end: end.toISOString(),
-      localStart: start.toLocaleDateString('en-CA'),
-      localEnd: end.toLocaleDateString('en-CA'),
-    };
-  }, []);
-
   const timeframes = useMemo(
     () => [
-      { label: 'Today', getValue: () => getRange('today') },
-      { label: 'Yesterday', getValue: () => getRange('yesterday') },
-      { label: 'This Week', getValue: () => getRange('thisWeek') },
-      { label: 'Last Week', getValue: () => getRange('lastWeek') },
-      { label: 'This Month', getValue: () => getRange('thisMonth') },
-      { label: 'Last Month', getValue: () => getRange('lastMonth') },
-      { label: 'This Year', getValue: () => getRange('thisYear') },
-      { label: 'Last Year', getValue: () => getRange('lastYear') },
+      { label: 'Today', getValue: () => getReportRange('today') },
+      { label: 'Yesterday', getValue: () => getReportRange('yesterday') },
+      { label: 'This Week', getValue: () => getReportRange('thisWeek') },
+      { label: 'Last Week', getValue: () => getReportRange('lastWeek') },
+      { label: 'This Month', getValue: () => getReportRange('thisMonth') },
+      { label: 'Last Month', getValue: () => getReportRange('lastMonth') },
+      { label: 'This Year', getValue: () => getReportRange('thisYear') },
+      { label: 'Last Year', getValue: () => getReportRange('lastYear') },
       { label: 'Custom', getValue: () => null },
     ],
-    [getRange]
+    []
   );
 
   const fetchReports = useCallback(
@@ -162,15 +90,7 @@ const Reporting = () => {
     if (tabValue < 8) {
       range = timeframes[tabValue].getValue();
     } else if (dateRange.startDate && dateRange.endDate) {
-      // For custom range, ensure we use inclusive local boundaries
-      const [sy, sm, sd] = dateRange.startDate.split('-').map(Number);
-      const [ey, em, ed] = dateRange.endDate.split('-').map(Number);
-
-      if (!isNaN(sy) && !isNaN(ey)) {
-        const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-        const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-        range = { start: start.toISOString(), end: end.toISOString() };
-      }
+      range = buildInclusiveRangeFromLocalDates(dateRange.startDate, dateRange.endDate);
     }
 
     if (range && range.start && range.end) {
@@ -194,17 +114,26 @@ const Reporting = () => {
   };
 
   const handleApplyCustomRange = () => {
-    if (dateRange.startDate && dateRange.endDate) {
-      const [sy, sm, sd] = dateRange.startDate.split('-').map(Number);
-      const [ey, em, ed] = dateRange.endDate.split('-').map(Number);
-
-      const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-      const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
-      fetchReports(start.toISOString(), end.toISOString());
-    }
+    const range = buildInclusiveRangeFromLocalDates(dateRange.startDate, dateRange.endDate);
+    if (!range) return;
+    fetchReports(range.start, range.end);
   };
+
+  const refreshLooseSales = useCallback(() => {
+    const customRange = buildInclusiveRangeFromLocalDates(dateRange.startDate, dateRange.endDate);
+    if (customRange) {
+      fetchReports(customRange.start, customRange.end);
+      return;
+    }
+
+    if (tabValue < 8) {
+      const range = timeframes[tabValue].getValue();
+      fetchReports(range.start, range.end);
+      return;
+    }
+
+    fetchReports();
+  }, [dateRange.startDate, dateRange.endDate, fetchReports, tabValue, timeframes]);
 
   return (
     <Box
@@ -248,52 +177,20 @@ const Reporting = () => {
             </Typography>
           </Box>
           <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-            {reportType !== 'low_stock' && (
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Time Frame</InputLabel>
-                <Select value={tabValue} label="Time Frame" onChange={handleTabChange}>
-                  {timeframes.map((tf, idx) => (
-                    <MenuItem key={idx} value={idx}>
-                      {tf.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-
-            {tabValue === 8 && reportType !== 'low_stock' && (
-              <>
-                <TextField
-                  label="Start Date"
-                  type="date"
-                  size="small"
-                  InputLabelProps={{ shrink: true }}
-                  value={dateRange.startDate || ''}
-                  onChange={(e) =>
-                    setDateRange({
-                      ...dateRange,
-                      startDate: e.target.value,
-                    })
-                  }
-                />
-                <TextField
-                  label="End Date"
-                  type="date"
-                  size="small"
-                  InputLabelProps={{ shrink: true }}
-                  value={dateRange.endDate || ''}
-                  onChange={(e) =>
-                    setDateRange({
-                      ...dateRange,
-                      endDate: e.target.value,
-                    })
-                  }
-                />
-                <Button variant="outlined" onClick={handleApplyCustomRange} sx={{ height: 40 }}>
-                  Apply
-                </Button>
-              </>
-            )}
+            <ReportingTimeframeControls
+              reportType={reportType}
+              tabValue={tabValue}
+              timeframes={timeframes}
+              dateRange={dateRange}
+              onTabChange={handleTabChange}
+              onDateRangeChange={(key, value) =>
+                setDateRange((prev) => ({
+                  ...prev,
+                  [key]: value,
+                }))
+              }
+              onApplyCustomRange={handleApplyCustomRange}
+            />
           </Stack>
         </Box>
       </Paper>
@@ -327,54 +224,18 @@ const Reporting = () => {
             {/* Left Sidebar - Report Selection */}
             <ReportSidebar reportType={reportType} onReportTypeChange={setReportType} />
 
-            {/* Main Content Area */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              {reportType === 'financial_summary' ? (
-                <AnalyticsPanel reportData={reportData} loading={loading} />
-              ) : reportType === 'profit_margin' ? (
-                <SalesHistory
-                  sales={reportData?.sales}
-                  timeframeLabel={timeframes[tabValue].label}
-                  onSelectSale={setSelectedSale}
-                />
-              ) : reportType === 'category_sales' ? (
-                <CategorySalesPanel sales={reportData?.sales || []} />
-              ) : reportType === 'expiry_report' ? (
-                <ExpiryReportPanel
-                  data={expiryData}
-                  loading={loading}
-                  timeframeLabel={tabValue === 8 ? 'Custom' : timeframes[tabValue].label}
-                />
-              ) : reportType === 'item_sales' ? (
-                <ItemSalesReportPanel
-                  sales={reportData?.sales}
-                  loading={loading}
-                  timeframeLabel={tabValue === 8 ? 'Custom' : timeframes[tabValue].label}
-                />
-              ) : reportType === 'low_stock' ? (
-                <LowStockReportPanel data={lowStockData} loading={loading} />
-              ) : (
-                <LooseSalesReportPanel
-                  data={looseSalesData}
-                  loading={loading}
-                  timeframeLabel={tabValue === 8 ? 'Custom' : timeframes[tabValue].label}
-                  onRefresh={() => {
-                    if (dateRange.startDate && dateRange.endDate) {
-                      const [sy, sm, sd] = dateRange.startDate.split('-').map(Number);
-                      const [ey, em, ed] = dateRange.endDate.split('-').map(Number);
-                      const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-                      const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-                      fetchReports(start.toISOString(), end.toISOString());
-                    } else if (tabValue < 8) {
-                      const range = timeframes[tabValue].getValue();
-                      fetchReports(range.start, range.end);
-                    } else {
-                      fetchReports();
-                    }
-                  }}
-                />
-              )}
-            </Box>
+            <ReportingContent
+              reportType={reportType}
+              reportData={reportData}
+              expiryData={expiryData}
+              lowStockData={lowStockData}
+              looseSalesData={looseSalesData}
+              loading={loading}
+              tabValue={tabValue}
+              timeframes={timeframes}
+              onSelectSale={setSelectedSale}
+              onRefreshLooseSales={refreshLooseSales}
+            />
           </Box>
         )}
 

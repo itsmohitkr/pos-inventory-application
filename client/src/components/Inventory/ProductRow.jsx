@@ -1,17 +1,6 @@
 import React from 'react';
-import {
-  TableRow,
-  TableCell,
-  IconButton,
-  Box,
-  Typography,
-  Chip,
-} from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Circle as CircleIcon,
-} from '@mui/icons-material';
+import { TableRow, TableCell, IconButton, Box, Typography, Chip } from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon, Circle as CircleIcon } from '@mui/icons-material';
 import BarcodeChips from './BarcodeChips';
 
 const getStockStatus = (product) => {

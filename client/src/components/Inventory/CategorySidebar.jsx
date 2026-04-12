@@ -83,10 +83,7 @@ const CategorySidebar = ({
               <FolderIcon fontSize="small" color="action" />
             )}
           </ListItemIcon>
-          <ListItemText
-            primary={node.name}
-            secondary={`${categoryCounts[node.path] || 0} items`}
-          />
+          <ListItemText primary={node.name} secondary={`${categoryCounts[node.path] || 0} items`} />
           {hasChildren && (
             <IconButton
               size="small"
@@ -146,11 +143,7 @@ const CategorySidebar = ({
             >
               <SortByAlphaIcon fontSize="small" />
             </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => onAddCategoryDialog(null)}
-              title="Add category"
-            >
+            <IconButton size="small" onClick={() => onAddCategoryDialog(null)} title="Add category">
               <AddIcon fontSize="small" />
             </IconButton>
           </Box>
@@ -302,4 +295,4 @@ const CategorySidebar = ({
   );
 };
 
-export default CategorySidebar;
+export default React.memo(CategorySidebar);

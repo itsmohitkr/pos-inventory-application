@@ -302,8 +302,7 @@ const AddProductForm = ({ onProductAdded }) => {
   const vendorDiscountPercent = mrp > 0 ? (vendorDiscountValue / mrp) * 100 : 0;
   const wholesalePrice = Number(formData.initialBatch.wholesalePrice) || 0;
   const wholesaleSavings = sellingPrice > 0 ? sellingPrice - wholesalePrice : 0;
-  const _wholesalePricePercent =
-    sellingPrice > 0 ? (wholesaleSavings / sellingPrice) * 100 : 0;
+  const _wholesalePricePercent = sellingPrice > 0 ? (wholesaleSavings / sellingPrice) * 100 : 0;
   const wholesaleMarginValue = wholesalePrice - costPrice;
   const _wholesaleMarginPercent =
     wholesalePrice > 0 ? (wholesaleMarginValue / wholesalePrice) * 100 : 0;

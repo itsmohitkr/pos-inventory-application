@@ -45,7 +45,11 @@ const DisplaySettingsTab = ({
   return (
     <Box>
       <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+        >
           <DisplayIcon fontSize="small" color="primary" />
           Display & Zoom Settings
         </Typography>
@@ -126,7 +130,11 @@ const DisplaySettingsTab = ({
                   }}
                 />
               }
-              label={<Typography variant="body1" fontWeight={600}>Enable Monochrome Mode</Typography>}
+              label={
+                <Typography variant="body1" fontWeight={600}>
+                  Enable Monochrome Mode
+                </Typography>
+              }
             />
           </Box>
 
@@ -152,7 +160,11 @@ const DisplaySettingsTab = ({
                   }}
                 />
               }
-              label={<Typography variant="body1" fontWeight={600}>Enable Loose Sale Button</Typography>}
+              label={
+                <Typography variant="body1" fontWeight={600}>
+                  Enable Loose Sale Button
+                </Typography>
+              }
             />
 
             <FormControlLabel
@@ -287,7 +299,11 @@ const DisplaySettingsTab = ({
                   }}
                 />
               }
-              label={<Typography variant="body1" fontWeight={600}>Enable Change Calculator</Typography>}
+              label={
+                <Typography variant="body1" fontWeight={600}>
+                  Enable Change Calculator
+                </Typography>
+              }
             />
 
             <FormControlLabel
@@ -301,7 +317,11 @@ const DisplaySettingsTab = ({
                   }}
                 />
               }
-              label={<Typography variant="body1" fontWeight={600}>Enable Payment Methods</Typography>}
+              label={
+                <Typography variant="body1" fontWeight={600}>
+                  Enable Payment Methods
+                </Typography>
+              }
             />
           </Box>
         </Stack>

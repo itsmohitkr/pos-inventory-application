@@ -253,4 +253,4 @@ try {
 }
 
 // Keep process alive hack
-setInterval(() => { }, 10000);
+setInterval(() => {}, 10000);

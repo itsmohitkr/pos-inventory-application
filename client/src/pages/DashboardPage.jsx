@@ -56,17 +56,20 @@ const Dashboard = () => {
     }
   }, []);
 
-  const fetchMonthlyData = useCallback(async (year) => {
-    setIsSyncingMonthly(true);
-    try {
-      const data = await dashboardService.fetchMonthlyData(year || selectedYear);
-      setMonthlyData(data || []);
-    } catch (error) {
-      console.error('Failed to load monthly sales data:', error);
-    } finally {
-      setIsSyncingMonthly(false);
-    }
-  }, [selectedYear]);
+  const fetchMonthlyData = useCallback(
+    async (year) => {
+      setIsSyncingMonthly(true);
+      try {
+        const data = await dashboardService.fetchMonthlyData(year || selectedYear);
+        setMonthlyData(data || []);
+      } catch (error) {
+        console.error('Failed to load monthly sales data:', error);
+      } finally {
+        setIsSyncingMonthly(false);
+      }
+    },
+    [selectedYear]
+  );
 
   const fetchDailyData = useCallback(async (year, month) => {
     setIsSyncingDaily(true);

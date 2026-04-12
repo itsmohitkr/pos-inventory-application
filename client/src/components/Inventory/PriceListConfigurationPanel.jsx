@@ -468,7 +468,10 @@ const PriceListConfigurationPanel = ({
           <FormGroup>
             <FormControlLabel
               control={
-                <Checkbox checked={displayOptions.mrp} onChange={() => handleDisplayOptionChange('mrp')} />
+                <Checkbox
+                  checked={displayOptions.mrp}
+                  onChange={() => handleDisplayOptionChange('mrp')}
+                />
               }
               label="MRP"
             />
@@ -515,7 +518,9 @@ const PriceListConfigurationPanel = ({
             <Select
               value={layout.textAlign || 'left'}
               label="Text Alignment"
-              onChange={(event) => setLayout((current) => ({ ...current, textAlign: event.target.value }))}
+              onChange={(event) =>
+                setLayout((current) => ({ ...current, textAlign: event.target.value }))
+              }
             >
               <MenuItem value="left">Left</MenuItem>
               <MenuItem value="center">Center</MenuItem>

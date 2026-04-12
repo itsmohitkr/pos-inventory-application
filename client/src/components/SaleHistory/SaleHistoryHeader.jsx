@@ -13,10 +13,7 @@ import {
   TextField,
   Button,
 } from '@mui/material';
-import {
-  ShoppingBag as PosIcon,
-  Sell as LooseIcon,
-} from '@mui/icons-material';
+import { ShoppingBag as PosIcon, Sell as LooseIcon } from '@mui/icons-material';
 
 const SaleHistoryHeader = ({
   saleType,
@@ -49,10 +46,7 @@ const SaleHistoryHeader = ({
       }}
     >
       <Box>
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}
-        >
+        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
           Sale History
         </Typography>
         <Typography variant="body2" color="text.secondary">

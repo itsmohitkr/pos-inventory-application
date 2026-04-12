@@ -3,29 +3,16 @@ import { flushSync } from 'react-dom';
 import posService from '../../shared/api/posService';
 import dashboardService from '../../shared/api/dashboardService';
 import { isRequestCanceled } from '../../shared/api/api';
-import {
-  Container,
-  Typography,
-  Grid,
-  Box,
-  Button,
-  CircularProgress,
-  Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-} from '@mui/material';
-import {
-  DeleteOutline as DeleteIcon,
-} from '@mui/icons-material';
+import { Container, Grid, Box, CircularProgress } from '@mui/material';
 
-import Receipt from '../POS/Receipt';
 import RefundDialog from '../Refund/RefundDialog';
 import SaleHistoryHeader from './SaleHistoryHeader';
 import SalesListPanel from './SalesListPanel';
 import POSSaleDetailsPanel from './POSSaleDetailsPanel';
+import SaleHistoryDeleteDialog from './SaleHistoryDeleteDialog';
+import SaleHistoryPrintContainer from './SaleHistoryPrintContainer';
+import { getSaleHistoryRange, buildInclusiveSaleHistoryRange } from './saleHistoryDateUtils';
+import { calculateSaleStats } from './saleHistoryStats';
 import { getResponseArray, getResponseObject } from '../../shared/utils/responseGuards';
 
 const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrinter = null }) => {
@@ -45,90 +32,16 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   const abortControllerRef = useRef(null);
 
   const timeframes = [
-    { label: 'Today', getValue: () => getRange('day') },
-    { label: 'Yesterday', getValue: () => getRange('yesterday') },
-    { label: 'This Week', getValue: () => getRange('this_week') },
-    { label: 'Last Week', getValue: () => getRange('last_week') },
-    { label: 'This Month', getValue: () => getRange('this_month') },
-    { label: 'Last Month', getValue: () => getRange('last_month') },
-    { label: 'This Year', getValue: () => getRange('this_year') },
-    { label: 'Last Year', getValue: () => getRange('last_year') },
+    { label: 'Today', getValue: () => getSaleHistoryRange('day') },
+    { label: 'Yesterday', getValue: () => getSaleHistoryRange('yesterday') },
+    { label: 'This Week', getValue: () => getSaleHistoryRange('this_week') },
+    { label: 'Last Week', getValue: () => getSaleHistoryRange('last_week') },
+    { label: 'This Month', getValue: () => getSaleHistoryRange('this_month') },
+    { label: 'Last Month', getValue: () => getSaleHistoryRange('last_month') },
+    { label: 'This Year', getValue: () => getSaleHistoryRange('this_year') },
+    { label: 'Last Year', getValue: () => getSaleHistoryRange('last_year') },
     { label: 'Custom', getValue: () => null },
   ];
-
-  const getRange = useCallback((type) => {
-    const now = new Date();
-    let start = new Date();
-    let end = new Date();
-
-    switch (type) {
-      case 'day':
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        break;
-      case 'yesterday':
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-        break;
-      case 'this_week': {
-        const dayOfWeek = now.getDay();
-        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        start = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate() - diffToMonday,
-          0,
-          0,
-          0,
-          0
-        );
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        break;
-      }
-      case 'last_week': {
-        const dayOfWeek = now.getDay();
-        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        start = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate() - diffToMonday - 7,
-          0,
-          0,
-          0,
-          0
-        );
-        end = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate() - diffToMonday - 1,
-          23,
-          59,
-          59,
-          999
-        );
-        break;
-      }
-      case 'this_month':
-        start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        break;
-      case 'last_month':
-        start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-        break;
-      case 'this_year':
-        start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        break;
-      case 'last_year':
-        start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
-        end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
-        break;
-      default:
-        break;
-    }
-    return { start: start.toISOString(), end: end.toISOString() };
-  }, []);
 
   const fetchSales = useCallback(async (start, end) => {
     if (abortControllerRef.current) {
@@ -172,9 +85,9 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   }, []);
 
   useEffect(() => {
-    const range = getRange('day');
+    const range = getSaleHistoryRange('day');
     fetchSales(range.start, range.end);
-  }, [fetchSales, getRange]);
+  }, [fetchSales]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -224,16 +137,9 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
   };
 
   const handleApplyCustomRange = () => {
-    if (dateRange.startDate && dateRange.endDate) {
-      const [sy, sm, sd] = dateRange.startDate.split('-').map(Number);
-      const [ey, em, ed] = dateRange.endDate.split('-').map(Number);
-
-      const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-      const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
-      fetchSales(start.toISOString(), end.toISOString());
-    }
+    const range = buildInclusiveSaleHistoryRange(dateRange.startDate, dateRange.endDate);
+    if (!range) return;
+    fetchSales(range.start, range.end);
   };
 
   const handlePrintReceipt = (sale) => {
@@ -297,41 +203,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
     }
   };
 
-  const calculateStats = (sale) => {
-    if (!sale) return { total: 0, mrpDiscount: 0, extraDiscount: 0, discountPercent: 0 };
-
-    // Calculate MRP discount (sum of item-level MRP discounts)
-    let mrpDiscount = 0;
-    sale.items?.forEach((item) => {
-      const mrp = item.mrp || item.sellingPrice;
-      mrpDiscount += (mrp - item.sellingPrice) * item.quantity;
-    });
-
-    // Extra discount is from the sale level
-    const extraDiscount = sale.extraDiscount || 0;
-
-    // Total discount
-    const totalDiscount = mrpDiscount + extraDiscount;
-
-    // Subtotal (sum of all item MRP)
-    let subtotal = 0;
-    sale.items?.forEach((item) => {
-      const mrp = item.mrp || item.sellingPrice;
-      subtotal += mrp * item.quantity;
-    });
-
-    const discountPercent = subtotal > 0 ? ((totalDiscount / subtotal) * 100).toFixed(2) : 0;
-
-    return {
-      total: sale.netTotalAmount || sale.totalAmount,
-      mrpDiscount: mrpDiscount,
-      extraDiscount: extraDiscount,
-      totalDiscount: totalDiscount,
-      discountPercent,
-    };
-  };
-
-  const stats = calculateStats(selectedSale);
+  const stats = calculateSaleStats(selectedSale);
 
   return (
     <Box
@@ -436,53 +308,11 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           </Grid>
         )}
 
-        {/* Hidden Print Container for Direct Printing in Sale History */}
-        <Box
-          sx={{
-            position: 'absolute',
-            left: '-9999px',
-            top: '-9999px',
-            height: 0,
-            overflow: 'hidden',
-            '@media print': {
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: '100%',
-              height: 'auto',
-              overflow: 'visible',
-              display: 'block',
-              zIndex: 9999,
-            },
-          }}
-        >
-          <div id="thermal-receipt-print">
-            {selectedSale && (
-              <Receipt
-                sale={selectedSale}
-                settings={
-                  receiptSettings || {
-                    shopName: true,
-                    header: true,
-                    footer: true,
-                    mrp: true,
-                    price: true,
-                    discount: true,
-                    totalValue: true,
-                    productName: true,
-                    exp: true,
-                    barcode: true,
-                    totalSavings: true,
-                    customShopName: localStorage.getItem('posShopName') || 'Bachat Bazaar',
-                    customHeader: '123 Business Street, City',
-                    customFooter: 'Thank You! Visit Again',
-                  }
-                }
-                shopMetadata={shopMetadata}
-              />
-            )}
-          </div>
-        </Box>
+        <SaleHistoryPrintContainer
+          selectedSale={selectedSale}
+          receiptSettings={receiptSettings}
+          shopMetadata={shopMetadata}
+        />
 
         {/* Refund Dialog */}
         <RefundDialog
@@ -492,52 +322,11 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           onRefundSuccess={handleRefundSuccess}
         />
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog
-          open={Boolean(deleteLooseId)}
+        <SaleHistoryDeleteDialog
+          deleteLooseId={deleteLooseId}
           onClose={() => setDeleteLooseId(null)}
-          PaperProps={{
-            sx: { borderRadius: 3, p: 1 },
-          }}
-        >
-          <DialogTitle
-            sx={{
-              fontWeight: 800,
-              color: '#d32f2f',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-            }}
-          >
-            <DeleteIcon color="error" />
-            Delete Loose Sale?
-          </DialogTitle>
-          <DialogContent>
-            <DialogContentText sx={{ fontWeight: 500 }}>
-              Are you sure you want to permanently delete this loose sale record (LOO-
-              {deleteLooseId})? This action cannot be undone and will be removed from all financial
-              reports.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions sx={{ p: 2, gap: 1 }}>
-            <Button
-              onClick={() => setDeleteLooseId(null)}
-              variant="outlined"
-              color="inherit"
-              sx={{ fontWeight: 700, borderRadius: 2 }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDeleteLooseSale}
-              variant="contained"
-              color="error"
-              sx={{ fontWeight: 800, borderRadius: 2, px: 3 }}
-            >
-              Yes, Delete Record
-            </Button>
-          </DialogActions>
-        </Dialog>
+          onConfirm={handleDeleteLooseSale}
+        />
       </Container>
     </Box>
   );

@@ -15,7 +15,9 @@ test.describe('Sale history flows', () => {
     await loginAsAdmin(page);
   });
 
-  test('sale history shows seeded POS sale details and can delete a loose sale', async ({ page }) => {
+  test('sale history shows seeded POS sale details and can delete a loose sale', async ({
+    page,
+  }) => {
     const failures = collectRuntimeFailures(page);
     const saleHistoryPage = createSaleHistoryPage(page);
 

@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Container,
-  Paper,
-  Typography,
-  Snackbar,
-  Alert,
-} from '@mui/material';
+import { Box, Container, Paper, Typography, Snackbar, Alert } from '@mui/material';
 import inventoryService from '../../shared/api/inventoryService';
 import posService from '../../shared/api/posService';
 import settingsService from '../../shared/api/settingsService';

@@ -257,7 +257,9 @@ const InventoryExcelTable = ({
               <TableCell sx={{ bgcolor: '#e8eaf6', fontWeight: 800, whiteSpace: 'nowrap' }}>
                 <TableSortLabel
                   active={sortConfigs.some((c) => c.key === 'lowStockEnabled')}
-                  direction={sortConfigs.find((c) => c.key === 'lowStockEnabled')?.direction || 'asc'}
+                  direction={
+                    sortConfigs.find((c) => c.key === 'lowStockEnabled')?.direction || 'asc'
+                  }
                   onClick={(e) => handleSort('lowStockEnabled', e)}
                 >
                   Low Stock
@@ -268,7 +270,9 @@ const InventoryExcelTable = ({
               <TableCell sx={{ bgcolor: '#e8eaf6', fontWeight: 800, whiteSpace: 'nowrap' }}>
                 <TableSortLabel
                   active={sortConfigs.some((c) => c.key === 'batchTrackingEnabled')}
-                  direction={sortConfigs.find((c) => c.key === 'batchTrackingEnabled')?.direction || 'asc'}
+                  direction={
+                    sortConfigs.find((c) => c.key === 'batchTrackingEnabled')?.direction || 'asc'
+                  }
                   onClick={(e) => handleSort('batchTrackingEnabled', e)}
                 >
                   Batch Tracking
@@ -386,26 +390,64 @@ const InventoryExcelTable = ({
               {cols.category && <TableCell sx={{ py: 0.5 }}>{row.category}</TableCell>}
               {cols.mrp && <TableCell sx={{ py: 0.5 }}>{row.mrp.toFixed(2)}</TableCell>}
               {cols.sp && (
-                <TableCell sx={{ py: 0.5, color: 'primary.main', fontWeight: 600 }}>{row.sp?.toFixed(2)}</TableCell>
+                <TableCell sx={{ py: 0.5, color: 'primary.main', fontWeight: 600 }}>
+                  {row.sp?.toFixed(2)}
+                </TableCell>
               )}
               {cols.cp && <TableCell sx={{ py: 0.5 }}>{row.cp?.toFixed(2)}</TableCell>}
               {cols.profitRs && (
-                <TableCell sx={{ py: 0.5, fontWeight: 700, color: row.profitRs > 0 ? 'success.main' : 'error.main' }}>
+                <TableCell
+                  sx={{
+                    py: 0.5,
+                    fontWeight: 700,
+                    color: row.profitRs > 0 ? 'success.main' : 'error.main',
+                  }}
+                >
                   {row.profitRs.toFixed(2)}
                 </TableCell>
               )}
-              {cols.discRsVendor && <TableCell sx={{ py: 0.5, color: 'success.main' }}>{row.discRsVendor.toFixed(2)}</TableCell>}
-              {cols.discPctVendor && <TableCell sx={{ py: 0.5, fontWeight: 700, color: 'success.main' }}>{row.discPctVendor.toFixed(1)}%</TableCell>}
-              {cols.discRsCust && <TableCell sx={{ py: 0.5, color: 'error.main' }}>{row.discRsCust.toFixed(2)}</TableCell>}
-              {cols.discPctCust && <TableCell sx={{ py: 0.5, fontWeight: 700 }}>{row.discPctCust.toFixed(1)}%</TableCell>}
+              {cols.discRsVendor && (
+                <TableCell sx={{ py: 0.5, color: 'success.main' }}>
+                  {row.discRsVendor.toFixed(2)}
+                </TableCell>
+              )}
+              {cols.discPctVendor && (
+                <TableCell sx={{ py: 0.5, fontWeight: 700, color: 'success.main' }}>
+                  {row.discPctVendor.toFixed(1)}%
+                </TableCell>
+              )}
+              {cols.discRsCust && (
+                <TableCell sx={{ py: 0.5, color: 'error.main' }}>
+                  {row.discRsCust.toFixed(2)}
+                </TableCell>
+              )}
+              {cols.discPctCust && (
+                <TableCell sx={{ py: 0.5, fontWeight: 700 }}>
+                  {row.discPctCust.toFixed(1)}%
+                </TableCell>
+              )}
               {cols.marginPct && (
-                <TableCell sx={{ py: 0.5, fontWeight: 700, color: row.marginPct > 15 ? 'success.main' : 'warning.main' }}>
+                <TableCell
+                  sx={{
+                    py: 0.5,
+                    fontWeight: 700,
+                    color: row.marginPct > 15 ? 'success.main' : 'warning.main',
+                  }}
+                >
                   {row.marginPct.toFixed(1)}%
                 </TableCell>
               )}
-              {cols.barcode && <TableCell sx={{ py: 0.5, fontFamily: 'monospace' }}>{row.barcode}</TableCell>}
-              {cols.expiry && <TableCell sx={{ py: 0.5, bgcolor: getExpiryColor(row.expiry) }}>{row.expiry ? new Date(row.expiry).toLocaleDateString() : '—'}</TableCell>}
-              {cols.wsPrice && <TableCell>{row.wsPrice ? `${row.wsPrice.toFixed(2)}` : '—'}</TableCell>}
+              {cols.barcode && (
+                <TableCell sx={{ py: 0.5, fontFamily: 'monospace' }}>{row.barcode}</TableCell>
+              )}
+              {cols.expiry && (
+                <TableCell sx={{ py: 0.5, bgcolor: getExpiryColor(row.expiry) }}>
+                  {row.expiry ? new Date(row.expiry).toLocaleDateString() : '—'}
+                </TableCell>
+              )}
+              {cols.wsPrice && (
+                <TableCell>{row.wsPrice ? `${row.wsPrice.toFixed(2)}` : '—'}</TableCell>
+              )}
               {cols.wsMinQty && <TableCell>{row.wsMinQty || '—'}</TableCell>}
               {cols.lowStockEnabled && (
                 <TableCell sx={{ py: 0.5, textAlign: 'center' }}>
@@ -434,15 +476,28 @@ const InventoryExcelTable = ({
                   sx={{
                     fontWeight: 700,
                     bgcolor: row.stock <= 5 ? '#ffebee' : row.stock <= 15 ? '#fff3e0' : '#e8f5e9',
-                    color: row.stock <= 5 ? 'error.main' : row.stock <= 15 ? 'warning.main' : 'success.main',
+                    color:
+                      row.stock <= 5
+                        ? 'error.main'
+                        : row.stock <= 15
+                          ? 'warning.main'
+                          : 'success.main',
                   }}
                 >
                   {row.stock}
                 </TableCell>
               )}
-              {cols.totalValCp && <TableCell sx={{ fontWeight: 600 }}>{row.totalValCp.toFixed(2)}</TableCell>}
-              {cols.totalValSp && <TableCell sx={{ fontWeight: 600 }}>{row.totalValSp.toFixed(2)}</TableCell>}
-              {cols.createdAt && <TableCell>{row.createdAt !== 'N/A' ? new Date(row.createdAt).toLocaleDateString() : 'N/A'}</TableCell>}
+              {cols.totalValCp && (
+                <TableCell sx={{ fontWeight: 600 }}>{row.totalValCp.toFixed(2)}</TableCell>
+              )}
+              {cols.totalValSp && (
+                <TableCell sx={{ fontWeight: 600 }}>{row.totalValSp.toFixed(2)}</TableCell>
+              )}
+              {cols.createdAt && (
+                <TableCell>
+                  {row.createdAt !== 'N/A' ? new Date(row.createdAt).toLocaleDateString() : 'N/A'}
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
@@ -476,23 +531,67 @@ const InventoryExcelTable = ({
             {cols.batchCode && <TableCell sx={{ fontWeight: 800 }} />}
             {cols.category && <TableCell sx={{ fontWeight: 800 }} />}
             {cols.mrp && <TableCell sx={{ fontWeight: 800 }} />}
-            {cols.sp && <TableCell sx={{ fontWeight: 800 }}>{totals.avgSp?.toFixed(2) || '0.00'}</TableCell>}
-            {cols.cp && <TableCell sx={{ fontWeight: 800 }}>{totals.avgCp?.toFixed(2) || '0.00'}</TableCell>}
-            {cols.profitRs && <TableCell sx={{ fontWeight: 800 }}>{totals.avgSp && totals.avgCp ? (totals.avgSp - totals.avgCp).toFixed(2) : '0.00'}</TableCell>}
-            {cols.discRsVendor && <TableCell sx={{ fontWeight: 800 }}>{totals.avgDiscRsVendor?.toFixed(2) || '0.00'}</TableCell>}
-            {cols.discPctVendor && <TableCell sx={{ fontWeight: 800 }}>{totals.avgDiscPctVendor?.toFixed(1) || '0.0'}%</TableCell>}
-            {cols.discRsCust && <TableCell sx={{ fontWeight: 800 }}>{totals.avgDiscRsCust?.toFixed(2) || '0.00'}</TableCell>}
-            {cols.discPctCust && <TableCell sx={{ fontWeight: 800 }}>{totals.avgDiscPctCust?.toFixed(1) || '0.0'}%</TableCell>}
-            {cols.marginPct && <TableCell sx={{ fontWeight: 800 }}>{totals.avgMargin?.toFixed(1) || '0.0'}%</TableCell>}
+            {cols.sp && (
+              <TableCell sx={{ fontWeight: 800 }}>{totals.avgSp?.toFixed(2) || '0.00'}</TableCell>
+            )}
+            {cols.cp && (
+              <TableCell sx={{ fontWeight: 800 }}>{totals.avgCp?.toFixed(2) || '0.00'}</TableCell>
+            )}
+            {cols.profitRs && (
+              <TableCell sx={{ fontWeight: 800 }}>
+                {totals.avgSp && totals.avgCp ? (totals.avgSp - totals.avgCp).toFixed(2) : '0.00'}
+              </TableCell>
+            )}
+            {cols.discRsVendor && (
+              <TableCell sx={{ fontWeight: 800 }}>
+                {totals.avgDiscRsVendor?.toFixed(2) || '0.00'}
+              </TableCell>
+            )}
+            {cols.discPctVendor && (
+              <TableCell sx={{ fontWeight: 800 }}>
+                {totals.avgDiscPctVendor?.toFixed(1) || '0.0'}%
+              </TableCell>
+            )}
+            {cols.discRsCust && (
+              <TableCell sx={{ fontWeight: 800 }}>
+                {totals.avgDiscRsCust?.toFixed(2) || '0.00'}
+              </TableCell>
+            )}
+            {cols.discPctCust && (
+              <TableCell sx={{ fontWeight: 800 }}>
+                {totals.avgDiscPctCust?.toFixed(1) || '0.0'}%
+              </TableCell>
+            )}
+            {cols.marginPct && (
+              <TableCell sx={{ fontWeight: 800 }}>
+                {totals.avgMargin?.toFixed(1) || '0.0'}%
+              </TableCell>
+            )}
             {cols.barcode && <TableCell sx={{ fontWeight: 800 }} />}
             {cols.expiry && <TableCell sx={{ fontWeight: 800 }} />}
-            {cols.wsPrice && <TableCell sx={{ fontWeight: 800 }}>{totals.avgWsPrice?.toFixed(2) || '0.00'}</TableCell>}
+            {cols.wsPrice && (
+              <TableCell sx={{ fontWeight: 800 }}>
+                {totals.avgWsPrice?.toFixed(2) || '0.00'}
+              </TableCell>
+            )}
             {cols.wsMinQty && <TableCell sx={{ fontWeight: 800 }} />}
             {cols.lowStockEnabled && <TableCell sx={{ fontWeight: 800 }} />}
             {cols.batchTrackingEnabled && <TableCell sx={{ fontWeight: 800 }} />}
-            {cols.stock && <TableCell sx={{ fontWeight: 900, fontSize: '1rem', color: '#1a237e' }}>{totals.totalStock || 0}</TableCell>}
-            {cols.totalValCp && <TableCell sx={{ fontWeight: 900, fontSize: '1rem', color: 'error.main' }}>{totals.totalValueCost?.toFixed(2) || '0.00'}</TableCell>}
-            {cols.totalValSp && <TableCell sx={{ fontWeight: 900, fontSize: '1rem', color: 'success.main' }}>{totals.totalValueSelling?.toFixed(2) || '0.00'}</TableCell>}
+            {cols.stock && (
+              <TableCell sx={{ fontWeight: 900, fontSize: '1rem', color: '#1a237e' }}>
+                {totals.totalStock || 0}
+              </TableCell>
+            )}
+            {cols.totalValCp && (
+              <TableCell sx={{ fontWeight: 900, fontSize: '1rem', color: 'error.main' }}>
+                {totals.totalValueCost?.toFixed(2) || '0.00'}
+              </TableCell>
+            )}
+            {cols.totalValSp && (
+              <TableCell sx={{ fontWeight: 900, fontSize: '1rem', color: 'success.main' }}>
+                {totals.totalValueSelling?.toFixed(2) || '0.00'}
+              </TableCell>
+            )}
             {cols.createdAt && <TableCell sx={{ fontWeight: 800 }} />}
           </TableRow>
         </TableBody>

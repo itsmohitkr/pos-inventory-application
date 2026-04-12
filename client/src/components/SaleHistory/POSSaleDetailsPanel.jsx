@@ -108,7 +108,11 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
               justifyContent: 'center',
             }}
           >
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 700, display: 'block' }}
+            >
               TOTAL VALUE
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 800, color: '#1976d2' }}>
@@ -127,7 +131,11 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
               justifyContent: 'center',
             }}
           >
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: 700, display: 'block' }}
+            >
               TOTAL DISCOUNT
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 800, color: '#d32f2f' }}>
@@ -144,7 +152,8 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
                 mt: 0.5,
               }}
             >
-              ₹{stats.mrpDiscount.toFixed(2)} MRP + ₹{stats.extraDiscount.toFixed(2)} Extra · {stats.discountPercent}% of MRP
+              ₹{stats.mrpDiscount.toFixed(2)} MRP + ₹{stats.extraDiscount.toFixed(2)} Extra ·{' '}
+              {stats.discountPercent}% of MRP
             </Typography>
           </Box>
         </Box>
@@ -168,11 +177,21 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>PRODUCT</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>QTY</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>MRP</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>PRICE</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>MRP DISCOUNT</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>EXTRA DISCOUNT</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                  QTY
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                  MRP
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                  PRICE
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                  MRP DISCOUNT
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                  EXTRA DISCOUNT
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

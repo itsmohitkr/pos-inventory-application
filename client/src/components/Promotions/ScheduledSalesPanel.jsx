@@ -48,7 +48,11 @@ const ScheduledSalesPanel = ({ promotions, onCreate, onEdit, onDelete, isPromoti
       Schedule temporary price reductions and create sales events.
     </Typography>
 
-    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+    <TableContainer
+      component={Paper}
+      variant="outlined"
+      sx={{ borderRadius: 2, overflow: 'hidden' }}
+    >
       <Table size="small">
         <TableHead sx={{ bgcolor: '#f8fafc' }}>
           <TableRow>

@@ -6,6 +6,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import inventoryService from '../../shared/api/inventoryService';
 import { isRequestCanceled } from '../../shared/api/api';
 import {
@@ -49,9 +50,6 @@ import ProductRow from './ProductRow';
 import ProductSummaryBar from './ProductSummaryBar';
 import CategorySidebar from './CategorySidebar';
 import ProductDetailPanel from './ProductDetailPanel';
-
-
-
 
 const ProductList = forwardRef(
   ({ categoryFilter, onCategoryChange, debouncedSearch, onSearchChange, isPending }, ref) => {
@@ -118,37 +116,40 @@ const ProductList = forwardRef(
     const summaryRequestId = useRef(0);
     const searchInputRef = useRef(null);
     const searchTimerRef = useRef(null);
+    const tableContainerRef = useRef(null);
+    // Ref that always reflects the current selectedProduct without being listed
+    // as a dependency of fetchProducts – prevents a full re-fetch on every row click.
+    const selectedProductRef = useRef(null);
+    selectedProductRef.current = selectedProduct;
 
-    const fetchProducts = React.useCallback(
-      async () => {
-        const requestId = ++productsRequestId.current;
-        try {
-          // Fetch everything for the current category once, then filter locally
-          // This matches the high-performance behavior of the POS screen
-          const data = await inventoryService.fetchProducts({
-            category: 'all',
-            sortBy,
-            sortOrder,
-            pageSize: 10000, // Ensure we get the full list for local filtering
-          });
-          const productsData = getResponseArray(data);
-          if (productsRequestId.current !== requestId) return;
-          setProducts(productsData);
+    const fetchProducts = React.useCallback(async () => {
+      const requestId = ++productsRequestId.current;
+      try {
+        // Fetch everything for the current category once, then filter locally
+        // This matches the high-performance behavior of the POS screen
+        const data = await inventoryService.fetchProducts({
+          category: 'all',
+          sortBy,
+          sortOrder,
+          pageSize: 10000, // Ensure we get the full list for local filtering
+        });
+        const productsData = getResponseArray(data);
+        if (productsRequestId.current !== requestId) return;
+        setProducts(productsData);
 
-          // Sync selected product if it exists
-          if (selectedProduct) {
-            const refreshed = productsData.find(
-              (p) => String(p.id) === String(selectedProduct.id)
-            );
-            if (refreshed) setSelectedProduct(refreshed);
-          }
-        } catch (error) {
-          if (isRequestCanceled(error)) return;
-          console.error(error);
+        // Sync selected product if it exists – read through ref so selectedProduct
+        // is NOT a dependency here (adding it would cause a re-fetch on every click).
+        if (selectedProductRef.current) {
+          const refreshed = productsData.find(
+            (p) => String(p.id) === String(selectedProductRef.current.id)
+          );
+          if (refreshed) setSelectedProduct(refreshed);
         }
-      },
-      [sortBy, sortOrder, selectedProduct]
-    );
+      } catch (error) {
+        if (isRequestCanceled(error)) return;
+        console.error(error);
+      }
+    }, [sortBy, sortOrder]);
 
     // Fix refresh bug in App.jsx
     useImperativeHandle(ref, () => ({
@@ -159,50 +160,47 @@ const ProductList = forwardRef(
       },
     }));
 
-    const fetchSummary = React.useCallback(
-      async () => {
-        const requestId = ++summaryRequestId.current;
-        try {
-          const isAllNoSearch = (categoryFilter === 'all' || !categoryFilter) && !debouncedSearch;
+    const fetchSummary = React.useCallback(async () => {
+      const requestId = ++summaryRequestId.current;
+      try {
+        const isAllNoSearch = (categoryFilter === 'all' || !categoryFilter) && !debouncedSearch;
 
-          let totalsData, sidebarData;
+        let totalsData, sidebarData;
 
-          if (isAllNoSearch) {
-            // Only one call needed
-            const data = await inventoryService.fetchSummary({ search: '', category: 'all' });
-            if (summaryRequestId.current !== requestId) return;
-            totalsData = getResponseObject(data);
-            sidebarData = totalsData;
-          } else {
-            // Two calls: one for current view totals, one for global sidebar counts
-            const [totalsRes, sidebarRes] = await Promise.all([
-              inventoryService.fetchSummary({ search: debouncedSearch, category: categoryFilter }),
-              inventoryService.fetchSummary({ search: '', category: 'all' }),
-            ]);
-            if (summaryRequestId.current !== requestId) return;
-            totalsData = getResponseObject(totalsRes);
-            sidebarData = getResponseObject(sidebarRes);
-          }
-
-          setSummaryTotals(
-            totalsData.totals || {
-              productCount: 0,
-              totalQty: 0,
-              totalCost: 0,
-              totalSelling: 0,
-              totalMrp: 0,
-            }
-          );
-          setCategoryCounts(sidebarData.categoryCounts || {});
-          setUncategorizedCount(sidebarData.uncategorizedCount || 0);
-          setTotalCount(sidebarData.totalCount || 0);
-        } catch (error) {
-          if (isRequestCanceled(error)) return;
-          console.error(error);
+        if (isAllNoSearch) {
+          // Only one call needed
+          const data = await inventoryService.fetchSummary({ search: '', category: 'all' });
+          if (summaryRequestId.current !== requestId) return;
+          totalsData = getResponseObject(data);
+          sidebarData = totalsData;
+        } else {
+          // Two calls: one for current view totals, one for global sidebar counts
+          const [totalsRes, sidebarRes] = await Promise.all([
+            inventoryService.fetchSummary({ search: debouncedSearch, category: categoryFilter }),
+            inventoryService.fetchSummary({ search: '', category: 'all' }),
+          ]);
+          if (summaryRequestId.current !== requestId) return;
+          totalsData = getResponseObject(totalsRes);
+          sidebarData = getResponseObject(sidebarRes);
         }
-      },
-      [debouncedSearch, categoryFilter]
-    );
+
+        setSummaryTotals(
+          totalsData.totals || {
+            productCount: 0,
+            totalQty: 0,
+            totalCost: 0,
+            totalSelling: 0,
+            totalMrp: 0,
+          }
+        );
+        setCategoryCounts(sidebarData.categoryCounts || {});
+        setUncategorizedCount(sidebarData.uncategorizedCount || 0);
+        setTotalCount(sidebarData.totalCount || 0);
+      } catch (error) {
+        if (isRequestCanceled(error)) return;
+        console.error(error);
+      }
+    }, [debouncedSearch, categoryFilter]);
 
     const fetchCategories = async () => {
       try {
@@ -386,9 +384,9 @@ const ProductList = forwardRef(
           p._searchBarcodes ||
           (p._searchBarcodes = p.barcode
             ? p.barcode
-              .toLowerCase()
-              .split('|')
-              .map((b) => b.trim())
+                .toLowerCase()
+                .split('|')
+                .map((b) => b.trim())
             : []);
 
         if (name.startsWith(query)) {
@@ -418,6 +416,11 @@ const ProductList = forwardRef(
       onSearchChange('');
       setFilteredProducts(null);
     }, [onSearchChange]);
+
+    const handleProductDoubleClick = React.useCallback(() => {
+      setSelectedProduct(null);
+      setSelectedProductDetails(null);
+    }, []);
 
     const handleDelete = React.useCallback(
       async (id) => {
@@ -602,11 +605,14 @@ const ProductList = forwardRef(
     };
 
     const hasUncategorized = uncategorizedCount > 0;
-    const handleCategorySelect = (path) => {
-      onCategoryChange(path);
-      setSelectedProduct(null);
-      setSelectedProductDetails(null);
-    };
+    const handleCategorySelect = React.useCallback(
+      (path) => {
+        onCategoryChange(path);
+        setSelectedProduct(null);
+        setSelectedProductDetails(null);
+      },
+      [onCategoryChange]
+    );
     const averageMargin = useMemo(() => {
       if (summaryTotals.totalSelling > 0) {
         return (
@@ -639,12 +645,12 @@ const ProductList = forwardRef(
       );
       setSortBy(field);
     };
-    const handleToggleExpand = (id) => {
+    const handleToggleExpand = React.useCallback((id) => {
       setExpandedCategoryIds((prev) => ({
         ...prev,
         [id]: !prev[id],
       }));
-    };
+    }, []);
     const openCategoryMenu = (event, category) => {
       event.preventDefault();
       setActiveCategory(category);
@@ -652,14 +658,14 @@ const ProductList = forwardRef(
         contextMenu
           ? null
           : {
-            mouseX: event.clientX - 2,
-            mouseY: event.clientY - 4,
-          }
+              mouseX: event.clientX - 2,
+              mouseY: event.clientY - 4,
+            }
       );
     };
-    const closeCategoryMenu = () => {
+    const closeCategoryMenu = React.useCallback(() => {
       setContextMenu(null);
-    };
+    }, []);
     const openAddCategoryDialog = (parent) => {
       setCategoryDialogMode('add');
       setCategoryDialogParent(parent);
@@ -827,21 +833,38 @@ const ProductList = forwardRef(
         fetchProducts(); // Rollback/Sync
       }
     };
-    const handleCategoryDragOver = (event) => {
+    const handleCategoryDragOver = React.useCallback((event) => {
       event.preventDefault();
       event.dataTransfer.dropEffect = 'move';
-    };
-    const sortCategoryTree = (nodes) => {
-      const sorted = [...nodes].sort((a, b) =>
-        categorySortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-      );
-      return sorted.map((node) => ({
-        ...node,
-        children: node.children ? sortCategoryTree(node.children) : [],
-      }));
-    };
-    const sortedCategoryTree = sortCategoryTree(categories);
+    }, []);
+    const sortedCategoryTree = useMemo(() => {
+      const sort = (nodes) =>
+        [...nodes]
+          .sort((a, b) =>
+            categorySortOrder === 'asc'
+              ? a.name.localeCompare(b.name)
+              : b.name.localeCompare(a.name)
+          )
+          .map((node) => ({
+            ...node,
+            children: node.children ? sort(node.children) : [],
+          }));
+      return sort(categories);
+    }, [categories, categorySortOrder]);
 
+    const rowVirtualizer = useVirtualizer({
+      count: displayedProducts.length,
+      getScrollElement: () => tableContainerRef.current,
+      estimateSize: () => 40,
+      overscan: 10,
+    });
+
+    const handleCategorySortToggle = React.useCallback(
+      () => setCategorySortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc')),
+      []
+    );
+    const handleCategoryDialogClose = React.useCallback(() => setAddCategoryOpen(false), []);
+    const handleResizeStartLeft = React.useCallback(() => setIsResizingLeft(true), []);
 
     return (
       <Box
@@ -882,9 +905,7 @@ const ProductList = forwardRef(
             categoryDialogMode={categoryDialogMode}
             categoryDialogParent={categoryDialogParent}
             onCategorySelect={handleCategorySelect}
-            onCategorySortToggle={() =>
-              setCategorySortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
-            }
+            onCategorySortToggle={handleCategorySortToggle}
             onAddCategoryDialog={openAddCategoryDialog}
             onCategoryDragOver={handleCategoryDragOver}
             onCategoryDrop={handleCategoryDrop}
@@ -894,10 +915,10 @@ const ProductList = forwardRef(
             onAddSubcategory={openAddCategoryDialog}
             onEditCategory={openEditCategoryDialog}
             onDeleteCategory={handleDeleteCategory}
-            onCategoryDialogClose={() => setAddCategoryOpen(false)}
+            onCategoryDialogClose={handleCategoryDialogClose}
             onCategoryNameChange={setNewCategoryName}
             onSaveCategory={handleSaveCategory}
-            onResizeStart={() => setIsResizingLeft(true)}
+            onResizeStart={handleResizeStartLeft}
             onDoubleClick={displayProduct ? handleOpenHistory : undefined}
           />
         )}
@@ -1133,6 +1154,7 @@ const ProductList = forwardRef(
             />
           </Box>
           <TableContainer
+            ref={tableContainerRef}
             sx={{
               flex: 1,
               overflow: 'auto',
@@ -1207,22 +1229,48 @@ const ProductList = forwardRef(
                 </TableRow>
               </TableHead>
               <TableBody>
-                {displayedProducts.map((product, index) => (
-                  <ProductRow
-                    key={product.id}
-                    product={product}
-                    index={index}
-                    isSelected={selectedIds.has(String(product.id))}
-                    onSelect={handleRowClick}
-                    onDragStart={handleListDragStart}
-                    onEdit={handleEditClick}
-                    onDelete={handleDelete}
-                    onDoubleClick={() => {
-                      setSelectedProduct(null);
-                      setSelectedProductDetails(null);
-                    }}
-                  />
-                ))}
+                {(() => {
+                  const virtualItems = rowVirtualizer.getVirtualItems();
+                  const totalSize = rowVirtualizer.getTotalSize();
+                  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+                  const paddingBottom =
+                    virtualItems.length > 0
+                      ? totalSize - virtualItems[virtualItems.length - 1].end
+                      : 0;
+                  return (
+                    <>
+                      {paddingTop > 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} sx={{ height: paddingTop, p: 0, border: 0 }} />
+                        </TableRow>
+                      )}
+                      {virtualItems.map((virtualRow) => {
+                        const product = displayedProducts[virtualRow.index];
+                        return (
+                          <ProductRow
+                            key={product.id}
+                            product={product}
+                            index={virtualRow.index}
+                            isSelected={selectedIds.has(String(product.id))}
+                            onSelect={handleRowClick}
+                            onDragStart={handleListDragStart}
+                            onEdit={handleEditClick}
+                            onDelete={handleDelete}
+                            onDoubleClick={handleProductDoubleClick}
+                          />
+                        );
+                      })}
+                      {paddingBottom > 0 && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={7}
+                            sx={{ height: paddingBottom, p: 0, border: 0 }}
+                          />
+                        </TableRow>
+                      )}
+                    </>
+                  );
+                })()}
               </TableBody>
             </Table>
           </TableContainer>
