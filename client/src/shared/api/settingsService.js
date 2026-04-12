@@ -37,21 +37,15 @@ const settingsService = {
     return response.data;
   },
 
-  /**
-   * Authentication: Verify Admin Passcode
-   */
-  verifyAdmin: async (passcode, config = {}) => {
-    const response = await api.post('/api/auth/verify-admin', { passcode }, config);
+  verifyAdmin: async (password, config = {}) => {
+    const response = await api.post('/api/auth/verify-admin', { password }, config);
     return response.data;
   },
 
-  /**
-   * Authentication: Change Passcode
-   */
-  changePasscode: async (oldPasscode, newPasscode, config = {}) => {
+  changePasscode: async (oldPassword, newPassword, config = {}) => {
     const response = await api.post(
       '/api/auth/change-passcode',
-      { oldPasscode, newPasscode },
+      { oldPassword, newPassword },
       config
     );
     return response.data;
