@@ -10,6 +10,7 @@ import {
 import inventoryService from '../../shared/api/inventoryService';
 import posService from '../../shared/api/posService';
 import settingsService from '../../shared/api/settingsService';
+import { getResponseArray, getResponseObject } from '../../shared/utils/responseGuards';
 import PromotionSidebar from './PromotionSidebar';
 import ThresholdSettingsPanel from './ThresholdSettingsPanel';
 import ScheduledSalesPanel from './ScheduledSalesPanel';
@@ -55,7 +56,7 @@ const PromotionManagement = () => {
         });
         return list;
       };
-      setCategories(flatten(data.data || []));
+      setCategories(flatten(getResponseArray(data)));
     } catch (error) {
       console.error('Failed to fetch categories:', error);
     }
@@ -64,7 +65,7 @@ const PromotionManagement = () => {
   async function fetchPromoSettings() {
     try {
       const data = await settingsService.fetchSettings();
-      const settings = data.data;
+      const settings = getResponseObject(data);
       if (settings.promotion_buy_x_get_free) {
         const promoData = settings.promotion_buy_x_get_free;
         // Migration: If old format (thresholds array) exists but not new config array
@@ -163,7 +164,7 @@ const PromotionManagement = () => {
   async function fetchProducts() {
     try {
       const data = await inventoryService.fetchProducts({ pageSize: 1000 });
-      setProducts(data.data || []);
+      setProducts(getResponseArray(data));
     } catch (error) {
       console.error('Failed to fetch products:', error);
     }

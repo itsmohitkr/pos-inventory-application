@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import dashboardService from '../shared/api/dashboardService';
 import {
@@ -44,7 +44,7 @@ const Dashboard = () => {
     { label: 'Custom', type: 'custom' },
   ];
 
-  const fetchPeriodicData = async (start, end) => {
+  const fetchPeriodicData = useCallback(async (start, end) => {
     setLoading(true);
     try {
       const data = await dashboardService.fetchPeriodicData(start, end);
@@ -54,9 +54,9 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchMonthlyData = async (year) => {
+  const fetchMonthlyData = useCallback(async (year) => {
     setIsSyncingMonthly(true);
     try {
       const data = await dashboardService.fetchMonthlyData(year || selectedYear);
@@ -66,9 +66,9 @@ const Dashboard = () => {
     } finally {
       setIsSyncingMonthly(false);
     }
-  };
+  }, [selectedYear]);
 
-  const fetchDailyData = async (year, month) => {
+  const fetchDailyData = useCallback(async (year, month) => {
     setIsSyncingDaily(true);
     try {
       const data = await dashboardService.fetchDailyData(year, month);
@@ -78,14 +78,21 @@ const Dashboard = () => {
     } finally {
       setIsSyncingDaily(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const { start, end } = getDateRange('today');
     fetchPeriodicData(start.toISOString(), end.toISOString());
     fetchMonthlyData(selectedYear);
     fetchDailyData(selectedDailyYear, selectedDailyMonth);
-  }, []);
+  }, [
+    fetchPeriodicData,
+    fetchMonthlyData,
+    fetchDailyData,
+    selectedYear,
+    selectedDailyYear,
+    selectedDailyMonth,
+  ]);
 
   const handlePrevYear = () => {
     const prevYear = selectedYear - 1;

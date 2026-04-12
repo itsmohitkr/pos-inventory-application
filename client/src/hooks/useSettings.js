@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import settingsService from '../shared/api/settingsService';
 
 const STORAGE_KEYS = {
@@ -82,7 +82,7 @@ export const useSettings = (showError) => {
     shopLogo: '',
   });
 
-  const fetchSettings = async (retries = 3) => {
+  const fetchSettings = useCallback(async function runFetch(retries = 3) {
     try {
       const settings = await settingsService.fetchSettings();
       const data = settings.data;
@@ -102,14 +102,14 @@ export const useSettings = (showError) => {
     } catch (error) {
       console.error(`Failed to fetch settings (remaining retries: ${retries}):`, error);
       if (retries > 0) {
-        setTimeout(() => fetchSettings(retries - 1), 1000);
+        setTimeout(() => runFetch(retries - 1), 1000);
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
 
   useEffect(() => {
     const handleSettingsUpdated = () => {

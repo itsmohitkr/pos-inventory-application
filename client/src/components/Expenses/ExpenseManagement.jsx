@@ -46,6 +46,7 @@ import PurchaseFormDialog from './PurchaseFormDialog';
 import RecordPaymentDialog from './RecordPaymentDialog';
 import PaymentHistoryDialog from './PaymentHistoryDialog';
 import PaymentActionMenu from './PaymentActionMenu';
+import { getResponseArray } from '../../shared/utils/responseGuards';
 
 // Helper to get local date string YYYY-MM-DD
 const getLocalTodayString = () => {
@@ -217,11 +218,11 @@ const ExpenseManagement = () => {
           posService.fetchExpenses(params),
           posService.fetchPurchases(params),
         ]);
-        const sortedExp = expensesData.sort((a, b) => {
+        const sortedExp = getResponseArray(expensesData).sort((a, b) => {
           if (a.date === b.date) return b.id - a.id;
           return new Date(b.date) - new Date(a.date);
         });
-        const sortedPur = purchasesData.sort((a, b) => {
+        const sortedPur = getResponseArray(purchasesData).sort((a, b) => {
           if (a.date === b.date) return b.id - a.id;
           return new Date(b.date) - new Date(a.date);
         });
@@ -1187,24 +1188,24 @@ const ExpenseManagement = () => {
           isEditDisabled={
             selectedPurchase
               ? !selectedPurchase.payments?.length ||
-                !selectedPayment ||
-                selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
-                  selectedPayment.id
+              !selectedPayment ||
+              selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
+              selectedPayment.id
               : !selectedExpense?.payments?.length ||
-                !selectedPayment ||
-                selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
-                  selectedPayment.id
+              !selectedPayment ||
+              selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
+              selectedPayment.id
           }
           isDeleteDisabled={
             selectedPurchase
               ? !selectedPurchase.payments?.length ||
-                !selectedPayment ||
-                selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
-                  selectedPayment.id
+              !selectedPayment ||
+              selectedPurchase.payments[selectedPurchase.payments.length - 1]?.id !==
+              selectedPayment.id
               : !selectedExpense?.payments?.length ||
-                !selectedPayment ||
-                selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
-                  selectedPayment.id
+              !selectedPayment ||
+              selectedExpense.payments[selectedExpense.payments.length - 1]?.id !==
+              selectedPayment.id
           }
           onOpenEditPayment={handleOpenEditPayment}
           onDeletePayment={() => handleDeletePaymentAction(selectedPayment.id)}

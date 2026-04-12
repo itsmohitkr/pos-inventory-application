@@ -44,6 +44,7 @@ import QuickInventoryDialog from './QuickInventoryDialog';
 import BarcodePrintDialog from './BarcodePrintDialog';
 import CustomDialog from '../common/CustomDialog';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
+import { getResponseArray, getResponseObject } from '../../shared/utils/responseGuards';
 import ProductRow from './ProductRow';
 import ProductSummaryBar from './ProductSummaryBar';
 import CategorySidebar from './CategorySidebar';
@@ -130,13 +131,15 @@ const ProductList = forwardRef(
             sortOrder,
             pageSize: 10000, // Ensure we get the full list for local filtering
           });
-          const productsData = data.data || [];
+          const productsData = getResponseArray(data);
           if (productsRequestId.current !== requestId) return;
           setProducts(productsData);
 
           // Sync selected product if it exists
           if (selectedProduct) {
-            const refreshed = data.find((p) => String(p.id) === String(selectedProduct.id));
+            const refreshed = productsData.find(
+              (p) => String(p.id) === String(selectedProduct.id)
+            );
             if (refreshed) setSelectedProduct(refreshed);
           }
         } catch (error) {
@@ -168,7 +171,7 @@ const ProductList = forwardRef(
             // Only one call needed
             const data = await inventoryService.fetchSummary({ search: '', category: 'all' });
             if (summaryRequestId.current !== requestId) return;
-            totalsData = data.data || {};
+            totalsData = getResponseObject(data);
             sidebarData = totalsData;
           } else {
             // Two calls: one for current view totals, one for global sidebar counts
@@ -177,8 +180,8 @@ const ProductList = forwardRef(
               inventoryService.fetchSummary({ search: '', category: 'all' }),
             ]);
             if (summaryRequestId.current !== requestId) return;
-            totalsData = totalsRes.data || {};
-            sidebarData = sidebarRes.data || {};
+            totalsData = getResponseObject(totalsRes);
+            sidebarData = getResponseObject(sidebarRes);
           }
 
           setSummaryTotals(
@@ -204,7 +207,7 @@ const ProductList = forwardRef(
     const fetchCategories = async () => {
       try {
         const data = await inventoryService.fetchCategories();
-        setCategories(data.data || []);
+        setCategories(getResponseArray(data));
       } catch (error) {
         if (isRequestCanceled(error)) return;
         console.error(error);

@@ -105,7 +105,7 @@ const ProductRow = React.memo(
                   '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.15)' },
                 }}
               >
-                <EditIcon fontSize="small" />
+                <EditIcon fontSize="small" data-testid="EditIcon" />
               </IconButton>
               <Typography
                 variant="caption"
@@ -124,7 +124,7 @@ const ProductRow = React.memo(
                   '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' },
                 }}
               >
-                <DeleteIcon fontSize="small" />
+                <DeleteIcon fontSize="small" data-testid="DeleteIcon" />
               </IconButton>
               <Typography
                 variant="caption"

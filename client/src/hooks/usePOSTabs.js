@@ -47,8 +47,8 @@ export const usePOSTabs = () => {
     [tabs, activeTabId]
   );
 
-  const cart = activeTab.cart || [];
-  const discount = activeTab.discount || 0;
+  const cart = useMemo(() => activeTab.cart || [], [activeTab.cart]);
+  const discount = useMemo(() => activeTab.discount || 0, [activeTab.discount]);
 
   const updateTab = useCallback((tabId, updates) => {
     setTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, ...updates } : tab)));

@@ -33,6 +33,7 @@ const ProductDetailPanel = ({
 }) => {
   return (
     <Paper
+      data-testid="inventory-detail-panel"
       elevation={0}
       sx={{
         p: 2,
@@ -183,7 +184,11 @@ const ProductDetailPanel = ({
                 <Typography variant="caption" color="text.secondary">
                   Total Stock
                 </Typography>
-                <Typography variant="body2" fontWeight="bold">
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  data-testid="inventory-detail-total-stock"
+                >
                   {displayProduct.total_stock}
                 </Typography>
               </Box>
@@ -254,7 +259,7 @@ const ProductDetailPanel = ({
                         ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1)
                         : 0;
                     return (
-                      <TableRow key={batch.id}>
+                      <TableRow key={batch.id} data-testid={`inventory-batch-row-${batch.id}`}>
                         {displayProduct.batchTrackingEnabled && (
                           <TableCell>{batch.batchCode || 'N/A'}</TableCell>
                         )}
@@ -299,6 +304,8 @@ const ProductDetailPanel = ({
                             >
                               <IconButton
                                 size="small"
+                                aria-label={`Quick Inventory ${batch.batchCode || batch.batchNumber || batch.id}`}
+                                data-testid={`inventory-quick-stock-${batch.id}`}
                                 onClick={() => onQuickInventoryOpen(batch)}
                                 sx={{
                                   bgcolor: 'rgba(31, 138, 91, 0.1)',

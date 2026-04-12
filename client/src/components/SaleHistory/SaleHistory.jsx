@@ -26,6 +26,7 @@ import RefundDialog from '../Refund/RefundDialog';
 import SaleHistoryHeader from './SaleHistoryHeader';
 import SalesListPanel from './SalesListPanel';
 import POSSaleDetailsPanel from './POSSaleDetailsPanel';
+import { getResponseArray, getResponseObject } from '../../shared/utils/responseGuards';
 
 const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrinter = null }) => {
   const [sales, setSales] = useState([]);
@@ -149,8 +150,8 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
         ),
       ]);
 
-      const salesList = salesData.sales || [];
-      const looseSalesList = looseSalesData || [];
+      const salesList = getResponseObject(salesData).sales || [];
+      const looseSalesList = getResponseArray(looseSalesData);
 
       setSales(salesList);
       setLooseSales(looseSalesList);

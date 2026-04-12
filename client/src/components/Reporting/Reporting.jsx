@@ -25,6 +25,7 @@ import LooseSalesReportPanel from './LooseSalesReportPanel';
 import CategorySalesPanel from './CategorySalesPanel';
 import ReportSidebar from './ReportSidebar';
 import SaleDetailDialog from './SaleDetailDialog';
+import { getResponseArray, getResponseObject } from '../../shared/utils/responseGuards';
 
 const Reporting = () => {
   const [reportData, setReportData] = useState(null);
@@ -119,22 +120,22 @@ const Reporting = () => {
             { startDate: start, endDate: end },
             config
           );
-          setExpiryData(data);
+          setExpiryData(getResponseArray(data));
         } else if (reportType === 'low_stock') {
           const data = await dashboardService.fetchLowStockReport(config);
-          setLowStockData(data);
+          setLowStockData(getResponseArray(data));
         } else if (reportType === 'loose_sales') {
           const data = await dashboardService.fetchLooseSalesReport(
             { startDate: start, endDate: end },
             config
           );
-          setLooseSalesData(data);
+          setLooseSalesData(getResponseArray(data));
         } else {
           const data = await dashboardService.fetchPeriodicData(
             { startDate: start, endDate: end },
             config
           );
-          setReportData(data);
+          setReportData(getResponseObject(data));
         }
       } catch (error) {
         if (isRequestCanceled(error)) return;

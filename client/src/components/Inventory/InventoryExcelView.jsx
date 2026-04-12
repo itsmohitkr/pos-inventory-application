@@ -8,6 +8,7 @@ import inventoryService from '../../shared/api/inventoryService';
 import InventoryExcelHeaderBar from './InventoryExcelHeaderBar';
 import InventoryExcelFiltersBar from './InventoryExcelFiltersBar';
 import InventoryExcelTable from './InventoryExcelTable';
+import { getResponseArray } from '../../shared/utils/responseGuards';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -64,7 +65,7 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
         category: categoryFilter,
         search: externalSearch,
       });
-      setProducts(data.data || []);
+      setProducts(getResponseArray(data));
     } catch (error) {
       console.error('Error fetching inventory:', error);
     } finally {
