@@ -57,7 +57,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
   const fetchProductDetails = useCallback(async () => {
     if (!product?.id) return;
     try {
-      const data = await inventoryService.fetchProductByBarcode(product.id);
+      const data = await inventoryService.fetchProductById(product.id);
       const fullProduct = data.data;
       if (fullProduct) {
         setFormData({
