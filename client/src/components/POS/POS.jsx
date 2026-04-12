@@ -241,6 +241,70 @@ const POS = ({
 
   const totalSavings = useMemo(() => Math.max(0, totalMrp - totalAmount), [totalMrp, totalAmount]);
 
+  useEffect(() => {
+    refocus({ force: true, delay: 80 });
+  }, [activeTabId, refocus]);
+
+  useEffect(() => {
+    refocus({ force: true, delay: 80 });
+  }, [
+    scannedProduct,
+    manualQuantityItem,
+    showLooseSaleDialog,
+    showReceipt,
+    showCalculator,
+    showNumpad,
+    showPromoGifts,
+    dialogState.open,
+    refocus,
+  ]);
+
+  useEffect(() => {
+    const isEditableTarget = (target) => {
+      if (!(target instanceof HTMLElement)) return false;
+
+      const tagName = target.tagName;
+      return (
+        tagName === 'INPUT' ||
+        tagName === 'TEXTAREA' ||
+        tagName === 'SELECT' ||
+        target.isContentEditable
+      );
+    };
+
+    const shouldHandlePosInteraction = (target) => {
+      if (!(target instanceof HTMLElement)) return false;
+
+      return Boolean(
+        target.closest('.no-print') ||
+          target.closest('[role="dialog"]') ||
+          target.closest('.MuiAutocomplete-popper') ||
+          target.closest('.MuiPopover-root')
+      );
+    };
+
+    const handlePointerUp = (event) => {
+      const target = event.target;
+      if (!shouldHandlePosInteraction(target) || isEditableTarget(target)) {
+        return;
+      }
+
+      refocus({ force: true, delay: 90 });
+    };
+
+    const handleWindowFocus = () => {
+      refocus({ force: true, delay: 60 });
+    };
+
+    document.addEventListener('pointerup', handlePointerUp, true);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      document.removeEventListener('pointerup', handlePointerUp, true);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [refocus]);
+
   // Auto-select Cash when cart gets items, clear when empty
   useEffect(() => {
     setSelectedPaymentMethod((prev) => {

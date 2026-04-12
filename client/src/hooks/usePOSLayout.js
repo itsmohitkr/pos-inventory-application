@@ -16,6 +16,7 @@ export const usePOSLayout = () => {
   const [showReceipt, setShowReceipt] = useState(false);
 
   const searchBarRef = useRef(null);
+  const refocusTimerRef = useRef(null);
 
   // Resizing logic
   const startResizing = useCallback((e) => {
@@ -77,19 +78,34 @@ export const usePOSLayout = () => {
   }, []);
 
   // Focus management
-  const refocus = useCallback(() => {
-    setTimeout(() => {
+  const refocus = useCallback((options = {}) => {
+    const { delay = 150, force = false } = options;
+
+    if (refocusTimerRef.current) {
+      window.clearTimeout(refocusTimerRef.current);
+    }
+
+    refocusTimerRef.current = window.setTimeout(() => {
       const activeElement = document.activeElement;
       const isInput =
-        activeElement.tagName === 'INPUT' ||
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.tagName === 'SELECT' ||
-        activeElement.isContentEditable;
+        activeElement &&
+        (activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.tagName === 'SELECT' ||
+          activeElement.isContentEditable);
 
-      if (!isInput && searchBarRef.current) {
+      if ((force || !isInput) && searchBarRef.current) {
         searchBarRef.current.focus();
       }
-    }, 150);
+    }, delay);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (refocusTimerRef.current) {
+        window.clearTimeout(refocusTimerRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {

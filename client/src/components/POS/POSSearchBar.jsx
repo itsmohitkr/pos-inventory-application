@@ -26,9 +26,27 @@ const POSSearchBar = React.forwardRef(
     ref
   ) => {
     const inputRef = useRef(null);
-    const timerRef = useRef(null);
+    const highlightedOptionRef = useRef(null);
+    const ignoreNextChangeRef = useRef(false);
     const [animating, setAnimating] = React.useState(false);
     const [typewriterBarcode, setTypewriterBarcode] = React.useState('');
+
+    const completeSelection = React.useCallback(
+      (product, displayValue) => {
+        if (!product) return;
+
+        setAnimating(true);
+        setTypewriterBarcode(displayValue || product.name || '');
+        onSelectProduct(product);
+
+        window.setTimeout(() => {
+          setAnimating(false);
+          setTypewriterBarcode('');
+          onSearchInputChange('');
+        }, 10);
+      },
+      [onSearchInputChange, onSelectProduct]
+    );
 
     React.useImperativeHandle(ref, () => ({
       focus: () => {
@@ -49,26 +67,18 @@ const POSSearchBar = React.forwardRef(
       // Cleanup timer on unmount
       return () => {
         clearTimeout(timer);
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-        }
       };
     }, []);
 
-    const handleBlur = () => {
-      // Clear any existing timer
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
+    // Auto-focus when searchQuery becomes empty (after product is added)
+    useEffect(() => {
+      if (!searchQuery && !animating && inputRef.current) {
+        const focusTimer = setTimeout(() => {
+          inputRef.current?.focus();
+        }, 20);
+        return () => clearTimeout(focusTimer);
       }
-    };
-
-    const handleFocus = () => {
-      // Clear timer when user manually focuses
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    };
+    }, [searchQuery, animating]);
 
     const handleClear = () => {
       onSearchInputChange('');
@@ -81,26 +91,27 @@ const POSSearchBar = React.forwardRef(
       if (event.key === 'Enter' && searchQuery.trim()) {
         event.preventDefault();
         const filtered = filterOptions(products, { inputValue: searchQuery });
-        if (filtered.length > 0) {
-          setAnimating(true);
-          setTypewriterBarcode(searchQuery);
-          onSelectProduct(filtered[0]);
-          setTimeout(() => {
-            setAnimating(false);
-            setTypewriterBarcode('');
-            onSearchInputChange('');
-          }, 10); // Ultra-fast turnaround
-        } else {
-          // No product found: show notification and clear search
+        const selectedProduct = highlightedOptionRef.current || filtered[0] || null;
+
+        if (!selectedProduct) {
           if (window && window.dispatchEvent) {
             window.dispatchEvent(new CustomEvent('pos-barcode-not-found', { detail: searchQuery }));
           }
           setTypewriterBarcode(searchQuery);
-          setTimeout(() => {
+          window.setTimeout(() => {
             setTypewriterBarcode('');
             onSearchInputChange('');
           }, 300);
+          return;
         }
+
+        ignoreNextChangeRef.current = true;
+        highlightedOptionRef.current = null;
+        completeSelection(selectedProduct, searchQuery);
+
+        window.setTimeout(() => {
+          ignoreNextChangeRef.current = false;
+        }, 0);
       }
     };
 
@@ -130,9 +141,18 @@ const POSSearchBar = React.forwardRef(
             onSearchInputChange(newInputValue);
           }}
           open={searchQuery.length > 0}
+          onHighlightChange={(_event, option) => {
+            highlightedOptionRef.current = option;
+          }}
           onChange={(event, newValue) => {
+            if (ignoreNextChangeRef.current) {
+              ignoreNextChangeRef.current = false;
+              return;
+            }
+
             if (newValue) {
-              onSelectProduct(newValue);
+              highlightedOptionRef.current = null;
+              completeSelection(newValue, newValue.name);
             }
           }}
           renderInput={(params) => (
@@ -144,8 +164,6 @@ const POSSearchBar = React.forwardRef(
               fullWidth
               autoFocus
               inputRef={inputRef}
-              onBlur={handleBlur}
-              onFocus={handleFocus}
               onKeyDown={handleKeyDown}
               sx={{ bgcolor: 'background.paper' }}
               InputProps={{
