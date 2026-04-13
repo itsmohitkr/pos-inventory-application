@@ -12,9 +12,6 @@ import {
 } from '@mui/material';
 import { DisplaySettings as DisplayIcon } from '@mui/icons-material';
 import {
-  setCalculatorEnabled,
-  setChangeCalculatorEnabled,
-  setPaymentMethodsEnabled,
   STORAGE_KEYS,
 } from '../../shared/utils/paymentSettings';
 

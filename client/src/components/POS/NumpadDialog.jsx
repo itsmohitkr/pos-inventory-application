@@ -25,32 +25,26 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
     return () => window.cancelAnimationFrame(frame);
   }, [open, initialValue]);
 
-  const handleNumberClick = (num) => {
-    if (value === '0') {
-      setValue(num.toString());
-    } else {
-      setValue((prev) => prev + num);
-    }
-  };
+  const handleNumberClick = React.useCallback((num) => {
+    setValue((prev) => (prev === '0' ? num.toString() : prev + num));
+  }, []);
 
-  const handleDecimalClick = () => {
-    if (!value.includes('.')) {
-      setValue((prev) => (prev === '' ? '0.' : prev + '.'));
-    }
-  };
+  const handleDecimalClick = React.useCallback(() => {
+    setValue((prev) => (prev.includes('.') ? prev : (prev === '' ? '0.' : prev + '.')));
+  }, []);
 
-  const handleBackspace = () => {
+  const handleBackspace = React.useCallback(() => {
     setValue((prev) => (prev.length > 1 ? prev.slice(0, -1) : '0'));
-  };
+  }, []);
 
-  const handleClear = () => {
+  const handleClear = React.useCallback(() => {
     setValue('0');
-  };
+  }, []);
 
-  const handleConfirm = () => {
+  const handleConfirm = React.useCallback(() => {
     onConfirm(parseFloat(value) || 0);
     onClose();
-  };
+  }, [value, onConfirm, onClose]);
 
   // Keyboard support
   useEffect(() => {
@@ -80,7 +74,15 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [open, value, onConfirm, onClose]);
+  }, [
+    open,
+    handleNumberClick,
+    handleDecimalClick,
+    handleBackspace,
+    handleConfirm,
+    handleClear,
+    onClose,
+  ]);
 
   const buttons = [
     { label: '1', action: () => handleNumberClick('1') },

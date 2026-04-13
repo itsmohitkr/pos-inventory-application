@@ -260,9 +260,9 @@ const CartTable = ({
                           transition: 'all 0.2s',
                           '&:hover': !item.isFree
                             ? {
-                                bgcolor: 'rgba(26, 115, 232, 0.15)',
-                                transform: 'scale(1.1)',
-                              }
+                              bgcolor: 'rgba(26, 115, 232, 0.15)',
+                              transform: 'scale(1.1)',
+                            }
                             : {},
                         }}
                         onClick={() => !item.isFree && onQuantityClick?.(item)}

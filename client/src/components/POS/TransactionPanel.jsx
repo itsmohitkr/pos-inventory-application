@@ -10,7 +10,6 @@ import TransactionActionButtons from './TransactionActionButtons';
 const TransactionPanel = ({
   cart,
   discount,
-  onDiscountChange,
   onVoid,
   onPay,
   onPayAndPrint,

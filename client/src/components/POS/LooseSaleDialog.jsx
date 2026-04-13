@@ -51,25 +51,28 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    const numericPrice = parseFloat(price);
-    if (isNaN(numericPrice) || numericPrice <= 0) return;
+  const handleSubmit = React.useCallback(
+    async (e) => {
+      if (e) e.preventDefault();
+      const numericPrice = parseFloat(price);
+      if (isNaN(numericPrice) || numericPrice <= 0) return;
 
-    setLoading(true);
-    try {
-      await posService.createLooseSale({
-        itemName: name.trim() || 'Loose Item',
-        price: numericPrice,
-      });
-      if (onComplete) onComplete();
-      onClose();
-    } catch (error) {
-      console.error('Failed to create loose sale:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      try {
+        await posService.createLooseSale({
+          itemName: name.trim() || 'Loose Item',
+          price: numericPrice,
+        });
+        if (onComplete) onComplete();
+        onClose();
+      } catch (error) {
+        console.error('Failed to create loose sale:', error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [price, name, onComplete, onClose]
+  );
 
   // Keyboard support
   useEffect(() => {
@@ -114,7 +117,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, price, name, isNameFocused, onClose]);
+  }, [open, price, name, isNameFocused, onClose, handleSubmit]);
 
   const numpadRows = [
     [1, 2, 3],

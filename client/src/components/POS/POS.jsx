@@ -427,7 +427,7 @@ const POS = ({
     setNotification({ open: true, message, severity });
   };
 
-  const handlePay = async () => {
+  const handlePay = useCallback(async () => {
     const methodToUse = selectedPaymentMethod || { id: 'cash', label: 'Cash' };
     try {
       const items = cart.map((item) => ({
@@ -456,9 +456,18 @@ const POS = ({
       const msg = error.response?.data?.error || error.message || 'Payment failed';
       showError(`Payment failed: ${msg}`);
     }
-  };
+  }, [
+    selectedPaymentMethod,
+    cart,
+    discount,
+    activeTabId,
+    handleCloseTab,
+    fetchProducts,
+    showError,
+    refocus,
+  ]);
 
-  const handlePayAndPrint = async () => {
+  const handlePayAndPrint = useCallback(async () => {
     const methodToUse = selectedPaymentMethod || { id: 'cash', label: 'Cash' };
     try {
       const items = cart.map((item) => ({
@@ -500,7 +509,20 @@ const POS = ({
       const msg = error.response?.data?.error || error.message || 'Payment failed';
       showError(`Payment failed: ${msg}`);
     }
-  };
+  }, [
+    selectedPaymentMethod,
+    cart,
+    discount,
+    activeTabId,
+    receiptSettings,
+    defaultPrinter,
+    printers,
+    handleCloseTab,
+    setShowReceipt,
+    fetchProducts,
+    showError,
+    refocus,
+  ]);
 
   const handlePrintLastReceipt = () => {
     if (lastSale) {
@@ -886,7 +908,10 @@ const POS = ({
 
         <BatchSelectionDialog
           scannedProduct={scannedProduct}
-          onSelectBatch={addToCart}
+          onSelectBatch={(product, batch) => {
+            addToCart(product, batch);
+            setScannedProduct(null);
+          }}
           onClose={() => {
             setScannedProduct(null);
             searchBarRef.current?.focus();
