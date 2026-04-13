@@ -114,12 +114,11 @@ const validatePricing = ({ mrp, costPrice, sellingPrice, wholesalePrice, wholesa
 };
 
 const buildWhereSql = ({ search, category }) => {
-  const clauses = [];
+  const clauses = [Prisma.sql`p.isDeleted = 0` || Prisma.sql`p.isDeleted = false` || Prisma.sql`p.isDeleted IS NOT TRUE` || Prisma.sql`p.isDeleted = 0`]; // Use standard SQLite comparison
 
   const normalizedSearch = normalizeSearch(search);
   if (normalizedSearch) {
     const like = `%${normalizedSearch}%`;
-    // Support multi-barcode search: search for exact match or as part of pipe-separated list
     clauses.push(Prisma.sql`(p.name LIKE ${like} OR p.barcode LIKE ${like})`);
   }
 
@@ -130,10 +129,6 @@ const buildWhereSql = ({ search, category }) => {
       const like = `${category}/%`;
       clauses.push(Prisma.sql`(p.category = ${category} OR p.category LIKE ${like})`);
     }
-  }
-
-  if (!clauses.length) {
-    return Prisma.sql``;
   }
 
   return Prisma.sql`WHERE ${Prisma.join(clauses, Prisma.sql` AND `)}`;
@@ -153,7 +148,7 @@ const validateQuantity = (quantity) => {
 };
 
 const buildWhereFilter = ({ search, category }) => {
-  const andFilters = [];
+  const andFilters = [{ isDeleted: false }];
 
   const normalizedSearch = normalizeSearch(search);
   if (normalizedSearch) {
@@ -175,7 +170,6 @@ const buildWhereFilter = ({ search, category }) => {
     }
   }
 
-  if (!andFilters.length) return {};
   return { AND: andFilters };
 };
 
@@ -367,8 +361,8 @@ const getProductSummary = async ({ search = '', category = 'all' } = {}) => {
 };
 
 const getProductById = async (id) => {
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(id) },
+  const product = await prisma.product.findFirst({
+    where: { id: parseInt(id), isDeleted: false },
     include: {
       batches: {
         orderBy: { createdAt: 'asc' },
@@ -397,6 +391,7 @@ const getProductByBarcode = async (barcode) => {
   // or is part of a pipe-separated list (e.g., "123|456|789")
   const products = await prisma.product.findMany({
     where: {
+      isDeleted: false,
       OR: [
         { barcode: normalizedBarcode }, // Exact match
         { barcode: { startsWith: `${normalizedBarcode}|` } }, // First in list
@@ -709,44 +704,12 @@ const updateProduct = async (id, productData) => {
 
 const deleteProduct = async (id) => {
   const productId = parseInt(id);
-  return await prisma.$transaction(async (tx) => {
-    // 1. Delete stock movements
-    await tx.stockMovement.deleteMany({
-      where: { productId },
-    });
-
-    // 2. Delete promotion items
-    await tx.promotionItem.deleteMany({
-      where: { productId },
-    });
-
-    // 3. Delete purchase items
-    await tx.purchaseItem.deleteMany({
-      where: { productId },
-    });
-
-    // 4. Delete sale items linked to this product's batches
-    const batches = await tx.batch.findMany({
-      where: { productId },
-      select: { id: true },
-    });
-    const batchIds = batches.map((b) => b.id);
-
-    if (batchIds.length > 0) {
-      await tx.saleItem.deleteMany({
-        where: { batchId: { in: batchIds } },
-      });
-    }
-
-    // 5. Delete batches
-    await tx.batch.deleteMany({
-      where: { productId },
-    });
-
-    // 6. Delete the product
-    await tx.product.delete({
-      where: { id: productId },
-    });
+  return await prisma.product.update({
+    where: { id: productId },
+    data: {
+      isDeleted: true,
+      deletedAt: new Date(),
+    },
   });
 };
 
