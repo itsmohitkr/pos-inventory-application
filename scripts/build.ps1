@@ -12,6 +12,9 @@ $ErrorActionPreference = "Stop"
 Write-Host "Building Bachat Bazaar Electron App..." -ForegroundColor Cyan
 Write-Host "=======================================" -ForegroundColor Cyan
 
+# Navigate to the root directory
+Set-Location "$PSScriptRoot\.."
+
 # Check if Node.js is installed
 $nodeVersion = node --version
 if ($LASTEXITCODE -ne 0) {

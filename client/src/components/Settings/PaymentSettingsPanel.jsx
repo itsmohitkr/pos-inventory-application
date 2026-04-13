@@ -17,11 +17,7 @@ import { Payment as PaymentIcon, Add as AddIcon, Delete as DeleteIcon } from '@m
 import {
   STORAGE_KEYS,
   DEFAULT_PAYMENT_SETTINGS,
-  getDecodedPricesEnabled,
-  setDecodedPricesEnabled,
 } from '../../shared/utils/paymentSettings';
-import settingsService from '../../shared/api/settingsService';
-import { useEffect } from 'react';
 
 const PAYMENT_METHOD_OPTIONS = [
   { id: 'cash', label: 'Cash', icon: '💵' },

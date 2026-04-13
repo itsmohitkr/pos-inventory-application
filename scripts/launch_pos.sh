@@ -1,5 +1,8 @@
 #!/bin/bash
 echo "Starting POS Offline Mode..."
+
+# Navigate to the root directory
+cd "$(dirname "$0")/.."
 # Ensure dependencies are installed (optional, can be slow)
 # npm install
 

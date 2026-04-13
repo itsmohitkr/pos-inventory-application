@@ -20,7 +20,7 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
     ? `Select MRP for ${scannedProduct?.product.name}`
     : `Select Batch for ${scannedProduct?.product.name}`;
 
-  const batches = scannedProduct?.batches || [];
+  const batches = React.useMemo(() => scannedProduct?.batches || [], [scannedProduct]);
 
   // Reset focus and keyboard state when dialog opens/closes
   useEffect(() => {
