@@ -39,6 +39,8 @@ import {
   setCalculatorEnabled,
   getAdminAutoLogoutTime,
   setAdminAutoLogoutTime,
+  DEFAULT_PAYMENT_SETTINGS,
+  getDecodedPricesEnabled,
 } from '../../shared/utils/paymentSettings';
 
 const AccountDetailsDialog = ({
@@ -86,6 +88,8 @@ const AccountDetailsDialog = ({
   const [calculatorEnabled, setCalculatorEnabledState] = useState(getCalculatorEnabled());
   const [adminAutoLogoutTime, setAdminAutoLogoutTimeState] = useState(getAdminAutoLogoutTime());
   const [weightedAverageCostEnabled, setWeightedAverageCostEnabled] = useState(false);
+  const [paymentSettings, setPaymentSettings] = useState(DEFAULT_PAYMENT_SETTINGS);
+  const [showDecodedPrices, setShowDecodedPrices] = useState(getDecodedPricesEnabled());
   const [tabValue, setTabValue] = useState(0);
 
   // Sync with metadata prop changes
@@ -161,6 +165,9 @@ const AccountDetailsDialog = ({
         if (settings.posEnableWeightedAverageCost !== undefined) {
           setWeightedAverageCostEnabled(settings.posEnableWeightedAverageCost);
         }
+        if (settings.posPaymentSettings) {
+          setPaymentSettings(settings.posPaymentSettings);
+        }
       } catch (error) {
         console.error('Failed to fetch UI settings:', error);
       }
@@ -185,10 +192,16 @@ const AccountDetailsDialog = ({
     localStorage.setItem('posMonochromeMode', monochrome.toString());
     localStorage.setItem('posLooseSaleEnabled', looseSaleEnabled.toString());
     localStorage.setItem(STORAGE_KEYS.enableFullscreen, JSON.stringify(fullscreenEnabled));
+    localStorage.setItem(STORAGE_KEYS.enableChangeCalculator, JSON.stringify(changeCalculatorEnabled));
+    localStorage.setItem(STORAGE_KEYS.enablePaymentMethods, JSON.stringify(paymentMethodsEnabled));
+    localStorage.setItem(STORAGE_KEYS.enableCalculator, JSON.stringify(calculatorEnabled));
+    localStorage.setItem(STORAGE_KEYS.paymentSettings, JSON.stringify(paymentSettings));
+    localStorage.setItem(STORAGE_KEYS.enableDecodedPrices, JSON.stringify(showDecodedPrices));
+    localStorage.setItem(STORAGE_KEYS.adminAutoLogoutTime, adminAutoLogoutTime.toString());
 
-    setChangeCalculatorEnabled(changeCalculatorEnabled);
-    setPaymentMethodsEnabled(paymentMethodsEnabled);
-    setCalculatorEnabled(calculatorEnabled);
+    // Dispatch events immediately for instant UI response
+    window.dispatchEvent(new Event('pos-settings-updated'));
+    window.dispatchEvent(new Event('pos-ui-zoom-updated'));
 
     const saveSettingsToServer = async () => {
       try {
@@ -208,26 +221,23 @@ const AccountDetailsDialog = ({
           key: 'posEnableWeightedAverageCost',
           value: weightedAverageCostEnabled,
         });
-        window.dispatchEvent(new Event('pos-settings-updated'));
+        await settingsService.updateSettings({
+          key: 'posPaymentSettings',
+          value: paymentSettings,
+        });
       } catch (error) {
-        console.error('Failed to save UI settings:', error);
+        console.error('Failed to save settings:', error);
       }
     };
     saveSettingsToServer();
 
+    setChangeCalculatorEnabled(changeCalculatorEnabled);
+    setPaymentMethodsEnabled(paymentMethodsEnabled);
+    setCalculatorEnabled(calculatorEnabled);
     setAdminAutoLogoutTime(adminAutoLogoutTime);
 
-    window.dispatchEvent(new Event('pos-ui-zoom-updated'));
-    window.dispatchEvent(new Event('pos-settings-updated'));
-
-    let message = 'Settings saved successfully!';
-    if (tabValue === 0) message = 'Shop information updated successfully!';
-    if (tabValue === 2) message = 'Display settings updated successfully!';
-
-    showSuccess(message);
-    if (!showWipeConfirm) {
-      onClose();
-    }
+    showSuccess('Settings saved successfully!');
+    onClose();
   };
 
   const handleWipeDatabase = async () => {
@@ -373,7 +383,14 @@ const AccountDetailsDialog = ({
           )}
 
           {/* Tab 1: Payment Settings */}
-          {tabValue === 1 && <PaymentSettingsPanel showSuccess={showSuccess} />}
+          {tabValue === 1 && (
+            <PaymentSettingsPanel
+              paymentSettings={paymentSettings}
+              setPaymentSettings={setPaymentSettings}
+              showDecodedPrices={showDecodedPrices}
+              setShowDecodedPrices={setShowDecodedPrices}
+            />
+          )}
 
           {/* Tab 2: UI Settings */}
           {tabValue === 2 && (
@@ -419,11 +436,9 @@ const AccountDetailsDialog = ({
               <Button onClick={handleClose} variant="outlined">
                 Cancel
               </Button>
-              {(tabValue === 0 || tabValue === 2) && (
-                <Button onClick={handleSave} variant="contained">
-                  Save Changes
-                </Button>
-              )}
+              <Button onClick={handleSave} variant="contained">
+                Save Changes
+              </Button>
             </>
           ) : (
             <>

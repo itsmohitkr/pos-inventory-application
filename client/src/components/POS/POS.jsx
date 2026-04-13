@@ -122,13 +122,13 @@ const POS = ({
   const [paymentSettings, setPaymentSettings] = useState(() => getStoredPaymentSettings());
   const [fullscreenEnabled, setFullscreenEnabled] = useState(getFullscreenEnabled);
   const [extraDiscountEnabled, setExtraDiscountEnabled] = useState(() => getExtraDiscountEnabled());
-  const [isCalculatorEnabled, _setIsCalculatorEnabled] = useState(getCalculatorEnabled);
+  const [isCalculatorEnabled, setCalculatorEnabledState] = useState(getCalculatorEnabled);
   const [changeCalculatorEnabled, setChangeCalculatorEnabledState] = useState(
     getChangeCalculatorEnabled()
   );
-  const [paymentMethodsEnabled, setPaymentMethodsEnabled] = useState(getPaymentMethodsEnabled());
+  const [paymentMethodsEnabled, setPaymentMethodsEnabledState] = useState(getPaymentMethodsEnabled());
   const [notificationDuration, setNotificationDuration] = useState(() => getNotificationDuration());
-  const [decodedPricesEnabled, _setDecodedPricesEnabledState] = useState(() =>
+  const [decodedPricesEnabled, setDecodedPricesEnabledState] = useState(() =>
     getDecodedPricesEnabled()
   );
   const [notification, setNotification] = useState({
@@ -604,7 +604,9 @@ const POS = ({
       setNotificationDuration(getNotificationDuration());
       setExtraDiscountEnabled(getExtraDiscountEnabled());
       setChangeCalculatorEnabledState(getChangeCalculatorEnabled());
-      setPaymentMethodsEnabled(getPaymentMethodsEnabled());
+      setPaymentMethodsEnabledState(getPaymentMethodsEnabled());
+      setDecodedPricesEnabledState(getDecodedPricesEnabled());
+      setCalculatorEnabledState(getCalculatorEnabled());
       setLooseSaleEnabled(localStorage.getItem('posLooseSaleEnabled') !== 'false');
     };
     window.addEventListener('pos-settings-updated', handleSettingsUpdated);

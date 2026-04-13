@@ -72,8 +72,6 @@ const DisplaySettingsTab = ({
                   variant={uiZoom === level ? 'contained' : 'outlined'}
                   onClick={() => {
                     setUiZoom(level);
-                    localStorage.setItem('posUiZoom', level.toString());
-                    window.dispatchEvent(new Event('pos-ui-zoom-updated'));
                   }}
                   sx={{
                     minWidth: 80,
@@ -123,10 +121,7 @@ const DisplaySettingsTab = ({
                 <Switch
                   checked={monochrome}
                   onChange={(e) => {
-                    const val = e.target.checked;
-                    setMonochrome(val);
-                    localStorage.setItem('posMonochromeMode', val.toString());
-                    window.dispatchEvent(new Event('pos-settings-updated'));
+                    setMonochrome(e.target.checked);
                   }}
                 />
               }
@@ -153,10 +148,7 @@ const DisplaySettingsTab = ({
                 <Switch
                   checked={looseSaleEnabled}
                   onChange={(e) => {
-                    const val = e.target.checked;
-                    setLooseSaleEnabled(val);
-                    localStorage.setItem('posLooseSaleEnabled', val.toString());
-                    window.dispatchEvent(new Event('pos-settings-updated'));
+                    setLooseSaleEnabled(e.target.checked);
                   }}
                 />
               }
@@ -172,10 +164,7 @@ const DisplaySettingsTab = ({
                 <Switch
                   checked={fullscreenEnabled}
                   onChange={(e) => {
-                    const val = e.target.checked;
-                    setFullscreenEnabled(val);
-                    localStorage.setItem(STORAGE_KEYS.enableFullscreen, JSON.stringify(val));
-                    window.dispatchEvent(new Event('pos-settings-updated'));
+                    setFullscreenEnabled(e.target.checked);
                   }}
                 />
               }
@@ -270,9 +259,7 @@ const DisplaySettingsTab = ({
                 <Switch
                   checked={calculatorEnabled}
                   onChange={(e) => {
-                    const val = e.target.checked;
-                    setCalculatorEnabledState(val);
-                    setCalculatorEnabled(val);
+                    setCalculatorEnabledState(e.target.checked);
                   }}
                 />
               }
@@ -293,9 +280,7 @@ const DisplaySettingsTab = ({
                 <Switch
                   checked={changeCalculatorEnabled}
                   onChange={(e) => {
-                    const val = e.target.checked;
-                    setChangeCalculatorEnabledState(val);
-                    setChangeCalculatorEnabled(val);
+                    setChangeCalculatorEnabledState(e.target.checked);
                   }}
                 />
               }
@@ -311,9 +296,7 @@ const DisplaySettingsTab = ({
                 <Switch
                   checked={paymentMethodsEnabled}
                   onChange={(e) => {
-                    const val = e.target.checked;
-                    setPaymentMethodsEnabledState(val);
-                    setPaymentMethodsEnabled(val);
+                    setPaymentMethodsEnabledState(e.target.checked);
                   }}
                 />
               }
