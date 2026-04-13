@@ -78,7 +78,7 @@ const POSTabs = ({ tabs, activeTabId, onTabChange, onTabClose, onAddTab }) => {
           );
         })}
       </Tabs>
-      <IconButton onClick={onAddTab} sx={{ ml: 1, mr: 1 }} color="primary">
+      <IconButton onClick={onAddTab} sx={{ ml: 1, mr: 1 }} color="primary" aria-label="Add Tab">
         <AddIcon />
       </IconButton>
     </Box>

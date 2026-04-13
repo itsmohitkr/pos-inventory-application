@@ -628,9 +628,13 @@ const POS = ({
 
   useEffect(() => {
     fetchProducts();
-    const interval = setInterval(() => fetchProducts(), 30000);
+    _refreshSettings();
+    const interval = setInterval(() => {
+      fetchProducts();
+      _refreshSettings();
+    }, 30000);
     return () => clearInterval(interval);
-  }, [fetchProducts]);
+  }, [fetchProducts, _refreshSettings]);
 
   useEffect(() => {
     const handleSettingsUpdated = () => {
@@ -828,11 +832,11 @@ const POS = ({
 
           <PromoGiftsList
             show={showPromoGifts}
-            eligibleProducts={eligibleFreeProducts}
+            eligibleFreeProducts={eligibleFreeProducts}
             activeConfig={activeConfig}
             totalProfit={totalProfit}
             cart={cart}
-            onAddGift={addFreeProduct}
+            onAddFreeProduct={addFreeProduct}
             onClose={() => setShowPromoGifts(false)}
           />
         </Paper>
