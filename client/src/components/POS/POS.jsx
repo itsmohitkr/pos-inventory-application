@@ -22,6 +22,7 @@ import SuccessNotification from '../common/SuccessNotification';
 import useCustomDialog from '../../shared/hooks/useCustomDialog';
 import { usePOSTabs } from '../../hooks/usePOSTabs';
 import { usePOSLayout } from '../../hooks/usePOSLayout';
+import { usePOSShortcuts } from '../../hooks/usePOSShortcuts';
 import inventoryService from '../../shared/api/inventoryService';
 import posService from '../../shared/api/posService';
 import dashboardService from '../../shared/api/dashboardService';
@@ -167,6 +168,28 @@ const POS = ({
     const roundOff = receiptSettings?.roundOff ?? true;
     return roundOff ? Math.round(baseTotalAmount) : baseTotalAmount;
   }, [baseTotalAmount, receiptSettings]);
+
+  // Keyboard Shortcuts handler
+  usePOSShortcuts(
+    {
+      onPay: () => handlePay(),
+      onPayAndPrint: () => handlePayAndPrint(),
+      onLooseSale: () => setShowLooseSaleDialog(true),
+      onToggleNumpad: () => setShowNumpad(true),
+    },
+    {
+      disabled: Boolean(
+        scannedProduct ||
+        manualQuantityItem ||
+        showLooseSaleDialog ||
+        showReceipt ||
+        showCalculator ||
+        showNumpad ||
+        showPromoGifts ||
+        dialogState.open
+      ),
+    }
+  );
 
   const totalSavings = useMemo(() => Math.max(0, totalMrp - totalAmount), [totalMrp, totalAmount]);
 

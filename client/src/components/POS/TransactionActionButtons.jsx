@@ -88,7 +88,7 @@ const TransactionActionButtons = React.memo(
                 Pay & Print
               </Typography>
               <Typography variant="caption" sx={{ fontSize: '0.65rem', opacity: 0.8 }}>
-                [F12]
+                [F11]
               </Typography>
             </Box>
           </Button>
