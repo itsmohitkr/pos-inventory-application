@@ -25,6 +25,7 @@ import useCustomDialog from '../../shared/hooks/useCustomDialog';
 import PaymentSettingsPanel from './PaymentSettingsPanel';
 import AccountDetailsTab from './AccountDetailsTab';
 import DisplaySettingsTab from './DisplaySettingsTab';
+import POSFeaturesTab from './POSFeaturesTab';
 import WipeDatabaseConfirmation from './WipeDatabaseConfirmation';
 import {
   getChangeCalculatorEnabled,
@@ -39,6 +40,8 @@ import {
   setCalculatorEnabled,
   getAdminAutoLogoutTime,
   setAdminAutoLogoutTime,
+  DEFAULT_PAYMENT_SETTINGS,
+  getDecodedPricesEnabled,
 } from '../../shared/utils/paymentSettings';
 
 const AccountDetailsDialog = ({
@@ -86,6 +89,8 @@ const AccountDetailsDialog = ({
   const [calculatorEnabled, setCalculatorEnabledState] = useState(getCalculatorEnabled());
   const [adminAutoLogoutTime, setAdminAutoLogoutTimeState] = useState(getAdminAutoLogoutTime());
   const [weightedAverageCostEnabled, setWeightedAverageCostEnabled] = useState(false);
+  const [paymentSettings, setPaymentSettings] = useState(DEFAULT_PAYMENT_SETTINGS);
+  const [showDecodedPrices, setShowDecodedPrices] = useState(getDecodedPricesEnabled());
   const [tabValue, setTabValue] = useState(0);
 
   // Sync with metadata prop changes
@@ -161,6 +166,9 @@ const AccountDetailsDialog = ({
         if (settings.posEnableWeightedAverageCost !== undefined) {
           setWeightedAverageCostEnabled(settings.posEnableWeightedAverageCost);
         }
+        if (settings.posPaymentSettings) {
+          setPaymentSettings(settings.posPaymentSettings);
+        }
       } catch (error) {
         console.error('Failed to fetch UI settings:', error);
       }
@@ -185,10 +193,19 @@ const AccountDetailsDialog = ({
     localStorage.setItem('posMonochromeMode', monochrome.toString());
     localStorage.setItem('posLooseSaleEnabled', looseSaleEnabled.toString());
     localStorage.setItem(STORAGE_KEYS.enableFullscreen, JSON.stringify(fullscreenEnabled));
+    localStorage.setItem(STORAGE_KEYS.enableChangeCalculator, JSON.stringify(changeCalculatorEnabled));
+    localStorage.setItem(STORAGE_KEYS.enablePaymentMethods, JSON.stringify(paymentMethodsEnabled));
+    localStorage.setItem(STORAGE_KEYS.enableCalculator, JSON.stringify(calculatorEnabled));
+    localStorage.setItem(STORAGE_KEYS.paymentSettings, JSON.stringify(paymentSettings));
+    localStorage.setItem(STORAGE_KEYS.enableDecodedPrices, JSON.stringify(showDecodedPrices));
+    localStorage.setItem(STORAGE_KEYS.adminAutoLogoutTime, adminAutoLogoutTime.toString());
+    localStorage.setItem(STORAGE_KEYS.enableExtraDiscount, JSON.stringify(extraDiscountEnabled));
+    localStorage.setItem(STORAGE_KEYS.enableWeightedAverageCost, JSON.stringify(weightedAverageCostEnabled));
+    localStorage.setItem(STORAGE_KEYS.notificationDuration, (notificationDuration * 1000).toString());
 
-    setChangeCalculatorEnabled(changeCalculatorEnabled);
-    setPaymentMethodsEnabled(paymentMethodsEnabled);
-    setCalculatorEnabled(calculatorEnabled);
+    // Dispatch events immediately for instant UI response
+    window.dispatchEvent(new Event('pos-settings-updated'));
+    window.dispatchEvent(new Event('pos-ui-zoom-updated'));
 
     const saveSettingsToServer = async () => {
       try {
@@ -208,26 +225,23 @@ const AccountDetailsDialog = ({
           key: 'posEnableWeightedAverageCost',
           value: weightedAverageCostEnabled,
         });
-        window.dispatchEvent(new Event('pos-settings-updated'));
+        await settingsService.updateSettings({
+          key: 'posPaymentSettings',
+          value: paymentSettings,
+        });
       } catch (error) {
-        console.error('Failed to save UI settings:', error);
+        console.error('Failed to save settings:', error);
       }
     };
     saveSettingsToServer();
 
+    setChangeCalculatorEnabled(changeCalculatorEnabled);
+    setPaymentMethodsEnabled(paymentMethodsEnabled);
+    setCalculatorEnabled(calculatorEnabled);
     setAdminAutoLogoutTime(adminAutoLogoutTime);
 
-    window.dispatchEvent(new Event('pos-ui-zoom-updated'));
-    window.dispatchEvent(new Event('pos-settings-updated'));
-
-    let message = 'Settings saved successfully!';
-    if (tabValue === 0) message = 'Shop information updated successfully!';
-    if (tabValue === 2) message = 'Display settings updated successfully!';
-
-    showSuccess(message);
-    if (!showWipeConfirm) {
-      onClose();
-    }
+    showSuccess('Settings saved successfully!');
+    onClose();
   };
 
   const handleWipeDatabase = async () => {
@@ -335,10 +349,13 @@ const AccountDetailsDialog = ({
             value={tabValue}
             onChange={(e, newValue) => setTabValue(newValue)}
             aria-label="settings tabs"
+            variant="scrollable"
+            scrollButtons="auto"
           >
-            <Tab icon={<StoreIcon />} label="Account Details" sx={{ gap: 1 }} />
-            <Tab icon={<PaymentIcon />} label="Payment Settings" sx={{ gap: 1 }} />
-            <Tab icon={<DisplayIcon />} label="Display Settings" sx={{ gap: 1 }} />
+            <Tab label="Account" />
+            <Tab label="POS Features" />
+            <Tab label="Payment" />
+            <Tab label="Display & Zoom" />
           </Tabs>
         </Box>
 
@@ -372,16 +389,9 @@ const AccountDetailsDialog = ({
             />
           )}
 
-          {/* Tab 1: Payment Settings */}
-          {tabValue === 1 && <PaymentSettingsPanel showSuccess={showSuccess} />}
-
-          {/* Tab 2: UI Settings */}
-          {tabValue === 2 && (
-            <DisplaySettingsTab
-              uiZoom={uiZoom}
-              setUiZoom={setUiZoom}
-              monochrome={monochrome}
-              setMonochrome={setMonochrome}
+          {/* Tab 1: POS Features */}
+          {tabValue === 1 && (
+            <POSFeaturesTab
               looseSaleEnabled={looseSaleEnabled}
               setLooseSaleEnabled={setLooseSaleEnabled}
               fullscreenEnabled={fullscreenEnabled}
@@ -403,6 +413,26 @@ const AccountDetailsDialog = ({
             />
           )}
 
+          {/* Tab 2: Payment Settings */}
+          {tabValue === 2 && (
+            <PaymentSettingsPanel
+              paymentSettings={paymentSettings}
+              setPaymentSettings={setPaymentSettings}
+              showDecodedPrices={showDecodedPrices}
+              setShowDecodedPrices={setShowDecodedPrices}
+            />
+          )}
+
+          {/* Tab 3: UI Settings */}
+          {tabValue === 3 && (
+            <DisplaySettingsTab
+              uiZoom={uiZoom}
+              setUiZoom={setUiZoom}
+              monochrome={monochrome}
+              setMonochrome={setMonochrome}
+            />
+          )}
+
           {/* Wipe Database Confirmation */}
           {tabValue === 0 && showWipeConfirm && (
             <WipeDatabaseConfirmation
@@ -419,11 +449,9 @@ const AccountDetailsDialog = ({
               <Button onClick={handleClose} variant="outlined">
                 Cancel
               </Button>
-              {(tabValue === 0 || tabValue === 2) && (
-                <Button onClick={handleSave} variant="contained">
-                  Save Changes
-                </Button>
-              )}
+              <Button onClick={handleSave} variant="contained">
+                Save Changes
+              </Button>
             </>
           ) : (
             <>

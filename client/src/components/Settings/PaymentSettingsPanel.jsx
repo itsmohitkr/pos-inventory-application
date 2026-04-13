@@ -32,61 +32,34 @@ const PAYMENT_METHOD_OPTIONS = [
   { id: 'cheque', label: 'Cheque', icon: '📄' },
 ];
 
-const PaymentSettingsPanel = ({ showSuccess }) => {
-  const [paymentSettings, setPaymentSettings] = useState(DEFAULT_PAYMENT_SETTINGS);
+const PaymentSettingsPanel = ({
+  paymentSettings,
+  setPaymentSettings,
+  showDecodedPrices,
+  setShowDecodedPrices
+}) => {
   const [customMethod, setCustomMethod] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [showDecodedPrices, setShowDecodedPrices] = useState(getDecodedPricesEnabled());
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const res = await settingsService.fetchSettings();
-        const settings = res.data;
-        if (settings.posPaymentSettings) {
-          setPaymentSettings(settings.posPaymentSettings);
-        }
-      } catch (error) {
-        console.error('Failed to fetch payment settings:', error);
-      }
-    };
-    fetchSettings();
-  }, []);
 
   const handlePaymentMethodToggle = (methodId) => {
-    setPaymentSettings((prev) => {
-      const isEnabling = !prev.enabledMethods.includes(methodId);
-      const methodName = PAYMENT_METHOD_OPTIONS.find((m) => m.id === methodId)?.label || methodId;
+    const isEnabling = !paymentSettings.enabledMethods.includes(methodId);
 
-      const updated = {
-        ...prev,
-        enabledMethods: isEnabling
-          ? [...prev.enabledMethods, methodId]
-          : prev.enabledMethods.filter((m) => m !== methodId),
-      };
-      saveSettings(updated);
-      if (showSuccess) {
-        showSuccess(`${methodName} payment method ${isEnabling ? 'enabled' : 'disabled'}`);
-      }
-      return updated;
+    setPaymentSettings({
+      ...paymentSettings,
+      enabledMethods: isEnabling
+        ? [...paymentSettings.enabledMethods, methodId]
+        : paymentSettings.enabledMethods.filter((m) => m !== methodId),
     });
   };
 
   const handleAddCustomMethod = () => {
     if (customMethod.trim()) {
-      setPaymentSettings((prev) => {
-        const updated = {
-          ...prev,
-          customMethods: [
-            ...prev.customMethods,
-            { id: `custom_${Date.now()}`, label: customMethod },
-          ],
-        };
-        saveSettings(updated);
-        if (showSuccess) {
-          showSuccess(`Custom payment method '${customMethod}' added`);
-        }
-        return updated;
+      setPaymentSettings({
+        ...paymentSettings,
+        customMethods: [
+          ...paymentSettings.customMethods,
+          { id: `custom_${Date.now()}`, label: customMethod },
+        ],
       });
       setCustomMethod('');
       setShowCustomInput(false);
@@ -94,53 +67,21 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
   };
 
   const handleRemoveCustomMethod = (methodId) => {
-    setPaymentSettings((prev) => {
-      const removedMethod = prev.customMethods.find((m) => m.id === methodId);
-      const updated = {
-        ...prev,
-        customMethods: prev.customMethods.filter((m) => m.id !== methodId),
-      };
-      saveSettings(updated);
-      if (showSuccess && removedMethod) {
-        showSuccess(`Custom payment method '${removedMethod.label}' removed`);
-      }
-      return updated;
+    setPaymentSettings({
+      ...paymentSettings,
+      customMethods: paymentSettings.customMethods.filter((m) => m.id !== methodId),
     });
   };
 
   const handleMultiplePaymentToggle = () => {
-    setPaymentSettings((prev) => {
-      const updated = {
-        ...prev,
-        allowMultplePayment: !prev.allowMultplePayment,
-      };
-      saveSettings(updated);
-      if (showSuccess) {
-        showSuccess(`Multi-payment mode ${updated.allowMultplePayment ? 'enabled' : 'disabled'}`);
-      }
-      return updated;
+    setPaymentSettings({
+      ...paymentSettings,
+      allowMultplePayment: !paymentSettings.allowMultplePayment,
     });
   };
 
   const handleDecodedPricesToggle = (event) => {
-    const isEnabled = event.target.checked;
-    setShowDecodedPrices(isEnabled);
-    setDecodedPricesEnabled(isEnabled);
-    if (showSuccess) {
-      showSuccess(`Decoded CP/SP display ${isEnabled ? 'enabled' : 'disabled'}`);
-    }
-  };
-
-  const saveSettings = async (settings) => {
-    try {
-      await settingsService.updateSettings({
-        key: 'posPaymentSettings',
-        value: settings,
-      });
-      window.dispatchEvent(new Event('pos-settings-updated'));
-    } catch (error) {
-      console.error('Failed to save payment settings:', error);
-    }
+    setShowDecodedPrices(event.target.checked);
   };
 
   const enabledCount = paymentSettings.enabledMethods.length;
@@ -279,9 +220,6 @@ const PaymentSettingsPanel = ({ showSuccess }) => {
           </FormGroup>
         </Box>
 
-        <Alert severity="info" sx={{ mt: 2 }}>
-          Changes are saved automatically and will take effect immediately on the POS screen.
-        </Alert>
       </Stack>
     </Paper>
   );

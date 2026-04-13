@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   enableCalculator: 'posEnableCalculator',
   enableDecodedPrices: 'posEnableDecodedPrices',
   adminAutoLogoutTime: 'posAdminAutoLogoutTime',
+  enableWeightedAverageCost: 'posEnableWeightedAverageCost',
   receipt: 'posReceiptSettings',
   shopName: 'posShopName',
 };
@@ -162,5 +163,22 @@ export const setAdminAutoLogoutTime = (minutes) => {
     window.dispatchEvent(new Event('pos-settings-updated'));
   } catch (error) {
     console.error('Failed to save admin auto-logout time:', error);
+  }
+};
+export const getWeightedAverageCostEnabled = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.enableWeightedAverageCost);
+    return stored ? JSON.parse(stored) : false;
+  } catch {
+    return false;
+  }
+};
+
+export const setWeightedAverageCostEnabled = (enabled) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.enableWeightedAverageCost, JSON.stringify(enabled));
+    window.dispatchEvent(new Event('pos-settings-updated'));
+  } catch (error) {
+    console.error('Failed to save WAC setting:', error);
   }
 };
