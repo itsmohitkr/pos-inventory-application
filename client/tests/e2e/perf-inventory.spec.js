@@ -22,6 +22,9 @@ const RUNS = 3; // repeat each interaction and take the median
 const CATEGORIES = ['Beverages', 'Snacks', 'Dairy', 'Bakery', 'Personal Care', 'Household'];
 
 // ─── data generators ───────────────────────────────────────────────────────
+/**
+ * @param {number} count 
+ */
 function generateProducts(count) {
   return Array.from({ length: count }, (_, i) => {
     const id = i + 1;
@@ -60,6 +63,9 @@ function generateProducts(count) {
   });
 }
 
+/**
+ * @param {any[]} products 
+ */
 function buildSummary(products) {
   const cats = {};
   const totals = products.reduce(
@@ -88,6 +94,10 @@ function buildCategoryTree() {
 }
 
 // ─── mock API installer ─────────────────────────────────────────────────────
+/**
+ * @param {import('@playwright/test').Page} page 
+ * @param {any[]} products 
+ */
 async function installPerfMock(page, products) {
   const summary = buildSummary(products);
   const catTree = buildCategoryTree();
@@ -99,6 +109,10 @@ async function installPerfMock(page, products) {
     const method = req.method();
     const path = new URL(req.url()).pathname;
 
+    /**
+     * @param {any} body 
+     * @param {number} [status] 
+     */
     const json = async (body, status = 200) => {
       await delay(MOCK_API_DELAY_MS);
       await route.fulfill({
@@ -128,11 +142,17 @@ async function installPerfMock(page, products) {
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────
+/**
+ * @param {number[]} arr 
+ */
 function median(arr) {
   const s = [...arr].sort((a, b) => a - b);
   return s[Math.floor(s.length / 2)];
 }
 
+/**
+ * @param {any[]} results 
+ */
 function printReport(results) {
   const COL_LABEL = 42;
   const line = '─'.repeat(COL_LABEL + 28);
