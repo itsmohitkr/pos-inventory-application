@@ -163,6 +163,7 @@ const getExpiryReport = async ({ startDate, endDate }) => {
 
 const getLowStockReport = async () => {
   const products = await prisma.product.findMany({
+    where: { isDeleted: false },
     include: {
       batches: {
         select: {

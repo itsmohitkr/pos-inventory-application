@@ -39,6 +39,8 @@ model Product {
   batchTrackingEnabled   Boolean         @default(false)
   lowStockThreshold      Int             @default(0)
   lowStockWarningEnabled Boolean         @default(false)
+  isDeleted              Boolean         @default(false)
+  deletedAt              DateTime?
   createdAt              DateTime        @default(now())
   batches                Batch[]
   promotions             PromotionItem[]

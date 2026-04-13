@@ -384,9 +384,9 @@ const ProductList = forwardRef(
           p._searchBarcodes ||
           (p._searchBarcodes = p.barcode
             ? p.barcode
-                .toLowerCase()
-                .split('|')
-                .map((b) => b.trim())
+              .toLowerCase()
+              .split('|')
+              .map((b) => b.trim())
             : []);
 
         if (name.startsWith(query)) {
@@ -430,6 +430,8 @@ const ProductList = forwardRef(
         if (confirmed) {
           try {
             await inventoryService.deleteProduct(id);
+            setSelectedProduct(null);
+            setSelectedProductDetails(null);
             fetchProducts();
             fetchSummary();
           } catch (error) {
@@ -658,9 +660,9 @@ const ProductList = forwardRef(
         contextMenu
           ? null
           : {
-              mouseX: event.clientX - 2,
-              mouseY: event.clientY - 4,
-            }
+            mouseX: event.clientX - 2,
+            mouseY: event.clientY - 4,
+          }
       );
     };
     const closeCategoryMenu = React.useCallback(() => {

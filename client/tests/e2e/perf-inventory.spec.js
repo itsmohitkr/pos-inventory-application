@@ -21,7 +21,41 @@ const MOCK_API_DELAY_MS = 80; // simulated backend latency per call
 const RUNS = 3; // repeat each interaction and take the median
 const CATEGORIES = ['Beverages', 'Snacks', 'Dairy', 'Bakery', 'Personal Care', 'Household'];
 
+/**
+ * @typedef {Object} ProductBatch
+ * @property {number} id
+ * @property {string} batchCode
+ * @property {string} batchNumber
+ * @property {number} quantity
+ * @property {number} costPrice
+ * @property {number} sellingPrice
+ * @property {number} mrp
+ * @property {string | null} expiryDate
+ */
+
+/**
+ * @typedef {Object} Product
+ * @property {number} id
+ * @property {string} name
+ * @property {string} barcode
+ * @property {string} category
+ * @property {boolean} batchTrackingEnabled
+ * @property {boolean} lowStockWarningEnabled
+ * @property {number} lowStockThreshold
+ * @property {number} total_stock
+ * @property {number} totalQuantity
+ * @property {number} costPrice
+ * @property {number} sellingPrice
+ * @property {number} mrp
+ * @property {boolean} isDeleted
+ * @property {ProductBatch[]} batches
+ */
+
 // ─── data generators ───────────────────────────────────────────────────────
+/**
+ * @param {number} count 
+ * @returns {Product[]}
+ */
 function generateProducts(count) {
   return Array.from({ length: count }, (_, i) => {
     const id = i + 1;
@@ -43,6 +77,7 @@ function generateProducts(count) {
       costPrice: cp,
       sellingPrice: sp,
       mrp,
+      isDeleted: false,
       batches: [
         {
           id: id * 10,
@@ -59,10 +94,14 @@ function generateProducts(count) {
   });
 }
 
+/**
+ * @param {Product[]} products 
+ */
 function buildSummary(products) {
+  /** @type {Record<string, number>} */
   const cats = {};
   const totals = products.reduce(
-    (acc, p) => {
+    (/** @type {{ productCount: number, totalQty: number, totalCost: number, totalSelling: number, totalMrp: number }} */ acc, p) => {
       cats[p.category] = (cats[p.category] || 0) + 1;
       return {
         productCount: acc.productCount + 1,
@@ -87,17 +126,26 @@ function buildCategoryTree() {
 }
 
 // ─── mock API installer ─────────────────────────────────────────────────────
+/**
+ * @param {import('@playwright/test').Page} page 
+ * @param {Product[]} products 
+ */
 async function installPerfMock(page, products) {
   const summary = buildSummary(products);
   const catTree = buildCategoryTree();
+  /** @type {Map<number, Product>} */
   const productMap = new Map(products.map((p) => [p.id, p]));
-  const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+  const delay = (/** @type {number} */ ms) => new Promise((r) => setTimeout(r, ms));
 
   await page.route('**/*', async (route) => {
     const req = route.request();
     const method = req.method();
     const path = new URL(req.url()).pathname;
 
+    /**
+     * @param {any} body 
+     * @param {number} [status] 
+     */
     const json = async (body, status = 200) => {
       await delay(MOCK_API_DELAY_MS);
       await route.fulfill({
@@ -117,7 +165,7 @@ async function installPerfMock(page, products) {
     if (path === '/api/products' && method === 'GET') return json({ data: products });
 
     if (path.startsWith('/api/products/id/')) {
-      const id = parseInt(path.split('/').pop(), 10);
+      const id = parseInt(path.split('/').pop() || '0', 10);
       const product = productMap.get(id);
       return product ? json({ data: product }) : json({ error: 'Not found' }, 404);
     }
@@ -127,11 +175,23 @@ async function installPerfMock(page, products) {
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────
+/**
+ * @param {number[]} arr 
+ */
 function median(arr) {
   const s = [...arr].sort((a, b) => a - b);
   return s[Math.floor(s.length / 2)];
 }
 
+/**
+ * @typedef {Object} PerfResult
+ * @property {string} label
+ * @property {number[]} times
+ */
+
+/**
+ * @param {PerfResult[]} results 
+ */
 function printReport(results) {
   const COL_LABEL = 42;
   const line = '─'.repeat(COL_LABEL + 28);
@@ -195,6 +255,7 @@ test('inventory interaction timings', async ({ page }) => {
   const resetButton = page.getByRole('button', { name: /Reset/i });
   const posBar = page.locator('input[placeholder*="name, barcode or price"]').first();
 
+  /** @type {PerfResult[]} */
   const results = [];
 
   // ── 1. Inventory tab load ──────────────────────────────────────────────

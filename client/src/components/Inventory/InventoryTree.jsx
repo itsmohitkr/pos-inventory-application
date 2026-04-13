@@ -267,6 +267,9 @@ const InventoryTree = forwardRef((props, ref) => {
     if (productToDelete) {
       try {
         await inventoryService.deleteProduct(productToDelete.id);
+        if (currentProduct && currentProduct.id === productToDelete.id) {
+          setCurrentProduct(null);
+        }
         fetchProducts();
         setDeleteConfirmOpen(false);
         setProductToDelete(null);
