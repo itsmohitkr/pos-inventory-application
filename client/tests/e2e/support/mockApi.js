@@ -172,6 +172,11 @@ export const installMockApi = async (page) => {
       return;
     }
 
+    if (path === '/api/reports/top-selling' && method === 'GET') {
+      await jsonResponse(route, {});
+      return;
+    }
+
     if (path === '/api/reports/loose-sales' && method === 'GET') {
       await jsonResponse(route, state.getLooseSales());
       return;

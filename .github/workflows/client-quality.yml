@@ -27,8 +27,8 @@ jobs:
       - name: Install client dependencies
         run: npm ci
 
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Lint client
         run: npm run lint
@@ -39,8 +39,8 @@ jobs:
       - name: Run unit and component tests
         run: npm run test:unit
 
-      - name: Run end-to-end smoke suite
-        run: npx playwright test --project=chromium
+      - name: Run full end-to-end suite
+        run: npm run test:e2e:full
 
       - name: Upload Playwright report
         if: always()

@@ -3,6 +3,7 @@ import { Box, Typography, IconButton, Chip, ButtonBase } from '@mui/material';
 import { LocalOffer as PromoIcon, Close as CloseIcon } from '@mui/icons-material';
 
 const PromoGiftsList = ({
+  show,
   activeConfig,
   eligibleFreeProducts,
   cart,
@@ -10,7 +11,7 @@ const PromoGiftsList = ({
   onClose,
   totalProfit,
 }) => {
-  if (!activeConfig || eligibleFreeProducts.length === 0) return null;
+  if (!show || !activeConfig || eligibleFreeProducts.length === 0) return null;
 
   return (
     <Box sx={{ p: 1.5, borderTop: '2px dashed #22ab7dff', bgcolor: '#f0fff4', flexShrink: 0 }}>

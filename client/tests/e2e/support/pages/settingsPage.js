@@ -2,16 +2,16 @@ import { expect } from '@playwright/test';
 
 export const createSettingsPage = (page) => {
   const dialog = page.locator('[role="dialog"]').filter({
-    has: page.getByRole('tab', { name: 'Payment Settings' }),
+    has: page.getByRole('tab', { name: 'Payment' }),
   });
 
   return {
     expectLoaded: async () => {
-      await expect(dialog.getByRole('tab', { name: 'Account Details' })).toBeVisible();
-      await expect(dialog.getByRole('tab', { name: 'Payment Settings' })).toBeVisible();
+      await expect(dialog.getByRole('tab', { name: 'Account' })).toBeVisible();
+      await expect(dialog.getByRole('tab', { name: 'Payment' })).toBeVisible();
     },
     openPaymentSettingsTab: async () => {
-      await dialog.getByRole('tab', { name: 'Payment Settings' }).click();
+      await dialog.getByRole('tab', { name: 'Payment' }).click();
       await expect(dialog.getByRole('heading', { name: 'Payment Settings' })).toBeVisible();
     },
     togglePaymentMethod: async (label) => {
