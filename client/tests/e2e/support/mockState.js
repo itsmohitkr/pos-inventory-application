@@ -115,6 +115,11 @@ export const createMockState = () => {
     nextLooseSaleId: Math.max(0, ...looseSalesFixture.map((sale) => Number(sale.id) || 0)) + 1,
   };
 
+  // Initialize isDeleted flag
+  state.products.forEach((p) => {
+    p.isDeleted = false;
+  });
+
   const findProductAndBatchByBatchId = (batchId) => {
     for (const product of state.products) {
       const batch = (product.batches || []).find(
@@ -128,16 +133,20 @@ export const createMockState = () => {
   };
 
   const getProductByIdInternal = (productId) =>
-    state.products.find((item) => String(item.id) === String(productId)) || null;
+    state.products.find(
+      (item) => String(item.id) === String(productId) && item.isDeleted === false
+    ) || null;
 
   const getProductByBarcodeInternal = (barcode) =>
-    state.products.find((item) => item.barcode?.split('|').some((entry) => entry === barcode)) ||
-    null;
+    state.products.find(
+      (item) =>
+        item.isDeleted === false && item.barcode?.split('|').some((entry) => entry === barcode)
+    ) || null;
 
   return {
-    getProducts: () => state.products,
-    getProductSummary: () => buildSummary(state.products),
-    getCategoryTree: () => buildCategoryTree(state.products),
+    getProducts: () => state.products.filter((p) => !p.isDeleted),
+    getProductSummary: () => buildSummary(state.products.filter((p) => !p.isDeleted)),
+    getCategoryTree: () => buildCategoryTree(state.products.filter((p) => !p.isDeleted)),
     getProductById: (productId) => getProductByIdInternal(productId),
     getProductByBarcode: (barcode) => getProductByBarcodeInternal(barcode),
     createProduct: (payload) => {
@@ -167,6 +176,7 @@ export const createMockState = () => {
             expiryDate: payload.initialBatch?.expiryDate || null,
           },
         ],
+        isDeleted: false,
       };
 
       state.products.push(newProduct);
@@ -186,9 +196,11 @@ export const createMockState = () => {
       return product;
     },
     deleteProduct: (id) => {
-      const beforeCount = state.products.length;
-      state.products = state.products.filter((product) => String(product.id) !== String(id));
-      return beforeCount !== state.products.length;
+      const product = state.products.find((p) => String(p.id) === String(id));
+      if (!product) return false;
+      product.isDeleted = true;
+      product.deletedAt = new Date().toISOString();
+      return true;
     },
     updateBatch: (id, payload) => {
       const match = findProductAndBatchByBatchId(id);

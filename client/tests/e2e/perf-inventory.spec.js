@@ -43,6 +43,7 @@ function generateProducts(count) {
       costPrice: cp,
       sellingPrice: sp,
       mrp,
+      isDeleted: false,
       batches: [
         {
           id: id * 10,
