@@ -4,6 +4,9 @@ REM This script builds the Electron app for Windows
 
 setlocal enabledelayedexpansion
 
+REM Navigate to the root directory
+cd /d "%~dp0.."
+
 echo Building Bachat Bazaar Electron App...
 echo =======================================
 
