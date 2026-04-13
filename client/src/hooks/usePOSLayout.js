@@ -11,6 +11,7 @@ export const usePOSLayout = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showNumpad, setShowNumpad] = useState(false);
+  const [showDiscountNumpad, setShowDiscountNumpad] = useState(false);
   const [showLooseSaleDialog, setShowLooseSaleDialog] = useState(false);
   const [showPromoGifts, setShowPromoGifts] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -127,6 +128,8 @@ export const usePOSLayout = () => {
     setShowCalculator,
     showNumpad,
     setShowNumpad,
+    showDiscountNumpad,
+    setShowDiscountNumpad,
     showLooseSaleDialog,
     setShowLooseSaleDialog,
     showPromoGifts,

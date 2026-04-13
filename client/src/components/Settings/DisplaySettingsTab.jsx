@@ -23,24 +23,6 @@ const DisplaySettingsTab = ({
   setUiZoom,
   monochrome,
   setMonochrome,
-  looseSaleEnabled,
-  setLooseSaleEnabled,
-  fullscreenEnabled,
-  setFullscreenEnabled,
-  weightedAverageCostEnabled,
-  setWeightedAverageCostEnabled,
-  extraDiscountEnabled,
-  setExtraDiscountEnabledState,
-  notificationDuration,
-  setNotificationDurationState,
-  adminAutoLogoutTime,
-  setAdminAutoLogoutTimeState,
-  calculatorEnabled,
-  setCalculatorEnabledState,
-  changeCalculatorEnabled,
-  setChangeCalculatorEnabledState,
-  paymentMethodsEnabled,
-  setPaymentMethodsEnabledState,
 }) => {
   return (
     <Box>
@@ -61,8 +43,7 @@ const DisplaySettingsTab = ({
               Application Zoom
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Increase the size of text and buttons across the entire application. This is
-              particularly useful for touchscreens or high-resolution displays.
+              Increase the size of text and buttons across the entire application.
             </Typography>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
@@ -83,26 +64,6 @@ const DisplaySettingsTab = ({
                   {level}%
                 </Button>
               ))}
-            </Box>
-
-            <Box
-              sx={{
-                mt: 3,
-                p: 2,
-                bgcolor: 'primary.light',
-                borderRadius: 2,
-                opacity: 0.8,
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{
-                  color: 'primary.contrastText',
-                  fontStyle: 'italic',
-                }}
-              >
-                Preview: This is how your buttons and text will look.
-              </Typography>
             </Box>
           </Box>
 
@@ -128,181 +89,6 @@ const DisplaySettingsTab = ({
               label={
                 <Typography variant="body1" fontWeight={600}>
                   Enable Monochrome Mode
-                </Typography>
-              }
-            />
-          </Box>
-
-          <Divider />
-
-          <Box>
-            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-              POS Features
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Enable or disable specific features on the POS terminal.
-            </Typography>
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={looseSaleEnabled}
-                  onChange={(e) => {
-                    setLooseSaleEnabled(e.target.checked);
-                  }}
-                />
-              }
-              label={
-                <Typography variant="body1" fontWeight={600}>
-                  Enable Loose Sale Button
-                </Typography>
-              }
-            />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={fullscreenEnabled}
-                  onChange={(e) => {
-                    setFullscreenEnabled(e.target.checked);
-                  }}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body1" fontWeight={600}>
-                    Enable Fullscreen Toggle
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Shows a fullscreen button in the bottom-left corner of the POS screen
-                  </Typography>
-                </Box>
-              }
-            />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={weightedAverageCostEnabled}
-                  onChange={(e) => setWeightedAverageCostEnabled(e.target.checked)}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body1" fontWeight={600}>
-                    Enable Weighted Average Cost
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Automatically calculate new cost price when adding stock in Quick Inventory
-                  </Typography>
-                </Box>
-              }
-            />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={extraDiscountEnabled}
-                  onChange={(e) => {
-                    setExtraDiscountEnabledState(e.target.checked);
-                  }}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body1" fontWeight={600}>
-                    Enable Extra Discount Field
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Shows an extra discount field in the POS transaction panel
-                  </Typography>
-                </Box>
-              }
-            />
-
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body1" fontWeight={600} gutterBottom>
-                Notification Duration
-              </Typography>
-              <TextField
-                type="number"
-                size="small"
-                value={notificationDuration}
-                onChange={(e) => setNotificationDurationState(parseFloat(e.target.value))}
-                inputProps={{ min: 1, max: 10, step: 0.5 }}
-                label="Duration (seconds)"
-                helperText="How long success notifications are displayed (1-10 seconds)"
-                sx={{ maxWidth: 250, mt: 1 }}
-              />
-            </Box>
-
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body1" fontWeight={600} gutterBottom>
-                Admin Elevation Auto-Logout
-              </Typography>
-              <TextField
-                type="number"
-                size="small"
-                value={adminAutoLogoutTime}
-                onChange={(e) => setAdminAutoLogoutTimeState(parseInt(e.target.value, 10))}
-                inputProps={{ min: 1, max: 120, step: 1 }}
-                label="Time (minutes)"
-                helperText="How long admin elevation remains active before timing out"
-                sx={{ maxWidth: 250, mt: 1 }}
-              />
-            </Box>
-
-            <Divider sx={{ my: 2 }} />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={calculatorEnabled}
-                  onChange={(e) => {
-                    setCalculatorEnabledState(e.target.checked);
-                  }}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body1" fontWeight={600}>
-                    Enable POS Calculator
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Shows a calculator button on the POS screen for quick math.
-                  </Typography>
-                </Box>
-              }
-            />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={changeCalculatorEnabled}
-                  onChange={(e) => {
-                    setChangeCalculatorEnabledState(e.target.checked);
-                  }}
-                />
-              }
-              label={
-                <Typography variant="body1" fontWeight={600}>
-                  Enable Change Calculator
-                </Typography>
-              }
-            />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={paymentMethodsEnabled}
-                  onChange={(e) => {
-                    setPaymentMethodsEnabledState(e.target.checked);
-                  }}
-                />
-              }
-              label={
-                <Typography variant="body1" fontWeight={600}>
-                  Enable Payment Methods
                 </Typography>
               }
             />

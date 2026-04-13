@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import {
   Box,
   Dialog,
@@ -77,11 +77,12 @@ const SAMPLE_SALE = {
 };
 
 function App() {
+  const navigate = useNavigate();
   const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
   const {
     currentUser,
     loading,
-    handleLogin,
+    handleLogin: authLogin,
     handleLogout,
     handleAdminLogin,
     handleAdminLogout,
@@ -125,6 +126,11 @@ function App() {
     window.dispatchEvent(new Event('pos-refocus'));
   };
 
+  const handleLogin = (user) => {
+    authLogin(user);
+    navigate('/pos');
+  };
+
   const handleFullscreenToggle = async () => {
     try {
       if (document.fullscreenElement) {
@@ -144,6 +150,7 @@ function App() {
       setShowAdminLoginDialog(false);
       setAdminPassword('');
       setAdminLoginError('');
+      navigate('/pos');
       window.dispatchEvent(new Event('pos-refocus'));
     } else {
       setAdminLoginError(result.error);
@@ -203,26 +210,41 @@ function App() {
   };
 
   return (
-    <Router>
-      <AppLayout
-        monochromeMode={monochromeMode}
-        appBar={
-          <GlobalAppBar
-            shopName={shopName}
-            currentUser={currentUser}
-            onAdminLogout={handleAdminLogout}
-            adminLogoutTimer={adminLogoutTimer}
-            onOpenSettingsMenu={handleOpenSettingsMenu}
-            permissions={permissions}
-          />
-        }
-      >
-        <Routes>
-          <Route path="/" element={<Navigate to="/pos" replace />} />
+    <AppLayout
+      monochromeMode={monochromeMode}
+      appBar={
+        <GlobalAppBar
+          shopName={shopName}
+          currentUser={currentUser}
+          onAdminLogout={handleAdminLogout}
+          adminLogoutTimer={adminLogoutTimer}
+          onOpenSettingsMenu={handleOpenSettingsMenu}
+          permissions={permissions}
+        />
+      }
+    >
+      <Routes>
+        <Route path="/" element={<Navigate to="/pos" replace />} />
+        <Route
+          path="/pos"
+          element={
+            <POSPage
+              receiptSettings={receiptSettings}
+              shopMetadata={shopMetadata}
+              printers={printers}
+              defaultPrinter={defaultPrinter}
+            />
+          }
+        />
+        <Route
+          path="/overview"
+          element={<OverviewPage shopName={shopName} userRole={currentUser.role} />}
+        />
+        {permissions.canAccessSaleHistory && (
           <Route
-            path="/pos"
+            path="/sale-history"
             element={
-              <POSPage
+              <SaleHistory
                 receiptSettings={receiptSettings}
                 shopMetadata={shopMetadata}
                 printers={printers}
@@ -230,54 +252,37 @@ function App() {
               />
             }
           />
+        )}
+        {permissions.canAccessInventory && (
+          <Route path="/inventory" element={<InventoryPage />} />
+        )}
+        {permissions.canAccessReports && (
           <Route
-            path="/overview"
-            element={<OverviewPage shopName={shopName} userRole={currentUser.role} />}
+            path="/reports"
+            element={
+              <Reporting
+                receiptSettings={receiptSettings}
+                shopMetadata={shopMetadata}
+                printers={printers}
+                defaultPrinter={defaultPrinter}
+              />
+            }
           />
-          {permissions.canAccessSaleHistory && (
-            <Route
-              path="/sale-history"
-              element={
-                <SaleHistory
-                  receiptSettings={receiptSettings}
-                  shopMetadata={shopMetadata}
-                  printers={printers}
-                  defaultPrinter={defaultPrinter}
-                />
-              }
-            />
-          )}
-          {permissions.canAccessInventory && (
-            <Route path="/inventory" element={<InventoryPage />} />
-          )}
-          {permissions.canAccessReports && (
-            <Route
-              path="/reports"
-              element={
-                <Reporting
-                  receiptSettings={receiptSettings}
-                  shopMetadata={shopMetadata}
-                  printers={printers}
-                  defaultPrinter={defaultPrinter}
-                />
-              }
-            />
-          )}
-          {permissions.canAccessExpenses && (
-            <Route path="/expenses" element={<ExpenseManagement />} />
-          )}
-          {permissions.canAccessRefund && <Route path="/refund" element={<Refund />} />}
-          {permissions.canAccessPromotions && (
-            <Route path="/promotions" element={<PromotionManagement />} />
-          )}
-          {permissions.canAccessDashboard && (
-            <Route
-              path="/dashboard"
-              element={<DashboardPage shopName={shopName} userRole={currentUser.role} />}
-            />
-          )}
-        </Routes>
-      </AppLayout>
+        )}
+        {permissions.canAccessExpenses && (
+          <Route path="/expenses" element={<ExpenseManagement />} />
+        )}
+        {permissions.canAccessRefund && <Route path="/refund" element={<Refund />} />}
+        {permissions.canAccessPromotions && (
+          <Route path="/promotions" element={<PromotionManagement />} />
+        )}
+        {permissions.canAccessDashboard && (
+          <Route
+            path="/dashboard"
+            element={<DashboardPage shopName={shopName} userRole={currentUser.role} />}
+          />
+        )}
+      </Routes>
 
       {/* Settings Menu */}
       <Menu
@@ -502,7 +507,7 @@ function App() {
       />
 
       <CustomDialog {...dialogState} onClose={closeDialog} />
-    </Router>
+    </AppLayout>
   );
 }
 

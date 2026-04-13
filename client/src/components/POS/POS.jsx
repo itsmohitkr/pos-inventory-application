@@ -101,6 +101,8 @@ const POS = ({
     setShowCalculator,
     showNumpad,
     setShowNumpad,
+    showDiscountNumpad,
+    setShowDiscountNumpad,
     showLooseSaleDialog,
     setShowLooseSaleDialog,
     showPromoGifts,
@@ -168,28 +170,6 @@ const POS = ({
     const roundOff = receiptSettings?.roundOff ?? true;
     return roundOff ? Math.round(baseTotalAmount) : baseTotalAmount;
   }, [baseTotalAmount, receiptSettings]);
-
-  // Keyboard Shortcuts handler
-  usePOSShortcuts(
-    {
-      onPay: () => handlePay(),
-      onPayAndPrint: () => handlePayAndPrint(),
-      onLooseSale: () => setShowLooseSaleDialog(true),
-      onToggleNumpad: () => setShowNumpad(true),
-    },
-    {
-      disabled: Boolean(
-        scannedProduct ||
-        manualQuantityItem ||
-        showLooseSaleDialog ||
-        showReceipt ||
-        showCalculator ||
-        showNumpad ||
-        showPromoGifts ||
-        dialogState.open
-      ),
-    }
-  );
 
   const totalSavings = useMemo(() => Math.max(0, totalMrp - totalAmount), [totalMrp, totalAmount]);
 
@@ -279,20 +259,46 @@ const POS = ({
       ]);
 
       const sett = settingsRes.data;
-      if (sett.posReceiptSettings) setReceiptSettings(sett.posReceiptSettings);
-      if (sett.posPaymentSettings) setPaymentSettings(sett.posPaymentSettings);
-      if (sett.posEnableExtraDiscount !== undefined)
-        setExtraDiscountEnabled(sett.posEnableExtraDiscount);
-      if (sett.posNotificationDuration !== undefined)
-        setNotificationDuration(sett.posNotificationDuration);
-      setProductSales(topSellingData || {});
-      setShopMetadata({
-        shopMobile: sett.shopMobile || '',
-        shopMobile2: sett.shopMobile2 || '',
-        shopAddress: sett.shopAddress || '',
-        shopEmail: sett.shopEmail || '',
-        shopGST: sett.shopGST || '',
-        shopLogo: sett.shopLogo || '',
+
+      // Update states only if changed to prevent unnecessary re-renders
+      if (sett.posReceiptSettings) {
+        setReceiptSettings(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(sett.posReceiptSettings)) return prev;
+          return sett.posReceiptSettings;
+        });
+      }
+
+      if (sett.posPaymentSettings) {
+        setPaymentSettings(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(sett.posPaymentSettings)) return prev;
+          return sett.posPaymentSettings;
+        });
+      }
+
+      if (sett.posEnableExtraDiscount !== undefined) {
+        setExtraDiscountEnabled(prev => prev === sett.posEnableExtraDiscount ? prev : sett.posEnableExtraDiscount);
+      }
+
+      if (sett.posNotificationDuration !== undefined) {
+        setNotificationDuration(prev => prev === sett.posNotificationDuration ? prev : sett.posNotificationDuration);
+      }
+
+      setProductSales(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(topSellingData)) return prev;
+        return topSellingData || {};
+      });
+
+      setShopMetadata(prev => {
+        const next = {
+          shopMobile: sett.shopMobile || '',
+          shopMobile2: sett.shopMobile2 || '',
+          shopAddress: sett.shopAddress || '',
+          shopEmail: sett.shopEmail || '',
+          shopGST: sett.shopGST || '',
+          shopLogo: sett.shopLogo || '',
+        };
+        if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+        return next;
       });
 
       if (sett.promotion_buy_x_get_free) {
@@ -307,9 +313,17 @@ const POS = ({
             sortBySales: data.sortBySales || 'none',
             maxGiftsToShow: data.maxGiftsToShow || 5,
           }));
-          setPromoSettings({ enabled: data.enabled || false, config: migratedConfig });
+          setPromoSettings(prev => {
+            const next = { enabled: data.enabled || false, config: migratedConfig };
+            if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+            return next;
+          });
         } else {
-          setPromoSettings({ enabled: data.enabled || false, config: data.config || [] });
+          setPromoSettings(prev => {
+            const next = { enabled: data.enabled || false, config: data.config || [] };
+            if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+            return next;
+          });
         }
       }
     } catch (error) {
@@ -613,58 +627,85 @@ const POS = ({
     return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
   }, []);
 
-  const filterOptions = (options, { inputValue }) => {
-    const normalizedInput = inputValue.trim().toLowerCase();
-    if (!normalizedInput) return [];
+  const filterOptions = useCallback(
+    (options, { inputValue }) => {
+      const normalizedInput = inputValue.trim().toLowerCase();
+      if (!normalizedInput) return [];
 
-    const exactMatch = barcodeMap.get(normalizedInput);
-    const namePrefix = [];
-    const barcodePrefix = [];
-    const nameContains = [];
-    const barcodeContains = [];
-    const priceMatches = [];
+      const exactMatch = barcodeMap.get(normalizedInput);
+      const namePrefix = [];
+      const barcodePrefix = [];
+      const nameContains = [];
+      const barcodeContains = [];
+      const priceMatches = [];
 
-    if (exactMatch) barcodePrefix.push(exactMatch);
+      if (exactMatch) barcodePrefix.push(exactMatch);
 
-    for (const option of options) {
-      if (!option || option === exactMatch) continue;
-      const name =
-        option._searchName || (option._searchName = String(option.name || '').toLowerCase());
-      const barcode =
-        option._searchBarcode ||
-        (option._searchBarcode = String(option.barcode || '').toLowerCase());
+      for (const option of options) {
+        if (!option || option === exactMatch) continue;
+        const name =
+          option._searchName || (option._searchName = String(option.name || '').toLowerCase());
+        const barcode =
+          option._searchBarcode ||
+          (option._searchBarcode = String(option.barcode || '').toLowerCase());
 
-      if (name.startsWith(normalizedInput)) namePrefix.push(option);
-      else if (barcode.startsWith(normalizedInput)) barcodePrefix.push(option);
-      else if (name.includes(normalizedInput)) nameContains.push(option);
-      else if (barcode.includes(normalizedInput)) barcodeContains.push(option);
-      else {
-        const priceMatch = (option.batches || []).some(
-          (batch) =>
-            batch &&
-            (
-              batch._searchPrice || (batch._searchPrice = String(batch.sellingPrice || ''))
-            ).includes(normalizedInput)
-        );
-        if (priceMatch) priceMatches.push(option);
+        if (name.startsWith(normalizedInput)) namePrefix.push(option);
+        else if (barcode.startsWith(normalizedInput)) barcodePrefix.push(option);
+        else if (name.includes(normalizedInput)) nameContains.push(option);
+        else if (barcode.includes(normalizedInput)) barcodeContains.push(option);
+        else {
+          const priceMatch = (option.batches || []).some(
+            (batch) =>
+              batch &&
+              (
+                batch._searchPrice || (batch._searchPrice = String(batch.sellingPrice || ''))
+              ).includes(normalizedInput)
+          );
+          if (priceMatch) priceMatches.push(option);
+        }
       }
-    }
 
-    const sortFn = (a, b) => (a.name || '').localeCompare(b.name || '');
-    namePrefix.sort(sortFn);
-    barcodePrefix.sort(sortFn);
-    nameContains.sort(sortFn);
-    barcodeContains.sort(sortFn);
-    priceMatches.sort(sortFn);
+      const sortFn = (a, b) => (a.name || '').localeCompare(b.name || '');
+      namePrefix.sort(sortFn);
+      barcodePrefix.sort(sortFn);
+      nameContains.sort(sortFn);
+      barcodeContains.sort(sortFn);
+      priceMatches.sort(sortFn);
 
-    return [
-      ...namePrefix,
-      ...barcodePrefix,
-      ...nameContains,
-      ...barcodeContains,
-      ...priceMatches,
-    ].slice(0, 50);
-  };
+      return [
+        ...namePrefix,
+        ...barcodePrefix,
+        ...nameContains,
+        ...barcodeContains,
+        ...priceMatches,
+      ].slice(0, 50);
+    },
+    [barcodeMap]
+  );
+
+  // Keyboard Shortcuts handlers (memoized to avoid re-registration churn)
+  const posShortcutHandlers = useMemo(
+    () => ({
+      onPay: () => handlePay(),
+      onPayAndPrint: () => handlePayAndPrint(),
+      onLooseSale: () => setShowLooseSaleDialog(true),
+      onToggleNumpad: () => setShowNumpad(true),
+    }),
+    [handlePay, handlePayAndPrint, setShowLooseSaleDialog, setShowNumpad]
+  );
+
+  usePOSShortcuts(posShortcutHandlers, {
+    disabled: Boolean(
+      scannedProduct ||
+      manualQuantityItem ||
+      showLooseSaleDialog ||
+      showReceipt ||
+      showCalculator ||
+      showNumpad ||
+      showPromoGifts ||
+      dialogState.open
+    ),
+  });
 
   return (
     <>
@@ -839,6 +880,7 @@ const POS = ({
             setReceivedAmount={setReceivedAmount}
             showNumpad={showNumpad}
             setShowNumpad={setShowNumpad}
+            setShowDiscountNumpad={setShowDiscountNumpad}
           />
         </Box>
 
@@ -923,6 +965,17 @@ const POS = ({
           setShowNumpad(false);
         }}
         title="Received Amount"
+      />
+
+      <NumpadDialog
+        open={showDiscountNumpad}
+        onClose={() => setShowDiscountNumpad(false)}
+        initialValue={discount}
+        onConfirm={(val) => {
+          setDiscount(val);
+          setShowDiscountNumpad(false);
+        }}
+        title="Extra Discount"
       />
     </>
   );

@@ -25,6 +25,7 @@ import useCustomDialog from '../../shared/hooks/useCustomDialog';
 import PaymentSettingsPanel from './PaymentSettingsPanel';
 import AccountDetailsTab from './AccountDetailsTab';
 import DisplaySettingsTab from './DisplaySettingsTab';
+import POSFeaturesTab from './POSFeaturesTab';
 import WipeDatabaseConfirmation from './WipeDatabaseConfirmation';
 import {
   getChangeCalculatorEnabled,
@@ -198,6 +199,9 @@ const AccountDetailsDialog = ({
     localStorage.setItem(STORAGE_KEYS.paymentSettings, JSON.stringify(paymentSettings));
     localStorage.setItem(STORAGE_KEYS.enableDecodedPrices, JSON.stringify(showDecodedPrices));
     localStorage.setItem(STORAGE_KEYS.adminAutoLogoutTime, adminAutoLogoutTime.toString());
+    localStorage.setItem(STORAGE_KEYS.enableExtraDiscount, JSON.stringify(extraDiscountEnabled));
+    localStorage.setItem(STORAGE_KEYS.enableWeightedAverageCost, JSON.stringify(weightedAverageCostEnabled));
+    localStorage.setItem(STORAGE_KEYS.notificationDuration, (notificationDuration * 1000).toString());
 
     // Dispatch events immediately for instant UI response
     window.dispatchEvent(new Event('pos-settings-updated'));
@@ -345,10 +349,13 @@ const AccountDetailsDialog = ({
             value={tabValue}
             onChange={(e, newValue) => setTabValue(newValue)}
             aria-label="settings tabs"
+            variant="scrollable"
+            scrollButtons="auto"
           >
-            <Tab icon={<StoreIcon />} label="Account Details" sx={{ gap: 1 }} />
-            <Tab icon={<PaymentIcon />} label="Payment Settings" sx={{ gap: 1 }} />
-            <Tab icon={<DisplayIcon />} label="Display Settings" sx={{ gap: 1 }} />
+            <Tab label="Account" />
+            <Tab label="POS Features" />
+            <Tab label="Payment" />
+            <Tab label="Display & Zoom" />
           </Tabs>
         </Box>
 
@@ -382,23 +389,9 @@ const AccountDetailsDialog = ({
             />
           )}
 
-          {/* Tab 1: Payment Settings */}
+          {/* Tab 1: POS Features */}
           {tabValue === 1 && (
-            <PaymentSettingsPanel
-              paymentSettings={paymentSettings}
-              setPaymentSettings={setPaymentSettings}
-              showDecodedPrices={showDecodedPrices}
-              setShowDecodedPrices={setShowDecodedPrices}
-            />
-          )}
-
-          {/* Tab 2: UI Settings */}
-          {tabValue === 2 && (
-            <DisplaySettingsTab
-              uiZoom={uiZoom}
-              setUiZoom={setUiZoom}
-              monochrome={monochrome}
-              setMonochrome={setMonochrome}
+            <POSFeaturesTab
               looseSaleEnabled={looseSaleEnabled}
               setLooseSaleEnabled={setLooseSaleEnabled}
               fullscreenEnabled={fullscreenEnabled}
@@ -417,6 +410,26 @@ const AccountDetailsDialog = ({
               setChangeCalculatorEnabledState={setChangeCalculatorEnabledState}
               paymentMethodsEnabled={paymentMethodsEnabled}
               setPaymentMethodsEnabledState={setPaymentMethodsEnabledState}
+            />
+          )}
+
+          {/* Tab 2: Payment Settings */}
+          {tabValue === 2 && (
+            <PaymentSettingsPanel
+              paymentSettings={paymentSettings}
+              setPaymentSettings={setPaymentSettings}
+              showDecodedPrices={showDecodedPrices}
+              setShowDecodedPrices={setShowDecodedPrices}
+            />
+          )}
+
+          {/* Tab 3: UI Settings */}
+          {tabValue === 3 && (
+            <DisplaySettingsTab
+              uiZoom={uiZoom}
+              setUiZoom={setUiZoom}
+              monochrome={monochrome}
+              setMonochrome={setMonochrome}
             />
           )}
 

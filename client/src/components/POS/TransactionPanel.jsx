@@ -30,6 +30,7 @@ const TransactionPanel = ({
   receivedAmount,
   setReceivedAmount,
   setShowNumpad,
+  setShowDiscountNumpad,
   decodedPricesEnabled,
   totalCostPrice,
 }) => {
@@ -159,13 +160,13 @@ const TransactionPanel = ({
             </Typography>
             <TextField
               fullWidth
-              type="number"
               variant="outlined"
               size="small"
               placeholder="0.00"
               value={discount > 0 ? discount : ''}
-              onChange={(e) => onDiscountChange(Number(e.target.value))}
+              onClick={() => setShowDiscountNumpad(true)}
               InputProps={{
+                readOnly: true,
                 startAdornment: (
                   <InputAdornment position="start">
                     <Typography color="text.secondary" variant="body2">
@@ -173,7 +174,11 @@ const TransactionPanel = ({
                     </Typography>
                   </InputAdornment>
                 ),
-                sx: { fontSize: '0.875rem' },
+                sx: {
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  '& .MuiInputBase-input': { cursor: 'pointer' },
+                },
               }}
             />
           </Box>
