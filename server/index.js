@@ -1,70 +1,10 @@
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+const app = require('./src/app');
 const prisma = require('./src/config/prisma');
 const logger = require('./src/shared/utils/logger');
-
-logger.info('[BOOT] index.js loaded. Starting server initialization...');
-
-// Import modular routes
-const productRoutes = require('./src/domains/product/product.router');
-const categoryRoutes = require('./src/domains/category/category.router');
-const saleRoutes = require('./src/domains/sale/sale.router');
-const reportRoutes = require('./src/domains/report/report.router');
-const authRoutes = require('./src/domains/auth/auth.router');
-const looseSaleRoutes = require('./src/domains/loose-sale/loose-sale.router');
-const promotionRoutes = require('./src/domains/promotion/promotion.router');
-const expenseRoutes = require('./src/domains/expense/expense.router');
-const purchaseRoutes = require('./src/domains/purchase/purchase.router');
-const settingRoutes = require('./src/domains/setting/setting.router');
 const settingService = require('./src/domains/setting/setting.service');
 const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/config/constants');
-const pathNotFound = require('./src/shared/error/pathNotFound');
-const errorHandler = require('./src/shared/error/errorHandler');
-
-const app = express();
 const PORT = process.env.PORT || 5001;
-
-// Production security middleware
-app.use(helmet());
-app.use(cors()); // Configure specific origins in production if needed
-app.use(bodyParser.json());
-
-// Rate limiting for sensitive routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: { error: 'Too many authentication attempts, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Request logging middleware
-app.use((req, res, next) => {
-  logger.info({ method: req.method, url: req.url, ip: req.ip }, 'Incoming Request');
-  next();
-});
-
-// Main API Router
-const apiRouter = express.Router();
-apiRouter.use('/auth', authLimiter, authRoutes);
-apiRouter.use(productRoutes);
-apiRouter.use(categoryRoutes);
-apiRouter.use(saleRoutes);
-apiRouter.use(reportRoutes);
-apiRouter.use(looseSaleRoutes);
-apiRouter.use(promotionRoutes);
-apiRouter.use('/expenses', expenseRoutes);
-apiRouter.use('/purchases', purchaseRoutes);
-apiRouter.use('/settings', settingRoutes);
-
-app.use('/api', apiRouter);
-app.use(pathNotFound);
-app.use(errorHandler);
-
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -253,4 +193,4 @@ try {
 }
 
 // Keep process alive hack
-setInterval(() => {}, 10000);
+setInterval(() => { }, 10000);

@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../../config/prisma');
 
 // Helper to append current time to a date string (YYYY-MM-DD)
 const getDateWithCurrentTime = (dateString) => {

@@ -1,10 +1,14 @@
 name: Client Quality
 
 on:
-  pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths:
+      - 'client/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'client/**'
   workflow_dispatch:
 
 jobs:
@@ -28,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox webkit
+        run: npx playwright install --with-deps chromium
 
       - name: Lint client
         run: npm run lint
