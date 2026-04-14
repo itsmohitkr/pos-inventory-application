@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'client/**'
+      - '.github/workflows/client-quality.yml'
+      - '.github/workflows/client-nightly.yml'
   pull_request:
     branches: [main]
     paths:
