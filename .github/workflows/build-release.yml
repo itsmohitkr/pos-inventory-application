@@ -2,43 +2,89 @@ name: Build and Release POS Application
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
-  build-mac:
-    runs-on: macos-latest
+  # ── Quality Gate ────────────────────────────────────────────
+  # Runs server + client tests before allowing build/release
+  quality-gate:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      # ── Server Tests ──
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-      - name: Update version
-        run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
-      - name: Clean node_modules
-        run: rm -rf node_modules
-      - name: Clean install dependencies
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install server dependencies
+        working-directory: server
         run: npm ci
-      - name: Set executable permissions for app-builder
-        run: chmod +x node_modules/app-builder-bin/mac/app-builder_arm64
-      - name: Install dependencies
-        run: npm install
-      - name: Remove Electron Builder cache
-        run: rm -rf ~/.cache/electron-builder
+
+      - name: Generate Prisma Client
+        working-directory: server
+        run: npx prisma generate
+
+      - name: Run server tests
+        working-directory: server
+        run: npm test
+
+      # ── Client Tests ──
       - name: Install client dependencies
         working-directory: client
-        run: npm install
+        run: npm ci
+
+      - name: Lint client
+        working-directory: client
+        run: npm run lint
+
+      - name: Build client
+        working-directory: client
+        run: npm run build
+
+  # ── macOS Build ─────────────────────────────────────────────
+  build-mac:
+    needs: quality-gate
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Update version
+        run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Set executable permissions for app-builder
+        run: chmod +x node_modules/app-builder-bin/mac/app-builder_arm64
+
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+
       - name: Build client
         working-directory: client
         run: npx vite build
+
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
+
       - name: Build Electron app (mac)
         run: npm run electron-build
+
       - name: Package mac installer
         run: npm run electron-pack -- --mac
+
       - name: Upload mac installer
         uses: actions/upload-artifact@v4
         with:
@@ -47,37 +93,41 @@ jobs:
             dist/*.dmg
             dist/latest-mac.yml
 
+  # ── Windows Build ───────────────────────────────────────────
   build-win:
+    needs: quality-gate
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: 20
+
       - name: Update version
         run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
-      - name: Clean node_modules
-        run: |
-          if (Test-Path node_modules) {
-              Remove-Item node_modules -Recurse -Force
-          }
-      - name: Install dependencies
-        run: npm install
-      - name: Clean electron-builder cache
-        run: Remove-Item -Recurse -Force $env:USERPROFILE\.cache\electron-builder -ErrorAction SilentlyContinue
+
+      - name: Install root dependencies
+        run: npm ci
+
       - name: Install client dependencies
         working-directory: client
-        run: npm install
+        run: npm ci
+
       - name: Build client
         working-directory: client
         run: npx vite build
+
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
+
       - name: Build Electron app (win)
         run: npm run electron-build
+
       - name: Package windows installer
         run: npm run electron-pack -- --win
+
       - name: Upload windows installer
         uses: actions/upload-artifact@v4
         with:
@@ -86,42 +136,33 @@ jobs:
             dist/*.exe
             dist/latest.yml
 
+  # ── Release ─────────────────────────────────────────────────
   release:
     needs: [build-mac, build-win]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
       - name: Download mac installer
         uses: actions/download-artifact@v4
         with:
           name: mac-installer
           path: dist/
+
       - name: Download windows installer
         uses: actions/download-artifact@v4
         with:
           name: win-installer
           path: dist/
-      - name: Create Git Tag (unique per run)
-        env:
-          GIT_AUTH_TOKEN: ${{ secrets.PAT_REPO }}
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          TAG_NAME="v${{ github.run_number }}"
-          git tag $TAG_NAME
-          git push https://x-access-token:${GIT_AUTH_TOKEN}@github.com/itsmohitkr/pos-inventory-application.git $TAG_NAME
-      - name: Create Release
-        uses: actions/create-release@v1
-        with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.run_number }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
           files: |
             dist/*.dmg
             dist/*.exe

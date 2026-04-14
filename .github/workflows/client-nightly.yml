@@ -25,7 +25,7 @@ jobs:
       - name: Install client dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
+      - name: Install Playwright browsers (all engines)
         run: npx playwright install --with-deps
 
       - name: Lint client
@@ -37,7 +37,7 @@ jobs:
       - name: Run unit and component tests
         run: npm run test:unit
 
-      - name: Run extended E2E suite
+      - name: Run extended E2E suite (all browsers)
         run: npx playwright test
 
       - name: Upload Playwright report
