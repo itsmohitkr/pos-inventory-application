@@ -46,7 +46,6 @@ test.describe('Financial reporting accuracy', () => {
         const failures = collectRuntimeFailures(page);
         const posPage = createPosPage(page);
         const reportsPage = createReportsPage(page);
-        const appShellPage = createAppShellPage(page);
 
         // 1. Perform sale
         await posPage.goto();
