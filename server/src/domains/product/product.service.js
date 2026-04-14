@@ -114,24 +114,26 @@ const validatePricing = ({ mrp, costPrice, sellingPrice, wholesalePrice, wholesa
 };
 
 const buildWhereSql = ({ search, category }) => {
-  const clauses = [Prisma.sql`p.isDeleted = 0` || Prisma.sql`p.isDeleted = false` || Prisma.sql`p.isDeleted IS NOT TRUE` || Prisma.sql`p.isDeleted = 0`]; // Use standard SQLite comparison
+  const clauses = ["p.isDeleted = 0"];
 
   const normalizedSearch = normalizeSearch(search);
   if (normalizedSearch) {
-    const like = `%${normalizedSearch}%`;
-    clauses.push(Prisma.sql`(p.name LIKE ${like} OR p.barcode LIKE ${like})`);
+    const escapedSearch = normalizedSearch.replace(/'/g, "''");
+    const like = `%${escapedSearch}%`;
+    clauses.push(`(p.name LIKE '${like}' OR p.barcode LIKE '${like}')`);
   }
 
   if (category && category !== 'all') {
     if (category === 'uncategorized') {
-      clauses.push(Prisma.sql`(p.category IS NULL OR TRIM(p.category) = '')`);
+      clauses.push(`(p.category IS NULL OR TRIM(p.category) = '')`);
     } else {
-      const like = `${category}/%`;
-      clauses.push(Prisma.sql`(p.category = ${category} OR p.category LIKE ${like})`);
+      const escapedCategory = category.replace(/'/g, "''");
+      const like = `${escapedCategory}/%`;
+      clauses.push(`(p.category = '${escapedCategory}' OR p.category LIKE '${like}')`);
     }
   }
 
-  return Prisma.sql`WHERE ${Prisma.join(clauses, Prisma.sql` AND `)}`;
+  return clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
 };
 
 const MAX_STOCK_QUANTITY = 2147483647;
@@ -195,14 +197,14 @@ const getAllProducts = async ({
   const offset = Math.max(0, (Number(page) - 1) * Number(pageSize));
   const limit = Math.max(1, Number(pageSize));
 
-  const totalRows = await prisma.$queryRaw`
+  const totalRows = await prisma.$queryRawUnsafe(`
         SELECT COUNT(*) as count
         FROM Product p
         ${whereSql}
-    `;
+    `);
   const total = Number(totalRows?.[0]?.count || 0);
 
-  const rows = await prisma.$queryRaw`
+  const rows = await prisma.$queryRawUnsafe(`
         SELECT
             p.id,
             p.name,
@@ -219,9 +221,9 @@ const getAllProducts = async ({
         LEFT JOIN Batch b ON b.productId = p.id
         ${whereSql}
         GROUP BY p.id
-        ORDER BY ${Prisma.raw(safeSortBy)} ${Prisma.raw(safeOrder)}
+        ORDER BY ${safeSortBy} ${safeOrder}
         LIMIT ${limit} OFFSET ${offset}
-    `;
+    `);
 
   return {
     items: rows.map((row) => ({
@@ -298,7 +300,7 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
 const getProductSummary = async ({ search = '', category = 'all' } = {}) => {
   const whereSql = buildWhereSql({ search, category });
   const whereFilter = buildWhereFilter({ search, category });
-  const rows = await prisma.$queryRaw`
+  const rows = await prisma.$queryRawUnsafe(`
         SELECT
             COUNT(DISTINCT p.id) as product_count,
             CAST(COALESCE(SUM(b.quantity), 0) AS INTEGER) as total_qty,
@@ -308,7 +310,7 @@ const getProductSummary = async ({ search = '', category = 'all' } = {}) => {
         FROM Product p
         LEFT JOIN Batch b ON b.productId = p.id
         ${whereSql}
-    `;
+    `);
 
   const summaryRow = rows?.[0] || {};
 

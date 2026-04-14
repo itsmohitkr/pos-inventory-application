@@ -10,8 +10,8 @@ describe('Product Domain API', () => {
 
     describe('GET /api/products', () => {
         it('should fetch paginated products', async () => {
-            prisma.$queryRaw.mockResolvedValueOnce([{ count: 1n }]); // count query
-            prisma.$queryRaw.mockResolvedValueOnce([ // data query
+            prisma.$queryRawUnsafe.mockResolvedValueOnce([{ count: 1n }]); // count query
+            prisma.$queryRawUnsafe.mockResolvedValueOnce([ // data query
                 {
                     id: 1, name: 'Cola', barcode: '123', category: null,
                     batchTrackingEnabled: false, lowStockWarningEnabled: false,
