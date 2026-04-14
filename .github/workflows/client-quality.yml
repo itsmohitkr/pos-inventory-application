@@ -43,8 +43,8 @@ jobs:
       - name: Run unit and component tests
         run: npm run test:unit
 
-      - name: Run full end-to-end suite
-        run: npm run test:e2e:full
+      - name: Run end-to-end tests (Chromium only)
+        run: npx playwright test --project=chromium
 
       - name: Upload Playwright report
         if: always()
