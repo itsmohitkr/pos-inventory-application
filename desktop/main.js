@@ -16,40 +16,28 @@ const os = require('os');
 const url = require('url');
 const net = require('net');
 
-// Auto-update setup
-app.on('ready', async () => {
+// Catch any unhandled error in the main process so the app never silently disappears.
+// Log to file and show a dialog so the user knows something went wrong.
+process.on('uncaughtException', (err) => {
+  const msg = `[${new Date().toISOString()}] [FATAL] uncaughtException: ${err.stack || err.message}\n`;
+  try { logStream.write(msg); } catch (_) {}
+  console.error('[FATAL] uncaughtException:', err);
   try {
-    // Auto-update check
-    autoUpdater.checkForUpdatesAndNotify();
-    autoUpdater.on('update-available', () => {
-      if (mainWindow) {
-        mainWindow.webContents.send('update-available');
-      }
-    });
-    autoUpdater.on('update-downloaded', () => {
-      if (mainWindow) {
-        mainWindow.webContents.send('update-downloaded');
-      }
-    });
-    autoUpdater.on('update-not-available', () => {
-      if (mainWindow) {
-        mainWindow.webContents.send('update-not-available');
-      }
-    });
-    autoUpdater.on('error', (err) => {
-      if (mainWindow) {
-        mainWindow.webContents.send('update-error', err.message);
-      }
-    });
-    autoUpdater.on('download-progress', (progressObj) => {
-      if (mainWindow) {
-        mainWindow.webContents.send('download-progress', progressObj.percent);
-      }
-    });
-  } catch (error) {
-    console.error('Failed to start auto-update setup:', error);
-  }
+    dialog.showErrorBox(
+      'Unexpected Error',
+      `The application encountered an unexpected error and needs attention.\n\nDetails: ${err.message}\n\nCheck Help → System Diagnostic for recent logs.`
+    );
+  } catch (_) {}
 });
+
+process.on('unhandledRejection', (reason) => {
+  const msg = `[${new Date().toISOString()}] [FATAL] unhandledRejection: ${reason}\n`;
+  try { logStream.write(msg); } catch (_) {}
+  console.error('[FATAL] unhandledRejection:', reason);
+});
+
+// Auto-update wiring is done inside the second app.on('ready') handler,
+// after createWindow(), so mainWindow is guaranteed to exist when events fire.
 
 // IPC handlers
 ipcMain.handle('get-app-version', () => app.getVersion());
@@ -84,28 +72,32 @@ ipcMain.handle('get-printers', async () => {
   return await mainWindow.webContents.getPrintersAsync();
 });
 
-ipcMain.on('print-manual', (event, { printerName }) => {
-  if (!mainWindow) return;
+ipcMain.handle('print-manual', (_event, { printerName }) => {
+  if (!mainWindow) return { success: false, error: 'App window not ready' };
   console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
 
-  // Optimize for thermal printer speed and reliability
-  mainWindow.webContents.print(
-    {
-      silent: true,
-      deviceName: printerName || undefined,
-      printBackground: true,
-      color: true,
-      margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
-      scaleFactor: 100,
-    },
-    (success, failureReason) => {
-      if (!success) {
-        console.error(`[PRINT ERROR] Failed to print: ${failureReason}`);
-      } else {
-        console.log('[PRINT SUCCESS] Direct print sent to printer.');
+  return new Promise((resolve) => {
+    // silent: true — no OS print dialog, no interruption to the cashier flow
+    mainWindow.webContents.print(
+      {
+        silent: true,
+        deviceName: printerName || undefined,
+        printBackground: true,
+        color: true,
+        margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
+        scaleFactor: 100,
+      },
+      (success, failureReason) => {
+        if (!success) {
+          console.error(`[PRINT ERROR] Failed to print: ${failureReason}`);
+          resolve({ success: false, error: failureReason || 'Unknown print error' });
+        } else {
+          console.log('[PRINT SUCCESS] Direct print sent to printer.');
+          resolve({ success: true });
+        }
       }
-    }
-  );
+    );
+  });
 });
 
 ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize }) => {
@@ -126,10 +118,10 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
     });
 
     const htmlUrl = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    // loadURL resolves after dom-ready; one rAF-equivalent tick lets Chromium
+    // finish painting SVG barcodes before the print job is submitted.
     await printWindow.loadURL(htmlUrl);
-
-    // Give Chromium a short moment to fully layout SVG/content before print.
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const printOptions = {
       silent: true,
@@ -287,7 +279,11 @@ const engineDir = isDev
 const possibleEngineNames =
   process.platform === 'win32'
     ? ['query_engine-windows.dll.node', 'libquery_engine-windows.dll.node']
-    : ['libquery_engine-darwin-arm64.dylib.node', 'libquery_engine-darwin.dylib.node'];
+    : [
+        'libquery_engine-darwin-arm64.dylib.node',  // Apple Silicon
+        'libquery_engine-darwin-x64.dylib.node',    // Intel Mac
+        'libquery_engine-darwin.dylib.node',         // legacy fallback
+      ];
 
 let enginePath = null;
 for (const name of possibleEngineNames) {
@@ -431,7 +427,7 @@ const checkPort = (port) => {
   });
 };
 
-const waitForServer = async (port, timeout = 15000) => {
+const waitForServer = async (port, timeout = 90000) => {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     const isReady = await checkPort(port);
@@ -636,6 +632,28 @@ ${(() => {
     Menu.setApplicationMenu(menu);
 
     createWindow();
+
+    // Auto-update setup runs here so mainWindow exists when events fire.
+    try {
+      autoUpdater.checkForUpdatesAndNotify();
+      autoUpdater.on('update-available', () => {
+        if (mainWindow) mainWindow.webContents.send('update-available');
+      });
+      autoUpdater.on('update-downloaded', () => {
+        if (mainWindow) mainWindow.webContents.send('update-downloaded');
+      });
+      autoUpdater.on('update-not-available', () => {
+        if (mainWindow) mainWindow.webContents.send('update-not-available');
+      });
+      autoUpdater.on('error', (err) => {
+        if (mainWindow) mainWindow.webContents.send('update-error', err.message);
+      });
+      autoUpdater.on('download-progress', (progressObj) => {
+        if (mainWindow) mainWindow.webContents.send('download-progress', progressObj.percent);
+      });
+    } catch (updateErr) {
+      console.error('Failed to start auto-update setup:', updateErr);
+    }
   } catch (error) {
     console.error('Failed to start application:', error);
     const message = error.message || error.toString();

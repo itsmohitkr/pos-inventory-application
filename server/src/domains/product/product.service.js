@@ -2,6 +2,7 @@ const prisma = require('../../config/prisma');
 const { getDateRange } = require('../../shared/utils/dateUtils');
 const { Prisma } = require('@prisma/client');
 const categoryService = require('../category/category.service');
+const logger = require('../../shared/utils/logger');
 
 const normalizeCategory = (value) => {
   if (value === null || value === undefined) return null;
@@ -552,7 +553,7 @@ const createOrUpdateProduct = async ({
     // Background sync to ensure Category table reflects new strings
     categoryService
       .ensureCategoriesFromProducts()
-      .catch((err) => console.error('Category sync error:', err));
+      .catch((err) => logger.error({ err: err.message }, 'Category sync error'));
     return product;
   });
 };
@@ -699,7 +700,7 @@ const updateProduct = async (id, productData) => {
   const categoryService = require('../category/category.service');
   categoryService
     .ensureCategoriesFromProducts()
-    .catch((err) => console.error('Category sync error:', err));
+    .catch((err) => logger.error({ err: err.message }, 'Category sync error'));
 
   return updated;
 };
@@ -1051,7 +1052,7 @@ const importProducts = async (csvData) => {
   // Background sync to ensure Category table reflects new strings
   categoryService
     .ensureCategoriesFromProducts()
-    .catch((err) => console.error('Category sync error:', err));
+    .catch((err) => logger.error({ err: err.message }, 'Category sync error'));
 
   results.success = true;
   return results;

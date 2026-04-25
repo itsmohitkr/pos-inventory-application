@@ -5,9 +5,27 @@ const logger = require('./src/shared/utils/logger');
 const settingService = require('./src/domains/setting/setting.service');
 const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/config/constants');
 const PORT = process.env.PORT || 5001;
-const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+
+// Back up the database file before running migrations.
+// Called once at startup so a migration failure never leaves the user with an
+// unrecoverable database — they can restore pos.db.bak manually.
+function backupDatabase() {
+  try {
+    const dbUrl = process.env.DATABASE_URL || '';
+    // Extract the file path from "file:/path" or "file:///path"
+    const dbPath = dbUrl.replace(/^file:\/\//, '').replace(/^file:/, '');
+    if (!dbPath || !fs.existsSync(dbPath)) return;
+
+    const backupPath = `${dbPath}.bak`;
+    fs.copyFileSync(dbPath, backupPath);
+    logger.info({ backupPath }, '[BOOT] Database backed up before migrations');
+  } catch (err) {
+    // Non-fatal: log and continue so a backup failure never blocks startup
+    logger.warn({ err: err.message }, '[BOOT] Could not create database backup');
+  }
+}
 
 // IPC Helper for Splash Screen
 const sendSplashMsg = (msg) => {
@@ -23,6 +41,7 @@ const execAsync = util.promisify(require('child_process').exec);
 async function runPrismaMigrations() {
   logger.info('[BOOT MIGRATION] Running automated Prisma migrations...');
   sendSplashMsg('Applying database schemas...');
+  backupDatabase();
 
   try {
     let prismaCliPath;
@@ -46,7 +65,7 @@ async function runPrismaMigrations() {
 
     try {
       // Use execAsync so DB migrations do not block electron main process event loop
-      const { stdout } = await execAsync(
+      await execAsync(
         `"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`,
         {
           env: pEnv,
@@ -83,7 +102,7 @@ async function runPrismaMigrations() {
           }
 
           logger.info('[BOOT MIGRATION] Running final deploy after baselining...');
-          const { stdout } = await execAsync(
+          await execAsync(
             `"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`,
             {
               env: pEnv,
@@ -101,12 +120,33 @@ async function runPrismaMigrations() {
   }
 }
 
+// Migrate any users still stored with a plaintext password to bcrypt hashes.
+// Runs once per startup; exits silently if all passwords are already hashed.
+async function migratePasswordsToHash() {
+  try {
+    const bcrypt = require('bcryptjs');
+    const users = await prisma.user.findMany({ select: { id: true, password: true } });
+    const plaintext = users.filter((u) => u.password && !u.password.startsWith('$2'));
+    if (plaintext.length === 0) return;
+
+    logger.info(`[BOOT] Migrating ${plaintext.length} plaintext password(s) to bcrypt...`);
+    for (const user of plaintext) {
+      const hashed = await bcrypt.hash(user.password, 10);
+      await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
+    }
+    logger.info('[BOOT] Password migration complete.');
+  } catch (err) {
+    logger.warn({ err: err.message }, '[BOOT] Password migration failed (non-fatal)');
+  }
+}
+
 // Auto-seed database on first run
 async function checkAndSeed() {
   try {
     sendSplashMsg('Checking Local Database Status...');
-    // Run migrations first
+    // Run migrations first, then hash any plaintext passwords
     await runPrismaMigrations();
+    await migratePasswordsToHash();
 
     // Check if any users exist in the database
     const userCount = await prisma.user.count();
@@ -163,7 +203,7 @@ async function startServer() {
     // Set a timeout for DB check to prevent boot hangs
     const bootstrapPromise = checkAndSeed();
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Database initialization timed out')), 10000)
+      setTimeout(() => reject(new Error('Database initialization timed out')), 60000)
     );
 
     try {
@@ -179,6 +219,14 @@ async function startServer() {
   } catch (e) {
     logger.error({ error: e.message }, 'Critical error during application pre-startup');
   }
+
+  app.on('error', (err) => {
+    logger.error({ err: err.message, code: err.code }, '[BOOT FATAL] Express server error');
+    if (err.code === 'EADDRINUSE') {
+      logger.error(`[BOOT FATAL] Port ${PORT} is already in use. Close the other process and restart.`);
+    }
+    process.exit(1);
+  });
 
   app.listen(PORT, () => {
     logger.info(`[BOOT SUCCESS] Server running on port ${PORT}`);

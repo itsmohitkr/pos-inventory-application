@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getResponseArray, getResponseObject } from './responseGuards';
+import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
 
 describe('responseGuards', () => {
   it('returns array from response.data', () => {
