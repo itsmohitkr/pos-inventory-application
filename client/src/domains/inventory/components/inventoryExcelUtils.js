@@ -100,9 +100,9 @@ export const applyInventorySearch = (rows, searchTerm) => {
     const barcodes =
       row.barcode && row.barcode !== 'N/A'
         ? row.barcode
-            .toLowerCase()
-            .split('|')
-            .map((barcode) => barcode.trim())
+          .toLowerCase()
+          .split('|')
+          .map((barcode) => barcode.trim())
         : [];
 
     if (name.startsWith(query)) {

@@ -62,7 +62,7 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
           <Grid container spacing={2} sx={{ mt: 1 }}>
             {product?.batchTrackingEnabled && (
               <>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12 }} sm={6}>
                   <TextField
                     fullWidth
                     label="Batch Code"
@@ -79,7 +79,7 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
                     Leave empty to auto-generate a unique batch code
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12 }} sm={6}>
                   <TextField
                     fullWidth
                     type="date"
@@ -92,7 +92,7 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
                 </Grid>
               </>
             )}
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12 }} sm={3}>
               <TextField
                 fullWidth
                 type="number"
@@ -111,7 +111,7 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
                 helperText={formSubmitted && isFieldEmpty(stockData.quantity) ? 'Required' : ''}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12 }} sm={3}>
               <TextField
                 fullWidth
                 type="number"
@@ -135,7 +135,7 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
                 placeholder="0.00"
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12 }} sm={3}>
               <TextField
                 fullWidth
                 type="number"
@@ -159,7 +159,7 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
                 placeholder="0.00"
               />
             </Grid>
-            <Grid item xs={12} sm={2.5}>
+            <Grid size={{ xs: 12 }} sm={2.5}>
               <TextField
                 label="Discount (%)"
                 InputLabelProps={{ shrink: true }}
@@ -172,14 +172,12 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
                 }}
               />
             </Grid>
-            <Grid
-              item
-              xs={1}
+            <Grid size={{ xs: 1 }}
               sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <ArrowForwardIcon color="action" />
             </Grid>
-            <Grid item xs={12} sm={2.5}>
+            <Grid size={{ xs: 12 }} sm={2.5}>
               <TextField
                 fullWidth
                 type="number"
@@ -203,10 +201,10 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
                 placeholder="0.00"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)', my: 1, width: '100%' }} />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <WholesaleConfiguration
                 wholesaleEnabled={stockData.wholesaleEnabled}
                 onToggleChange={(checked) => handleChange('wholesaleEnabled', checked)}
@@ -219,7 +217,7 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
                 showErrors={formSubmitted}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box
                 sx={{
                   p: 1.5,

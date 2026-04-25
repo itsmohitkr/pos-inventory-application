@@ -202,7 +202,7 @@ const ProductDetailPanel = ({
               <Typography variant="body2">Loading batches...</Typography>
             </Box>
           ) : displayProduct.batches && displayProduct.batches.length > 0 ? (
-            <ProductBatchTable 
+            <ProductBatchTable
               batches={displayProduct.batches}
               batchTrackingEnabled={displayProduct.batchTrackingEnabled}
               onQuickInventoryOpen={onQuickInventoryOpen}

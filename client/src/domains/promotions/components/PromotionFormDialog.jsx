@@ -63,7 +63,7 @@ const PromotionFormDialog = ({
     </DialogTitle>
     <DialogContent sx={{ mt: 3, '&::-webkit-scrollbar': { display: 'none' } }}>
       <Grid container spacing={4}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography
             variant="h6"
             sx={{
@@ -78,7 +78,7 @@ const PromotionFormDialog = ({
             <CalendarIcon fontSize="small" /> Event Details
           </Typography>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12 }} sm={6}>
               <TextField
                 fullWidth
                 label="Sale Name"
@@ -89,7 +89,7 @@ const PromotionFormDialog = ({
                 sx={{ minWidth: 350 }}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12 }} sm={3}>
               <TextField
                 fullWidth
                 type="date"
@@ -101,7 +101,7 @@ const PromotionFormDialog = ({
                 sx={{ minWidth: 250 }}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12 }} sm={3}>
               <TextField
                 fullWidth
                 type="date"
@@ -116,11 +116,11 @@ const PromotionFormDialog = ({
           </Grid>
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Divider sx={{ my: 1 }} />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography
             variant="h6"
             sx={{

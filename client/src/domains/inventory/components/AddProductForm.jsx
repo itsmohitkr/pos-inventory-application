@@ -32,14 +32,14 @@ const AddProductForm = ({ onProductAdded }) => {
         <form onSubmit={form.handleSubmit}>
           <Grid container spacing={3}>
             {/* Left: Product Essentials */}
-            <Grid item xs={12} lg={7}>
+            <Grid size={{ xs: 12 }} lg={7}>
               <Box sx={{ p: 2.5, borderRadius: 2, border: '1px solid rgba(148, 163, 184, 0.25)' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <InventoryIcon color="primary" />
                   <Typography variant="subtitle1" fontWeight={600}>Product Essentials</Typography>
                 </Box>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                       fullWidth label="Product Name" name="name"
                       InputLabelProps={{ shrink: true }} value={form.formData.name}
@@ -47,7 +47,7 @@ const AddProductForm = ({ onProductAdded }) => {
                       InputProps={{ startAdornment: <InputAdornment position="start"><InventoryIcon color="action" /></InputAdornment> }}
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Autocomplete
                       freeSolo options={form.existingCategories}
                       value={form.formData.category}
@@ -60,7 +60,7 @@ const AddProductForm = ({ onProductAdded }) => {
                       )}
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <ProductBarcodeSection
                       manualBarcodeInput={form.manualBarcodeInput}
                       setManualBarcodeInput={form.setManualBarcodeInput}
@@ -72,7 +72,7 @@ const AddProductForm = ({ onProductAdded }) => {
                       onGenerate={form.generateBarcode}
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Divider sx={{ my: 1.5 }} />
                     <FormControlLabel
                       control={<Switch checked={form.formData.enableBatchTracking} onChange={(e) => form.setFormData((prev) => ({ ...prev, enableBatchTracking: e.target.checked }))} />}
@@ -105,7 +105,7 @@ const AddProductForm = ({ onProductAdded }) => {
             </Grid>
 
             {/* Right: Initial Stock & Pricing */}
-            <Grid item xs={12} lg={6}>
+            <Grid size={{ xs: 12 }} lg={6}>
               <ProductInitialBatchSection
                 initialBatch={form.formData.initialBatch}
                 enableBatchTracking={form.formData.enableBatchTracking}

@@ -503,13 +503,12 @@ const createOrUpdateProduct = async ({
         const existingBatch = (product.batches || [])[0];
 
         if (existingBatch) {
+          const newQty = existingBatch.quantity + qtyToAdd;
+          validateQuantity(newQty);
           await tx.batch.update({
             where: { id: existingBatch.id },
-            data: {
-              quantity: existingBatch.quantity + qtyToAdd,
-            },
+            data: { quantity: newQty },
           });
-          validateQuantity(existingBatch.quantity + qtyToAdd);
           await tx.stockMovement.create({
             data: {
               productId: product.id,
@@ -561,17 +560,8 @@ const createOrUpdateProduct = async ({
 const addBatch = async (batchData) => {
   const { product_id, batch_code, quantity, mrp, cost_price, selling_price, expiryDate } =
     batchData;
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(product_id) },
-    include: {
-      batches: { orderBy: { createdAt: 'asc' } },
-    },
-  });
 
-  if (!product) {
-    throw new Error('Product not found');
-  }
-
+  // Validate inputs before touching the DB
   const qtyToAdd = parseInt(quantity) || 0;
   validateQuantity(qtyToAdd);
   const mrpValue = parseFloat(mrp) || 0;
@@ -581,16 +571,75 @@ const addBatch = async (batchData) => {
     mrp: mrpValue,
     costPrice: costValue,
     sellingPrice: sellingValue,
+    wholesaleEnabled: batchData.wholesaleEnabled,
+    wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : undefined,
   });
 
-  // Auto-generate batch code if empty (only for batch tracking enabled products)
-  const finalBatchCode =
-    product.batchTrackingEnabled && (!batch_code || !batch_code.trim())
-      ? generateBatchCode()
-      : batch_code || null;
+  return await prisma.$transaction(async (tx) => {
+    const product = await tx.product.findUnique({
+      where: { id: parseInt(product_id) },
+      include: { batches: { orderBy: { createdAt: 'asc' } } },
+    });
 
-  if (product.batchTrackingEnabled) {
-    const createdBatch = await prisma.batch.create({
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Auto-generate batch code if empty (only for batch tracking enabled products)
+    const finalBatchCode =
+      product.batchTrackingEnabled && (!batch_code || !batch_code.trim())
+        ? generateBatchCode()
+        : batch_code || null;
+
+    if (product.batchTrackingEnabled) {
+      const createdBatch = await tx.batch.create({
+        data: {
+          product: { connect: { id: parseInt(product_id) } },
+          batchCode: finalBatchCode,
+          quantity: qtyToAdd,
+          mrp: mrpValue,
+          costPrice: costValue,
+          sellingPrice: sellingValue,
+          wholesaleEnabled: batchData.wholesaleEnabled === true,
+          wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
+          wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
+          expiryDate: expiryDate ? new Date(expiryDate) : null,
+        },
+      });
+      await tx.stockMovement.create({
+        data: {
+          productId: product.id,
+          batchId: createdBatch.id,
+          type: 'added',
+          quantity: qtyToAdd,
+          note: 'Stock added',
+        },
+      });
+      return createdBatch;
+    }
+
+    const existingBatch = product.batches[0];
+    if (existingBatch) {
+      const newQty = existingBatch.quantity + qtyToAdd;
+      validateQuantity(newQty);
+      const updatedBatch = await tx.batch.update({
+        where: { id: existingBatch.id },
+        data: { quantity: newQty },
+      });
+      await tx.stockMovement.create({
+        data: {
+          productId: product.id,
+          batchId: existingBatch.id,
+          type: 'added',
+          quantity: qtyToAdd,
+          note: 'Stock added',
+        },
+      });
+      return updatedBatch;
+    }
+
+    // No existing batch — create first batch for non-tracked product
+    const createdBatch = await tx.batch.create({
       data: {
         product: { connect: { id: parseInt(product_id) } },
         batchCode: finalBatchCode,
@@ -604,7 +653,7 @@ const addBatch = async (batchData) => {
         expiryDate: expiryDate ? new Date(expiryDate) : null,
       },
     });
-    await prisma.stockMovement.create({
+    await tx.stockMovement.create({
       data: {
         productId: product.id,
         batchId: createdBatch.id,
@@ -614,53 +663,7 @@ const addBatch = async (batchData) => {
       },
     });
     return createdBatch;
-  }
-
-  const existingBatch = product.batches[0];
-  if (existingBatch) {
-    const updatedBatch = await prisma.batch.update({
-      where: { id: existingBatch.id },
-      data: {
-        quantity: existingBatch.quantity + qtyToAdd,
-      },
-    });
-    validateQuantity(existingBatch.quantity + qtyToAdd);
-    await prisma.stockMovement.create({
-      data: {
-        productId: product.id,
-        batchId: existingBatch.id,
-        type: 'added',
-        quantity: qtyToAdd,
-        note: 'Stock added',
-      },
-    });
-    return updatedBatch;
-  }
-
-  const createdBatch = await prisma.batch.create({
-    data: {
-      product: { connect: { id: parseInt(product_id) } },
-      batchCode: batch_code,
-      quantity: qtyToAdd,
-      mrp: mrpValue,
-      costPrice: costValue,
-      sellingPrice: sellingValue,
-      wholesaleEnabled: batchData.wholesaleEnabled === true,
-      wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
-      wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
-      expiryDate: expiryDate ? new Date(expiryDate) : null,
-    },
   });
-  await prisma.stockMovement.create({
-    data: {
-      productId: product.id,
-      batchId: createdBatch.id,
-      type: 'added',
-      quantity: qtyToAdd,
-      note: 'Stock added',
-    },
-  });
-  return createdBatch;
 };
 
 const updateProduct = async (id, productData) => {
@@ -691,9 +694,27 @@ const updateProduct = async (id, productData) => {
     await _validateBarcodesUniqueness(prisma, barcode, productId);
   }
 
-  const updated = await prisma.product.update({
-    where: { id: productId },
-    data: updateData,
+  const updated = await prisma.$transaction(async (tx) => {
+    // When enabling batch tracking, assign batch codes to any existing batches that lack one
+    if (batchTrackingEnabled === true) {
+      const current = await tx.product.findUnique({ where: { id: productId } });
+      if (current && !current.batchTrackingEnabled) {
+        const batchesWithoutCode = await tx.batch.findMany({
+          where: { productId, batchCode: null },
+        });
+        for (const b of batchesWithoutCode) {
+          await tx.batch.update({
+            where: { id: b.id },
+            data: { batchCode: generateBatchCode() },
+          });
+        }
+      }
+    }
+
+    return tx.product.update({
+      where: { id: productId },
+      data: updateData,
+    });
   });
 
   // Background sync to ensure Category table reflects potentially new strings
@@ -727,10 +748,18 @@ const updateBatch = async (id, batchData) => {
   const nextMrp = mrp !== undefined ? parseFloat(mrp) : existing.mrp;
   const nextCost = costPrice !== undefined ? parseFloat(costPrice) : existing.costPrice;
   const nextSelling = sellingPrice !== undefined ? parseFloat(sellingPrice) : existing.sellingPrice;
+  const nextWholesaleEnabled =
+    batchData.wholesaleEnabled !== undefined ? batchData.wholesaleEnabled : existing.wholesaleEnabled;
+  const nextWholesalePrice =
+    batchData.wholesalePrice !== undefined
+      ? parseFloat(batchData.wholesalePrice)
+      : existing.wholesalePrice;
   validatePricing({
     mrp: nextMrp,
     costPrice: nextCost,
     sellingPrice: nextSelling,
+    wholesaleEnabled: nextWholesaleEnabled,
+    wholesalePrice: nextWholesalePrice,
   });
 
   const nextQuantity = quantity !== undefined ? parseInt(quantity) : existing.quantity;
@@ -770,20 +799,19 @@ const updateBatch = async (id, batchData) => {
 const deleteBatch = async (id) => {
   const existing = await prisma.batch.findUnique({
     where: { id: parseInt(id) },
+    include: { _count: { select: { saleItems: true } } },
   });
   if (!existing) {
     throw new Error('Batch not found');
   }
+  if (existing._count.saleItems > 0) {
+    throw new Error(
+      'This batch has sales history and cannot be deleted. Set its quantity to 0 to retire it instead.'
+    );
+  }
   return await prisma.$transaction(async (tx) => {
-    await tx.stockMovement.deleteMany({
-      where: { batchId: parseInt(id) },
-    });
-    await tx.saleItem.deleteMany({
-      where: { batchId: parseInt(id) },
-    });
-    await tx.batch.delete({
-      where: { id: parseInt(id) },
-    });
+    await tx.stockMovement.deleteMany({ where: { batchId: parseInt(id) } });
+    await tx.batch.delete({ where: { id: parseInt(id) } });
   });
 };
 

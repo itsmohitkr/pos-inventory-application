@@ -16,7 +16,7 @@ const AnalyticsPayoutSection = ({ totalProfit, netProfit, totalExpenses }) => {
       <Paper elevation={0} sx={{ p: 3, border: '1px solid #e2e8f0', borderRadius: 2, bgcolor: '#fafbfc' }}>
         <Grid container spacing={3} alignItems="stretch">
           {/* Profit Calculation */}
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 2, border: '2px solid #f0fdf4', height: '100%' }}>
               <Typography variant="subtitle2" sx={{ color: '#475569', fontWeight: 700, mb: 2.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span style={{ color: '#16a34a' }}>📊</span> Profit Calculation
@@ -43,7 +43,7 @@ const AnalyticsPayoutSection = ({ totalProfit, netProfit, totalExpenses }) => {
           </Grid>
 
           {/* Owner Payout */}
-          <Grid item xs={12} md={7}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%' }}>
               <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 2, border: '2px solid #e0e7ff' }}>
                 <Typography variant="subtitle2" sx={{ color: '#475569', fontWeight: 700, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>

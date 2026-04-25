@@ -94,6 +94,14 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
     }
   };
 
+  const handleCategorySelect = useCallback((path) => {
+    onCategoryChange(path);
+  }, [onCategoryChange]);
+
+  const handleCategorySortToggle = useCallback(() => {
+    setCategorySortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  }, []);
+
   const handleDeleteCategory = async (category) => {
     if (!category) return;
     const confirmed = await showConfirm(`Delete category "${category.name}" and all subcategories?`);
@@ -132,6 +140,8 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
     categoryDialogParent,
     openAddCategoryDialog,
     openEditCategoryDialog,
+    handleCategorySelect,
+    handleCategorySortToggle,
     handleSaveCategory,
     handleDeleteCategory,
     fetchCategories,

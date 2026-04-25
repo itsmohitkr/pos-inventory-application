@@ -23,7 +23,7 @@ export const useDashboardData = () => {
   const fetchPeriodicData = useCallback(async (start, end) => {
     setLoading(true);
     try {
-      const data = await dashboardService.fetchPeriodicData(start, end);
+      const data = await dashboardService.fetchPeriodicData({ startDate: start, endDate: end });
       setReport(data);
     } catch (error) {
       console.error('Failed to load periodic report data:', error);
@@ -154,7 +154,7 @@ export const useDashboardData = () => {
   }, [monthlyData, selectedYear]);
 
   const dailyMetrics = useMemo(() => ({
-    maxDailyVal: Math.max(...(dailyData.map((d) => d.totalSales) || [0]), 0)
+    maxDailyVal: dailyData.reduce((max, d) => (d.totalSales > max ? d.totalSales : max), 0),
   }), [dailyData]);
 
   const categoryMixData = useMemo(() => {

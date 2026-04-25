@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useCallback } from 'react';
+import { forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
 import { Paper, Typography, Box, Chip } from '@mui/material';
 
 import EditProductDialog from '@/domains/inventory/components/EditProductDialog';
@@ -20,6 +20,7 @@ import inventoryService from '@/shared/api/inventoryService';
 const ProductList = forwardRef(
   ({ categoryFilter, onCategoryChange, debouncedSearch, onSearchChange, isPending }, ref) => {
     const pl = useProductList({ categoryFilter, onCategoryChange, debouncedSearch, onSearchChange });
+    const searchTimerRef = useRef(null);
 
     useImperativeHandle(ref, () => ({
       refresh: () => {
@@ -64,11 +65,11 @@ const ProductList = forwardRef(
     }, [pl]);
 
     const handleSearchChange = useCallback((val) => {
-      if (pl.searchTimerRef.current) clearTimeout(pl.searchTimerRef.current);
-      pl.searchTimerRef.current = setTimeout(() => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = setTimeout(() => {
         onSearchChange(val.trim());
       }, 400);
-    }, [onSearchChange, pl.searchTimerRef]);
+    }, [onSearchChange, searchTimerRef]);
 
     return (
       <Box
@@ -119,7 +120,7 @@ const ProductList = forwardRef(
             onAddSubcategory={pl.openAddCategoryDialog}
             onEditCategory={pl.openEditCategoryDialog}
             onDeleteCategory={pl.handleDeleteCategory}
-            onCategoryDialogClose={pl.handleCategoryDialogClose}
+            onCategoryDialogClose={() => pl.setAddCategoryOpen(false)}
             onCategoryNameChange={pl.setNewCategoryName}
             onSaveCategory={pl.handleSaveCategory}
             onResizeStart={pl.handleResizeStartLeft}
@@ -209,7 +210,7 @@ const ProductList = forwardRef(
             displayProduct={pl.displayProduct}
             isLoadingBatches={pl.isLoadingBatches}
             isResizingRight={pl.isResizingRight}
-            onResizeStart={() => pl.setIsResizingRight(true)}
+            onResizeStart={pl.handleResizeStartRight}
             onAddStock={pl.handleAddStock}
             onOpenHistory={pl.handleOpenHistory}
             onBatchEditClick={pl.handleBatchEditClick}

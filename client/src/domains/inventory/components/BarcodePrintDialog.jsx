@@ -126,7 +126,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
       <DialogContent dividers>
         <Grid container spacing={3}>
           {/* Settings Panel */}
-          <Grid item xs={12} md={5} className="no-print">
+          <Grid size={{ xs: 12, md: 5 }} className="no-print">
             <BarcodeSettingsPanel
               quantity={quantity} onQuantityChange={setQuantity}
               printMethod={printMethod} onPrintMethodChange={setPrintMethod}
@@ -142,7 +142,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
           </Grid>
 
           {/* Preview Panel */}
-          <Grid item xs={12} md={7}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <Paper
               className="printable-area"
               elevation={0}

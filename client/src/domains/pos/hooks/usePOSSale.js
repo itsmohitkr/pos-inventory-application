@@ -21,6 +21,8 @@ export const usePOSSale = ({
   const [isPaying, setIsPaying] = useState(false);
 
   const handlePay = useCallback(async (selectedPaymentMethod) => {
+    if (isPaying) return;
+    setIsPaying(true);
     const methodToUse = selectedPaymentMethod || { id: 'cash', label: 'Cash' };
     try {
       const items = cart.map((item) => ({
@@ -47,8 +49,10 @@ export const usePOSSale = ({
       console.error(error);
       const msg = error.response?.data?.error || error.message || 'Payment failed';
       showError(`Payment failed: ${msg}`);
+    } finally {
+      setIsPaying(false);
     }
-  }, [cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError]);
 
   const handlePayAndPrint = useCallback(async (selectedPaymentMethod) => {
     if (isPaying) return;
@@ -106,7 +110,7 @@ export const usePOSSale = ({
     }
   }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError]);
 
-  const handlePrintLastReceipt = async () => {
+  const handlePrintLastReceipt = useCallback(async () => {
     if (lastSale) {
       if (receiptSettings.directPrint) {
         const printer =
@@ -127,7 +131,7 @@ export const usePOSSale = ({
         }
       } else setShowReceipt(true);
     }
-  };
+  }, [lastSale, receiptSettings, defaultPrinter, printers, setShowReceipt, showError]);
 
   return {
     lastSale,

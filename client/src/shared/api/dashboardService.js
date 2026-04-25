@@ -16,8 +16,9 @@ const dashboardService = {
   /**
    * Fetch periodic data (e.g., for charts)
    */
-  fetchPeriodicData: async (params, config = {}) => {
-    const response = await api.get('/api/reports', { ...config, params });
+  fetchPeriodicData: async ({ startDate, endDate } = {}, config = {}) => {
+    const qs = new URLSearchParams({ startDate, endDate }).toString();
+    const response = await api.get(`/api/reports?${qs}`, config);
     return response.data;
   },
 
@@ -49,7 +50,8 @@ const dashboardService = {
    * Fetch expiry report
    */
   fetchExpiryReport: async (params, config = {}) => {
-    const response = await api.get('/api/reports/expiry', { ...config, params });
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    const response = await api.get(qs ? `/api/reports/expiry?${qs}` : '/api/reports/expiry', config);
     return response.data;
   },
 
@@ -65,7 +67,8 @@ const dashboardService = {
    * Fetch loose sales report
    */
   fetchLooseSalesReport: async (params, config = {}) => {
-    const response = await api.get('/api/reports/loose-sales', { ...config, params });
+    const qs = params ? new URLSearchParams(params).toString() : '';
+    const response = await api.get(qs ? `/api/reports/loose-sales?${qs}` : '/api/reports/loose-sales', config);
     return response.data;
   },
 };

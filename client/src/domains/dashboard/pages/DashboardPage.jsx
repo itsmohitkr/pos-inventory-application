@@ -163,12 +163,12 @@ const Dashboard = () => {
           dateRange={dateRange}
           tabValue={timeframes.findIndex(tf => {
             const { start, end } = getDateRange(tf.type);
-            return start.toLocaleDateString('en-CA') === dateRange.startDate && 
-                   end.toLocaleDateString('en-CA') === dateRange.endDate;
+            return start.toLocaleDateString('en-CA') === dateRange.startDate &&
+              end.toLocaleDateString('en-CA') === dateRange.endDate;
           }) === -1 ? timeframes.findIndex(tf => tf.type === 'custom') : timeframes.findIndex(tf => {
             const { start, end } = getDateRange(tf.type);
-            return start.toLocaleDateString('en-CA') === dateRange.startDate && 
-                   end.toLocaleDateString('en-CA') === dateRange.endDate;
+            return start.toLocaleDateString('en-CA') === dateRange.startDate &&
+              end.toLocaleDateString('en-CA') === dateRange.endDate;
           })}
           timeframes={timeframes}
           onTabChange={handleTabChange}
@@ -207,7 +207,7 @@ const Dashboard = () => {
           <StatCard
             title="Average Sale Value"
             subtitle={`Across ${periodicMetrics.totalTransactions} transactions`}
-            value={`Rs.${formatShortNum(periodicMetrics.avgSaleValue)}`}
+            value={`Rs.${periodicMetrics.avgSaleValue.toFixed(2)}`}
             bgcolor="#fff"
             textColor="#64748b"
             valueColor="#0b1d39"

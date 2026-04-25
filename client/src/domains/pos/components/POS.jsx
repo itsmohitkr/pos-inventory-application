@@ -46,6 +46,10 @@ const POS = ({
     productSales,
     shopMetadata,
     fetchProducts,
+    looseSaleEnabled,
+    decodedPricesEnabled,
+    changeCalculatorEnabled,
+    paymentMethodsEnabled,
   } = usePOSData(propReceiptSettings, propShopMetadata);
 
   const {
@@ -429,7 +433,7 @@ const POS = ({
                 color="primary"
                 sx={{
                   fontWeight: 800,
-                  bgcolor: '#22ab7dff',
+                  bgcolor: '#22ab7d',
                   '&:hover': { bgcolor: '#059669' },
                   px: 2,
                   height: 36,
@@ -493,8 +497,8 @@ const POS = ({
             discount={discount}
             onDiscountChange={setDiscount}
             onVoid={handleVoidOrder}
-            onPay={handlePay}
-            onPayAndPrint={handlePayAndPrint}
+            onPay={() => handlePay(selectedPaymentMethod)}
+            onPayAndPrint={() => handlePayAndPrint(selectedPaymentMethod)}
             onRefund={handleRefund}
             onSelectPaymentMethod={handleSelectPaymentMethod}
             selectedPaymentMethod={selectedPaymentMethod}

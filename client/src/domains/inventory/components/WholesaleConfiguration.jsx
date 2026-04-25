@@ -52,7 +52,7 @@ const WholesaleConfiguration = ({
 
       {wholesaleEnabled && (
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               type="number"
@@ -74,7 +74,7 @@ const WholesaleConfiguration = ({
               }}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               type="number"
@@ -93,7 +93,7 @@ const WholesaleConfiguration = ({
               InputProps={{ inputProps: { min: 1, step: 1 } }}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Box
               sx={{
                 p: 1.5,

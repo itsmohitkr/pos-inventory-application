@@ -55,7 +55,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
           '& *': {
             color: '#000000 !important',
             textShadow: 'none !important',
-            '-webkit-print-color-adjust': 'exact',
+            WebkitPrintColorAdjust: 'exact',
           },
           '@media print': {
             display: 'block !important',

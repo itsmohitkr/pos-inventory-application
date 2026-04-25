@@ -72,9 +72,48 @@ ipcMain.handle('get-printers', async () => {
   return await mainWindow.webContents.getPrintersAsync();
 });
 
-ipcMain.handle('print-manual', (_event, { printerName }) => {
+// Maps Chromium's internal print result codes to user-readable messages.
+// Source: chromium/src/printing/print_job.h PrintResult enum
+const PRINT_ERROR_MESSAGES = {
+  1: 'Print job failed. Check that the printer is turned on and has paper.',
+  2: 'Invalid printer settings. Try selecting the printer again in Receipt Settings.',
+  3: 'Print was cancelled.',
+  4: 'Print job crashed internally. Please try again.',
+  5: 'Printer not found. The configured printer may be offline, renamed, or disconnected. Go to Settings → Receipt Settings to reselect your printer.',
+  6: 'File system error during printing.',
+};
+
+function describePrintError(failureReason) {
+  if (!failureReason) return 'Unknown print error';
+  const codeMatch = String(failureReason).match(/Error code:\s*(\d+)/i);
+  if (codeMatch) {
+    const code = parseInt(codeMatch[1], 10);
+    return PRINT_ERROR_MESSAGES[code] || `Print failed (code ${code})`;
+  }
+  return failureReason;
+}
+
+ipcMain.handle('print-manual', async (_event, { printerName }) => {
   if (!mainWindow) return { success: false, error: 'App window not ready' };
   console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
+
+  // Validate printer availability before submitting the job
+  if (printerName) {
+    try {
+      const available = await mainWindow.webContents.getPrintersAsync();
+      const found = available.some((p) => p.name === printerName);
+      if (!found) {
+        const names = available.map((p) => p.name).join(', ') || 'none';
+        console.error(`[PRINT ERROR] Printer "${printerName}" not found. Available: ${names}`);
+        return {
+          success: false,
+          error: `Printer "${printerName}" is not available. Go to Settings → Receipt Settings to reselect your printer. Available printers: ${names}`,
+        };
+      }
+    } catch (err) {
+      console.warn('[PRINT] Could not validate printer list:', err.message);
+    }
+  }
 
   return new Promise((resolve) => {
     // silent: true — no OS print dialog, no interruption to the cashier flow
@@ -89,8 +128,9 @@ ipcMain.handle('print-manual', (_event, { printerName }) => {
       },
       (success, failureReason) => {
         if (!success) {
-          console.error(`[PRINT ERROR] Failed to print: ${failureReason}`);
-          resolve({ success: false, error: failureReason || 'Unknown print error' });
+          const message = describePrintError(failureReason);
+          console.error(`[PRINT ERROR] ${failureReason} → ${message}`);
+          resolve({ success: false, error: message });
         } else {
           console.log('[PRINT SUCCESS] Direct print sent to printer.');
           resolve({ success: true });
@@ -146,7 +186,7 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
     });
 
     if (!result.success) {
-      throw new Error(result.failureReason || 'Unknown print failure');
+      throw new Error(describePrintError(result.failureReason));
     }
 
     return { success: true };

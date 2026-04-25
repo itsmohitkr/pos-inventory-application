@@ -69,7 +69,7 @@ const BarcodeSettingsPanel = ({
         </FormControl>
         {paperSize === 'custom' && (
           <Grid container spacing={2}>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <TextField
                 label="Bar Width (px)" type="number" fullWidth size="small"
                 value={customDimensions.width}
@@ -77,7 +77,7 @@ const BarcodeSettingsPanel = ({
                 inputProps={{ min: 1, max: 5, step: 0.1 }}
               />
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <TextField
                 label="Height (px)" type="number" fullWidth size="small"
                 value={customDimensions.height}
@@ -85,7 +85,7 @@ const BarcodeSettingsPanel = ({
                 inputProps={{ min: 20, max: 200 }}
               />
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <TextField
                 label="Columns" type="number" fullWidth size="small"
                 value={customDimensions.cols}
@@ -103,7 +103,7 @@ const BarcodeSettingsPanel = ({
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Page Margins (mm)</Typography>
       <Grid container spacing={2}>
         {['top', 'right', 'bottom', 'left'].map((side) => (
-          <Grid item xs={6} key={side}>
+          <Grid size={{ xs: 6 }} key={side}>
             <TextField
               label={side.charAt(0).toUpperCase() + side.slice(1)}
               type="number" fullWidth size="small"
@@ -119,14 +119,14 @@ const BarcodeSettingsPanel = ({
     <Paper elevation={0} sx={{ p: 2, bgcolor: '#f8fafc', border: '1px solid #e2e8f0' }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Barcode Spacing (mm)</Typography>
       <Grid container spacing={2}>
-        <Grid item xs={6}>
+        <Grid size={{ xs: 6 }}>
           <TextField
             label="Horizontal" type="number" fullWidth size="small"
             value={spacing.horizontal}
             onChange={(e) => onSpacingChange({ ...spacing, horizontal: parseInt(e.target.value) || 0 })}
           />
         </Grid>
-        <Grid item xs={6}>
+        <Grid size={{ xs: 6 }}>
           <TextField
             label="Vertical" type="number" fullWidth size="small"
             value={spacing.vertical}

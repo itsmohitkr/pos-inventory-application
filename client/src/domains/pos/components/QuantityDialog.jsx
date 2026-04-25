@@ -91,7 +91,7 @@ const QuantityDialog = ({ open, onClose, onConfirm, itemName, initialValue = 1 }
         </Box>
         <Grid container spacing={1.5}>
           {buttons.map((btn) => (
-            <Grid item xs={4} key={btn}>
+            <Grid size={{ xs: 4 }} key={btn}>
               <Button
                 fullWidth
                 variant={btn === 'Confirm' ? 'contained' : 'outlined'}

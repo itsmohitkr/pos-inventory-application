@@ -96,22 +96,35 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
         <List ref={listRef}>
           {batches.map((batch, index) => {
             const isFocused = index === focusedIndex;
+            const isExpired = batch.expiryDate && new Date(batch.expiryDate) < new Date();
             return (
               <ListItemButton
                 key={batch.id}
                 onClick={() => onSelectBatch(scannedProduct.product, batch)}
                 selected={isFocused}
                 sx={{
-                  backgroundColor: isFocused ? '#E3F2FD' : 'transparent',
-                  border: isFocused ? '2px solid #1976d2' : '2px solid transparent',
+                  backgroundColor: isExpired
+                    ? 'rgba(211, 47, 47, 0.06)'
+                    : isFocused
+                      ? '#E3F2FD'
+                      : 'transparent',
+                  border: isExpired
+                    ? '2px solid rgba(211, 47, 47, 0.4)'
+                    : isFocused
+                      ? '2px solid #1976d2'
+                      : '2px solid transparent',
                   '&:hover': {
-                    backgroundColor: isFocused ? '#BBDEFB' : 'action.hover',
+                    backgroundColor: isExpired
+                      ? 'rgba(211, 47, 47, 0.1)'
+                      : isFocused
+                        ? '#BBDEFB'
+                        : 'action.hover',
                   },
                   '&.Mui-selected': {
-                    backgroundColor: '#E3F2FD',
-                    border: '2px solid #1976d2',
+                    backgroundColor: isExpired ? 'rgba(211, 47, 47, 0.06)' : '#E3F2FD',
+                    border: isExpired ? '2px solid rgba(211, 47, 47, 0.4)' : '2px solid #1976d2',
                     '&:hover': {
-                      backgroundColor: '#BBDEFB',
+                      backgroundColor: isExpired ? 'rgba(211, 47, 47, 0.1)' : '#BBDEFB',
                     },
                   },
                   borderRadius: 1,
@@ -122,15 +135,34 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
               >
                 <ListItemText
                   primary={
-                    <Typography
-                      variant="subtitle1"
-                      fontWeight="normal" // Changed from bold to normal
-                      sx={{ color: isFocused ? '#1976d2' : 'inherit' }}
-                    >
-                      {isPriceMode
-                        ? `MRP: ₹${batch.mrp}`
-                        : `Batch: ${batch.batchCode ? (batch.batchCode.length > 8 ? batch.batchCode.substring(0, 6) + '...' : batch.batchCode) : 'N/A'}`}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight="normal"
+                        sx={{ color: isExpired ? 'error.main' : isFocused ? '#1976d2' : 'inherit' }}
+                      >
+                        {isPriceMode
+                          ? `MRP: ₹${batch.mrp}`
+                          : `Batch: ${batch.batchCode ? (batch.batchCode.length > 8 ? batch.batchCode.substring(0, 6) + '...' : batch.batchCode) : 'N/A'}`}
+                      </Typography>
+                      {isExpired && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            bgcolor: 'error.main',
+                            color: 'white',
+                            px: 0.75,
+                            py: 0.25,
+                            borderRadius: 0.5,
+                            fontWeight: 700,
+                            fontSize: '0.65rem',
+                            letterSpacing: '0.05em',
+                          }}
+                        >
+                          EXPIRED
+                        </Typography>
+                      )}
+                    </Box>
                   }
                   secondary={
                     <Box
@@ -166,10 +198,11 @@ const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
                       </Typography>
                       <Typography
                         variant="body2"
-                        sx={{ color: batch.expiryDate ? 'error.main' : 'text.disabled' }}
+                        sx={{ color: isExpired ? 'error.main' : batch.expiryDate ? 'warning.main' : 'text.disabled', fontWeight: isExpired ? 700 : 400 }}
                       >
                         <strong>Exp:</strong>{' '}
                         {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A'}
+                        {isExpired ? ' ⚠' : ''}
                       </Typography>
                       {batch.wholesaleEnabled && (
                         <Typography

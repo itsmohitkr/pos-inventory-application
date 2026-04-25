@@ -9,7 +9,7 @@ const ProductBarcodeSection = ({
 }) => (
   <Box sx={{ mb: 2 }}>
     <Grid container spacing={1} alignItems="center">
-      <Grid item xs>
+      <Grid xs>
         <TextField
           fullWidth
           label="Add Barcode"
@@ -24,7 +24,7 @@ const ProductBarcodeSection = ({
           InputProps={{ startAdornment: <InputAdornment position="start"><QrCodeIcon color="action" /></InputAdornment> }}
         />
       </Grid>
-      <Grid item>
+      <Grid>
         <Button variant="contained" startIcon={<RefreshIcon />} onClick={onGenerate} disabled={barcodeChecking} sx={{ height: 40 }}>
           Generate
         </Button>

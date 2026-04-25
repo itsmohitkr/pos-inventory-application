@@ -1,18 +1,22 @@
 import { useMemo, useCallback } from 'react';
 
 export const usePOSSearch = (products) => {
-  const barcodeMap = useMemo(() => {
+  // Precompute search fields alongside the barcode map — avoids mutating state objects during render
+  const { barcodeMap, searchIndex } = useMemo(() => {
     const map = new Map();
+    const index = new Map();
     products.forEach((p) => {
+      const searchName = String(p.name || '').toLowerCase();
+      const searchBarcode = String(p.barcode || '').toLowerCase();
+      const searchPrices = (p.batches || []).map((b) => String(b.sellingPrice || ''));
+      index.set(p, { searchName, searchBarcode, searchPrices });
       if (p.barcode) {
-        // Handle multiple barcodes separated by |
-        const codes = String(p.barcode).split('|');
-        codes.forEach(code => {
+        String(p.barcode).split('|').forEach((code) => {
           map.set(code.trim().toLowerCase(), p);
         });
       }
     });
-    return map;
+    return { barcodeMap: map, searchIndex: index };
   }, [products]);
 
   const filterOptions = useCallback(
@@ -31,26 +35,15 @@ export const usePOSSearch = (products) => {
 
       for (const option of options) {
         if (!option || option === exactMatch) continue;
-        const name =
-          option._searchName || (option._searchName = String(option.name || '').toLowerCase());
-        const barcode =
-          option._searchBarcode ||
-          (option._searchBarcode = String(option.barcode || '').toLowerCase());
+        const meta = searchIndex.get(option);
+        if (!meta) continue;
+        const { searchName, searchBarcode, searchPrices } = meta;
 
-        if (name.startsWith(normalizedInput)) namePrefix.push(option);
-        else if (barcode.startsWith(normalizedInput)) barcodePrefix.push(option);
-        else if (name.includes(normalizedInput)) nameContains.push(option);
-        else if (barcode.includes(normalizedInput)) barcodeContains.push(option);
-        else {
-          const priceMatch = (option.batches || []).some(
-            (batch) =>
-              batch &&
-              (
-                batch._searchPrice || (batch._searchPrice = String(batch.sellingPrice || ''))
-              ).includes(normalizedInput)
-          );
-          if (priceMatch) priceMatches.push(option);
-        }
+        if (searchName.startsWith(normalizedInput)) namePrefix.push(option);
+        else if (searchBarcode.startsWith(normalizedInput)) barcodePrefix.push(option);
+        else if (searchName.includes(normalizedInput)) nameContains.push(option);
+        else if (searchBarcode.includes(normalizedInput)) barcodeContains.push(option);
+        else if (searchPrices.some((p) => p.includes(normalizedInput))) priceMatches.push(option);
       }
 
       const sortFn = (a, b) => (a.name || '').localeCompare(b.name || '');
@@ -68,7 +61,7 @@ export const usePOSSearch = (products) => {
         ...priceMatches,
       ].slice(0, 50);
     },
-    [barcodeMap]
+    [barcodeMap, searchIndex]
   );
 
   return {

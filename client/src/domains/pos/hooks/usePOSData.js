@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import inventoryService from '@/shared/api/inventoryService';
 import settingsService from '@/shared/api/settingsService';
 import dashboardService from '@/shared/api/dashboardService';
@@ -15,6 +15,12 @@ import {
 import { getStoredReceiptSettings } from '@/domains/pos/components/posReceiptSettings';
 
 export const usePOSData = (propReceiptSettings, propShopMetadata) => {
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const [products, setProducts] = useState(() => {
     try {
       const cached = localStorage.getItem('posCachedProducts');
@@ -140,7 +146,7 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
       }
     } catch (error) {
       console.error(`Failed to refresh POS settings (remaining retries: ${retries}):`, error);
-      if (retries > 0) setTimeout(() => runRefreshSettings(retries - 1), 1000);
+      if (retries > 0 && mountedRef.current) setTimeout(() => runRefreshSettings(retries - 1), 1000);
     }
   }, []);
 
@@ -156,7 +162,7 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
       }
     } catch (err) {
       console.error(`Error fetching products (remaining retries: ${retries}):`, err);
-      if (retries > 0) setTimeout(() => runFetchProducts(retries - 1), 1000);
+      if (retries > 0 && mountedRef.current) setTimeout(() => runFetchProducts(retries - 1), 1000);
     }
   }, []);
 

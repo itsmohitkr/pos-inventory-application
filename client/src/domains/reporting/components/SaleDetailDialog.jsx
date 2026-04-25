@@ -65,7 +65,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
               }}
             >
               <Grid container spacing={3}>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -81,7 +81,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
                     {new Date(selectedSale.createdAt).toLocaleString()}
                   </Typography>
                 </Grid>
-                <Grid item xs={2}>
+                <Grid size={{ xs: 2 }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -107,7 +107,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
                     }}
                   />
                 </Grid>
-                <Grid item xs={2}>
+                <Grid size={{ xs: 2 }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -137,7 +137,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
                     );
                   })()}
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -156,7 +156,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
                       .toFixed(2)}
                   </Typography>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -172,7 +172,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
                     ₹{selectedSale.totalAmount.toFixed(2)}
                   </Typography>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <Typography
                     variant="caption"
                     sx={{

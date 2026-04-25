@@ -246,7 +246,7 @@ const PriceListConfigurationPanel = ({
 
           <Collapse in={showAdvancedLayout} timeout="auto" unmountOnExit>
             <Grid container spacing={1.2} sx={{ mt: 0.8 }}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -262,7 +262,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -278,7 +278,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -294,7 +294,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -310,7 +310,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -326,7 +326,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Barcode Format</InputLabel>
                   <Select
@@ -351,7 +351,7 @@ const PriceListConfigurationPanel = ({
                 </FormControl>
               </Grid>
 
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -366,7 +366,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -381,7 +381,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -396,7 +396,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -411,7 +411,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -426,7 +426,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -441,7 +441,7 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
                   size="small"

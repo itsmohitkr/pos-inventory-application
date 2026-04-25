@@ -75,9 +75,7 @@ const ReceiptPreviewDialog = ({
         <Grid container sx={{ height: '70vh' }}>
           {/* Settings Sidebar - Admin Only */}
           {isAdmin && (
-            <Grid
-              item
-              xs={12}
+            <Grid size={{ xs: 12 }}
               sm={4}
               className="no-print"
               sx={{ borderRight: '1px solid #eee', p: 2, overflowY: 'auto', bgcolor: '#f8f9fa' }}
@@ -174,7 +172,7 @@ const ReceiptPreviewDialog = ({
 
                 <Grid container spacing={1} sx={{ mt: 0.5 }}>
                   {['Title', 'Header', 'Footer'].map((alignField) => (
-                    <Grid item xs={4} key={alignField}>
+                    <Grid size={{ xs: 4 }} key={alignField}>
                       <FormControl fullWidth size="small">
                         <InputLabel>{alignField}</InputLabel>
                         <Select
@@ -410,9 +408,7 @@ const ReceiptPreviewDialog = ({
           )}
 
           {/* Receipt Preview Area */}
-          <Grid
-            item
-            xs={12}
+          <Grid size={{ xs: 12 }}
             sm={isAdmin ? 8 : 12}
             sx={{
               p: 2,

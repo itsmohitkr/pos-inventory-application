@@ -32,6 +32,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
   const [uncategorizedCount, setUncategorizedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [stockFilter, setStockFilter] = useState('all');
+  const [barcodeOverride, setBarcodeOverride] = useState(null);
 
   const productsRequestId = useRef(0);
   const summaryRequestId = useRef(0);
@@ -104,8 +105,9 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
 
   // Compose with specialized hooks
   const layout = useInventoryLayout();
-  
+
   const displayedProducts = useMemo(() => {
+    if (barcodeOverride) return barcodeOverride;
     let baseProducts = products;
 
     if (categoryFilter && categoryFilter !== 'all') {
@@ -153,20 +155,21 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     barcodeContains.sort(sortFn);
 
     return [...namePrefix, ...barcodePrefix, ...nameContains, ...barcodeContains].slice(0, 1000);
-  }, [products, debouncedSearch, stockFilter, categoryFilter]);
+  }, [barcodeOverride, products, debouncedSearch, stockFilter, categoryFilter]);
 
   const selection = useProductSelection(displayedProducts, (product) => {
+    if (product?.id === selectedProduct?.id) return;
     setSelectedProduct(product);
     setSelectedProductDetails(null);
     setIsLoadingBatches(true);
   });
 
   const categoriesContext = useCategoryManagement(
-    categoryFilter, 
-    onCategoryChange, 
-    fetchProducts, 
-    fetchSummary, 
-    showError, 
+    categoryFilter,
+    onCategoryChange,
+    fetchProducts,
+    fetchSummary,
+    showError,
     showConfirm
   );
 
@@ -291,6 +294,10 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     setSelectedProductDetails(null);
   }, []);
 
+  const handleOpenHistory = useCallback(() => {
+    setHistoryOpen(true);
+  }, []);
+
   const handleListDragStart = (e, product) => {
     const id = String(product.id);
     let dragIds = [id];
@@ -358,6 +365,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     // State
     dialogState, showError, closeDialog,
     products, setProducts,
+    setFilteredProducts: setBarcodeOverride,
     searchTerm, setSearchTerm,
     selectedProduct,
     selectedProductDetails,

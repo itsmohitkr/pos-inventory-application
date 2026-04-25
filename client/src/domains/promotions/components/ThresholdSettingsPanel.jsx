@@ -46,7 +46,7 @@ const ThresholdSettingsPanel = ({
       </Typography>
     </Box>
     <Grid container spacing={3}>
-      <Grid item xs={12} md={9}>
+      <Grid size={{ xs: 12, md: 9 }}>
         <FormControlLabel
           control={
             <Switch
@@ -62,10 +62,7 @@ const ThresholdSettingsPanel = ({
           the table below.
         </Typography>
       </Grid>
-      <Grid
-        item
-        xs={12}
-        md={3}
+      <Grid size={{ xs: 12, md: 3 }}
         sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}
       >
         <Button
@@ -83,11 +80,11 @@ const ThresholdSettingsPanel = ({
         </Button>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Divider sx={{ my: 1 }} />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             Threshold Configuration Table

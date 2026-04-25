@@ -55,7 +55,7 @@ export const usePOSTabs = () => {
   }, []);
 
   const handleAddTab = useCallback(() => {
-    const newId = Math.max(...tabs.map((t) => t.id), 0) + 1;
+    const newId = tabs.reduce((max, t) => (t.id > max ? t.id : max), 0) + 1;
     const newTab = { id: newId, name: `Order ${newId}`, cart: [], discount: 0 };
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newId);

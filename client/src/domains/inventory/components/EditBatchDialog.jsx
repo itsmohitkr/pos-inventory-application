@@ -168,7 +168,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
         <Divider />
         <DialogContent component="form" onSubmit={handleSave} sx={{ pt: 4, pb: 4 }}>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Batch Code"
                 InputLabelProps={{ shrink: true }}
@@ -177,7 +177,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                 onChange={(e) => handleChange('batchCode', e.target.value)}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Quantity"
                 type="number"
@@ -189,7 +189,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                 InputProps={{ inputProps: { min: 0, step: 1 } }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="MRP"
                 type="number"
@@ -206,7 +206,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                 }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Cost Price (CP)"
                 type="number"
@@ -224,7 +224,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={5}>
+            <Grid size={{ xs: 5 }}>
               <TextField
                 label="Discount (%)"
                 InputLabelProps={{ shrink: true }}
@@ -237,14 +237,12 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                 }}
               />
             </Grid>
-            <Grid
-              item
-              xs={2}
+            <Grid size={{ xs: 2 }}
               sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <ArrowForwardIcon color="action" />
             </Grid>
-            <Grid item xs={5}>
+            <Grid size={{ xs: 5 }}>
               <TextField
                 label="Selling Price (SP)"
                 type="number"
@@ -262,7 +260,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 label="Expiry Date"
                 type="date"
@@ -273,10 +271,10 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)', my: 2, width: '100%' }} />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <WholesaleConfiguration
                 wholesaleEnabled={formData.wholesaleEnabled}
                 onToggleChange={(checked) => handleChange('wholesaleEnabled', checked)}
@@ -288,7 +286,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
                 costPrice={formData.costPrice}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box
                 sx={{
                   p: 1.5,

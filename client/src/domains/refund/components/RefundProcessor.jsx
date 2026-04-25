@@ -121,7 +121,7 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
           }}
         >
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5 }}>
                 ORDER DATE
               </Typography>
@@ -129,7 +129,7 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
                 {new Date(sale.createdAt).toLocaleString()}
               </Typography>
             </Grid>
-            <Grid item xs={6} textAlign="right">
+            <Grid size={{ xs: 6 }} textAlign="right">
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5 }}>
                 BILL TOTAL
               </Typography>
