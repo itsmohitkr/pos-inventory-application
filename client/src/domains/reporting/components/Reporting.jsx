@@ -40,9 +40,9 @@ const Reporting = () => {
       <Paper
         elevation={0}
         sx={{
-          m: (theme) => theme.custom.spacing.pagePadding / 8,
-          px: (theme) => (theme.custom.spacing.pagePadding * 1.5) / 8,
-          py: 3,
+          m: 3,
+          px: 4,
+          py: 2.5,
           background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
           borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
         }}
@@ -89,14 +89,7 @@ const Reporting = () => {
       <Container
         disableGutters
         maxWidth={false}
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0,
-          px: (theme) => theme.custom.spacing.pagePadding / 8,
-          pb: (theme) => theme.custom.spacing.pagePadding / 8,
-        }}
+        sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, px: 3, pb: 3 }}
       >
         {loading && !reportData && !expiryData && !lowStockData && !looseSalesData ? (
           <Box
@@ -114,7 +107,7 @@ const Reporting = () => {
             sx={{
               display: 'flex',
               flexDirection: { xs: 'column', md: 'row' },
-              gap: (theme) => theme.custom.spacing.cardGap / 8,
+              gap: 3,
               flex: 1,
               minHeight: 0,
             }}

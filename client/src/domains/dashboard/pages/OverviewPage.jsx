@@ -112,11 +112,7 @@ const OverviewPage = ({ shopName, userRole }) => (
     </Paper>
 
     <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: (theme) => theme.custom.spacing.cardGap / 8,
-      }}
+      sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 3 }}
     >
       <DashboardCard
         to="/pos"

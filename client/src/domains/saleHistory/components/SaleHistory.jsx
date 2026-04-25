@@ -237,8 +237,8 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
           flexDirection: 'column',
           overflow: 'hidden',
           pt: 0,
-          px: (theme) => theme.custom.spacing.pagePadding / 8,
-          pb: (theme) => theme.custom.spacing.pagePadding / 8,
+          px: 3,
+          pb: 3,
         }}
       >
         {loading ? (
@@ -255,7 +255,7 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
         ) : (
           <Grid
             container
-            spacing={(theme) => theme.custom.spacing.cardGap / 8}
+            spacing={2}
             wrap="nowrap"
             className="no-print"
             sx={{ flex: 1, minHeight: 0, overflow: 'hidden', flexWrap: 'nowrap' }}

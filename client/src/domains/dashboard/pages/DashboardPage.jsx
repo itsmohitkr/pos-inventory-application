@@ -119,24 +119,17 @@ const Dashboard = () => {
   }
 
   return (
-    <Box
-      sx={{
-        bgcolor: '#f8fafc',
-        height: '100%',
-        overflowY: 'auto',
-        p: (theme) => theme.custom.spacing.pagePadding / 8,
-      }}
-    >
+    <Box sx={{ bgcolor: '#f8fafc', height: '100%', overflowY: 'auto', p: 2 }}>
       <Box
         sx={{
           maxWidth: '1400px',
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: (theme) => theme.custom.spacing.cardGap / 8,
+          gap: 2,
         }}
       >
-        <Box sx={{ display: 'flex', gap: (theme) => theme.custom.spacing.cardGap / 8, alignItems: 'stretch' }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
           <MonthlySalesChart
             data={monthlyData}
             year={selectedYear}
@@ -184,7 +177,7 @@ const Dashboard = () => {
           onApplyCustomRange={handleApplyCustomRange}
         />
 
-        <Box sx={{ display: 'flex', gap: (theme) => theme.custom.spacing.cardGap / 8, height: '300px' }}>
+        <Box sx={{ display: 'flex', gap: 2, height: '300px' }}>
           <TopProductsTable products={periodicMetrics.topProducts} />
           <HourlySalesChart
             activeHourlyData={periodicMetrics.activeHourlyData}
@@ -209,7 +202,7 @@ const Dashboard = () => {
           />
         </Box>
 
-        <Box sx={{ display: 'flex', gap: (theme) => theme.custom.spacing.cardGap / 8, height: '220px', mb: 4 }}>
+        <Box sx={{ display: 'flex', gap: 2, height: '220px', mb: 4 }}>
           <CategoryMixChart mix={categoryMixData} />
           <StatCard
             title="Average Sale Value"

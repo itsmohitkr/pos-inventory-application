@@ -72,13 +72,21 @@ const ReceiptPreviewDialog = ({
         </IconButton>
       </DialogTitle>
       <DialogContent sx={{ p: 0 }}>
-        <Grid container sx={{ height: '70vh' }}>
+        <Grid container sx={{ height: '70vh', gap: 0 }}>
           {/* Settings Sidebar - Admin Only */}
           {isAdmin && (
-            <Grid size={{ xs: 12 }}
-              sm={4}
+            <Grid
+              item
+              xs={12}
+              md={5}
               className="no-print"
-              sx={{ borderRight: '1px solid #eee', p: 2, overflowY: 'auto', bgcolor: '#f8f9fa' }}
+              sx={{
+                borderRight: '4px solid #eee',
+                p: 3,
+                overflowY: 'auto',
+                bgcolor: '#f8f9fa',
+                height: '100%',
+              }}
             >
               <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
                 Receipt Content Settings
@@ -172,7 +180,7 @@ const ReceiptPreviewDialog = ({
 
                 <Grid container spacing={1} sx={{ mt: 0.5 }}>
                   {['Title', 'Header', 'Footer'].map((alignField) => (
-                    <Grid size={{ xs: 4 }} key={alignField}>
+                    <Grid item xs={4} key={alignField}>
                       <FormControl fullWidth size="small">
                         <InputLabel>{alignField}</InputLabel>
                         <Select
@@ -408,17 +416,20 @@ const ReceiptPreviewDialog = ({
           )}
 
           {/* Receipt Preview Area */}
-          <Grid size={{ xs: 12 }}
-            sm={isAdmin ? 8 : 12}
+          <Grid
+            item
+            xs={12}
+            md={isAdmin ? 7 : 12}
             sx={{
-              p: 2,
+              p: 4,
               display: 'flex',
               justifyContent: 'center',
               bgcolor: '#525659',
               overflowY: 'auto',
+              height: '100%',
             }}
           >
-            <Paper elevation={10} sx={{ height: 'fit-content' }}>
+            <Paper elevation={10} sx={{ height: 'fit-content', mb: 4 }}>
               <Receipt sale={lastSale} settings={receiptSettings} shopMetadata={shopMetadata} />
             </Paper>
           </Grid>

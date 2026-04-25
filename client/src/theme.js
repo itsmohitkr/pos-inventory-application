@@ -155,18 +155,4 @@ let theme = createTheme({
 
 theme = responsiveFontSizes(theme);
 
-// Centralized layout tokens
-theme.custom = {
-  spacing: {
-    pagePadding: 24, // Consistent space all around the main page (3 * 8px)
-    cardGap: 20,    // Consistent space between cards (2.5 * 8px)
-    itemPadding: 16, // Consistent space inside a card (2 * 8px)
-  },
-  radius: {
-    standard: 10,
-    large: 16,
-    small: 6,
-  }
-};
-
 export default theme;
