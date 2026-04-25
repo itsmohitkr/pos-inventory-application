@@ -27,7 +27,6 @@ const DailySalesChart = ({
         border: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>

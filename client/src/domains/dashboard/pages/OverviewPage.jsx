@@ -21,12 +21,11 @@ const DashboardCard = ({ to, title, description, icon, tone }) => (
       display: 'flex',
       flexDirection: 'column',
       gap: 1.2,
-      borderRadius: 2,
+      borderRadius: 3,
+      transition: 'all 0.2s ease-in-out',
       background: 'linear-gradient(135deg, #ffffff 0%, #f9f3ea 100%)',
-      transition: 'transform 150ms ease, box-shadow 150ms ease',
       '&:hover': {
         transform: 'translateY(-3px)',
-        boxShadow: '0 18px 35px rgba(11, 29, 57, 0.14)',
       },
     }}
   >
@@ -113,7 +112,11 @@ const OverviewPage = ({ shopName, userRole }) => (
     </Paper>
 
     <Box
-      sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 3 }}
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gap: (theme) => theme.custom.spacing.cardGap / 8,
+      }}
     >
       <DashboardCard
         to="/pos"

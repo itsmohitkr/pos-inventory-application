@@ -108,7 +108,7 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
       PaperProps={{
         sx: {
           borderRadius: 3,
-          boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+          border: '1px solid #e2e8f0',
         },
       }}
     >
@@ -140,7 +140,6 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
             textAlign: 'right',
             border: '1px solid',
             borderColor: 'divider',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
           }}
         >
           <Typography variant="h3" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
@@ -191,7 +190,6 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
             fontSize: '1.6rem',
             fontWeight: 'bold',
             borderRadius: 2,
-            boxShadow: 4,
             bgcolor: 'primary.main',
             '&:hover': { bgcolor: 'primary.dark' },
           }}

@@ -7,10 +7,17 @@
   --bb-sand: #efe9e1;
   --bb-gold: #f2b544;
   --bb-mint: #1f8a5b;
+  
+  /* Standard Spacing Tokens */
+  --page-padding: 24px;
+  --section-gap: 20px;
+  --item-padding: 16px;
+  --border-radius: 10px;
 }
 
 * {
   box-sizing: border-box;
+  box-shadow: none !important;
 }
 
 html,

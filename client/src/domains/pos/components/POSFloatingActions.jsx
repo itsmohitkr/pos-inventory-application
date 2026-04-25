@@ -29,11 +29,9 @@ const POSFloatingActions = ({
             height: 56,
             bgcolor: '#1976d2',
             color: 'white',
-            boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
-            border: 'none',
+            border: '1px solid rgba(255,255,255,0.1)',
             '&:hover': {
               bgcolor: '#1565c0',
-              boxShadow: '0 6px 16px rgba(25, 118, 210, 0.5)',
             },
             transition: 'all 0.2s ease',
           }}
@@ -62,11 +60,9 @@ const POSFloatingActions = ({
             height: 56,
             bgcolor: '#0284c7',
             color: 'white',
-            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
-            border: 'none',
+            border: '1px solid rgba(255,255,255,0.1)',
             '&:hover': {
               bgcolor: '#0369a1',
-              boxShadow: '0 6px 16px rgba(2, 132, 199, 0.5)',
             },
             transition: 'all 0.2s ease',
           }}

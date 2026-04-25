@@ -59,7 +59,7 @@ const ExportOptions = ({ onExportPDF, onPrint, selectedCount = 0 }) => {
             borderRadius: 2,
             mt: 1,
             minWidth: 180,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid #e2e8f0',
           },
         }}
       >

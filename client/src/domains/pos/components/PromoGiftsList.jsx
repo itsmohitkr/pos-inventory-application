@@ -93,12 +93,8 @@ const PromoGiftsList = ({
                 alignItems: 'center',
                 gap: 0.75,
                 transition: 'all 0.2s',
-                boxShadow: isSelected
-                  ? '0 4px 12px rgba(34, 171, 125, 0.15)'
-                  : '0 2px 6px rgba(34, 171, 125, 0.08)',
                 '&:hover': {
                   transform: 'translateY(-3px)',
-                  boxShadow: '0 6px 12px rgba(6, 95, 70, 0.1)',
                   borderColor: '#22ab7dff',
                 },
               }}

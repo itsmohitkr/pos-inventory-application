@@ -23,7 +23,7 @@ export const TopProductsTable = ({ products }) => {
         border: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -98,7 +98,7 @@ export const CategoryMixChart = ({ mix }) => {
         border: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+
       }}
     >
       <Typography variant="h5" sx={{ color: '#0b1d39', fontWeight: 600, mb: 0 }}>

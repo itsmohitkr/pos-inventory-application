@@ -133,7 +133,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
       maxWidth="xs"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 3, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' },
+        sx: { borderRadius: 3, border: '1px solid #e2e8f0' },
       }}
     >
       <DialogTitle
@@ -256,7 +256,6 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
                 fontWeight: 'bold',
                 borderRadius: 2,
                 textTransform: 'none',
-                boxShadow: 3,
               }}
             >
               {loading ? 'Processing...' : 'Complete Sale'}

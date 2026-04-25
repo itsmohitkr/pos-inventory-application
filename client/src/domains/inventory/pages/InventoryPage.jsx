@@ -99,9 +99,9 @@ const InventoryPage = () => {
       <Paper
         elevation={0}
         sx={{
-          m: 3,
-          px: 4,
-          py: 2.5,
+          m: (theme) => theme.custom.spacing.pagePadding / 8,
+          px: (theme) => (theme.custom.spacing.pagePadding * 1.5) / 8,
+          py: 3,
           background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
           borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
           display: 'flex',
@@ -181,7 +181,15 @@ const InventoryPage = () => {
         </Stack>
       </Paper>
 
-      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 3, pb: 3 }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          overflow: 'hidden',
+          minHeight: 0,
+          px: (theme) => theme.custom.spacing.pagePadding / 8,
+          pb: (theme) => theme.custom.spacing.pagePadding / 8,
+        }}
+      >
         {showBulkAdd ? (
           <BulkAddGrid
             onProductsAdded={handleProductAdded}

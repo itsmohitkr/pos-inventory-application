@@ -71,9 +71,15 @@ let theme = createTheme({
           backgroundColor: '#f2b544',
           color: '#0b1d39',
         },
+        '*': {
+          boxShadow: 'none !important',
+        },
       },
     },
     MuiAppBar: {
+      defaultProps: {
+        elevation: 0,
+      },
       styleOverrides: {
         root: {
           background: 'linear-gradient(135deg, #0b1d39 0%, #1b3e6f 100%)',
@@ -83,10 +89,30 @@ let theme = createTheme({
       },
     },
     MuiPaper: {
+      defaultProps: {
+        elevation: 0,
+      },
       styleOverrides: {
         root: {
           border: '1px solid #eee4d8',
+          boxShadow: 'none',
         },
+      },
+    },
+    MuiCard: {
+      defaultProps: {
+        elevation: 0,
+      },
+      styleOverrides: {
+        root: {
+          boxShadow: 'none',
+          border: '1px solid #eee4d8',
+        },
+      },
+    },
+    MuiDialog: {
+      defaultProps: {
+        elevation: 0,
       },
     },
     MuiButton: {
@@ -128,5 +154,19 @@ let theme = createTheme({
 });
 
 theme = responsiveFontSizes(theme);
+
+// Centralized layout tokens
+theme.custom = {
+  spacing: {
+    pagePadding: 24, // Consistent space all around the main page (3 * 8px)
+    cardGap: 20,    // Consistent space between cards (2.5 * 8px)
+    itemPadding: 16, // Consistent space inside a card (2 * 8px)
+  },
+  radius: {
+    standard: 10,
+    large: 16,
+    small: 6,
+  }
+};
 
 export default theme;

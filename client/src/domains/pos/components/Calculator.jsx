@@ -149,7 +149,7 @@ const Calculator = ({ open, onClose }) => {
           borderRadius: 4,
           bgcolor: 'background.paper',
           overflow: 'hidden',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+          border: '1px solid #e2e8f0',
         },
       }}
       onKeyDown={(e) => {
@@ -261,7 +261,7 @@ const Calculator = ({ open, onClose }) => {
                 fontWeight: 'bold',
                 color: btn.color || 'text.primary',
                 bgcolor: btn.variant === 'contained' ? btn.bgColor : 'white',
-                boxShadow: btn.variant === 'contained' ? 2 : '0 2px 4px rgba(0,0,0,0.05)',
+                border: '1px solid #e2e8f0',
                 transition: 'all 0.1s ease-in-out',
                 '&:hover': {
                   bgcolor: btn.variant === 'contained' ? btn.bgColor : btn.bgColor || 'grey.200',
