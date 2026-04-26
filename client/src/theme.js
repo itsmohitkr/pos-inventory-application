@@ -71,9 +71,15 @@ let theme = createTheme({
           backgroundColor: '#f2b544',
           color: '#0b1d39',
         },
+        '*': {
+          boxShadow: 'none !important',
+        },
       },
     },
     MuiAppBar: {
+      defaultProps: {
+        elevation: 0,
+      },
       styleOverrides: {
         root: {
           background: 'linear-gradient(135deg, #0b1d39 0%, #1b3e6f 100%)',
@@ -83,10 +89,30 @@ let theme = createTheme({
       },
     },
     MuiPaper: {
+      defaultProps: {
+        elevation: 0,
+      },
       styleOverrides: {
         root: {
           border: '1px solid #eee4d8',
+          boxShadow: 'none',
         },
+      },
+    },
+    MuiCard: {
+      defaultProps: {
+        elevation: 0,
+      },
+      styleOverrides: {
+        root: {
+          boxShadow: 'none',
+          border: '1px solid #eee4d8',
+        },
+      },
+    },
+    MuiDialog: {
+      defaultProps: {
+        elevation: 0,
       },
     },
     MuiButton: {

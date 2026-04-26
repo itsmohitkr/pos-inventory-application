@@ -3,9 +3,10 @@ const productService = require('./product.service');
 const { createHttpError } = require('../../shared/error/appError');
 const toAppError = require('../../shared/error/toAppError');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
+const logger = require('../../shared/utils/logger');
 
 const mapProductError = (error, defaultStatus = StatusCodes.BAD_REQUEST) => {
-  console.error('Product controller error:', error);
+  logger.error({ err: error.message, stack: error.stack }, 'Product controller error');
 
   if (error?.statusCode) {
     throw error;

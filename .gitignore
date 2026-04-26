@@ -23,6 +23,7 @@ logs/
 # Database
 server/prisma/pos.db
 server/prisma/pos.db-journal
+server/prisma/pos.db.bak
 *.db
 *.db-journal
 

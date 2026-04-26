@@ -1,4 +1,5 @@
 const DEFAULT_RECEIPT_SETTINGS = {
+  // Visibility toggles
   shopName: true,
   header: true,
   footer: true,
@@ -8,14 +9,35 @@ const DEFAULT_RECEIPT_SETTINGS = {
   totalValue: true,
   productName: true,
   exp: true,
+  barcode: true,
   totalSavings: true,
   totalItems: true,
-  customShopName: 'Bachat Bazaar',
+  // Content
+  customShopName: 'My Shop',
   customHeader: '123 Business Street, City',
+  customHeader2: '',
+  customHeader3: '',
   customFooter: 'Thank You! Visit Again',
-  directPrint: false,
-  printerType: 'Thermal Printer',
-  paperSize: '80mm',
+  customFooter2: '',
+  invoiceLabel: 'Tax Invoice',
+  // Print behaviour
+  directPrint: true,
+  printerType: '',
+  paperSize: '72mm',
+  // Layout
+  marginTop: 0,
+  marginBottom: 0,
+  marginSide: 4,
+  fontSize: 0.7,
+  itemFontSize: 0.7,
+  lineHeight: 1.1,
+  titleAlign: 'center',
+  headerAlign: 'center',
+  footerAlign: 'center',
+  billFormat: 'Standard',
+  // Misc
+  roundOff: true,
+  showBranding: false,
 };
 
 const DEFAULT_PAYMENT_SETTINGS = {

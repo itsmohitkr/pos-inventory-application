@@ -6,7 +6,7 @@ import {
   getNotificationDuration,
   getStoredPaymentSettings,
   setNotificationDuration,
-} from './paymentSettings';
+} from '@/shared/utils/paymentSettings';
 
 describe('paymentSettings utils', () => {
   beforeEach(() => {

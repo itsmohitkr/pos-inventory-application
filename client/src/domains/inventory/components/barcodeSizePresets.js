@@ -1,0 +1,38 @@
+export const DEFAULT_SIZES = {
+  '50x25': {
+    id: '50x25',
+    label: '50mm x 25mm (2-inch)',
+    width: 2,
+    height: 50,
+    horizontal: 2,
+    vertical: 2,
+    cols: 1,
+  },
+  '38x25': {
+    id: '38x25',
+    label: '38mm x 25mm (1.5-inch)',
+    width: 1.6,
+    height: 40,
+    horizontal: 2,
+    vertical: 2,
+    cols: 1,
+  },
+  '100x150': {
+    id: '100x150',
+    label: '100mm x 150mm (Shipping)',
+    width: 3,
+    height: 100,
+    horizontal: 0,
+    vertical: 0,
+    cols: 1,
+  },
+  a4_sheet: {
+    id: 'a4_sheet',
+    label: 'A4 Sticky Sheet (3x8)',
+    width: 1.8,
+    height: 40,
+    horizontal: 5,
+    vertical: 5,
+    cols: 3,
+  },
+};

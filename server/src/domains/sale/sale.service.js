@@ -61,6 +61,14 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
         throw new Error(`Batch ID ${item.batch_id} not found.`);
       }
 
+      if (batch.expiryDate && new Date(batch.expiryDate) < new Date()) {
+        const productName = batch.product?.name || 'Unknown Product';
+        const expiredOn = new Date(batch.expiryDate).toLocaleDateString();
+        throw new Error(
+          `Cannot sell "${productName}" — batch ${batch.batchCode || batch.id} expired on ${expiredOn}. Remove it from the cart.`
+        );
+      }
+
       if (batch.quantity < item.quantity) {
         const productName = batch.product?.name || 'Unknown Product';
         throw new Error(

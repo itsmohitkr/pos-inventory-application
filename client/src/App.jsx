@@ -1,53 +1,32 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Divider,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-  Button,
-} from '@mui/material';
-import {
-  Fullscreen as FullscreenIcon,
-  FullscreenExit as FullscreenExitIcon,
-  ReceiptLong as ReceiptIcon,
-  Store as StoreIcon,
-  Logout as LogoutIcon,
-  People as PeopleIcon,
-  Lock as LockIcon,
-} from '@mui/icons-material';
+import { Box } from '@mui/material';
 
 // Pages and Components
-import POSPage from './pages/POSPage';
-import InventoryPage from './pages/InventoryPage';
-import DashboardPage from './pages/DashboardPage';
-import OverviewPage from './pages/OverviewPage';
-import Reporting from './components/Reporting/Reporting';
-import ExpenseManagement from './components/Expenses/ExpenseManagement';
-import Refund from './components/Refund/Refund';
-import ReceiptPreviewDialog from './components/POS/ReceiptPreviewDialog';
-import SaleHistory from './components/SaleHistory/SaleHistory';
-import PromotionManagement from './components/Promotions/PromotionManagement';
-import LoginPage from './components/Auth/LoginPage';
-import UserManagementDialog from './components/Auth/UserManagementDialog';
-import AccountDetailsDialog from './components/Settings/AccountDetailsDialog';
-import CustomDialog from './components/common/CustomDialog';
-import AdminElevationDialog from './components/Auth/AdminElevationDialog';
-import GlobalAppBar from './components/common/GlobalAppBar';
-import AppLayout from './components/common/AppLayout';
+import POSPage from '@/domains/pos/pages/POSPage';
+import InventoryPage from '@/domains/inventory/pages/InventoryPage';
+import DashboardPage from '@/domains/dashboard/pages/DashboardPage';
+import OverviewPage from '@/domains/dashboard/pages/OverviewPage';
+import Reporting from '@/domains/reporting/components/Reporting';
+import ExpenseManagement from '@/domains/expenses/components/ExpenseManagement';
+import Refund from '@/domains/refund/components/Refund';
+import ReceiptPreviewDialog from '@/domains/pos/components/ReceiptPreviewDialog';
+import SaleHistory from '@/domains/saleHistory/components/SaleHistory';
+import PromotionManagement from '@/domains/promotions/components/PromotionManagement';
+import LoginPage from '@/domains/auth/components/LoginPage';
+import UserManagementDialog from '@/domains/auth/components/UserManagementDialog';
+import AccountDetailsDialog from '@/domains/settings/components/AccountDetailsDialog';
+import CustomDialog from '@/shared/components/CustomDialog';
+import AdminElevationDialog from '@/domains/auth/components/AdminElevationDialog';
+import GlobalAppBar from '@/shared/components/GlobalAppBar';
+import AppLayout from '@/shared/components/AppLayout';
+import SettingsMenu from '@/domains/settings/components/SettingsMenu';
+import ChangePasswordDialog from '@/domains/auth/components/ChangePasswordDialog';
 
 // Hooks
-import { useAuth } from './hooks/useAuth';
-import { useSettings } from './hooks/useSettings';
-import useCustomDialog from './shared/hooks/useCustomDialog';
+import { useAuth } from '@/domains/auth/hooks/useAuth';
+import { useSettings } from '@/domains/settings/hooks/useSettings';
+import useCustomDialog from '@/shared/hooks/useCustomDialog';
 
 const SAMPLE_SALE = {
   id: 1001,
@@ -101,7 +80,6 @@ function App() {
     handleShopMetadataChange,
     handleSaveBillSettings,
     isFullscreen,
-    setIsFullscreen: _setIsFullscreen,
   } = useSettings(showError);
 
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
@@ -113,12 +91,6 @@ function App() {
 
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState('');
-  const [passwordData, setPasswordData] = useState({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-  const [passwordError, setPasswordError] = useState('');
 
   const handleOpenSettingsMenu = (event) => setSettingsAnchorEl(event.currentTarget);
   const handleCloseSettingsMenu = () => {
@@ -154,37 +126,6 @@ function App() {
       window.dispatchEvent(new Event('pos-refocus'));
     } else {
       setAdminLoginError(result.error);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    // API call for changing password - remained in service since it's a specific auth action
-    // Usually I'd put this in authService, but App.jsx had it inline.
-    // I already created settingsService with changePasscode.
-    setPasswordError('');
-    if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      setPasswordError('All fields are required');
-      return;
-    }
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordError('New passwords do not match');
-      return;
-    }
-    try {
-      // In a real app, I'd move this to authService
-      import('./shared/api/api')
-        .then(async ({ default: api }) => {
-          await api.put(`/api/auth/users/${currentUser.id}/change-password`, {
-            oldPassword: passwordData.oldPassword,
-            newPassword: passwordData.newPassword,
-          });
-          setShowChangePasswordDialog(false);
-          setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
-          showSuccess('Password changed successfully');
-        })
-        .catch(() => setPasswordError('Failed to change password'));
-    } catch {
-      setPasswordError('Failed to change password');
     }
   };
 
@@ -284,101 +225,24 @@ function App() {
         )}
       </Routes>
 
-      {/* Settings Menu */}
-      <Menu
+      <SettingsMenu
         anchorEl={settingsAnchorEl}
         open={Boolean(settingsAnchorEl)}
         onClose={handleCloseSettingsMenu}
-      >
-        <MenuItem onClick={handleFullscreenToggle} disabled={isFullscreen}>
-          <ListItemIcon>
-            <FullscreenIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Enter full screen</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleFullscreenToggle} disabled={!isFullscreen}>
-          <ListItemIcon>
-            <FullscreenExitIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Exit full screen</ListItemText>
-        </MenuItem>
-        {isAdmin && <Divider />}
-        {isAdmin && (
-          <MenuItem
-            onClick={() => {
-              setShowBillDialog(true);
-              setDraftReceiptSettings({ ...receiptSettings, customShopName: shopName });
-              handleCloseSettingsMenu();
-            }}
-          >
-            <ListItemIcon>
-              <ReceiptIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Customize bill</ListItemText>
-          </MenuItem>
-        )}
-        <MenuItem
-          onClick={() => {
-            setShowChangePasswordDialog(true);
-            handleCloseSettingsMenu();
-          }}
-        >
-          <ListItemIcon>
-            <LockIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Change Password</ListItemText>
-        </MenuItem>
-        {!currentUser.originalRole && currentUser.role !== 'admin' && <Divider />}
-        {!currentUser.originalRole && currentUser.role !== 'admin' && (
-          <MenuItem
-            onClick={() => {
-              setShowAdminLoginDialog(true);
-              handleCloseSettingsMenu();
-            }}
-          >
-            <ListItemIcon>
-              <LockIcon fontSize="small" sx={{ color: 'warning.main' }} />
-            </ListItemIcon>
-            <ListItemText sx={{ color: 'warning.main', fontWeight: 'bold' }}>
-              Admin Login
-            </ListItemText>
-          </MenuItem>
-        )}
-        {isAdmin && <Divider />}
-        {isAdmin && (
-          <MenuItem
-            onClick={() => {
-              setShowUserManagementDialog(true);
-              handleCloseSettingsMenu();
-            }}
-          >
-            <ListItemIcon>
-              <PeopleIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Manage Users</ListItemText>
-          </MenuItem>
-        )}
-        {isAdmin && <Divider />}
-        {isAdmin && (
-          <MenuItem
-            onClick={() => {
-              setShowAccountDialog(true);
-              handleCloseSettingsMenu();
-            }}
-          >
-            <ListItemIcon>
-              <StoreIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Settings</ListItemText>
-          </MenuItem>
-        )}
-        <MenuItem onClick={handleLogout}>
-          <ListItemIcon>
-            <LogoutIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Logout</ListItemText>
-        </MenuItem>
-      </Menu>
+        onFullscreenToggle={handleFullscreenToggle}
+        isFullscreen={isFullscreen}
+        isAdmin={isAdmin}
+        onOpenBillDialog={() => {
+          setShowBillDialog(true);
+          setDraftReceiptSettings({ ...receiptSettings, customShopName: shopName });
+        }}
+        onChangePassword={() => setShowChangePasswordDialog(true)}
+        onAdminLogin={() => setShowAdminLoginDialog(true)}
+        onManageUsers={() => setShowUserManagementDialog(true)}
+        onOpenSettings={() => setShowAccountDialog(true)}
+        onLogout={handleLogout}
+        currentUser={currentUser}
+      />
 
       <AccountDetailsDialog
         open={showAccountDialog}
@@ -392,66 +256,12 @@ function App() {
         currentUser={currentUser}
       />
 
-      <Dialog
+      <ChangePasswordDialog
         open={showChangePasswordDialog}
-        onClose={() => {
-          setShowChangePasswordDialog(false);
-          window.dispatchEvent(new Event('pos-refocus'));
-        }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Change Password</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          {passwordError && (
-            <Typography color="error" sx={{ mb: 2 }}>
-              {passwordError}
-            </Typography>
-          )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              label="Old Password"
-              type="password"
-              fullWidth
-              size="small"
-              value={passwordData.oldPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
-            />
-            <TextField
-              label="New Password"
-              type="password"
-              fullWidth
-              size="small"
-              value={passwordData.newPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-            />
-            <TextField
-              label="Confirm New Password"
-              type="password"
-              fullWidth
-              size="small"
-              value={passwordData.confirmPassword}
-              onChange={(e) =>
-                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-              }
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button
-            onClick={() => {
-              setShowChangePasswordDialog(false);
-              window.dispatchEvent(new Event('pos-refocus'));
-            }}
-            variant="outlined"
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleChangePassword} variant="contained">
-            Change Password
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onClose={() => setShowChangePasswordDialog(false)}
+        currentUser={currentUser}
+        showSuccess={showSuccess}
+      />
 
       <ReceiptPreviewDialog
         open={showBillDialog}

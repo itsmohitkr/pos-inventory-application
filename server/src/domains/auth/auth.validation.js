@@ -37,6 +37,10 @@ const verifyAdminBodySchema = Joi.object({
 const wipeDatabaseBodySchema = Joi.object({
   username: Joi.string().trim().min(1).required(),
   password: Joi.string().min(1).max(255).required(),
+  confirmPhrase: Joi.string().valid('WIPE ALL DATA').required().messages({
+    'any.only': 'Confirmation phrase must be exactly "WIPE ALL DATA"',
+    'any.required': 'Confirmation phrase is required',
+  }),
 });
 
 module.exports = {

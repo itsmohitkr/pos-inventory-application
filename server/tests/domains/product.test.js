@@ -61,6 +61,8 @@ describe('Product Domain API', () => {
             prisma.product.findFirst.mockResolvedValue(null); // Barcode check
             prisma.product.findMany.mockResolvedValue([]);    // Category background sync
             prisma.product.update.mockResolvedValue({ id: 1, name: 'Diet Cola' });
+            // updateProduct now runs inside $transaction; call the callback with prisma as tx
+            prisma.$transaction.mockImplementationOnce((cb) => cb(prisma));
 
             const res = await request(app)
                 .put('/api/products/1')
@@ -68,6 +70,7 @@ describe('Product Domain API', () => {
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
+            expect(prisma.$transaction).toHaveBeenCalled();
             expect(prisma.product.update).toHaveBeenCalled();
         });
     });

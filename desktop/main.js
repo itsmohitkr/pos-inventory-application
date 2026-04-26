@@ -16,40 +16,28 @@ const os = require('os');
 const url = require('url');
 const net = require('net');
 
-// Auto-update setup
-app.on('ready', async () => {
+// Catch any unhandled error in the main process so the app never silently disappears.
+// Log to file and show a dialog so the user knows something went wrong.
+process.on('uncaughtException', (err) => {
+  const msg = `[${new Date().toISOString()}] [FATAL] uncaughtException: ${err.stack || err.message}\n`;
+  try { logStream.write(msg); } catch (_) {}
+  console.error('[FATAL] uncaughtException:', err);
   try {
-    // Auto-update check
-    autoUpdater.checkForUpdatesAndNotify();
-    autoUpdater.on('update-available', () => {
-      if (mainWindow) {
-        mainWindow.webContents.send('update-available');
-      }
-    });
-    autoUpdater.on('update-downloaded', () => {
-      if (mainWindow) {
-        mainWindow.webContents.send('update-downloaded');
-      }
-    });
-    autoUpdater.on('update-not-available', () => {
-      if (mainWindow) {
-        mainWindow.webContents.send('update-not-available');
-      }
-    });
-    autoUpdater.on('error', (err) => {
-      if (mainWindow) {
-        mainWindow.webContents.send('update-error', err.message);
-      }
-    });
-    autoUpdater.on('download-progress', (progressObj) => {
-      if (mainWindow) {
-        mainWindow.webContents.send('download-progress', progressObj.percent);
-      }
-    });
-  } catch (error) {
-    console.error('Failed to start auto-update setup:', error);
-  }
+    dialog.showErrorBox(
+      'Unexpected Error',
+      `The application encountered an unexpected error and needs attention.\n\nDetails: ${err.message}\n\nCheck Help → System Diagnostic for recent logs.`
+    );
+  } catch (_) {}
 });
+
+process.on('unhandledRejection', (reason) => {
+  const msg = `[${new Date().toISOString()}] [FATAL] unhandledRejection: ${reason}\n`;
+  try { logStream.write(msg); } catch (_) {}
+  console.error('[FATAL] unhandledRejection:', reason);
+});
+
+// Auto-update wiring is done inside the second app.on('ready') handler,
+// after createWindow(), so mainWindow is guaranteed to exist when events fire.
 
 // IPC handlers
 ipcMain.handle('get-app-version', () => app.getVersion());
@@ -84,28 +72,72 @@ ipcMain.handle('get-printers', async () => {
   return await mainWindow.webContents.getPrintersAsync();
 });
 
-ipcMain.on('print-manual', (event, { printerName }) => {
-  if (!mainWindow) return;
+// Maps Chromium's internal print result codes to user-readable messages.
+// Source: chromium/src/printing/print_job.h PrintResult enum
+const PRINT_ERROR_MESSAGES = {
+  1: 'Print job failed. Check that the printer is turned on and has paper.',
+  2: 'Invalid printer settings. Try selecting the printer again in Receipt Settings.',
+  3: 'Print was cancelled.',
+  4: 'Print job crashed internally. Please try again.',
+  5: 'Printer not found. The configured printer may be offline, renamed, or disconnected. Go to Settings → Receipt Settings to reselect your printer.',
+  6: 'File system error during printing.',
+};
+
+function describePrintError(failureReason) {
+  if (!failureReason) return 'Unknown print error';
+  const codeMatch = String(failureReason).match(/Error code:\s*(\d+)/i);
+  if (codeMatch) {
+    const code = parseInt(codeMatch[1], 10);
+    return PRINT_ERROR_MESSAGES[code] || `Print failed (code ${code})`;
+  }
+  return failureReason;
+}
+
+ipcMain.handle('print-manual', async (_event, { printerName }) => {
+  if (!mainWindow) return { success: false, error: 'App window not ready' };
   console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
 
-  // Optimize for thermal printer speed and reliability
-  mainWindow.webContents.print(
-    {
-      silent: true,
-      deviceName: printerName || undefined,
-      printBackground: true,
-      color: true,
-      margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
-      scaleFactor: 100,
-    },
-    (success, failureReason) => {
-      if (!success) {
-        console.error(`[PRINT ERROR] Failed to print: ${failureReason}`);
-      } else {
-        console.log('[PRINT SUCCESS] Direct print sent to printer.');
+  // Validate printer availability before submitting the job
+  if (printerName) {
+    try {
+      const available = await mainWindow.webContents.getPrintersAsync();
+      const found = available.some((p) => p.name === printerName);
+      if (!found) {
+        const names = available.map((p) => p.name).join(', ') || 'none';
+        console.error(`[PRINT ERROR] Printer "${printerName}" not found. Available: ${names}`);
+        return {
+          success: false,
+          error: `Printer "${printerName}" is not available. Go to Settings → Receipt Settings to reselect your printer. Available printers: ${names}`,
+        };
       }
+    } catch (err) {
+      console.warn('[PRINT] Could not validate printer list:', err.message);
     }
-  );
+  }
+
+  return new Promise((resolve) => {
+    // silent: true — no OS print dialog, no interruption to the cashier flow
+    mainWindow.webContents.print(
+      {
+        silent: true,
+        deviceName: printerName || undefined,
+        printBackground: true,
+        color: true,
+        margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
+        scaleFactor: 100,
+      },
+      (success, failureReason) => {
+        if (!success) {
+          const message = describePrintError(failureReason);
+          console.error(`[PRINT ERROR] ${failureReason} → ${message}`);
+          resolve({ success: false, error: message });
+        } else {
+          console.log('[PRINT SUCCESS] Direct print sent to printer.');
+          resolve({ success: true });
+        }
+      }
+    );
+  });
 });
 
 ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize }) => {
@@ -126,10 +158,10 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
     });
 
     const htmlUrl = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    // loadURL resolves after dom-ready; one rAF-equivalent tick lets Chromium
+    // finish painting SVG barcodes before the print job is submitted.
     await printWindow.loadURL(htmlUrl);
-
-    // Give Chromium a short moment to fully layout SVG/content before print.
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const printOptions = {
       silent: true,
@@ -154,7 +186,7 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
     });
 
     if (!result.success) {
-      throw new Error(result.failureReason || 'Unknown print failure');
+      throw new Error(describePrintError(result.failureReason));
     }
 
     return { success: true };
@@ -173,8 +205,25 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
 // -------------------------------------------------------------------------
 // On Windows, we MUST set the app name and ID BEFORE resolving any paths (like 'userData')
 // to ensure we look in the correct AppData folder.
-app.setName('Bachat Bazaar');
+app.setName('Trovix');
 app.setAppUserModelId('com.bachatbazaar.pos');
+
+// One-time migration: if the old "Bachat Bazaar" userData folder exists and the new "Trovix"
+// folder does not yet have a database, copy pos.db across so existing users keep all their data.
+try {
+  const oldAppDataPath = path.join(app.getPath('appData'), 'Bachat Bazaar');
+  const newAppDataPath = path.join(app.getPath('appData'), 'Trovix');
+  const oldDbFile = path.join(oldAppDataPath, 'pos.db');
+  const newDbFile = path.join(newAppDataPath, 'pos.db');
+  if (fs.existsSync(oldDbFile) && !fs.existsSync(newDbFile)) {
+    fs.mkdirSync(newAppDataPath, { recursive: true });
+    fs.copyFileSync(oldDbFile, newDbFile);
+    console.log('[Migration] pos.db copied from Bachat Bazaar userData to Trovix userData');
+  }
+} catch (migrationErr) {
+  // Non-fatal: if migration fails the app continues; bootstrapping will create a fresh DB
+  console.error('[Migration] Failed to migrate pos.db:', migrationErr);
+}
 
 // Check if running in development mode
 const isDev = !app.isPackaged;
@@ -287,7 +336,11 @@ const engineDir = isDev
 const possibleEngineNames =
   process.platform === 'win32'
     ? ['query_engine-windows.dll.node', 'libquery_engine-windows.dll.node']
-    : ['libquery_engine-darwin-arm64.dylib.node', 'libquery_engine-darwin.dylib.node'];
+    : [
+        'libquery_engine-darwin-arm64.dylib.node',  // Apple Silicon
+        'libquery_engine-darwin-x64.dylib.node',    // Intel Mac
+        'libquery_engine-darwin.dylib.node',         // legacy fallback
+      ];
 
 let enginePath = null;
 for (const name of possibleEngineNames) {
@@ -362,7 +415,7 @@ const createWindow = () => {
   }
 
   mainWindow = new BrowserWindow(windowConfig);
-  mainWindow.setTitle('Bachat Bazaar - POS Application');
+  mainWindow.setTitle('Trovix - POS Application');
 
   if (isDev) {
     mainWindow.webContents.openDevTools();
@@ -431,7 +484,7 @@ const checkPort = (port) => {
   });
 };
 
-const waitForServer = async (port, timeout = 15000) => {
+const waitForServer = async (port, timeout = 90000) => {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     const isReady = await checkPort(port);
@@ -614,7 +667,7 @@ ${(() => {
               dialog.showMessageBoxSync(mainWindow, {
                 type: 'info',
                 title: 'System Diagnostic',
-                message: 'Bachat Bazaar Diagnostics',
+                message: 'Trovix Diagnostics',
                 detail: info,
                 buttons: ['OK'],
               });
@@ -636,6 +689,28 @@ ${(() => {
     Menu.setApplicationMenu(menu);
 
     createWindow();
+
+    // Auto-update setup runs here so mainWindow exists when events fire.
+    try {
+      autoUpdater.checkForUpdatesAndNotify();
+      autoUpdater.on('update-available', () => {
+        if (mainWindow) mainWindow.webContents.send('update-available');
+      });
+      autoUpdater.on('update-downloaded', () => {
+        if (mainWindow) mainWindow.webContents.send('update-downloaded');
+      });
+      autoUpdater.on('update-not-available', () => {
+        if (mainWindow) mainWindow.webContents.send('update-not-available');
+      });
+      autoUpdater.on('error', (err) => {
+        if (mainWindow) mainWindow.webContents.send('update-error', err.message);
+      });
+      autoUpdater.on('download-progress', (progressObj) => {
+        if (mainWindow) mainWindow.webContents.send('download-progress', progressObj.percent);
+      });
+    } catch (updateErr) {
+      console.error('Failed to start auto-update setup:', updateErr);
+    }
   } catch (error) {
     console.error('Failed to start application:', error);
     const message = error.message || error.toString();

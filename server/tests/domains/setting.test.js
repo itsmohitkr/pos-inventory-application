@@ -10,7 +10,7 @@ describe('Setting Domain API', () => {
     describe('GET /api/settings', () => {
         it('should fetch all application settings mapped identically', async () => {
             prisma.setting.findMany.mockResolvedValue([
-                { key: 'STORE_NAME', value: 'Bachat Bazaar' },
+                { key: 'STORE_NAME', value: 'My Shop' },
                 { key: 'TAX_RATE', value: '5' }
             ]);
 
@@ -19,7 +19,7 @@ describe('Setting Domain API', () => {
             // Settings controller uses default wrapped schema ({ success, data, message })
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
-            expect(res.body.data.STORE_NAME).toBe('Bachat Bazaar');
+            expect(res.body.data.STORE_NAME).toBe('My Shop');
             expect(res.body.data.TAX_RATE).toBe(5);
         });
     });

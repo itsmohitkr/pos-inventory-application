@@ -3,6 +3,7 @@ const promotionService = require('./promotion.service');
 const { createHttpError } = require('../../shared/error/appError');
 const toAppError = require('../../shared/error/toAppError');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
+const logger = require('../../shared/utils/logger');
 
 const mapPromotionError = (error, defaultStatus = StatusCodes.BAD_REQUEST) => {
   throw toAppError(error, {
@@ -24,7 +25,7 @@ const createPromotion = async (req, res) => {
       }
     );
   } catch (error) {
-    console.error('Error creating promotion:', error);
+    logger.error({ err: error.message }, 'Error creating promotion');
     return mapPromotionError(error);
   }
 };

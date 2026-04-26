@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getRefundStatus, getStatusDisplay } from './refundStatus';
+import { getRefundStatus, getStatusDisplay } from '@/shared/utils/refundStatus';
 
 describe('refundStatus utils', () => {
   it('returns none when there are no items', () => {
