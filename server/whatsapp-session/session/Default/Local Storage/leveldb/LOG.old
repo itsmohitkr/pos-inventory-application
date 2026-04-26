@@ -1,5 +1,0 @@
-2026/04/27-01:22:38.898 1ce6de Reusing MANIFEST /Users/mokumar/Downloads/POS Application/server/whatsapp-session/session/Default/Local Storage/leveldb/MANIFEST-000001
-2026/04/27-01:22:38.904 1ce6de Recovering log #3
-2026/04/27-01:22:38.904 1ce6de (ignoring error) /Users/mokumar/Downloads/POS Application/server/whatsapp-session/session/Default/Local Storage/leveldb/000003.log: dropping 30148 bytes; Corruption: checksum mismatch
-2026/04/27-01:22:38.904 1ce6de (ignoring error) /Users/mokumar/Downloads/POS Application/server/whatsapp-session/session/Default/Local Storage/leveldb/000003.log: dropping 1327 bytes; Corruption: missing start of fragmented record(2)
-2026/04/27-01:22:38.905 1ce6de Reusing old log /Users/mokumar/Downloads/POS Application/server/whatsapp-session/session/Default/Local Storage/leveldb/000003.log 

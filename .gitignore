@@ -48,3 +48,6 @@ Thumbs.db
 
 # Documentation
 Documents/
+
+# WhatsApp Session
+server/whatsapp-session/
