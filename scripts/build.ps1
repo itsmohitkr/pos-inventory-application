@@ -9,8 +9,8 @@ param(
 # Enable error handling
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building Bachat Bazaar Electron App..." -ForegroundColor Cyan
-Write-Host "=======================================" -ForegroundColor Cyan
+Write-Host "Building Trovix Electron App..." -ForegroundColor Cyan
+Write-Host "===============================" -ForegroundColor Cyan
 
 # Navigate to the root directory
 Set-Location "$PSScriptRoot\.."

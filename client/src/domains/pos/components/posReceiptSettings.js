@@ -15,7 +15,7 @@ const DEFAULT_RECEIPT_SETTINGS = {
   exp: true,
   barcode: true,
   totalSavings: true,
-  customShopName: 'Bachat Bazaar',
+  customShopName: 'My Shop',
   customHeader: '123 Business Street, City',
   customHeader2: '',
   customHeader3: '',
@@ -41,7 +41,7 @@ const DEFAULT_RECEIPT_SETTINGS = {
 
 const getStoredReceiptSettings = () => {
   try {
-    const shopName = localStorage.getItem(STORAGE_KEYS.shopName) || 'Bachat Bazaar';
+    const shopName = localStorage.getItem(STORAGE_KEYS.shopName) || 'My Shop';
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.receipt));
 
     return {

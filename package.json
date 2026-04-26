@@ -1,10 +1,10 @@
 {
-  "name": "bachat-bazaar",
+  "name": "trovix",
   "version": "1.0.1",
-  "description": "POS Application for Bachat Bazaar",
+  "description": "Trovix — POS for any shop",
   "main": "desktop/main.js",
   "homepage": "./",
-  "author": "POS Application <support@bachatbazaar.local>",
+  "author": "Trovix <support@trovix.app>",
   "license": "ISC",
   "scripts": {
     "electron-dev": "concurrently \"npm run client-dev\" \"wait-on http://localhost:5173 && electron .\"",
@@ -33,7 +33,7 @@
   "type": "commonjs",
   "build": {
     "appId": "com.bachatbazaar.pos",
-    "productName": "Bachat Bazaar",
+    "productName": "Trovix",
     "publish": [
       {
         "provider": "github",
@@ -79,8 +79,8 @@
       "category": "public.app-category.business",
       "identity": null,
       "gatekeeperAssess": false,
-      "icon": "assets/shop_logo.icns",
-      "artifactName": "Bachat-Bazaar-${version}-${arch}.${ext}"
+      "icon": "assets/trovix.png",
+      "artifactName": "Trovix-${version}-${arch}.${ext}"
     },
     "dmg": {
       "contents": [
@@ -105,16 +105,16 @@
           ]
         }
       ],
-      "icon": "assets/shop_logo.ico",
-      "artifactName": "Bachat-Bazaar-Setup-${version}.${ext}",
-      "executableName": "BachatBazaar"
+      "icon": "assets/trovix.png",
+      "artifactName": "Trovix-Setup-${version}.${ext}",
+      "executableName": "Trovix"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Bachat Bazaar"
+      "shortcutName": "Trovix"
     }
   },
   "dependencies": {

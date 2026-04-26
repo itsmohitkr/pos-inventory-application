@@ -13,7 +13,7 @@ const DEFAULT_RECEIPT_SETTINGS = {
   totalSavings: true,
   totalItems: true,
   // Content
-  customShopName: 'Bachat Bazaar',
+  customShopName: 'My Shop',
   customHeader: '123 Business Street, City',
   customHeader2: '',
   customHeader3: '',

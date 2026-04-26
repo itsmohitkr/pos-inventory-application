@@ -14,7 +14,7 @@ const fallbackReceiptSettings = {
   exp: true,
   barcode: true,
   totalSavings: true,
-  customShopName: localStorage.getItem('posShopName') || 'Bachat Bazaar',
+  customShopName: localStorage.getItem('posShopName') || 'My Shop',
   customHeader: '123 Business Street, City',
   customFooter: 'Thank You! Visit Again',
 };

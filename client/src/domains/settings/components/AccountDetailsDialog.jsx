@@ -67,6 +67,7 @@ const AccountDetailsDialog = ({
   // Add missing state variables
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [wipePassword, setWipePassword] = useState('');
+  const [wipeConfirmPhrase, setWipeConfirmPhrase] = useState('');
   const [wipeLoading, setWipeLoading] = useState(false);
   const [uiZoom, setUiZoom] = useState(Number(localStorage.getItem('posUiZoom')) || 100);
   const [monochrome, setMonochrome] = useState(
@@ -249,6 +250,10 @@ const AccountDetailsDialog = ({
       showError('Please enter your admin password');
       return;
     }
+    if (wipeConfirmPhrase !== 'WIPE ALL DATA') {
+      showError('Please type the confirmation phrase exactly as shown');
+      return;
+    }
 
     setWipeLoading(true);
 
@@ -256,6 +261,7 @@ const AccountDetailsDialog = ({
       await settingsService.wipeDatabase({
         username: currentUser.username,
         password: wipePassword,
+        confirmPhrase: wipeConfirmPhrase,
       });
 
       showSuccess('Database wiped successfully! The application will reload.');
@@ -271,6 +277,7 @@ const AccountDetailsDialog = ({
     if (showWipeConfirm) {
       setShowWipeConfirm(false);
       setWipePassword('');
+      setWipeConfirmPhrase('');
     } else {
       setEditedShopName(shopName);
       onClose();
@@ -320,7 +327,7 @@ const AccountDetailsDialog = ({
           if (event.target?.tagName === 'TEXTAREA') return;
           event.preventDefault();
           if (showWipeConfirm) {
-            if (!wipePassword || wipeLoading) return;
+            if (!wipePassword || wipeConfirmPhrase !== 'WIPE ALL DATA' || wipeLoading) return;
             handleWipeDatabase();
             return;
           }
@@ -438,6 +445,8 @@ const AccountDetailsDialog = ({
             <WipeDatabaseConfirmation
               wipePassword={wipePassword}
               setWipePassword={setWipePassword}
+              confirmPhrase={wipeConfirmPhrase}
+              setConfirmPhrase={setWipeConfirmPhrase}
               currentUser={currentUser}
             />
           )}
@@ -459,6 +468,7 @@ const AccountDetailsDialog = ({
                 onClick={() => {
                   setShowWipeConfirm(false);
                   setWipePassword('');
+                  setWipeConfirmPhrase('');
                 }}
                 variant="outlined"
                 disabled={wipeLoading}
@@ -470,7 +480,7 @@ const AccountDetailsDialog = ({
                 variant="contained"
                 color="error"
                 startIcon={<DeleteForeverIcon />}
-                disabled={!wipePassword || wipeLoading}
+                disabled={!wipePassword || wipeConfirmPhrase !== 'WIPE ALL DATA' || wipeLoading}
               >
                 {wipeLoading ? 'Wiping...' : 'Confirm & Wipe Database'}
               </Button>

@@ -164,7 +164,7 @@ async function checkAndSeed() {
     const shopName = await settingService.getSettingByKey('posShopName');
     if (!shopName) {
       logger.info('Seeding default shop name...');
-      await settingService.updateSetting('posShopName', 'Bachat Bazaar');
+      await settingService.updateSetting('posShopName', 'My Shop');
     }
 
     const receiptSettings = await settingService.getSettingByKey('posReceiptSettings');
@@ -228,8 +228,8 @@ async function startServer() {
     process.exit(1);
   });
 
-  app.listen(PORT, () => {
-    logger.info(`[BOOT SUCCESS] Server running on port ${PORT}`);
+  app.listen(PORT, '127.0.0.1', () => {
+    logger.info(`[BOOT SUCCESS] Server running on port ${PORT} (localhost only)`);
     sendSplashMsg('Starting UI Interface...');
   });
 }

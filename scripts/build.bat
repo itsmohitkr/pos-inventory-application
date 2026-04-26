@@ -7,8 +7,8 @@ setlocal enabledelayedexpansion
 REM Navigate to the root directory
 cd /d "%~dp0.."
 
-echo Building Bachat Bazaar Electron App...
-echo =======================================
+echo Building Trovix Electron App...
+echo ===============================
 
 REM Check if Node.js is installed
 where node >nul 2>&1

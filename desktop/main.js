@@ -205,8 +205,25 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
 // -------------------------------------------------------------------------
 // On Windows, we MUST set the app name and ID BEFORE resolving any paths (like 'userData')
 // to ensure we look in the correct AppData folder.
-app.setName('Bachat Bazaar');
+app.setName('Trovix');
 app.setAppUserModelId('com.bachatbazaar.pos');
+
+// One-time migration: if the old "Bachat Bazaar" userData folder exists and the new "Trovix"
+// folder does not yet have a database, copy pos.db across so existing users keep all their data.
+try {
+  const oldAppDataPath = path.join(app.getPath('appData'), 'Bachat Bazaar');
+  const newAppDataPath = path.join(app.getPath('appData'), 'Trovix');
+  const oldDbFile = path.join(oldAppDataPath, 'pos.db');
+  const newDbFile = path.join(newAppDataPath, 'pos.db');
+  if (fs.existsSync(oldDbFile) && !fs.existsSync(newDbFile)) {
+    fs.mkdirSync(newAppDataPath, { recursive: true });
+    fs.copyFileSync(oldDbFile, newDbFile);
+    console.log('[Migration] pos.db copied from Bachat Bazaar userData to Trovix userData');
+  }
+} catch (migrationErr) {
+  // Non-fatal: if migration fails the app continues; bootstrapping will create a fresh DB
+  console.error('[Migration] Failed to migrate pos.db:', migrationErr);
+}
 
 // Check if running in development mode
 const isDev = !app.isPackaged;
@@ -398,7 +415,7 @@ const createWindow = () => {
   }
 
   mainWindow = new BrowserWindow(windowConfig);
-  mainWindow.setTitle('Bachat Bazaar - POS Application');
+  mainWindow.setTitle('Trovix - POS Application');
 
   if (isDev) {
     mainWindow.webContents.openDevTools();
@@ -650,7 +667,7 @@ ${(() => {
               dialog.showMessageBoxSync(mainWindow, {
                 type: 'info',
                 title: 'System Diagnostic',
-                message: 'Bachat Bazaar Diagnostics',
+                message: 'Trovix Diagnostics',
                 detail: info,
                 buttons: ['OK'],
               });

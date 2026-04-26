@@ -187,9 +187,9 @@ export const looseSalesFixture = [
 
 export const settingsFixture = {
   data: {
-    posShopName: 'Bachat Bazaar',
+    posShopName: 'My Shop',
     posReceiptSettings: {
-      customShopName: 'Bachat Bazaar',
+      customShopName: 'My Shop',
       directPrint: false,
     },
     promotion_buy_x_get_free: {

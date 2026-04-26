@@ -2,7 +2,15 @@ import React from 'react';
 import { Alert, Box, TextField, Typography } from '@mui/material';
 import { Warning as WarningIcon } from '@mui/icons-material';
 
-const WipeDatabaseConfirmation = ({ wipePassword, setWipePassword, currentUser }) => {
+const CONFIRM_PHRASE = 'WIPE ALL DATA';
+
+const WipeDatabaseConfirmation = ({
+  wipePassword, setWipePassword,
+  confirmPhrase, setConfirmPhrase,
+  currentUser,
+}) => {
+  const phraseCorrect = confirmPhrase === CONFIRM_PHRASE;
+
   return (
     <Box>
       <Alert severity="error" icon={<WarningIcon />} sx={{ mb: 3 }}>
@@ -36,6 +44,25 @@ const WipeDatabaseConfirmation = ({ wipePassword, setWipePassword, currentUser }
         autoFocus
         error={wipePassword.length > 0 && wipePassword.length < 4}
         helperText={wipePassword.length > 0 && wipePassword.length < 4 ? 'Password too short' : ''}
+        sx={{ mb: 2 }}
+      />
+
+      <Typography variant="body2" sx={{ mb: 1 }}>
+        Type <strong>{CONFIRM_PHRASE}</strong> to confirm:
+      </Typography>
+
+      <TextField
+        label="Confirmation phrase"
+        fullWidth
+        value={confirmPhrase}
+        onChange={(e) => setConfirmPhrase(e.target.value)}
+        error={confirmPhrase.length > 0 && !phraseCorrect}
+        helperText={
+          confirmPhrase.length > 0 && !phraseCorrect
+            ? `Must be exactly "${CONFIRM_PHRASE}"`
+            : ''
+        }
+        inputProps={{ spellCheck: false }}
       />
 
       <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>

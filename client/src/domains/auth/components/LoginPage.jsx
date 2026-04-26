@@ -11,7 +11,7 @@ import {
   Stack,
   Divider,
 } from '@mui/material';
-import { Store as StoreIcon } from '@mui/icons-material';
+import trovixLogo from '@/assets/trovix.png';
 import settingsService from '@/shared/api/settingsService';
 
 const LoginPage = ({ onLogin }) => {
@@ -67,7 +67,7 @@ const LoginPage = ({ onLogin }) => {
       >
         <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <StoreIcon sx={{ fontSize: 48, color: '#1f8a5b', mb: 2 }} />
+            <Box component="img" src={trovixLogo} alt="Trovix" sx={{ width: 72, height: 72, objectFit: 'contain', mb: 2, borderRadius: 2 }} />
             <Typography
               variant="h4"
               sx={{
@@ -79,10 +79,13 @@ const LoginPage = ({ onLogin }) => {
                 gap: 1,
               }}
             >
-              Bachat Bazaar
+              Trovix
               <Box sx={{ width: 10, height: 10, bgcolor: '#4caf50', borderRadius: '50%' }} />
             </Typography>
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+              Where Retail Meets Intelligence
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
               POS System Login
             </Typography>
           </Box>

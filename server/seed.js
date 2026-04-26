@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 const baseProducts = [
@@ -1144,7 +1145,7 @@ async function seedEssential() {
     await prisma.user.create({
       data: {
         username: 'admin',
-        password: 'admin123',
+        password: await bcrypt.hash('admin123', 10),
         role: 'admin',
         status: 'active',
       },
@@ -1160,7 +1161,7 @@ async function seedEssential() {
     await prisma.user.create({
       data: {
         username: 'cashier',
-        password: 'cashier123',
+        password: await bcrypt.hash('cashier123', 10),
         role: 'cashier',
         status: 'active',
       },
@@ -1176,7 +1177,7 @@ async function seedEssential() {
     await prisma.user.create({
       data: {
         username: 'salesman',
-        password: 'salesman123',
+        password: await bcrypt.hash('salesman123', 10),
         role: 'salesman',
         status: 'active',
       },
