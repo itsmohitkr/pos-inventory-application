@@ -11,6 +11,7 @@ const getReports = async ({ startDate, endDate }) => {
   const sales = await prisma.sale.findMany({
     where,
     include: {
+      customer: true,
       items: {
         include: {
           batch: {

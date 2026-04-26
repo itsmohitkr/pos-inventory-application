@@ -56,6 +56,7 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
   const [looseSaleEnabled, setLooseSaleEnabled] = useState(
     () => localStorage.getItem('posLooseSaleEnabled') !== 'false'
   );
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [promoSettings, setPromoSettings] = useState({ enabled: false, config: [] });
   const [productSales, setProductSales] = useState({});
   const [shopMetadata, setShopMetadata] = useState(
@@ -118,6 +119,10 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
         if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
         return next;
       });
+
+      if (sett.whatsappEnabled !== undefined) {
+        setWhatsappEnabled(!!sett.whatsappEnabled);
+      }
 
       if (sett.promotion_buy_x_get_free) {
         const data = sett.promotion_buy_x_get_free;
@@ -211,6 +216,7 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
     productSales,
     shopMetadata,
     fetchProducts,
+    whatsappEnabled,
     _refreshSettings,
   };
 };

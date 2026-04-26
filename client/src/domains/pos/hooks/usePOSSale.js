@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import posService from '@/shared/api/posService';
+import whatsappService from '@/shared/api/whatsappService';
 import { IPC } from '@/shared/ipcChannels';
 
 export const usePOSSale = ({
@@ -16,11 +17,15 @@ export const usePOSSale = ({
   showError,
   showNotification,
   refocus,
+  activeCustomer,
+  clearCustomerOnSale,
+  whatsappEnabled,
+  shopName,
 }) => {
   const [lastSale, setLastSale] = useState(null);
   const [isPaying, setIsPaying] = useState(false);
 
-  const handlePay = useCallback(async (selectedPaymentMethod) => {
+  const handlePay = useCallback(async (selectedPaymentMethod, customerOverride) => {
     if (isPaying) return;
     setIsPaying(true);
     const methodToUse = selectedPaymentMethod || { id: 'cash', label: 'Cash' };
@@ -38,12 +43,24 @@ export const usePOSSale = ({
         extraDiscount: discount,
         paymentMethod: methodToUse.label,
         paymentDetails: JSON.stringify({ method: methodWithoutIcon }),
+        customerId: (customerOverride || activeCustomer)?.id || null,
       });
       const detailedRes = await posService.fetchSaleById(res.saleId);
       setLastSale(detailedRes);
       handleCloseTab(activeTabId);
+      clearCustomerOnSale?.();
       fetchProducts();
       showNotification('Sale Completed Successfully!');
+      
+      // Send WhatsApp Receipt if enabled and customer present
+      if (whatsappEnabled && (customerOverride || activeCustomer)) {
+        const cust = customerOverride || activeCustomer;
+        import('@/domains/pos/components/captureReceipt').then(({ captureAndSendReceipt }) => {
+          captureAndSendReceipt(detailedRes, cust, shopName, receiptSettings, {})
+            .catch(err => console.error('Failed to send WhatsApp receipt:', err));
+        });
+      }
+
       refocus();
     } catch (error) {
       console.error(error);
@@ -52,9 +69,9 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale]);
 
-  const handlePayAndPrint = useCallback(async (selectedPaymentMethod) => {
+  const handlePayAndPrint = useCallback(async (selectedPaymentMethod, customerOverride) => {
     if (isPaying) return;
     setIsPaying(true);
     const methodToUse = selectedPaymentMethod || { id: 'cash', label: 'Cash' };
@@ -72,12 +89,14 @@ export const usePOSSale = ({
         extraDiscount: discount,
         paymentMethod: methodToUse.label,
         paymentDetails: JSON.stringify({ method: methodWithoutIcon }),
+        customerId: (customerOverride || activeCustomer)?.id || null,
       });
 
       flushSync(() => {
         setLastSale(res.sale);
         handleCloseTab(activeTabId);
       });
+      clearCustomerOnSale?.();
 
       if (receiptSettings.directPrint) {
         const printer =
@@ -100,6 +119,16 @@ export const usePOSSale = ({
         setShowReceipt(true);
       }
       fetchProducts();
+      
+      // Send WhatsApp Receipt if enabled and customer present
+      if (whatsappEnabled && (customerOverride || activeCustomer)) {
+        const cust = customerOverride || activeCustomer;
+        import('@/domains/pos/components/captureReceipt').then(({ captureAndSendReceipt }) => {
+          captureAndSendReceipt(res.sale, cust, shopName, receiptSettings, {})
+            .catch(err => console.error('Failed to send WhatsApp receipt:', err));
+        });
+      }
+
       refocus();
     } catch (error) {
       console.error(error);
@@ -108,7 +137,7 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError, activeCustomer, clearCustomerOnSale]);
 
   const handlePrintLastReceipt = useCallback(async () => {
     if (lastSale) {

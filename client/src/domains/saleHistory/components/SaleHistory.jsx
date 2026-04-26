@@ -15,7 +15,14 @@ import { getSaleHistoryRange, buildInclusiveSaleHistoryRange } from '@/domains/s
 import { calculateSaleStats } from '@/domains/saleHistory/components/saleHistoryStats';
 import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
 
-const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrinter = null }) => {
+const SaleHistory = ({
+  receiptSettings,
+  shopName,
+  shopMetadata,
+  printers = [],
+  defaultPrinter = null,
+  whatsappEnabled,
+}) => {
   const [sales, setSales] = useState([]);
   const [looseSales, setLooseSales] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -302,7 +309,12 @@ const SaleHistory = ({ receiptSettings, shopMetadata, printers = [], defaultPrin
                   maxWidth: '50%',
                 }}
               >
-                <POSSaleDetailsPanel selectedSale={selectedSale} stats={stats} />
+                <POSSaleDetailsPanel
+                  selectedSale={selectedSale}
+                  stats={stats}
+                  whatsappEnabled={whatsappEnabled}
+                  shopName={shopName || 'Bachat Bazar'}
+                />
               </Grid>
             )}
           </Grid>

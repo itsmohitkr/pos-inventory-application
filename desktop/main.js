@@ -500,6 +500,7 @@ const startServer = () => {
       // Set server port and environment
       process.env.PORT = SERVER_PORT;
       process.env.NODE_ENV = isDev ? 'development' : 'production';
+      process.env.WA_SESSION_PATH = path.join(appDataPath, 'whatsapp-session');
 
       const serverDir = isDev
         ? path.resolve(__dirname, '../server')
@@ -736,5 +737,10 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
+  // Gracefully destroy WhatsApp client before server stops
+  try {
+    const waClient = require('../server/src/domains/whatsapp/whatsapp.client');
+    waClient.destroy().catch(() => {});
+  } catch (_) {}
   stopServer();
 });

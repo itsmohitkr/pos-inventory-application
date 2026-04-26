@@ -13,6 +13,7 @@ import Refund from '@/domains/refund/components/Refund';
 import ReceiptPreviewDialog from '@/domains/pos/components/ReceiptPreviewDialog';
 import SaleHistory from '@/domains/saleHistory/components/SaleHistory';
 import PromotionManagement from '@/domains/promotions/components/PromotionManagement';
+import CustomersPage from '@/domains/customers/pages/CustomersPage';
 import LoginPage from '@/domains/auth/components/LoginPage';
 import UserManagementDialog from '@/domains/auth/components/UserManagementDialog';
 import AccountDetailsDialog from '@/domains/settings/components/AccountDetailsDialog';
@@ -80,6 +81,7 @@ function App() {
     handleShopMetadataChange,
     handleSaveBillSettings,
     isFullscreen,
+    whatsappEnabled,
   } = useSettings(showError);
 
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
@@ -148,6 +150,7 @@ function App() {
     canAccessSaleHistory: isAdmin || currentUser?.role === 'salesman',
     canAccessPromotions: isAdmin,
     canAccessExpenses: isAdmin,
+    canAccessCustomers: isAdmin,
   };
 
   return (
@@ -171,6 +174,7 @@ function App() {
           element={
             <POSPage
               receiptSettings={receiptSettings}
+              shopName={shopName}
               shopMetadata={shopMetadata}
               printers={printers}
               defaultPrinter={defaultPrinter}
@@ -187,9 +191,11 @@ function App() {
             element={
               <SaleHistory
                 receiptSettings={receiptSettings}
+                shopName={shopName}
                 shopMetadata={shopMetadata}
                 printers={printers}
                 defaultPrinter={defaultPrinter}
+                whatsappEnabled={whatsappEnabled}
               />
             }
           />
@@ -222,6 +228,9 @@ function App() {
             path="/dashboard"
             element={<DashboardPage shopName={shopName} userRole={currentUser.role} />}
           />
+        )}
+        {permissions.canAccessCustomers && (
+          <Route path="/customers" element={<CustomersPage whatsappEnabled={whatsappEnabled} shopName={shopName} />} />
         )}
       </Routes>
 

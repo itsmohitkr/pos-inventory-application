@@ -228,9 +228,22 @@ async function startServer() {
     process.exit(1);
   });
 
-  app.listen(PORT, '127.0.0.1', () => {
+  app.listen(PORT, '127.0.0.1', async () => {
     logger.info(`[BOOT SUCCESS] Server running on port ${PORT} (localhost only)`);
     sendSplashMsg('Starting UI Interface...');
+
+    console.log('>>> [BOOT] CHECKING WHATSAPP...');
+    // Auto-initialize WhatsApp if enabled
+    try {
+      const whatsappService = require('./src/domains/whatsapp/whatsapp.service');
+      const isWaEnabled = await whatsappService.isEnabled();
+      if (isWaEnabled) {
+        logger.info('[BOOT] WhatsApp is enabled, auto-initializing client...');
+        await whatsappService.initializeClient();
+      }
+    } catch (waErr) {
+      logger.warn({ err: waErr.message }, '[BOOT] Failed to auto-initialize WhatsApp');
+    }
   });
 }
 

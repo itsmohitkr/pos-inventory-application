@@ -16,6 +16,8 @@ const promotionRoutes = require('./domains/promotion/promotion.router');
 const expenseRoutes = require('./domains/expense/expense.router');
 const purchaseRoutes = require('./domains/purchase/purchase.router');
 const settingRoutes = require('./domains/setting/setting.router');
+const customerRoutes = require('./domains/customer/customer.router');
+const whatsappRoutes = require('./domains/whatsapp/whatsapp.router');
 const pathNotFound = require('./shared/error/pathNotFound');
 const errorHandler = require('./shared/error/errorHandler');
 
@@ -48,7 +50,8 @@ app.use((req, res, next) => {
   return res.status(403).json({ error: 'Forbidden' });
 });
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting for sensitive routes
 const authLimiter = rateLimit({
@@ -77,6 +80,8 @@ apiRouter.use(promotionRoutes);
 apiRouter.use('/expenses', expenseRoutes);
 apiRouter.use('/purchases', purchaseRoutes);
 apiRouter.use('/settings', settingRoutes);
+apiRouter.use('/customers', customerRoutes);
+apiRouter.use('/whatsapp', whatsappRoutes);
 
 app.use('/api', apiRouter);
 app.use(pathNotFound);

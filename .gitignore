@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+#next feature
+next-feature-plan
+
 # Build outputs
 dist/
 build/

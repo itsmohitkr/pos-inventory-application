@@ -6,6 +6,7 @@ import PriceBreakdownSection from '@/domains/pos/components/PriceBreakdownSectio
 import ChangeCalculatorSection from '@/domains/pos/components/ChangeCalculatorSection';
 import PaymentMethodButtons from '@/domains/pos/components/PaymentMethodButtons';
 import TransactionActionButtons from '@/domains/pos/components/TransactionActionButtons';
+import CustomerSearchField from '@/domains/pos/components/CustomerSearchField';
 
 const TransactionPanel = ({
   cart,
@@ -33,6 +34,13 @@ const TransactionPanel = ({
   setShowDiscountNumpad,
   decodedPricesEnabled,
   totalCostPrice,
+  whatsappEnabled,
+  activeCustomer,
+  onCustomerLookup,
+  onCustomerDetach,
+  isLoadingCustomer,
+  customerSearchValue,
+  onCustomerSearchChange,
 }) => {
   const changeDue = Math.max(0, receivedAmount - totalAmount);
 
@@ -182,6 +190,17 @@ const TransactionPanel = ({
               }}
             />
           </Box>
+        )}
+
+        {whatsappEnabled && (
+          <CustomerSearchField
+            activeCustomer={activeCustomer}
+            onLookup={onCustomerLookup}
+            onDetach={onCustomerDetach}
+            isLoading={isLoadingCustomer}
+            value={customerSearchValue}
+            onChange={onCustomerSearchChange}
+          />
         )}
 
         <PriceBreakdownSection subTotal={subTotal} discount={discount} totalAmount={totalAmount} />
