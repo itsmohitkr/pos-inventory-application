@@ -274,7 +274,7 @@ export default function usePriceList(open) {
     isThermalPreview, printPageSize, barcodeWarnings, previewPageWidthMm,
     activePreviewScale, autoFit,
     // print feedback
-    printError, setPrintError, printNotice, setPrintNotice, previewLabels,
+    printError, setPrintError, printNotice, setPrintNotice,
     // refs
     previewRef, previewContainerRef,
     // handlers

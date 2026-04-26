@@ -6,8 +6,6 @@ export const useProductSelection = (displayedProducts, onSelect) => {
 
   const handleRowClick = useCallback((product, event) => {
     const id = String(product.id);
-    const isCurrentlySelected = selectedIds.has(id) && selectedIds.size === 1;
-
     let nextSelected = new Set(selectedIds);
 
     if (event.shiftKey && lastSelectedId) {
