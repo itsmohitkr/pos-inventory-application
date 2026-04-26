@@ -145,7 +145,7 @@ const ImportPreviewTable = ({ preview, hasErrors, validationErrors }) => (
   </>
 );
 
-const ImportResultSection = ({ result, onClose }) => (
+const ImportResultSection = ({ result }) => (
   <Box>
     <Alert
       severity={result.success ? 'success' : 'error'}

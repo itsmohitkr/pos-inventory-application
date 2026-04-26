@@ -71,6 +71,7 @@ export default function useExpenseManagement() {
   }, [dateFilter, customDates]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (dateFilter !== 'custom') fetchData();
   }, [dateFilter, fetchData]);
 

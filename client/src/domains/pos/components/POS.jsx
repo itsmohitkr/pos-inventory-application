@@ -225,6 +225,7 @@ const POS = ({
 
   // Auto-select Cash when cart gets items, clear when empty
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedPaymentMethod((prev) => {
       if (cart.length > 0 && !prev) {
         return { id: 'cash', label: 'Cash', color: '#16a34a' };

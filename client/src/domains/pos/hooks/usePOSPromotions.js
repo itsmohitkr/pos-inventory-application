@@ -6,8 +6,6 @@ export const usePOSPromotions = ({
   totalProfit,
   products,
   productSales,
-  cart,
-  removeFromCart,
   addFreeProductHook,
   showNotification,
   refocus,
