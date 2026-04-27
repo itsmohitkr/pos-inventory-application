@@ -39,7 +39,7 @@ const sendCustomerBarcode = async ({ phone, barcode, shopName, customerName }) =
       `🎫 Your ${shopName || 'Bachat Bazar'} Premium Customer Card`
     );
     
-    logger.info({ phone, barcode }, 'Visual customer card sent via WhatsApp');
+    logger.info({ phoneTail: phone?.slice(-4), barcode }, 'Visual customer card sent via WhatsApp');
   } catch (err) {
     logger.error({ err: err.message, stack: err.stack }, 'Failed to send visual customer card');
     // Fallback to text if image generation fails
@@ -70,7 +70,7 @@ const sendSaleReceipt = async ({ phone, sale, shopName }) => {
       `🧾 Your receipt from ${shopName || 'Bachat Bazar'} (Sale #${sale.id})`
     );
 
-    logger.info({ phone, saleId: sale.id }, 'Visual sale receipt sent via WhatsApp');
+    logger.info({ phoneTail: phone?.slice(-4), saleId: sale.id }, 'Visual sale receipt sent via WhatsApp');
   } catch (err) {
     logger.error({ err: err.message }, 'Failed to send visual receipt');
     // Fallback to text
@@ -92,7 +92,7 @@ const sendCapturedCard = async ({ phone, base64Image, caption }) => {
     const buffer = Buffer.from(base64Data, 'base64');
     
     await waClient.sendMedia(phone, buffer, 'customer-card.png', caption);
-    logger.info({ phone }, 'Successfully sent captured visual customer card');
+    logger.info({ phoneTail: phone?.slice(-4) }, 'Successfully sent captured visual customer card');
   } catch (err) {
     logger.error({ err: err.message, stack: err.stack }, 'Failed to send captured customer card');
     throw err;

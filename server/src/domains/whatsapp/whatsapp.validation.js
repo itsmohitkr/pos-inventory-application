@@ -13,4 +13,10 @@ const sendReceiptBodySchema = Joi.object({
   shopName: Joi.string().max(100).optional().allow('', null),
 });
 
-module.exports = { sendBarcodeBodySchema, sendReceiptBodySchema };
+const sendCapturedCardBodySchema = Joi.object({
+  phone: Joi.string().min(7).max(15).required(),
+  base64Image: Joi.string().max(5_000_000).required(),
+  caption: Joi.string().max(1024).optional().allow('', null),
+});
+
+module.exports = { sendBarcodeBodySchema, sendReceiptBodySchema, sendCapturedCardBodySchema };

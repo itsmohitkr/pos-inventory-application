@@ -1,3 +1,4 @@
+const { randomBytes } = require('crypto');
 const prisma = require('../../config/prisma');
 const { createHttpError } = require('../../shared/error/appError');
 
@@ -6,9 +7,10 @@ const BARCODE_SUFFIX_LENGTH = 8;
 
 const generateCustomerBarcode = async () => {
   for (let attempt = 0; attempt < 10; attempt++) {
+    const bytes = randomBytes(BARCODE_SUFFIX_LENGTH);
     let suffix = '';
     for (let i = 0; i < BARCODE_SUFFIX_LENGTH; i++) {
-      suffix += BARCODE_CHARS[Math.floor(Math.random() * BARCODE_CHARS.length)];
+      suffix += BARCODE_CHARS[bytes[i] % BARCODE_CHARS.length];
     }
     const barcode = `CUST-${suffix}`;
     const existing = await prisma.customer.findUnique({ where: { customerBarcode: barcode } });
