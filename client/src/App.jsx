@@ -196,6 +196,7 @@ function App() {
                 printers={printers}
                 defaultPrinter={defaultPrinter}
                 whatsappEnabled={whatsappEnabled}
+                showError={showError}
               />
             }
           />

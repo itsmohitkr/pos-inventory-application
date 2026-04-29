@@ -196,9 +196,12 @@ User clicks Pay & Print / Print Label
 For barcode labels specifically, `document.body.classList.add('is-printing-labels')` must fire **before** the invoke so `@media print` CSS hides everything except `.printable-area`. The 100 ms setTimeout in `BarcodePrintDialog.jsx` is intentional.
 
 **IPC/print code location rule:** `ipcRenderer.invoke` calls for printing must never be moved out of their current file:
-- Receipt print → `POS.jsx` (`handlePayAndPrint`)
+- Receipt print (Pay & Print / Last Receipt) → `usePOSSale.js` (`handlePayAndPrint`, `handlePrintLastReceipt`)
+- Receipt print (Sales History) → `SaleHistory.jsx` (`handlePrintReceipt`)
 - Barcode label print → `BarcodePrintDialog.jsx` (`handlePrint`)
 - Price list print → `PriceListPanel.jsx` (`handlePrint`)
+
+**Critical:** Always use `ipcRenderer.invoke()` (not `ipcRenderer.send()`) for `print-manual`. The Electron main process registers the handler with `ipcMain.handle()`, which only responds to `invoke` — `send` silently does nothing.
 
 ### Double-payment guard
 `POS.jsx` uses an `isPaying` state flag set at the top of both `handlePay` and `handlePayAndPrint` and cleared in `finally`. The flag is propagated to `TransactionPanel → TransactionActionButtons` to disable the Pay button during an in-flight transaction. Never remove this guard — rapid double-taps would create duplicate sales.

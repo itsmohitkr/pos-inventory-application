@@ -14,6 +14,7 @@ import SaleHistoryPrintContainer from '@/domains/saleHistory/components/SaleHist
 import { getSaleHistoryRange, buildInclusiveSaleHistoryRange } from '@/domains/saleHistory/components/saleHistoryDateUtils';
 import { calculateSaleStats } from '@/domains/saleHistory/components/saleHistoryStats';
 import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
+import { IPC } from '@/shared/ipcChannels';
 
 const SaleHistory = ({
   receiptSettings,
@@ -22,6 +23,7 @@ const SaleHistory = ({
   printers = [],
   defaultPrinter = null,
   whatsappEnabled,
+  showError,
 }) => {
   const [sales, setSales] = useState([]);
   const [looseSales, setLooseSales] = useState([]);
@@ -149,7 +151,7 @@ const SaleHistory = ({
     fetchSales(range.start, range.end);
   };
 
-  const handlePrintReceipt = (sale) => {
+  const handlePrintReceipt = async (sale) => {
     flushSync(() => {
       setSelectedSale(sale);
     });
@@ -160,7 +162,14 @@ const SaleHistory = ({
       const printer = isValidPrinter
         ? rawPrinter
         : defaultPrinter || (printers.find((p) => p.isDefault) || printers[0])?.name;
-      window.electron.ipcRenderer.send('print-manual', { printerName: printer });
+      if (!printer) {
+        showError?.('No printer configured. Go to Settings → Receipt Settings to select a printer.');
+        return;
+      }
+      const result = await window.electron.ipcRenderer.invoke(IPC.PRINT_MANUAL, { printerName: printer });
+      if (!result?.success) {
+        showError?.(`Print failed: ${result?.error || 'Unknown error'}. Check that the printer is on and connected.`);
+      }
     } else {
       window.print();
     }
