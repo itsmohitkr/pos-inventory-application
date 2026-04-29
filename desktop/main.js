@@ -434,12 +434,21 @@ const createWindow = () => {
         slashes: true,
       });
 
-  mainWindow.once('ready-to-show', () => {
-    if (splashWindow && !splashWindow.isDestroyed()) {
-      splashWindow.close();
-    }
+  // Gate: show main window only when BOTH server is ready AND frontend is loaded.
+  // Both start in parallel so total wait = max(server_time, frontend_time) not the sum.
+  let serverReady = false;
+  let frontendReady = false;
+
+  const tryShowWindow = () => {
+    if (!serverReady || !frontendReady) return;
+    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
     mainWindow.show();
     mainWindow.focus();
+  };
+
+  mainWindow.once('ready-to-show', () => {
+    frontendReady = true;
+    tryShowWindow();
   });
 
   // 4. Intercept simulated IPC for Splash Screen
@@ -449,13 +458,17 @@ const createWindow = () => {
     }
   };
 
+  // Load frontend immediately (behind the splash) while the server boots in parallel.
+  mainWindow.loadURL(startUrl);
+
   startServer()
     .then(() => {
-      console.log('Server started, loading frontend...');
+      console.log('Server ready — waiting for frontend...');
+      serverReady = true;
       if (splashWindow && !splashWindow.isDestroyed()) {
         splashWindow.webContents.send('splash-status', 'Loading User Interface...');
       }
-      mainWindow.loadURL(startUrl);
+      tryShowWindow();
     })
     .catch((err) => {
       console.error('Failed to start server:', err);

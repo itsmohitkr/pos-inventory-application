@@ -8,40 +8,75 @@ const PORT = process.env.PORT || 5001;
 const path = require('path');
 const fs = require('fs');
 
-// Back up the database file before running migrations.
-// Called once at startup so a migration failure never leaves the user with an
-// unrecoverable database — they can restore pos.db.bak manually.
-function backupDatabase() {
-  try {
-    const dbUrl = process.env.DATABASE_URL || '';
-    // Extract the file path from "file:/path" or "file:///path"
-    const dbPath = dbUrl.replace(/^file:\/\//, '').replace(/^file:/, '');
-    if (!dbPath || !fs.existsSync(dbPath)) return;
+// ── IPC Helper for Splash Screen ─────────────────────────────────────────────
 
-    const backupPath = `${dbPath}.bak`;
-    fs.copyFileSync(dbPath, backupPath);
-    logger.info({ backupPath }, '[BOOT] Database backed up before migrations');
-  } catch (err) {
-    // Non-fatal: log and continue so a backup failure never blocks startup
-    logger.warn({ err: err.message }, '[BOOT] Could not create database backup');
-  }
-}
-
-// IPC Helper for Splash Screen
 const sendSplashMsg = (msg) => {
   if (process.send) {
     process.send({ type: 'splash-status', message: msg });
   }
 };
 
+// ── Database backup ───────────────────────────────────────────────────────────
+// Runs before migrations so a failed migration never leaves the DB unrecoverable.
+// Uses async I/O to keep the event loop free during the copy.
+
+async function backupDatabase() {
+  try {
+    const dbUrl = process.env.DATABASE_URL || '';
+    const dbPath = dbUrl.replace(/^file:\/\//, '').replace(/^file:/, '');
+    if (!dbPath || !fs.existsSync(dbPath)) return;
+    const backupPath = `${dbPath}.bak`;
+    await fs.promises.copyFile(dbPath, backupPath);
+    logger.info({ backupPath }, '[BOOT] Database backed up before migrations');
+  } catch (err) {
+    logger.warn({ err: err.message }, '[BOOT] Could not create database backup');
+  }
+}
+
+// ── Prisma migrations ─────────────────────────────────────────────────────────
+
 const util = require('util');
 const execAsync = util.promisify(require('child_process').exec);
 
-// Auto-run Prisma migrations on startup
+// Query _prisma_migrations via the already-loaded Prisma client.
+// Returns the set of applied migration names, or null if the table doesn't exist yet.
+async function getAppliedMigrations() {
+  try {
+    const rows = await prisma.$queryRaw`
+      SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL
+    `;
+    return new Set(rows.map((r) => r.migration_name));
+  } catch {
+    return null; // table missing → fresh database, all migrations are pending
+  }
+}
+
 async function runPrismaMigrations() {
-  logger.info('[BOOT MIGRATION] Running automated Prisma migrations...');
+  const migrationsDir = path.join(__dirname, 'prisma', 'migrations');
+  const migrationFolders = fs.existsSync(migrationsDir)
+    ? fs
+        .readdirSync(migrationsDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name)
+        .sort()
+    : [];
+
+  if (migrationFolders.length > 0) {
+    const applied = await getAppliedMigrations();
+    const pending =
+      applied === null
+        ? migrationFolders
+        : migrationFolders.filter((f) => !applied.has(f));
+
+    if (pending.length === 0) {
+      logger.info('[BOOT MIGRATION] No pending migrations — skipping.');
+      return;
+    }
+    logger.info(`[BOOT MIGRATION] ${pending.length} pending migration(s) — running deploy...`);
+  }
+
   sendSplashMsg('Applying database schemas...');
-  backupDatabase();
+  await backupDatabase();
 
   try {
     let prismaCliPath;
@@ -64,13 +99,9 @@ async function runPrismaMigrations() {
     logger.debug({ prismaCliPath, schemaPath }, '[BOOT MIGRATION] Paths');
 
     try {
-      // Use execAsync so DB migrations do not block electron main process event loop
       await execAsync(
         `"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`,
-        {
-          env: pEnv,
-          encoding: 'utf-8',
-        }
+        { env: pEnv, encoding: 'utf-8' }
       );
       logger.info('[BOOT MIGRATION] Successful');
     } catch (deployError) {
@@ -83,31 +114,25 @@ async function runPrismaMigrations() {
           const dirs = fs
             .readdirSync(migrationsDir, { withFileTypes: true })
             .filter((dirent) => dirent.isDirectory())
-            .map((dirent) => dirent.name);
-
-          dirs.sort();
+            .map((dirent) => dirent.name)
+            .sort();
 
           for (const migration of dirs) {
             try {
               await execAsync(
                 `"${nodeExecutable}" "${prismaCliPath}" migrate resolve --applied "${migration}" --schema="${schemaPath}"`,
-                {
-                  env: pEnv,
-                }
+                { env: pEnv }
               );
               logger.info(`[BOOT MIGRATION] Baselined migration: ${migration}`);
-            } catch (resolveErr) {
-              // If it fails (e.g., already applied), just ignore and continue
+            } catch {
+              // Already applied — ignore
             }
           }
 
           logger.info('[BOOT MIGRATION] Running final deploy after baselining...');
           await execAsync(
             `"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`,
-            {
-              env: pEnv,
-              encoding: 'utf-8',
-            }
+            { env: pEnv, encoding: 'utf-8' }
           );
           logger.info('[BOOT MIGRATION] Post-Baseline Deploy Successful');
         }
@@ -120,8 +145,10 @@ async function runPrismaMigrations() {
   }
 }
 
-// Migrate any users still stored with a plaintext password to bcrypt hashes.
-// Runs once per startup; exits silently if all passwords are already hashed.
+// ── Password migration ────────────────────────────────────────────────────────
+// Bcrypt-hashes any users still stored with plaintext passwords.
+// Exits silently on repeated boots once all passwords are hashed.
+
 async function migratePasswordsToHash() {
   try {
     const bcrypt = require('bcryptjs');
@@ -140,19 +167,16 @@ async function migratePasswordsToHash() {
   }
 }
 
-// Auto-seed database on first run
+// ── Seeding ───────────────────────────────────────────────────────────────────
+
 async function checkAndSeed() {
   try {
     sendSplashMsg('Checking Local Database Status...');
-    // Run migrations first, then hash any plaintext passwords
     await runPrismaMigrations();
     await migratePasswordsToHash();
 
-    // Check if any users exist in the database
     const userCount = await prisma.user.count();
-
     if (userCount === 0) {
-      // Run essential seed script only (admin user etc)
       const { seedEssential } = require('./seed');
       await seedEssential();
       logger.info('Database initialized successfully!');
@@ -160,47 +184,47 @@ async function checkAndSeed() {
       logger.info('Database already seeded.');
     }
 
-    // Always ensure default settings exist
-    const shopName = await settingService.getSettingByKey('posShopName');
-    if (!shopName) {
-      logger.info('Seeding default shop name...');
-      await settingService.updateSetting('posShopName', 'My Shop');
-    }
+    // Fetch all setting keys in one query, then write any missing ones in parallel.
+    const neededKeys = [
+      'posShopName',
+      'posReceiptSettings',
+      'posPaymentSettings',
+      ...Object.keys(DEFAULT_SHOP_METADATA),
+    ];
+    const existing = await prisma.setting.findMany({
+      where: { key: { in: neededKeys } },
+      select: { key: true },
+    });
+    const has = new Set(existing.map((s) => s.key));
 
-    const receiptSettings = await settingService.getSettingByKey('posReceiptSettings');
-    if (!receiptSettings) {
-      logger.info('Seeding default receipt settings...');
-      await settingService.updateSetting('posReceiptSettings', DEFAULT_RECEIPT_SETTINGS);
-    }
-
-    const paymentSettings = await settingService.getSettingByKey('posPaymentSettings');
-    if (!paymentSettings) {
-      logger.info('Seeding default payment settings...');
-      await settingService.updateSetting('posPaymentSettings', {
-        enabledMethods: ['cash'],
-        allowMultplePayment: false,
-        customMethods: [],
-      });
-    }
-
-    // Seed shop metadata
+    const writes = [];
+    if (!has.has('posShopName'))
+      writes.push(settingService.updateSetting('posShopName', 'My Shop'));
+    if (!has.has('posReceiptSettings'))
+      writes.push(settingService.updateSetting('posReceiptSettings', DEFAULT_RECEIPT_SETTINGS));
+    if (!has.has('posPaymentSettings'))
+      writes.push(
+        settingService.updateSetting('posPaymentSettings', {
+          enabledMethods: ['cash'],
+          allowMultplePayment: false,
+          customMethods: [],
+        })
+      );
     for (const [key, defaultValue] of Object.entries(DEFAULT_SHOP_METADATA)) {
-      const existing = await settingService.getSettingByKey(key);
-      if (!existing) {
-        logger.info(`Seeding default ${key}...`);
-        await settingService.updateSetting(key, defaultValue);
-      }
+      if (!has.has(key)) writes.push(settingService.updateSetting(key, defaultValue));
     }
+    if (writes.length) await Promise.all(writes);
   } catch (error) {
     logger.error({ error: error.message }, 'Error checking/seeding database');
   }
 }
 
+// ── Server startup ────────────────────────────────────────────────────────────
+
 async function startServer() {
   try {
     logger.info('[BOOT] Starting checkAndSeed with timeout...');
     sendSplashMsg('Starting core database engine...');
-    // Set a timeout for DB check to prevent boot hangs
     const bootstrapPromise = checkAndSeed();
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Database initialization timed out')), 60000)
@@ -223,7 +247,9 @@ async function startServer() {
   app.on('error', (err) => {
     logger.error({ err: err.message, code: err.code }, '[BOOT FATAL] Express server error');
     if (err.code === 'EADDRINUSE') {
-      logger.error(`[BOOT FATAL] Port ${PORT} is already in use. Close the other process and restart.`);
+      logger.error(
+        `[BOOT FATAL] Port ${PORT} is already in use. Close the other process and restart.`
+      );
     }
     process.exit(1);
   });
@@ -255,5 +281,5 @@ try {
   logger.error({ error: e.message }, 'SERVER BOOT FATAL');
 }
 
-// Keep process alive hack
-setInterval(() => { }, 10000);
+// Keep process alive
+setInterval(() => {}, 10000);
