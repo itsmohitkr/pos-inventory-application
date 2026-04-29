@@ -189,8 +189,10 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     const focusTimer = window.setTimeout(() => {
       if (searchInputRef.current) searchInputRef.current.focus();
     }, 100);
-    categoriesContext.fetchCategories();
+    const { fetchCategories } = categoriesContext;
+    fetchCategories();
     return () => window.clearTimeout(focusTimer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoriesContext.fetchCategories]);
 
   useEffect(() => {

@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import posService from '@/shared/api/posService';
-import whatsappService from '@/shared/api/whatsappService';
 import { IPC } from '@/shared/ipcChannels';
 
 export const usePOSSale = ({
@@ -69,7 +68,7 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale, receiptSettings, shopName, whatsappEnabled]);
 
   const handlePayAndPrint = useCallback(async (selectedPaymentMethod, customerOverride) => {
     if (isPaying) return;
@@ -137,7 +136,7 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError, activeCustomer, clearCustomerOnSale]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError, activeCustomer, clearCustomerOnSale, shopName, whatsappEnabled]);
 
   const handlePrintLastReceipt = useCallback(async () => {
     if (lastSale) {

@@ -14,7 +14,6 @@ import {
   Tooltip,
 } from '@mui/material';
 import { WhatsApp as WhatsAppIcon } from '@mui/icons-material';
-import whatsappService from '@/shared/api/whatsappService';
 
 const POSSaleDetailsPanel = ({ selectedSale, stats, whatsappEnabled, shopName }) => {
   const handleSendWhatsAppReceipt = async () => {
