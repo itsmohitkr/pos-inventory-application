@@ -1,4 +1,3 @@
-// Electron and core imports FIRST
 const {
   app,
   BrowserWindow,
@@ -10,7 +9,10 @@ const {
   webContents,
 } = require('electron');
 
-// CRITICAL: Set app name and ID BEFORE any other logic to ensure correct userData paths
+// -------------------------------------------------------------------------
+// APP IDENTITY
+// -------------------------------------------------------------------------
+// Set app name and ID early. 
 app.setName('Trovix');
 app.setAppUserModelId('com.bachatbazaar.pos');
 
@@ -209,25 +211,31 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
 // CRITICAL: INITIALIZATION ORDER
 // -------------------------------------------------------------------------
 
-// One-time migration: if the old "Bachat Bazaar" userData folder exists and the new "Trovix"
-// folder does not yet have a database, copy pos.db across so existing users keep all their data.
-try {
-  const oldAppDataPath = path.join(app.getPath('appData'), 'Bachat Bazaar');
-  const newAppDataPath = path.join(app.getPath('appData'), 'Trovix');
-  const oldDbFile = path.join(oldAppDataPath, 'pos.db');
-  const newDbFile = path.join(newAppDataPath, 'pos.db');
-  if (fs.existsSync(oldDbFile) && !fs.existsSync(newDbFile)) {
-    fs.mkdirSync(newAppDataPath, { recursive: true });
-    fs.copyFileSync(oldDbFile, newDbFile);
-    console.log('[Migration] pos.db copied from Bachat Bazaar userData to Trovix userData');
-  }
-} catch (migrationErr) {
-  // Non-fatal: if migration fails the app continues; bootstrapping will create a fresh DB
-  console.error('[Migration] Failed to migrate pos.db:', migrationErr);
-}
-
 // Check if running in development mode
 const isDev = !app.isPackaged;
+
+// -------------------------------------------------------------------------
+// ONE-TIME MIGRATION LOGIC
+// -------------------------------------------------------------------------
+function handleDataMigration() {
+  try {
+    const appData = app.getPath('appData');
+    const oldAppDataPath = path.join(appData, 'Bachat Bazaar');
+    const newAppDataPath = path.join(appData, 'Trovix');
+    const oldDbFile = path.join(oldAppDataPath, 'pos.db');
+    const newDbFile = path.join(newAppDataPath, 'pos.db');
+
+    if (fs.existsSync(oldDbFile) && !fs.existsSync(newDbFile)) {
+      if (!fs.existsSync(newAppDataPath)) {
+        fs.mkdirSync(newAppDataPath, { recursive: true });
+      }
+      fs.copyFileSync(oldDbFile, newDbFile);
+      console.log('[Migration] pos.db successfully migrated from Bachat Bazaar to Trovix');
+    }
+  } catch (err) {
+    console.error('[Migration] Non-fatal migration error:', err.message);
+  }
+}
 
 let mainWindow;
 let serverProcess;
@@ -703,6 +711,10 @@ ${(() => {
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
 
+    // 1. Handle any data migration from old app
+    handleDataMigration();
+
+    // 2. Start UI
     createWindow();
 
     // Auto-update setup runs here so mainWindow exists when events fire.
