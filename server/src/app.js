@@ -65,12 +65,12 @@ const lazyLoad = (routerPath) => (req, res, next) => {
 };
 
 apiRouter.use('/auth', authLimiter, lazyLoad('./domains/auth/auth.router'));
-apiRouter.use('/products', lazyLoad('./domains/product/product.router'));
-apiRouter.use('/categories', lazyLoad('./domains/category/category.router'));
-apiRouter.use('/sales', lazyLoad('./domains/sale/sale.router'));
-apiRouter.use('/reports', lazyLoad('./domains/report/report.router'));
-apiRouter.use('/loose-sales', lazyLoad('./domains/loose-sale/loose-sale.router'));
-apiRouter.use('/promotions', lazyLoad('./domains/promotion/promotion.router'));
+apiRouter.use(lazyLoad('./domains/product/product.router'));
+apiRouter.use(lazyLoad('./domains/category/category.router'));
+apiRouter.use(lazyLoad('./domains/sale/sale.router'));
+apiRouter.use(lazyLoad('./domains/report/report.router'));
+apiRouter.use(lazyLoad('./domains/loose-sale/loose-sale.router'));
+apiRouter.use(lazyLoad('./domains/promotion/promotion.router'));
 apiRouter.use('/expenses', lazyLoad('./domains/expense/expense.router'));
 apiRouter.use('/purchases', lazyLoad('./domains/purchase/purchase.router'));
 apiRouter.use('/settings', lazyLoad('./domains/setting/setting.router'));
