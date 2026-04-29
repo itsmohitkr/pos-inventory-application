@@ -1,4 +1,3 @@
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const QRCode = require('qrcode');
 const logger = require('../../shared/utils/logger');
 
@@ -27,6 +26,16 @@ const initialize = (sessionDataPath) => {
   isInitializing = true;
   status = 'initializing';
   currentQRBase64 = null;
+
+  let Client, LocalAuth, MessageMedia;
+  try {
+    ({ Client, LocalAuth, MessageMedia } = require('whatsapp-web.js'));
+  } catch (e) {
+    status = 'disconnected';
+    isInitializing = false;
+    logger.error('whatsapp-web.js module not found — WhatsApp features unavailable');
+    return;
+  }
 
   try {
     client = new Client({
@@ -113,6 +122,7 @@ const sendMedia = async (phone, buffer, filename, caption) => {
   }
   const digits = phone.replace(/\D/g, '');
   const chatId = digits.length === 10 ? `91${digits}@c.us` : `${digits}@c.us`;
+  const { MessageMedia } = require('whatsapp-web.js');
   const media = new MessageMedia('image/png', buffer.toString('base64'), filename);
   await withTimeout(client.sendMessage(chatId, media, { caption }), 'sendMedia');
 };
