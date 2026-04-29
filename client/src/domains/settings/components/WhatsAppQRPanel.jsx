@@ -4,6 +4,7 @@ import {
   CheckCircle as CheckCircleIcon,
   QrCode2 as QrCodeIcon,
   WifiOff as DisconnectedIcon,
+  ErrorOutline as ErrorIcon,
 } from '@mui/icons-material';
 import whatsappService from '@/shared/api/whatsappService';
 
@@ -12,14 +13,15 @@ const POLL_INTERVAL = 3000;
 const WhatsAppQRPanel = () => {
   const [status, setStatus] = useState('disconnected');
   const [qr, setQr] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
       const res = await whatsappService.getStatus();
-      // sendSuccessResponse with format:'raw' returns the object directly
       setStatus(res?.status || 'disconnected');
       setQr(res?.qr || null);
+      setErrorMessage(res?.error || null);
     } catch {
       // Server may not be ready; silently ignore
     }
@@ -47,6 +49,7 @@ const WhatsAppQRPanel = () => {
       await whatsappService.destroy();
       setQr(null);
       setStatus('disconnected');
+      setErrorMessage(null);
     } finally {
       setLoading(false);
     }
@@ -94,8 +97,28 @@ const WhatsAppQRPanel = () => {
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 3 }}>
         <CircularProgress size={40} />
         <Typography variant="body2" color="text.secondary">
-          Starting WhatsApp… this may take 20–30 seconds
+          Starting WhatsApp… this may take 20–60 seconds on first launch
         </Typography>
+      </Box>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 3 }}>
+        <ErrorIcon sx={{ fontSize: 48, color: 'error.main' }} />
+        <Typography variant="body2" color="error" textAlign="center">
+          {errorMessage || 'WhatsApp failed to start.'}
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <QrCodeIcon />}
+          onClick={handleConnect}
+          disabled={loading}
+          sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
+        >
+          Retry
+        </Button>
       </Box>
     );
   }
