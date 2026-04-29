@@ -1,9 +1,4 @@
 require('dotenv').config();
-const app = require('./src/app');
-const prisma = require('./src/config/prisma');
-const logger = require('./src/shared/utils/logger');
-const settingService = require('./src/domains/setting/setting.service');
-const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/config/constants');
 const PORT = process.env.PORT || 5001;
 const path = require('path');
 const fs = require('fs');
@@ -17,10 +12,9 @@ const sendSplashMsg = (msg) => {
 };
 
 // ── Database backup ───────────────────────────────────────────────────────────
-// Runs before migrations so a failed migration never leaves the DB unrecoverable.
-// Uses async I/O to keep the event loop free during the copy.
 
 async function backupDatabase() {
+  const logger = require('./src/shared/utils/logger');
   try {
     const dbUrl = process.env.DATABASE_URL || '';
     const dbPath = dbUrl.replace(/^file:\/\//, '').replace(/^file:/, '');
@@ -35,12 +29,8 @@ async function backupDatabase() {
 
 // ── Prisma migrations ─────────────────────────────────────────────────────────
 
-const util = require('util');
-const execAsync = util.promisify(require('child_process').exec);
-
 // Query _prisma_migrations via the already-loaded Prisma client.
-// Returns the set of applied migration names, or null if the table doesn't exist yet.
-async function getAppliedMigrations() {
+async function getAppliedMigrations(prisma) {
   try {
     const rows = await prisma.$queryRaw`
       SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL
@@ -51,7 +41,8 @@ async function getAppliedMigrations() {
   }
 }
 
-async function runPrismaMigrations() {
+async function runPrismaMigrations(prisma) {
+  const logger = require('./src/shared/utils/logger');
   const migrationsDir = path.join(__dirname, 'prisma', 'migrations');
   const migrationFolders = fs.existsSync(migrationsDir)
     ? fs
@@ -62,7 +53,7 @@ async function runPrismaMigrations() {
     : [];
 
   if (migrationFolders.length > 0) {
-    const applied = await getAppliedMigrations();
+    const applied = await getAppliedMigrations(prisma);
     const pending =
       applied === null
         ? migrationFolders
@@ -77,6 +68,9 @@ async function runPrismaMigrations() {
 
   sendSplashMsg('Applying database schemas...');
   await backupDatabase();
+
+  const util = require('util');
+  const execAsync = util.promisify(require('child_process').exec);
 
   try {
     let prismaCliPath;
@@ -95,8 +89,6 @@ async function runPrismaMigrations() {
       schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
       nodeExecutable = process.execPath;
     }
-
-    logger.debug({ prismaCliPath, schemaPath }, '[BOOT MIGRATION] Paths');
 
     try {
       await execAsync(
@@ -123,13 +115,11 @@ async function runPrismaMigrations() {
                 `"${nodeExecutable}" "${prismaCliPath}" migrate resolve --applied "${migration}" --schema="${schemaPath}"`,
                 { env: pEnv }
               );
-              logger.info(`[BOOT MIGRATION] Baselined migration: ${migration}`);
             } catch {
               // Already applied — ignore
             }
           }
 
-          logger.info('[BOOT MIGRATION] Running final deploy after baselining...');
           await execAsync(
             `"${nodeExecutable}" "${prismaCliPath}" migrate deploy --schema="${schemaPath}"`,
             { env: pEnv, encoding: 'utf-8' }
@@ -146,10 +136,9 @@ async function runPrismaMigrations() {
 }
 
 // ── Password migration ────────────────────────────────────────────────────────
-// Bcrypt-hashes any users still stored with plaintext passwords.
-// Exits silently on repeated boots once all passwords are hashed.
 
-async function migratePasswordsToHash() {
+async function migratePasswordsToHash(prisma) {
+  const logger = require('./src/shared/utils/logger');
   try {
     const bcrypt = require('bcryptjs');
     const users = await prisma.user.findMany({ select: { id: true, password: true } });
@@ -169,11 +158,15 @@ async function migratePasswordsToHash() {
 
 // ── Seeding ───────────────────────────────────────────────────────────────────
 
-async function checkAndSeed() {
+async function checkAndSeed(prisma) {
+  const logger = require('./src/shared/utils/logger');
+  const settingService = require('./src/domains/setting/setting.service');
+  const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/config/constants');
+  
   try {
     sendSplashMsg('Checking Local Database Status...');
-    await runPrismaMigrations();
-    await migratePasswordsToHash();
+    await runPrismaMigrations(prisma);
+    await migratePasswordsToHash(prisma);
 
     const userCount = await prisma.user.count();
     if (userCount === 0) {
@@ -184,7 +177,6 @@ async function checkAndSeed() {
       logger.info('Database already seeded.');
     }
 
-    // Fetch all setting keys in one query, then write any missing ones in parallel.
     const neededKeys = [
       'posShopName',
       'posReceiptSettings',
@@ -222,63 +214,70 @@ async function checkAndSeed() {
 // ── Server startup ────────────────────────────────────────────────────────────
 
 async function startServer() {
+  // Move heavy requires here so they don't block the initial file evaluation
+  const logger = require('./src/shared/utils/logger');
+  logger.info('[BOOT] Starting server initialization...');
+
+  const prisma = require('./src/config/prisma');
+  const app = require('./src/app');
+
   try {
     logger.info('[BOOT] Starting checkAndSeed with timeout...');
     sendSplashMsg('Starting core database engine...');
-    const bootstrapPromise = checkAndSeed();
+    
+    // We run checkAndSeed in parallel with app.listen to reduce total splash time.
+    // However, we wait for a very brief moment to let migrations start before accepting requests.
+    const bootstrapPromise = checkAndSeed(prisma);
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Database initialization timed out')), 60000)
     );
 
-    try {
-      await Promise.race([bootstrapPromise, timeoutPromise]);
-      logger.info('[BOOT] Database initialization finished successfully.');
-    } catch (bootstrapError) {
-      logger.warn(
-        { message: bootstrapError.message },
-        '[BOOT WARNING] Database initialization stalled or failed'
-      );
-      logger.info('[BOOT] Proceeding to start server anyway...');
-    }
+    app.on('error', (err) => {
+      logger.error({ err: err.message, code: err.code }, '[BOOT FATAL] Express server error');
+      if (err.code === 'EADDRINUSE') {
+        logger.error(
+          `[BOOT FATAL] Port ${PORT} is already in use. Close the other process and restart.`
+        );
+      }
+      process.exit(1);
+    });
+
+    // Proceed to listen almost immediately. 
+    // The frontend show-gate in main.js will wait for this port to be open.
+    app.listen(PORT, '127.0.0.1', () => {
+      logger.info(`[BOOT SUCCESS] Server listening on port ${PORT}`);
+      sendSplashMsg('Starting UI Interface...');
+      
+      // WhatsApp initialization is already delayed, keep it that way
+      setTimeout(async () => {
+        try {
+          const whatsappService = require('./src/domains/whatsapp/whatsapp.service');
+          const isWaEnabled = await whatsappService.isEnabled();
+          if (isWaEnabled) {
+            logger.info('[BOOT] WhatsApp enabled — auto-reconnecting session...');
+            whatsappService.initializeClient();
+          }
+        } catch (waErr) {
+          logger.warn({ err: waErr.message }, '[BOOT] Failed to auto-initialize WhatsApp');
+        }
+      }, 15_000);
+    });
+
+    // We still want to handle bootstrap errors globally
+    bootstrapPromise.catch(err => {
+      logger.error({ err: err.message }, '[BOOT ERROR] Background database initialization failed');
+    });
+
   } catch (e) {
     logger.error({ error: e.message }, 'Critical error during application pre-startup');
   }
-
-  app.on('error', (err) => {
-    logger.error({ err: err.message, code: err.code }, '[BOOT FATAL] Express server error');
-    if (err.code === 'EADDRINUSE') {
-      logger.error(
-        `[BOOT FATAL] Port ${PORT} is already in use. Close the other process and restart.`
-      );
-    }
-    process.exit(1);
-  });
-
-  app.listen(PORT, '127.0.0.1', () => {
-    logger.info(`[BOOT SUCCESS] Server running on port ${PORT} (localhost only)`);
-    sendSplashMsg('Starting UI Interface...');
-
-    // Delay WhatsApp auto-reconnect so it doesn't compete with app loading.
-    // Puppeteer/Chromium is CPU-heavy on Windows — give the UI 10 s to settle first.
-    setTimeout(async () => {
-      try {
-        const whatsappService = require('./src/domains/whatsapp/whatsapp.service');
-        const isWaEnabled = await whatsappService.isEnabled();
-        if (isWaEnabled) {
-          logger.info('[BOOT] WhatsApp enabled — auto-reconnecting session...');
-          whatsappService.initializeClient();
-        }
-      } catch (waErr) {
-        logger.warn({ err: waErr.message }, '[BOOT] Failed to auto-initialize WhatsApp');
-      }
-    }, 10_000);
-  });
 }
 
 try {
   startServer();
 } catch (e) {
-  logger.error({ error: e.message }, 'SERVER BOOT FATAL');
+  // Can't use logger here as it might be why it failed
+  console.error('SERVER BOOT FATAL:', e);
 }
 
 // Keep process alive

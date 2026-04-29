@@ -5,19 +5,6 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const logger = require('./shared/utils/logger');
 
-// Import modular routes
-const productRoutes = require('./domains/product/product.router');
-const categoryRoutes = require('./domains/category/category.router');
-const saleRoutes = require('./domains/sale/sale.router');
-const reportRoutes = require('./domains/report/report.router');
-const authRoutes = require('./domains/auth/auth.router');
-const looseSaleRoutes = require('./domains/loose-sale/loose-sale.router');
-const promotionRoutes = require('./domains/promotion/promotion.router');
-const expenseRoutes = require('./domains/expense/expense.router');
-const purchaseRoutes = require('./domains/purchase/purchase.router');
-const settingRoutes = require('./domains/setting/setting.router');
-const customerRoutes = require('./domains/customer/customer.router');
-const whatsappRoutes = require('./domains/whatsapp/whatsapp.router');
 const pathNotFound = require('./shared/error/pathNotFound');
 const errorHandler = require('./shared/error/errorHandler');
 
@@ -70,18 +57,29 @@ app.use((req, res, next) => {
 
 // Main API Router
 const apiRouter = express.Router();
-apiRouter.use('/auth', authLimiter, authRoutes);
-apiRouter.use(productRoutes);
-apiRouter.use(categoryRoutes);
-apiRouter.use(saleRoutes);
-apiRouter.use(reportRoutes);
-apiRouter.use(looseSaleRoutes);
-apiRouter.use(promotionRoutes);
-apiRouter.use('/expenses', expenseRoutes);
-apiRouter.use('/purchases', purchaseRoutes);
-apiRouter.use('/settings', settingRoutes);
-apiRouter.use('/customers', customerRoutes);
-apiRouter.use('/whatsapp', whatsappRoutes);
+
+// Helper for lazy loading routers
+const lazyLoad = (routerPath) => (req, res, next) => {
+  const router = require(routerPath);
+  return router(req, res, next);
+};
+
+apiRouter.use('/auth', authLimiter, lazyLoad('./domains/auth/auth.router'));
+apiRouter.use('/products', lazyLoad('./domains/product/product.router'));
+apiRouter.use('/categories', lazyLoad('./domains/category/category.router'));
+apiRouter.use('/sales', lazyLoad('./domains/sale/sale.router'));
+apiRouter.use('/reports', lazyLoad('./domains/report/report.router'));
+apiRouter.use('/loose-sales', lazyLoad('./domains/loose-sale/loose-sale.router'));
+apiRouter.use('/promotions', lazyLoad('./domains/promotion/promotion.router'));
+apiRouter.use('/expenses', lazyLoad('./domains/expense/expense.router'));
+apiRouter.use('/purchases', lazyLoad('./domains/purchase/purchase.router'));
+apiRouter.use('/settings', lazyLoad('./domains/setting/setting.router'));
+apiRouter.use('/customers', lazyLoad('./domains/customer/customer.router'));
+apiRouter.use('/whatsapp', lazyLoad('./domains/whatsapp/whatsapp.router'));
+
+// Handle legacy un-prefixed routes if any (all should be prefixed now)
+// Note: If any routes were previously mounted without prefix (e.g. app.use(productRoutes)), 
+// they should now be accessed via /api/products etc.
 
 app.use('/api', apiRouter);
 app.use(pathNotFound);
