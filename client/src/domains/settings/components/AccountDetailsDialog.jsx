@@ -27,6 +27,7 @@ import AccountDetailsTab from '@/domains/settings/components/AccountDetailsTab';
 import DisplaySettingsTab from '@/domains/settings/components/DisplaySettingsTab';
 import POSFeaturesTab from '@/domains/settings/components/POSFeaturesTab';
 import WipeDatabaseConfirmation from '@/domains/settings/components/WipeDatabaseConfirmation';
+import WhatsAppSettingsTab from '@/domains/settings/components/WhatsAppSettingsTab';
 import {
   getChangeCalculatorEnabled,
   setChangeCalculatorEnabled,
@@ -92,6 +93,7 @@ const AccountDetailsDialog = ({
   const [weightedAverageCostEnabled, setWeightedAverageCostEnabled] = useState(false);
   const [paymentSettings, setPaymentSettings] = useState(DEFAULT_PAYMENT_SETTINGS);
   const [showDecodedPrices, setShowDecodedPrices] = useState(getDecodedPricesEnabled());
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [tabValue, setTabValue] = useState(0);
 
   // Sync with metadata prop changes
@@ -170,6 +172,9 @@ const AccountDetailsDialog = ({
         if (settings.posPaymentSettings) {
           setPaymentSettings(settings.posPaymentSettings);
         }
+        if (settings.whatsappEnabled !== undefined) {
+          setWhatsappEnabled(!!settings.whatsappEnabled);
+        }
       } catch (error) {
         console.error('Failed to fetch UI settings:', error);
       }
@@ -229,6 +234,10 @@ const AccountDetailsDialog = ({
         await settingsService.updateSettings({
           key: 'posPaymentSettings',
           value: paymentSettings,
+        });
+        await settingsService.updateSettings({
+          key: 'whatsappEnabled',
+          value: whatsappEnabled,
         });
       } catch (error) {
         console.error('Failed to save settings:', error);
@@ -363,6 +372,7 @@ const AccountDetailsDialog = ({
             <Tab label="POS Features" />
             <Tab label="Payment" />
             <Tab label="Display & Zoom" />
+            <Tab label="WhatsApp" />
           </Tabs>
         </Box>
 
@@ -437,6 +447,14 @@ const AccountDetailsDialog = ({
               setUiZoom={setUiZoom}
               monochrome={monochrome}
               setMonochrome={setMonochrome}
+            />
+          )}
+
+          {/* Tab 4: WhatsApp */}
+          {tabValue === 4 && (
+            <WhatsAppSettingsTab
+              whatsappEnabled={whatsappEnabled}
+              setWhatsappEnabled={setWhatsappEnabled}
             />
           )}
 

@@ -21,6 +21,7 @@ const processSaleBodySchema = Joi.object({
   paymentDetails: Joi.alternatives()
     .try(Joi.string().allow('', null), Joi.object().unknown(true))
     .optional(),
+  customerId: Joi.number().integer().positive().optional().allow(null),
 });
 
 const processReturnBodySchema = Joi.object({

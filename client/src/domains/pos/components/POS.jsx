@@ -20,11 +20,13 @@ import { usePOSData } from '@/domains/pos/hooks/usePOSData';
 import { usePOSSale } from '@/domains/pos/hooks/usePOSSale';
 import { usePOSPromotions } from '@/domains/pos/hooks/usePOSPromotions';
 import { usePOSSearch } from '@/domains/pos/hooks/usePOSSearch';
+import { usePOSCustomer } from '@/domains/pos/hooks/usePOSCustomer';
 import settingsService from '@/shared/api/settingsService';
 import { STORAGE_KEYS } from '@/domains/pos/components/posReceiptSettings';
 
 const POS = ({
   receiptSettings: propReceiptSettings,
+  shopName: propShopName,
   shopMetadata: propShopMetadata,
   printers = [],
   defaultPrinter = null,
@@ -50,6 +52,7 @@ const POS = ({
     decodedPricesEnabled,
     changeCalculatorEnabled,
     paymentMethodsEnabled,
+    whatsappEnabled,
   } = usePOSData(propReceiptSettings, propShopMetadata);
 
   const {
@@ -105,6 +108,7 @@ const POS = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [receivedAmount, setReceivedAmount] = useState(0);
+  const [customerSearchValue, setCustomerSearchValue] = useState('');
 
   const [notification, setNotification] = useState({
     open: false,
@@ -115,6 +119,13 @@ const POS = ({
   const showNotification = useCallback((message, severity = 'success') => {
     setNotification({ open: true, message, severity });
   }, []);
+
+  const { activeCustomer, isLoadingCustomer, lookupCustomer, detachCustomer, clearOnSale } =
+    usePOSCustomer({
+      whatsappEnabled,
+      showNotification,
+      shopName: propShopName || 'Bachat Bazar',
+    });
 
   const {
     lastSale,
@@ -135,6 +146,10 @@ const POS = ({
     showError,
     showNotification,
     refocus,
+    activeCustomer,
+    clearCustomerOnSale: clearOnSale,
+    whatsappEnabled,
+    shopName: propShopName || 'Bachat Bazar',
   });
 
   const { filterOptions } = usePOSSearch(products);
@@ -324,14 +339,32 @@ const POS = ({
 
 
   // Keyboard Shortcuts handlers (memoized to avoid re-registration churn)
+  const handlePayWithCustomerSync = useCallback(async (method) => {
+    let customer = activeCustomer;
+    if (!customer && customerSearchValue.trim()) {
+      customer = await lookupCustomer(customerSearchValue.trim());
+      if (customer) setCustomerSearchValue('');
+    }
+    return handlePay(method, customer);
+  }, [activeCustomer, customerSearchValue, lookupCustomer, handlePay]);
+
+  const handlePayAndPrintWithCustomerSync = useCallback(async (method) => {
+    let customer = activeCustomer;
+    if (!customer && customerSearchValue.trim()) {
+      customer = await lookupCustomer(customerSearchValue.trim());
+      if (customer) setCustomerSearchValue('');
+    }
+    return handlePayAndPrint(method, customer);
+  }, [activeCustomer, customerSearchValue, lookupCustomer, handlePayAndPrint]);
+
   const posShortcutHandlers = useMemo(
     () => ({
-      onPay: () => handlePay(selectedPaymentMethod),
-      onPayAndPrint: () => handlePayAndPrint(selectedPaymentMethod),
+      onPay: () => handlePayWithCustomerSync(selectedPaymentMethod),
+      onPayAndPrint: () => handlePayAndPrintWithCustomerSync(selectedPaymentMethod),
       onLooseSale: () => setShowLooseSaleDialog(true),
       onToggleNumpad: () => setShowNumpad(true),
     }),
-    [handlePay, handlePayAndPrint, selectedPaymentMethod, setShowLooseSaleDialog, setShowNumpad]
+    [handlePayWithCustomerSync, handlePayAndPrintWithCustomerSync, selectedPaymentMethod, setShowLooseSaleDialog, setShowNumpad]
   );
 
   usePOSShortcuts(posShortcutHandlers, {
@@ -405,6 +438,7 @@ const POS = ({
             filterOptions={filterOptions}
             onLooseSale={() => setShowLooseSaleDialog(true)}
             looseSaleEnabled={looseSaleEnabled}
+            onCustomerBarcode={whatsappEnabled ? lookupCustomer : undefined}
           />
           <CartTable
             cart={cart}
@@ -498,8 +532,8 @@ const POS = ({
             discount={discount}
             onDiscountChange={setDiscount}
             onVoid={handleVoidOrder}
-            onPay={() => handlePay(selectedPaymentMethod)}
-            onPayAndPrint={() => handlePayAndPrint(selectedPaymentMethod)}
+            onPay={() => handlePayWithCustomerSync(selectedPaymentMethod)}
+            onPayAndPrint={() => handlePayAndPrintWithCustomerSync(selectedPaymentMethod)}
             onRefund={handleRefund}
             onSelectPaymentMethod={handleSelectPaymentMethod}
             selectedPaymentMethod={selectedPaymentMethod}
@@ -522,6 +556,13 @@ const POS = ({
             showNumpad={showNumpad}
             setShowNumpad={setShowNumpad}
             setShowDiscountNumpad={setShowDiscountNumpad}
+            whatsappEnabled={whatsappEnabled}
+            activeCustomer={activeCustomer}
+            onCustomerLookup={lookupCustomer}
+            onCustomerDetach={detachCustomer}
+            isLoadingCustomer={isLoadingCustomer}
+            customerSearchValue={customerSearchValue}
+            onCustomerSearchChange={setCustomerSearchValue}
           />
         </Box>
 

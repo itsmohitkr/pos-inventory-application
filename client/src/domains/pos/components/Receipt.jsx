@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Box, Typography } from '@mui/material';
 import {
   DEFAULT_RECEIPT_SETTINGS,
@@ -7,7 +7,7 @@ import {
   getSafePrintableWidth,
 } from '@/domains/pos/components/receiptUtils';
 
-const Receipt = ({ sale, settings, shopMetadata }) => {
+const Receipt = forwardRef(({ sale, settings, shopMetadata }, ref) => {
   if (!sale) return null;
 
   const config = settings || DEFAULT_RECEIPT_SETTINGS;
@@ -24,6 +24,7 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
 
   return (
     <Box
+      ref={ref}
       id="receipt-container"
       sx={{
         width: '100%',
@@ -462,6 +463,6 @@ const Receipt = ({ sale, settings, shopMetadata }) => {
       </Box>
     </Box>
   );
-};
+});
 
 export default Receipt;

@@ -57,6 +57,7 @@ const GlobalAppBar = ({
     canAccessRefund,
     canAccessPromotions,
     canAccessDashboard,
+    canAccessCustomers,
   } = permissions;
 
   return (
@@ -113,6 +114,7 @@ const GlobalAppBar = ({
           {canAccessExpenses && <NavButton to="/expenses">Expenses</NavButton>}
           {canAccessRefund && <NavButton to="/refund">Returns</NavButton>}
           {canAccessPromotions && <NavButton to="/promotions">Promotions</NavButton>}
+          {canAccessCustomers && <NavButton to="/customers">Customers</NavButton>}
           {canAccessDashboard && <NavButton to="/dashboard">Dashboard</NavButton>}
           <IconButton
             color="inherit"

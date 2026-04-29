@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+#next feature
+next-feature-plan
+
 # Build outputs
 dist/
 build/
@@ -45,3 +48,8 @@ Thumbs.db
 
 # Documentation
 Documents/
+
+# WhatsApp Session & cache
+server/whatsapp-session/
+server/whatsapp-session-test/
+server/.wwebjs_cache/

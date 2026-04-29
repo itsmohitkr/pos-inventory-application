@@ -26,6 +26,7 @@ const POSSearchBar = React.forwardRef(
       filterOptions,
       onLooseSale,
       looseSaleEnabled,
+      onCustomerBarcode,
     },
     ref
   ) => {
@@ -94,6 +95,14 @@ const POSSearchBar = React.forwardRef(
     const handleKeyDown = (event) => {
       if (event.key === 'Enter' && searchQuery.trim()) {
         event.preventDefault();
+
+        // Intercept customer barcodes before product lookup
+        if (onCustomerBarcode && searchQuery.trim().startsWith('CUST-')) {
+          onCustomerBarcode(searchQuery.trim());
+          onSearchInputChange('');
+          return;
+        }
+
         const selectedProduct = resolveEnterKeyProduct({
           products,
           filterOptions,
