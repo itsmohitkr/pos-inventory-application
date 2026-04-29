@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import { WhatsApp as WhatsAppIcon, Visibility as PreviewIcon, Edit as EditIcon } from '@mui/icons-material';
 import { toPng } from 'html-to-image';
-import customerService from '@/shared/api/customerService';
 import whatsappService from '@/shared/api/whatsappService';
 import CustomerCardPreview from './CustomerCardPreview';
 import CustomerCard from './CustomerCard';

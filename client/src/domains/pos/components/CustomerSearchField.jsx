@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Box, TextField, InputAdornment, Chip, IconButton, CircularProgress, Typography } from '@mui/material';
 import { PersonSearch as PersonSearchIcon, Close as CloseIcon, Person as PersonIcon } from '@mui/icons-material';
 
