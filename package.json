@@ -47,6 +47,7 @@
       "desktop/**/*",
       "client/dist/**/*",
       "server/**/*",
+      "server/node_modules/**/*",
       "node_modules/**/*",
       "!node_modules/.cache",
       "!.env",
@@ -59,6 +60,7 @@
     ],
     "asarUnpack": [
       "server/**/*",
+      "server/node_modules/**/*",
       "node_modules/**/*",
       "server/prisma/migrations/**/*",
       "node_modules/.prisma/**/*"
