@@ -9,6 +9,11 @@ const {
   shell,
   webContents,
 } = require('electron');
+
+// CRITICAL: Set app name and ID BEFORE any other logic to ensure correct userData paths
+app.setName('Trovix');
+app.setAppUserModelId('com.bachatbazaar.pos');
+
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -203,10 +208,6 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
 // -------------------------------------------------------------------------
 // CRITICAL: INITIALIZATION ORDER
 // -------------------------------------------------------------------------
-// On Windows, we MUST set the app name and ID BEFORE resolving any paths (like 'userData')
-// to ensure we look in the correct AppData folder.
-app.setName('Trovix');
-app.setAppUserModelId('com.bachatbazaar.pos');
 
 // One-time migration: if the old "Bachat Bazaar" userData folder exists and the new "Trovix"
 // folder does not yet have a database, copy pos.db across so existing users keep all their data.
