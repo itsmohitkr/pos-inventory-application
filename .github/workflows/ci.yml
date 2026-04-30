@@ -38,7 +38,8 @@ jobs:
           cd server
           echo "DATABASE_URL=\"file:./test.db\"" > .env
           npx prisma validate
-          npx prisma migrate status || (echo "Migrations are out of sync with schema!" && exit 1)
+          # This checks if the schema has changes that are NOT in migrations
+          npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --exit-code
 
       # 3. UNIT TESTS & COVERAGE
       - name: Run Server Unit Tests & Coverage
