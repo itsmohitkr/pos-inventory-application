@@ -513,11 +513,22 @@ const checkPort = (port) => {
 
 const waitForServer = async (port, timeout = 90000) => {
   const start = Date.now();
+  console.log(`[DIAG] waitForServer started for port ${port} (timeout: ${timeout}ms)`);
+  
+  let attempts = 0;
   while (Date.now() - start < timeout) {
+    attempts++;
     const isReady = await checkPort(port);
-    if (isReady) return true;
+    if (isReady) {
+      console.log(`[DIAG] Port ${port} is READY after ${Date.now() - start}ms (${attempts} attempts)`);
+      return true;
+    }
+    if (attempts % 20 === 0) {
+      console.log(`[DIAG] Still polling port ${port}... (${attempts} attempts, ${Date.now() - start}ms elapsed)`);
+    }
     await new Promise((r) => setTimeout(r, 250));
   }
+  console.error(`[DIAG] waitForServer TIMED OUT after ${attempts} attempts and ${Date.now() - start}ms`);
   return false;
 };
 
@@ -539,9 +550,9 @@ const startServer = () => {
 
       const wrapperPath = path.resolve(__dirname, 'server-wrapper.js');
 
-      console.log(`Starting server from: ${serverDir}`);
-      console.log(`Wrapper: ${wrapperPath}`);
-      console.log(`Database path: ${process.env.DATABASE_URL}`);
+      console.log(`[DIAG] Starting server from: ${serverDir}`);
+      console.log(`[DIAG] Wrapper: ${wrapperPath}`);
+      console.log(`[DIAG] Database path: ${process.env.DATABASE_URL}`);
 
       // Change to server directory so relative paths work
       process.chdir(serverDir);
@@ -550,21 +561,31 @@ const startServer = () => {
       module.paths.unshift(path.join(serverDir, 'node_modules'));
       module.paths.unshift(path.join(__dirname, '../node_modules'));
 
+      // Check if port is already in use before starting
+      const alreadyOpen = await checkPort(SERVER_PORT);
+      if (alreadyOpen) {
+        console.warn(`[DIAG] Port ${SERVER_PORT} is ALREADY OPEN before starting. Zombie process?`);
+      }
+
       // Load and start the server
       try {
+        console.log('[DIAG] Requiring server-wrapper...');
+        const startTimestamp = Date.now();
         require(wrapperPath);
+        console.log(`[DIAG] server-wrapper required in ${Date.now() - startTimestamp}ms`);
 
         // Wait for server to actually start listening
-        console.log(`Polling port ${SERVER_PORT}...`);
+        console.log(`[DIAG] Beginning to poll port ${SERVER_PORT}...`);
         const ready = await waitForServer(SERVER_PORT);
         if (ready) {
-          console.log(`Server is ready on port ${SERVER_PORT}`);
+          console.log(`[DIAG] Server confirmed ready on port ${SERVER_PORT}`);
           resolve();
         } else {
+          console.error(`[DIAG] Server failed to respond on port ${SERVER_PORT} within timeout`);
           reject(new Error(`Server timed out after waiting for port ${SERVER_PORT}`));
         }
       } catch (error) {
-        console.error('Failed to start server:', error);
+        console.error('[DIAG] Error during server-wrapper require or poll:', error);
         reject(error);
       }
     } catch (error) {
