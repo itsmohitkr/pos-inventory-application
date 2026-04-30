@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install Root Dependencies
@@ -55,9 +55,6 @@ jobs:
       - name: Build Client
         run: cd client && npm run build
 
-      - name: Build Desktop (Check for compilation errors)
-        run: npm run client-build
-
       # 5. E2E TESTS
       - name: Install Playwright Browsers
         run: cd client && npx playwright install --with-deps chromium
@@ -65,7 +62,7 @@ jobs:
       - name: Run E2E Tests
         run: cd client && npx playwright test --project=chromium
         env:
-          DATABASE_URL: "file:./e2e.db"
+          DATABASE_URL: "file:../server/test.db"
 
       # 6. ARTIFACTS & REPORTS
       - name: Upload Server Coverage Report
@@ -74,6 +71,7 @@ jobs:
         with:
           name: server-coverage-report
           path: server/coverage
+          retention-days: 30
 
       - name: Upload Playwright Report
         if: always()
@@ -83,3 +81,4 @@ jobs:
           path: |
             client/playwright-report
             client/test-results
+          retention-days: 30

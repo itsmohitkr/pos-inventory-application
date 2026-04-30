@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ── Server Tests ──
       - name: Set up Node.js
@@ -54,17 +56,38 @@ jobs:
         working-directory: client
         run: npm run build
 
+      # Upload sourcemaps once here from the final build output, not inside platform jobs
+      - name: Create Sentry release and upload source maps
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: production
+          sourcemaps: ./client/dist
+          url_prefix: "~/dist/"
+          ignore_missing: true
+          ignore_empty: true
+
   # ── macOS Build ─────────────────────────────────────────────
   build-mac:
     needs: quality-gate
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+            server/package-lock.json
 
       - name: Update version
         run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
@@ -87,25 +110,11 @@ jobs:
         working-directory: client
         run: npx vite build
 
-      - name: Create Sentry release and upload source maps
-        uses: getsentry/action-release@v1
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        with:
-          environment: production
-          sourcemaps: ./client/dist
-          url_prefix: "~/dist/"
-
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
 
-      - name: Build Electron app (mac)
-        run: npm run electron-build
-
-      - name: Package mac installer
-        run: npm run electron-pack -- --mac
+      - name: Package macOS installer
+        run: npx electron-builder --mac --publish never
 
       - name: Upload mac installer
         uses: actions/upload-artifact@v4
@@ -114,6 +123,7 @@ jobs:
           path: |
             dist/*.dmg
             dist/latest-mac.yml
+          retention-days: 90
 
   # ── Windows Build ───────────────────────────────────────────
   build-win:
@@ -121,11 +131,18 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+            server/package-lock.json
 
       - name: Update version
         run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
@@ -145,25 +162,11 @@ jobs:
         working-directory: client
         run: npx vite build
 
-      - name: Create Sentry release and upload source maps
-        uses: getsentry/action-release@v1
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        with:
-          environment: production
-          sourcemaps: ./client/dist
-          url_prefix: "~/dist/"
-
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
 
-      - name: Build Electron app (win)
-        run: npm run electron-build
-
-      - name: Package windows installer
-        run: npm run electron-pack -- --win
+      - name: Package Windows installer
+        run: npx electron-builder --win --publish never
 
       - name: Upload windows installer
         uses: actions/upload-artifact@v4
@@ -172,6 +175,7 @@ jobs:
           path: |
             dist/*.exe
             dist/latest.yml
+          retention-days: 90
 
   # ── Release ─────────────────────────────────────────────────
   release:
@@ -181,6 +185,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download mac installer
         uses: actions/download-artifact@v4
