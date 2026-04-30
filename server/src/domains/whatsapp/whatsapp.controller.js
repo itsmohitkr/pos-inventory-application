@@ -1,11 +1,34 @@
 const { StatusCodes } = require('http-status-codes');
 const whatsappService = require('./whatsapp.service');
+const chromium = require('./chromium');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
 const logger = require('../../shared/utils/logger');
 
 const getStatus = async (_req, res) => {
   const status = whatsappService.getConnectionStatus();
   return sendSuccessResponse(res, StatusCodes.OK, status, 'WhatsApp status', { format: 'raw' });
+};
+
+const getBrowserStatus = async (_req, res) => {
+  const status = chromium.getInstallStatus();
+  return sendSuccessResponse(res, StatusCodes.OK, status, 'Browser install status', { format: 'raw' });
+};
+
+// Kicks off the chrome-headless-shell download. Returns immediately so the
+// frontend can poll /browser-status for progress. Idempotent — if the install
+// is already running or complete, it's a no-op.
+const installBrowser = async (_req, res) => {
+  // Don't await — we want the HTTP response back immediately.
+  chromium.installBrowser().catch((err) => {
+    logger.error({ err: err.message }, 'Browser install failed');
+  });
+  return sendSuccessResponse(
+    res,
+    StatusCodes.ACCEPTED,
+    { message: 'Browser install started' },
+    'Started',
+    { format: 'raw' }
+  );
 };
 
 const initialize = async (_req, res) => {
@@ -50,4 +73,13 @@ const sendCapturedCard = async (req, res) => {
   }
 };
 
-module.exports = { getStatus, initialize, destroy, sendBarcode, sendReceipt, sendCapturedCard };
+module.exports = {
+  getStatus,
+  getBrowserStatus,
+  installBrowser,
+  initialize,
+  destroy,
+  sendBarcode,
+  sendReceipt,
+  sendCapturedCard,
+};

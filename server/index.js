@@ -343,14 +343,20 @@ async function main() {
 
     // Delay WhatsApp auto-reconnect so Puppeteer/Chromium doesn't compete
     // with app loading. 15 s is enough for the user to start interacting.
+    // Skip silently if the headless browser hasn't been installed yet — the
+    // user must install it from Settings first; we never auto-download.
     setTimeout(async () => {
       try {
         const whatsappService = require('./src/domains/whatsapp/whatsapp.service');
+        const chromium = require('./src/domains/whatsapp/chromium');
         const isWaEnabled = await whatsappService.isEnabled();
-        if (isWaEnabled) {
-          logger.info('[BOOT] WhatsApp enabled — auto-reconnecting session...');
-          whatsappService.initializeClient();
+        if (!isWaEnabled) return;
+        if (!chromium.isInstalled()) {
+          logger.info('[BOOT] WhatsApp enabled but browser not installed — skipping auto-reconnect');
+          return;
         }
+        logger.info('[BOOT] WhatsApp enabled — auto-reconnecting session...');
+        whatsappService.initializeClient();
       } catch (waErr) {
         logger.warn({ err: waErr.message }, '[BOOT] Failed to auto-init WhatsApp');
       }

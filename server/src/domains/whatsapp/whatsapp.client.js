@@ -1,5 +1,6 @@
 const QRCode = require('qrcode');
 const logger = require('../../shared/utils/logger');
+const chromium = require('./chromium');
 
 let client = null;
 let isInitializing = false;
@@ -27,6 +28,19 @@ const getStatus = () => ({ status, qr: currentQRBase64, error: errorMessage });
 
 const initialize = (sessionDataPath) => {
   if (client || isInitializing) return;
+
+  // Refuse to launch unless the headless browser is installed. The frontend
+  // checks /api/whatsapp/browser-status first and prompts the user to install
+  // it on demand — this guard is a safety net so we never call puppeteer.launch
+  // without a known executable path.
+  const executablePath = chromium.getInstalledExecutablePath();
+  if (!executablePath) {
+    status = 'error';
+    errorMessage = 'WhatsApp browser component is not installed. Please install it first.';
+    logger.warn('[WHATSAPP] initialize() called before browser was installed');
+    return;
+  }
+
   isInitializing = true;
   status = 'initializing';
   currentQRBase64 = null;
@@ -51,6 +65,7 @@ const initialize = (sessionDataPath) => {
       }),
       puppeteer: {
         headless: true,
+        executablePath,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',

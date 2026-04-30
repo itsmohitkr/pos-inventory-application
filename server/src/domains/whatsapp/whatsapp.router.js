@@ -13,6 +13,16 @@ router
   .all(methodNotAllowed);
 
 router
+  .route('/browser-status')
+  .get(asyncHandler(whatsappController.getBrowserStatus))
+  .all(methodNotAllowed);
+
+router
+  .route('/install-browser')
+  .post(asyncHandler(whatsappController.installBrowser))
+  .all(methodNotAllowed);
+
+router
   .route('/initialize')
   .post(asyncHandler(whatsappController.initialize))
   .all(methodNotAllowed);
