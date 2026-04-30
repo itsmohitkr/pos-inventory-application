@@ -30,6 +30,10 @@ jobs:
         working-directory: server
         run: npx prisma generate
 
+      - name: Validate Prisma Migrations
+        working-directory: server
+        run: npx prisma migrate status || (echo "Migrations are out of sync!" && exit 1)
+
       - name: Run server tests
         working-directory: server
         run: npm test
