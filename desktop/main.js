@@ -16,6 +16,8 @@ const fs = require('fs');
 const os = require('os');
 const url = require('url');
 const net = require('net');
+const http = require('http');
+const IPC = require('./ipcChannels');
 
 // Catch any unhandled error in the main process so the app never silently disappears.
 // Log to file and show a dialog so the user knows something went wrong.
@@ -71,6 +73,69 @@ ipcMain.on('restart-app', () => {
 ipcMain.handle('get-printers', async () => {
   if (!mainWindow) return [];
   return await mainWindow.webContents.getPrintersAsync();
+});
+
+// Generic IPC bridge: forwards any renderer API call to the in-process Express
+// server via a loopback HTTP request. All middleware (helmet, rate-limit, Joi
+// validation, pino logging, error handler) fires normally.
+// Only used in production — the dev renderer uses Vite's axios HTTP proxy.
+ipcMain.handle('api-bridge', (_event, { method = 'GET', url, body, params, headers = {} }) => {
+  return new Promise((resolve) => {
+    let fullPath = url;
+    if (params && Object.keys(params).length > 0) {
+      const qs = new URLSearchParams(
+        Object.fromEntries(
+          Object.entries(params)
+            .filter(([, v]) => v !== undefined && v !== null)
+            .map(([k, v]) => [k, String(v)])
+        )
+      ).toString();
+      fullPath = `${url}?${qs}`;
+    }
+
+    const bodyStr = body ? JSON.stringify(body) : null;
+    const reqHeaders = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...headers,
+    };
+    // Never forward Origin — Express CORS allows requests with no Origin header.
+    delete reqHeaders['origin'];
+    delete reqHeaders['Origin'];
+    if (bodyStr) reqHeaders['Content-Length'] = Buffer.byteLength(bodyStr);
+
+    const options = {
+      hostname: '127.0.0.1',
+      port: SERVER_PORT,
+      path: fullPath,
+      method: method.toUpperCase(),
+      headers: reqHeaders,
+    };
+
+    const httpReq = http.request(options, (res) => {
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => {
+        const raw = Buffer.concat(chunks).toString();
+        let data;
+        try { data = JSON.parse(raw); } catch { data = raw; }
+        resolve({ status: res.statusCode, data, headers: res.headers });
+      });
+    });
+
+    // 15-second guard so a hung Express handler can't lock the renderer.
+    httpReq.setTimeout(15000, () => {
+      httpReq.destroy();
+      resolve({ status: 503, data: { message: 'IPC bridge: request timed out' }, headers: {} });
+    });
+
+    httpReq.on('error', (err) => {
+      resolve({ status: 503, data: { message: `IPC bridge error: ${err.message}` }, headers: {} });
+    });
+
+    if (bodyStr) httpReq.write(bodyStr);
+    httpReq.end();
+  });
 });
 
 // Maps Chromium's internal print result codes to user-readable messages.
@@ -402,7 +467,7 @@ const createWindow = () => {
 
   splashWindow.webContents.on('did-finish-load', () => {
     console.log('Splash screen loaded successfully');
-    splashWindow.webContents.send('splash-version', app.getVersion());
+    splashWindow.webContents.send(IPC.SPLASH_VERSION, app.getVersion());
   });
 
   splashWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
@@ -467,8 +532,8 @@ const createWindow = () => {
 
   // 4. Intercept simulated IPC for Splash Screen
   process.send = (msg) => {
-    if (msg && msg.type === 'splash-status' && splashWindow && !splashWindow.isDestroyed()) {
-      splashWindow.webContents.send('splash-status', msg.message);
+    if (msg && msg.type === IPC.SPLASH_STATUS && splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.webContents.send(IPC.SPLASH_STATUS, msg.message);
     }
   };
 
@@ -480,7 +545,7 @@ const createWindow = () => {
       console.log('Server ready — waiting for frontend...');
       serverReady = true;
       if (splashWindow && !splashWindow.isDestroyed()) {
-        splashWindow.webContents.send('splash-status', 'Loading User Interface...');
+        splashWindow.webContents.send(IPC.SPLASH_STATUS, 'Loading User Interface...');
       }
       tryShowWindow();
     })
