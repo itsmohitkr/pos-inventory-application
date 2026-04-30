@@ -36,6 +36,7 @@ jobs:
       - name: Validate Prisma Schema
         run: |
           cd server
+          echo "DATABASE_URL=\"file:./test.db\"" > .env
           npx prisma validate
           npx prisma migrate status || (echo "Migrations are out of sync with schema!" && exit 1)
 
@@ -43,7 +44,6 @@ jobs:
       - name: Run Server Unit Tests & Coverage
         run: |
           cd server
-          echo "DATABASE_URL=\"file:./test.db\"" > .env
           npx prisma migrate deploy
           npm run test:coverage
 
