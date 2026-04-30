@@ -32,7 +32,10 @@ jobs:
 
       - name: Validate Prisma Migrations
         working-directory: server
-        run: npx prisma migrate status || (echo "Migrations are out of sync!" && exit 1)
+        # This checks if the schema has changes that are NOT in migrations
+        run: npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --exit-code
+        env:
+          DATABASE_URL: "file:./test.db"
 
       - name: Run server tests
         working-directory: server
