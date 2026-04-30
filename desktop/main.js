@@ -1,4 +1,14 @@
 // Electron and core imports FIRST
+const Sentry = require("@sentry/electron");
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    release: `trovix@${app.getVersion()}`,
+    environment: process.env.NODE_ENV || "production",
+  });
+}
+
 const {
   app,
   BrowserWindow,

@@ -87,6 +87,17 @@ jobs:
         working-directory: client
         run: npx vite build
 
+      - name: Create Sentry release and upload source maps
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: production
+          sourcemaps: ./client/dist
+          url_prefix: "~/dist/"
+
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
 
@@ -133,6 +144,17 @@ jobs:
       - name: Build client
         working-directory: client
         run: npx vite build
+
+      - name: Create Sentry release and upload source maps
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: production
+          sourcemaps: ./client/dist
+          url_prefix: "~/dist/"
 
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
