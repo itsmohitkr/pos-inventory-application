@@ -600,7 +600,7 @@ const waitForServer = async (port, timeout = 90000) => {
       console.log(`Server ready on port ${port} after ${Date.now() - start}ms`);
       return true;
     }
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, 50));
   }
   console.error(`Server timed out waiting for port ${port} (${attempts} attempts, ${Date.now() - start}ms)`);
   return false;
@@ -802,7 +802,7 @@ ${(() => {
 
     // Auto-update setup runs here so mainWindow exists when events fire.
     try {
-      autoUpdater.checkForUpdatesAndNotify();
+      setTimeout(() => autoUpdater.checkForUpdatesAndNotify(), 5000);
       autoUpdater.on('update-available', () => {
         if (mainWindow) mainWindow.webContents.send('update-available');
       });

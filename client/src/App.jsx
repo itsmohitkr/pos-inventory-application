@@ -1,20 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Box } from '@mui/material';
+import { Box, LinearProgress } from '@mui/material';
 
-// Pages and Components
+// Pages and Components — POS and auth are eager (critical path)
 import POSPage from '@/domains/pos/pages/POSPage';
-import InventoryPage from '@/domains/inventory/pages/InventoryPage';
-import DashboardPage from '@/domains/dashboard/pages/DashboardPage';
-import OverviewPage from '@/domains/dashboard/pages/OverviewPage';
-import Reporting from '@/domains/reporting/components/Reporting';
-import ExpenseManagement from '@/domains/expenses/components/ExpenseManagement';
-import Refund from '@/domains/refund/components/Refund';
-import ReceiptPreviewDialog from '@/domains/pos/components/ReceiptPreviewDialog';
-import SaleHistory from '@/domains/saleHistory/components/SaleHistory';
-import PromotionManagement from '@/domains/promotions/components/PromotionManagement';
-import CustomersPage from '@/domains/customers/pages/CustomersPage';
 import LoginPage from '@/domains/auth/components/LoginPage';
+import ReceiptPreviewDialog from '@/domains/pos/components/ReceiptPreviewDialog';
+
+// Admin/back-office routes loaded on first navigation
+const InventoryPage      = lazy(() => import('@/domains/inventory/pages/InventoryPage'));
+const DashboardPage      = lazy(() => import('@/domains/dashboard/pages/DashboardPage'));
+const OverviewPage       = lazy(() => import('@/domains/dashboard/pages/OverviewPage'));
+const Reporting          = lazy(() => import('@/domains/reporting/components/Reporting'));
+const ExpenseManagement  = lazy(() => import('@/domains/expenses/components/ExpenseManagement'));
+const Refund             = lazy(() => import('@/domains/refund/components/Refund'));
+const SaleHistory        = lazy(() => import('@/domains/saleHistory/components/SaleHistory'));
+const PromotionManagement = lazy(() => import('@/domains/promotions/components/PromotionManagement'));
+const CustomersPage      = lazy(() => import('@/domains/customers/pages/CustomersPage'));
 import UserManagementDialog from '@/domains/auth/components/UserManagementDialog';
 import AccountDetailsDialog from '@/domains/settings/components/AccountDetailsDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
@@ -166,6 +168,7 @@ function App() {
         />
       }
     >
+      <Suspense fallback={<LinearProgress sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999 }} />}>
       <Routes>
         <Route path="/" element={<Navigate to="/pos" replace />} />
         <Route
@@ -232,6 +235,7 @@ function App() {
           <Route path="/customers" element={<CustomersPage />} />
         )}
       </Routes>
+      </Suspense>
 
       <SettingsMenu
         anchorEl={settingsAnchorEl}
