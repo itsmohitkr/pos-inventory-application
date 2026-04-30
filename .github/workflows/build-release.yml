@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ── Server Tests ──
       - name: Set up Node.js
@@ -60,6 +62,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -97,6 +101,8 @@ jobs:
           environment: production
           sourcemaps: ./client/dist
           url_prefix: "~/dist/"
+          ignore_missing: true
+          ignore_empty: true
 
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
@@ -121,6 +127,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -155,6 +163,8 @@ jobs:
           environment: production
           sourcemaps: ./client/dist
           url_prefix: "~/dist/"
+          ignore_missing: true
+          ignore_empty: true
 
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
@@ -181,6 +191,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download mac installer
         uses: actions/download-artifact@v4
