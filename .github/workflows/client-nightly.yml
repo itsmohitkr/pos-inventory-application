@@ -48,3 +48,4 @@ jobs:
           path: |
             client/playwright-report
             client/test-results
+          retention-days: 30
