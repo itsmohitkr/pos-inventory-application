@@ -1,14 +1,4 @@
 // Electron and core imports FIRST
-const Sentry = require("@sentry/electron");
-
-if (process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    release: `trovix@${app.getVersion()}`,
-    environment: process.env.NODE_ENV || "production",
-  });
-}
-
 const {
   app,
   BrowserWindow,
@@ -20,8 +10,19 @@ const {
   webContents,
 } = require('electron');
 
-const { autoUpdater } = require('electron-updater');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
+const Sentry = require("@sentry/electron");
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    release: `trovix@${app.getVersion()}`,
+    environment: process.env.NODE_ENV || "production",
+  });
+}
+
+const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const os = require('os');
 const url = require('url');
