@@ -7,7 +7,7 @@ import {
   getSafePrintableWidth,
 } from '@/domains/pos/components/receiptUtils';
 
-const Receipt = forwardRef(({ sale, settings, shopMetadata }, ref) => {
+const Receipt = forwardRef(({ sale, settings, shopMetadata, customerFeatureEnabled = true }, ref) => {
   if (!sale) return null;
 
   const config = settings || DEFAULT_RECEIPT_SETTINGS;
@@ -162,6 +162,15 @@ const Receipt = forwardRef(({ sale, settings, shopMetadata }, ref) => {
           <Typography variant="body2" sx={{ fontSize: '0.85em', color: '#000' }}>
             Time: {new Date(sale.createdAt).toLocaleTimeString()}
           </Typography>
+
+          {/* Customer Details - Only if enabled and available */}
+          {customerFeatureEnabled && config.customerDetails && sale.customer && (
+            <Box sx={{ mt: 0.5, borderTop: '1px dashed #ccc', pt: 0.5 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.85em', color: '#000' }}>
+                Bill To: {sale.customer.name || 'Customer'} ({sale.customer.phone})
+              </Typography>
+            </Box>
+          )}
         </Box>
 
         <Box

@@ -2,7 +2,7 @@ import React from 'react';
 import { Box } from '@mui/material';
 import Receipt from '@/domains/pos/components/Receipt';
 
-const POSPrintContainer = ({ lastSale, receiptSettings, shopMetadata }) => (
+const POSPrintContainer = ({ lastSale, receiptSettings, shopMetadata, customerFeatureEnabled = true }) => (
   <Box
     sx={{
       position: 'absolute',
@@ -24,7 +24,12 @@ const POSPrintContainer = ({ lastSale, receiptSettings, shopMetadata }) => (
   >
     <div id="thermal-receipt-print">
       {lastSale && (
-        <Receipt sale={lastSale} settings={receiptSettings} shopMetadata={shopMetadata} />
+        <Receipt 
+          sale={lastSale} 
+          settings={receiptSettings} 
+          shopMetadata={shopMetadata} 
+          customerFeatureEnabled={customerFeatureEnabled}
+        />
       )}
     </div>
   </Box>

@@ -78,7 +78,7 @@ const EditCustomerDialog = ({ open, customer, onClose, onSave }) => {
             size="small"
             required
             placeholder="10-digit mobile number"
-            helperText="Used for WhatsApp delivery and lookups"
+            helperText="Used for customer identity and lookups"
           />
           <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
             Barcode: {customer?.customerBarcode}

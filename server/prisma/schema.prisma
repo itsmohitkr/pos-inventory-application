@@ -74,12 +74,15 @@ model Customer {
   phone           String   @unique
   name            String?
   customerBarcode String   @unique
+  totalSpend      Float    @default(0)
+  lastVisit       DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   sales           Sale[]
 
   @@index([phone])
   @@index([customerBarcode])
+  @@index([totalSpend])
 }
 
 model Sale {

@@ -21,8 +21,8 @@ const customerService = {
     return response.data;
   },
 
-  getAll: async ({ page = 1, limit = 50, search = '' } = {}) => {
-    const params = new URLSearchParams({ page, limit, search });
+  getAll: async ({ page = 1, limit = 50, search = '', sortBy = 'createdAt', order = 'desc' } = {}) => {
+    const params = new URLSearchParams({ page, limit, search, sortBy, order });
     const response = await api.get(`/api/customers?${params}`);
     return response.data;
   },
@@ -34,11 +34,6 @@ const customerService = {
 
   getPurchaseHistory: async (id) => {
     const response = await api.get(`/api/customers/${id}/history`);
-    return response.data;
-  },
-
-  sendBarcode: async ({ phone, barcode, shopName, customerName }) => {
-    const response = await api.post('/api/whatsapp/send-barcode', { phone, barcode, shopName, customerName });
     return response.data;
   },
 };

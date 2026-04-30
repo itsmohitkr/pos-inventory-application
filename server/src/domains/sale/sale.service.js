@@ -1,4 +1,4 @@
-const prisma = require('../../config/prisma');
+  const prisma = require('../../config/prisma');
 
 /**
  * Fetches all effective promotion prices for a list of product IDs at a given date.
@@ -150,6 +150,7 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
         },
       },
       include: {
+        customer: true,
         items: {
           include: {
             batch: {
@@ -174,6 +175,17 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
 
     if (movementData.length > 0) {
       await tx.stockMovement.createMany({ data: movementData });
+    }
+
+    // 4. Update Customer Metrics if customerId is present
+    if (customerId) {
+      await tx.customer.update({
+        where: { id: customerId },
+        data: {
+          totalSpend: { increment: Math.max(0, finalAmount) },
+          lastVisit: new Date(),
+        }
+      });
     }
 
     return sale;

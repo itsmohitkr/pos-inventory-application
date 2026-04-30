@@ -23,19 +23,19 @@ const IPC = require('./ipcChannels');
 // Log to file and show a dialog so the user knows something went wrong.
 process.on('uncaughtException', (err) => {
   const msg = `[${new Date().toISOString()}] [FATAL] uncaughtException: ${err.stack || err.message}\n`;
-  try { logStream.write(msg); } catch (_) {}
+  try { logStream.write(msg); } catch (_) { }
   console.error('[FATAL] uncaughtException:', err);
   try {
     dialog.showErrorBox(
       'Unexpected Error',
       `The application encountered an unexpected error and needs attention.\n\nDetails: ${err.message}\n\nCheck Help → System Diagnostic for recent logs.`
     );
-  } catch (_) {}
+  } catch (_) { }
 });
 
 process.on('unhandledRejection', (reason) => {
   const msg = `[${new Date().toISOString()}] [FATAL] unhandledRejection: ${reason}\n`;
-  try { logStream.write(msg); } catch (_) {}
+  try { logStream.write(msg); } catch (_) { }
   console.error('[FATAL] unhandledRejection:', reason);
 });
 
@@ -411,10 +411,10 @@ const possibleEngineNames =
   process.platform === 'win32'
     ? ['query_engine-windows.dll.node', 'libquery_engine-windows.dll.node']
     : [
-        'libquery_engine-darwin-arm64.dylib.node',  // Apple Silicon
-        'libquery_engine-darwin-x64.dylib.node',    // Intel Mac
-        'libquery_engine-darwin.dylib.node',         // legacy fallback
-      ];
+      'libquery_engine-darwin-arm64.dylib.node',  // Apple Silicon
+      'libquery_engine-darwin-x64.dylib.node',    // Intel Mac
+      'libquery_engine-darwin.dylib.node',         // legacy fallback
+    ];
 
 let enginePath = null;
 for (const name of possibleEngineNames) {
@@ -508,10 +508,10 @@ const createWindow = () => {
   const startUrl = isDev
     ? 'http://localhost:5173'
     : url.format({
-        pathname: path.resolve(__dirname, '../client/dist/index.html'),
-        protocol: 'file:',
-        slashes: true,
-      });
+      pathname: path.resolve(__dirname, '../client/dist/index.html'),
+      protocol: 'file:',
+      slashes: true,
+    });
 
   // Gate: show main window only when BOTH server is ready AND frontend is loaded.
   // Both start in parallel so total wait = max(server_time, frontend_time) not the sum.
@@ -579,7 +579,7 @@ const checkPort = (port) => {
 const waitForServer = async (port, timeout = 90000) => {
   const start = Date.now();
   console.log(`[DIAG] waitForServer started for port ${port} (timeout: ${timeout}ms)`);
-  
+
   let attempts = 0;
   while (Date.now() - start < timeout) {
     attempts++;
@@ -603,12 +603,6 @@ const startServer = () => {
       // Set server port and environment
       process.env.PORT = SERVER_PORT;
       process.env.NODE_ENV = isDev ? 'development' : 'production';
-      process.env.WA_SESSION_PATH = path.join(appDataPath, 'whatsapp-session');
-      // Where @puppeteer/browsers downloads chrome-headless-shell on first
-      // WhatsApp setup. Stored in userData so installs survive app updates
-      // (they live outside the asar) and per-user (not per-machine).
-      process.env.PUPPETEER_CACHE_DIR = path.join(appDataPath, 'puppeteer-cache');
-
       const serverDir = isDev
         ? path.resolve(__dirname, '../server')
         : path.resolve(process.resourcesPath, 'app.asar.unpacked/server');
@@ -770,17 +764,17 @@ Version: ${app.getVersion()}
 
 --- RECENT LOGS ---
 ${(() => {
-  try {
-    if (fs.existsSync(logFile)) {
-      const logs = fs.readFileSync(logFile, 'utf8');
-      const lines = logs.split('\n').filter(Boolean);
-      return lines.slice(-150).join('\n');
-    }
-    return 'No log file found.';
-  } catch (e) {
-    return 'Error reading logs: ' + e.message;
-  }
-})()}
+                  try {
+                    if (fs.existsSync(logFile)) {
+                      const logs = fs.readFileSync(logFile, 'utf8');
+                      const lines = logs.split('\n').filter(Boolean);
+                      return lines.slice(-150).join('\n');
+                    }
+                    return 'No log file found.';
+                  } catch (e) {
+                    return 'Error reading logs: ' + e.message;
+                  }
+                })()}
               `.trim();
               dialog.showMessageBoxSync(mainWindow, {
                 type: 'info',
@@ -858,10 +852,5 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
-  // Gracefully destroy WhatsApp client before server stops
-  try {
-    const waClient = require('../server/src/domains/whatsapp/whatsapp.client');
-    waClient.destroy().catch(() => {});
-  } catch (_) {}
   stopServer();
 });

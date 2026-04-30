@@ -25,6 +25,8 @@ const POSDialogManager = ({
   showNumpad, setShowNumpad, receivedAmount, setReceivedAmount,
   // NumpadDialog (discount)
   showDiscountNumpad, setShowDiscountNumpad, discount, setDiscount,
+  // Customer Feature
+  customerFeatureEnabled,
 }) => (
   <>
     <BatchSelectionDialog
@@ -53,6 +55,7 @@ const POSDialogManager = ({
       shopMetadata={shopMetadata}
       printers={printers}
       defaultPrinter={defaultPrinter}
+      customerFeatureEnabled={customerFeatureEnabled}
     />
 
     <QuantityDialog

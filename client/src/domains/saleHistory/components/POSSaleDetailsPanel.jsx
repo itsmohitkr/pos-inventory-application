@@ -10,30 +10,8 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
-import { WhatsApp as WhatsAppIcon } from '@mui/icons-material';
-
-const POSSaleDetailsPanel = ({ selectedSale, stats, whatsappEnabled, shopName }) => {
-  const handleSendWhatsAppReceipt = async () => {
-    if (!selectedSale?.customer?.phone) return;
-    try {
-      const { captureAndSendReceipt } = await import('@/domains/pos/components/captureReceipt');
-      await captureAndSendReceipt(
-        selectedSale, 
-        selectedSale.customer, 
-        shopName, 
-        undefined, // Let Receipt component use default settings
-        {}         // Empty shop metadata
-      );
-      alert('Receipt sent via WhatsApp!');
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || error.message;
-      console.error('Failed to send WhatsApp receipt:', errorMsg);
-      alert(`Failed to send WhatsApp receipt: ${errorMsg}`);
-    }
-  };
+const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
   if (!selectedSale) {
     return (
       <Paper
@@ -150,7 +128,6 @@ const POSSaleDetailsPanel = ({ selectedSale, stats, whatsappEnabled, shopName })
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
-              position: 'relative',
             }}
           >
             <Typography
@@ -178,24 +155,6 @@ const POSSaleDetailsPanel = ({ selectedSale, stats, whatsappEnabled, shopName })
               {stats.discountPercent}% of MRP
             </Typography>
 
-            {whatsappEnabled && selectedSale?.customer?.phone && (
-              <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
-                <Tooltip title="Send Receipt via WhatsApp">
-                  <IconButton
-                    size="small"
-                    onClick={handleSendWhatsAppReceipt}
-                    sx={{
-                      color: '#25D366',
-                      bgcolor: 'white',
-                      border: '1px solid #25D366',
-                      '&:hover': { bgcolor: '#25D366', color: 'white' },
-                    }}
-                  >
-                    <WhatsAppIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            )}
           </Box>
         </Box>
       </Paper>

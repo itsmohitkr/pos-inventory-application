@@ -34,13 +34,20 @@ const TransactionPanel = ({
   setShowDiscountNumpad,
   decodedPricesEnabled,
   totalCostPrice,
-  whatsappEnabled,
+  customerFeatureEnabled,
   activeCustomer,
+  onCustomerSelect,
   onCustomerLookup,
   onCustomerDetach,
   isLoadingCustomer,
+  searchResults,
+  isSearching,
+  onCustomerSearch,
   customerSearchValue,
-  onCustomerSearchChange,
+  setCustomerSearchValue,
+  customerNameValue,
+  setCustomerNameValue,
+  onCustomerRegister,
 }) => {
   const changeDue = Math.max(0, receivedAmount - totalAmount);
 
@@ -155,6 +162,24 @@ const TransactionPanel = ({
           </Box>
         </Paper>
 
+        {customerFeatureEnabled && (
+          <CustomerSearchField
+            activeCustomer={activeCustomer}
+            onSelect={onCustomerSelect}
+            onLookup={onCustomerLookup}
+            onDetach={onCustomerDetach}
+            isLoading={isLoadingCustomer}
+            searchResults={searchResults}
+            isSearching={isSearching}
+            onSearch={onCustomerSearch}
+            customerSearchValue={customerSearchValue}
+            setCustomerSearchValue={setCustomerSearchValue}
+            customerNameValue={customerNameValue}
+            setCustomerNameValue={setCustomerNameValue}
+            onRegister={onCustomerRegister}
+          />
+        )}
+
         {/* Discount Field - Compact - Conditionally shown */}
         {extraDiscountEnabled && (
           <Box>
@@ -190,17 +215,6 @@ const TransactionPanel = ({
               }}
             />
           </Box>
-        )}
-
-        {whatsappEnabled && (
-          <CustomerSearchField
-            activeCustomer={activeCustomer}
-            onLookup={onCustomerLookup}
-            onDetach={onCustomerDetach}
-            isLoading={isLoadingCustomer}
-            value={customerSearchValue}
-            onChange={onCustomerSearchChange}
-          />
         )}
 
         <PriceBreakdownSection subTotal={subTotal} discount={discount} totalAmount={totalAmount} />

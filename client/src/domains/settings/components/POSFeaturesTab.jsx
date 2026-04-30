@@ -30,6 +30,8 @@ const POSFeaturesTab = ({
     setChangeCalculatorEnabledState,
     paymentMethodsEnabled,
     setPaymentMethodsEnabledState,
+    customerFeatureEnabled,
+    setCustomerFeatureEnabledState,
 }) => {
     return (
         <Box>
@@ -148,6 +150,26 @@ const POSFeaturesTab = ({
                                         </Typography>
                                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                                             Shows individual icons and buttons for Cash, UPI, Card, and other enabled payment methods.
+                                        </Typography>
+                                    </Box>
+                                }
+                                sx={{ alignItems: 'flex-start', m: 0 }}
+                            />
+
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={customerFeatureEnabled}
+                                        onChange={(e) => setCustomerFeatureEnabledState(e.target.checked)}
+                                    />
+                                }
+                                label={
+                                    <Box sx={{ ml: 1 }}>
+                                        <Typography variant="body1" fontWeight={600}>
+                                            Customer Linking
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                            Shows a customer search field on the POS screen. Search by name, phone, or customer ID to link a sale to a customer.
                                         </Typography>
                                     </Box>
                                 }

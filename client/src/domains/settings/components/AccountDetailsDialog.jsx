@@ -27,7 +27,6 @@ import AccountDetailsTab from '@/domains/settings/components/AccountDetailsTab';
 import DisplaySettingsTab from '@/domains/settings/components/DisplaySettingsTab';
 import POSFeaturesTab from '@/domains/settings/components/POSFeaturesTab';
 import WipeDatabaseConfirmation from '@/domains/settings/components/WipeDatabaseConfirmation';
-import WhatsAppSettingsTab from '@/domains/settings/components/WhatsAppSettingsTab';
 import {
   getChangeCalculatorEnabled,
   setChangeCalculatorEnabled,
@@ -43,6 +42,8 @@ import {
   setAdminAutoLogoutTime,
   DEFAULT_PAYMENT_SETTINGS,
   getDecodedPricesEnabled,
+  getCustomerFeatureEnabled,
+  setCustomerFeatureEnabled,
 } from '@/shared/utils/paymentSettings';
 
 const AccountDetailsDialog = ({
@@ -93,7 +94,7 @@ const AccountDetailsDialog = ({
   const [weightedAverageCostEnabled, setWeightedAverageCostEnabled] = useState(false);
   const [paymentSettings, setPaymentSettings] = useState(DEFAULT_PAYMENT_SETTINGS);
   const [showDecodedPrices, setShowDecodedPrices] = useState(getDecodedPricesEnabled());
-  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [customerFeatureEnabled, setCustomerFeatureEnabledState] = useState(getCustomerFeatureEnabled());
   const [tabValue, setTabValue] = useState(0);
 
   // Sync with metadata prop changes
@@ -172,9 +173,6 @@ const AccountDetailsDialog = ({
         if (settings.posPaymentSettings) {
           setPaymentSettings(settings.posPaymentSettings);
         }
-        if (settings.whatsappEnabled !== undefined) {
-          setWhatsappEnabled(!!settings.whatsappEnabled);
-        }
       } catch (error) {
         console.error('Failed to fetch UI settings:', error);
       }
@@ -208,6 +206,8 @@ const AccountDetailsDialog = ({
     localStorage.setItem(STORAGE_KEYS.enableExtraDiscount, JSON.stringify(extraDiscountEnabled));
     localStorage.setItem(STORAGE_KEYS.enableWeightedAverageCost, JSON.stringify(weightedAverageCostEnabled));
     localStorage.setItem(STORAGE_KEYS.notificationDuration, (notificationDuration * 1000).toString());
+    localStorage.setItem(STORAGE_KEYS.enableCustomerFeature, JSON.stringify(customerFeatureEnabled));
+    setCustomerFeatureEnabled(customerFeatureEnabled);
 
     // Dispatch events immediately for instant UI response
     window.dispatchEvent(new Event('pos-settings-updated'));
@@ -234,10 +234,6 @@ const AccountDetailsDialog = ({
         await settingsService.updateSettings({
           key: 'posPaymentSettings',
           value: paymentSettings,
-        });
-        await settingsService.updateSettings({
-          key: 'whatsappEnabled',
-          value: whatsappEnabled,
         });
       } catch (error) {
         console.error('Failed to save settings:', error);
@@ -372,7 +368,6 @@ const AccountDetailsDialog = ({
             <Tab label="POS Features" />
             <Tab label="Payment" />
             <Tab label="Display & Zoom" />
-            <Tab label="WhatsApp" />
           </Tabs>
         </Box>
 
@@ -427,6 +422,8 @@ const AccountDetailsDialog = ({
               setChangeCalculatorEnabledState={setChangeCalculatorEnabledState}
               paymentMethodsEnabled={paymentMethodsEnabled}
               setPaymentMethodsEnabledState={setPaymentMethodsEnabledState}
+              customerFeatureEnabled={customerFeatureEnabled}
+              setCustomerFeatureEnabledState={setCustomerFeatureEnabledState}
             />
           )}
 
@@ -447,14 +444,6 @@ const AccountDetailsDialog = ({
               setUiZoom={setUiZoom}
               monochrome={monochrome}
               setMonochrome={setMonochrome}
-            />
-          )}
-
-          {/* Tab 4: WhatsApp */}
-          {tabValue === 4 && (
-            <WhatsAppSettingsTab
-              whatsappEnabled={whatsappEnabled}
-              setWhatsappEnabled={setWhatsappEnabled}
             />
           )}
 

@@ -18,11 +18,9 @@ import { IPC } from '@/shared/ipcChannels';
 
 const SaleHistory = ({
   receiptSettings,
-  shopName,
   shopMetadata,
   printers = [],
   defaultPrinter = null,
-  whatsappEnabled,
   showError,
 }) => {
   const [sales, setSales] = useState([]);
@@ -321,8 +319,6 @@ const SaleHistory = ({
                 <POSSaleDetailsPanel
                   selectedSale={selectedSale}
                   stats={stats}
-                  whatsappEnabled={whatsappEnabled}
-                  shopName={shopName || 'Bachat Bazar'}
                 />
               </Grid>
             )}

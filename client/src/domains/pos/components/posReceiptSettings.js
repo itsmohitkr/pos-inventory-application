@@ -15,6 +15,7 @@ const DEFAULT_RECEIPT_SETTINGS = {
   exp: true,
   barcode: true,
   totalSavings: true,
+  customerDetails: true,
   customShopName: 'My Shop',
   customHeader: '123 Business Street, City',
   customHeader2: '',

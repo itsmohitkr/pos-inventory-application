@@ -18,8 +18,6 @@ export const usePOSSale = ({
   refocus,
   activeCustomer,
   clearCustomerOnSale,
-  whatsappEnabled,
-  shopName,
 }) => {
   const [lastSale, setLastSale] = useState(null);
   const [isPaying, setIsPaying] = useState(false);
@@ -50,16 +48,6 @@ export const usePOSSale = ({
       clearCustomerOnSale?.();
       fetchProducts();
       showNotification('Sale Completed Successfully!');
-      
-      // Send WhatsApp Receipt if enabled and customer present
-      if (whatsappEnabled && (customerOverride || activeCustomer)) {
-        const cust = customerOverride || activeCustomer;
-        import('@/domains/pos/components/captureReceipt').then(({ captureAndSendReceipt }) => {
-          captureAndSendReceipt(detailedRes, cust, shopName, receiptSettings, {})
-            .catch(err => console.error('Failed to send WhatsApp receipt:', err));
-        });
-      }
-
       refocus();
     } catch (error) {
       console.error(error);
@@ -68,7 +56,7 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale, receiptSettings, shopName, whatsappEnabled]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale]);
 
   const handlePayAndPrint = useCallback(async (selectedPaymentMethod, customerOverride) => {
     if (isPaying) return;
@@ -118,16 +106,6 @@ export const usePOSSale = ({
         setShowReceipt(true);
       }
       fetchProducts();
-      
-      // Send WhatsApp Receipt if enabled and customer present
-      if (whatsappEnabled && (customerOverride || activeCustomer)) {
-        const cust = customerOverride || activeCustomer;
-        import('@/domains/pos/components/captureReceipt').then(({ captureAndSendReceipt }) => {
-          captureAndSendReceipt(res.sale, cust, shopName, receiptSettings, {})
-            .catch(err => console.error('Failed to send WhatsApp receipt:', err));
-        });
-      }
-
       refocus();
     } catch (error) {
       console.error(error);
@@ -136,7 +114,7 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError, activeCustomer, clearCustomerOnSale, shopName, whatsappEnabled]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError, activeCustomer, clearCustomerOnSale]);
 
   const handlePrintLastReceipt = useCallback(async () => {
     if (lastSale) {

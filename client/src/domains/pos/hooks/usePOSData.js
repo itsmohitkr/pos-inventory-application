@@ -11,6 +11,7 @@ import {
   getPaymentMethodsEnabled,
   getCalculatorEnabled,
   getDecodedPricesEnabled,
+  getCustomerFeatureEnabled,
 } from '@/shared/utils/paymentSettings';
 import { getStoredReceiptSettings } from '@/domains/pos/components/posReceiptSettings';
 
@@ -56,7 +57,7 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
   const [looseSaleEnabled, setLooseSaleEnabled] = useState(
     () => localStorage.getItem('posLooseSaleEnabled') !== 'false'
   );
-  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [customerFeatureEnabled, setCustomerFeatureEnabled] = useState(() => getCustomerFeatureEnabled());
   const [promoSettings, setPromoSettings] = useState({ enabled: false, config: [] });
   const [productSales, setProductSales] = useState({});
   const [shopMetadata, setShopMetadata] = useState(
@@ -119,10 +120,6 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
         if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
         return next;
       });
-
-      if (sett.whatsappEnabled !== undefined) {
-        setWhatsappEnabled(!!sett.whatsappEnabled);
-      }
 
       if (sett.promotion_buy_x_get_free) {
         const data = sett.promotion_buy_x_get_free;
@@ -193,6 +190,7 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
       setDecodedPricesEnabledState(getDecodedPricesEnabled());
       setCalculatorEnabledState(getCalculatorEnabled());
       setLooseSaleEnabled(localStorage.getItem('posLooseSaleEnabled') !== 'false');
+      setCustomerFeatureEnabled(getCustomerFeatureEnabled());
     };
     window.addEventListener('pos-settings-updated', handleSettingsUpdated);
     return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
@@ -216,7 +214,7 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
     productSales,
     shopMetadata,
     fetchProducts,
-    whatsappEnabled,
+    customerFeatureEnabled,
     _refreshSettings,
   };
 };
