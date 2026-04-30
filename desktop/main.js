@@ -12,7 +12,7 @@ const {
 
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
-const Sentry = require("@sentry/electron");
+const Sentry = require("@sentry/electron/main");
 
 if (process.env.SENTRY_DSN) {
   Sentry.init({
