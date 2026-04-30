@@ -9,11 +9,15 @@ describe('Sale Domain API', () => {
 
     describe('POST /api/sale', () => {
         it('should checkout and record a sale successfully', async () => {
-            // Mock the stock deduction sequence
             prisma.$transaction.mockResolvedValue({
                 id: 1,
-                invoiceNumber: 'INV-1001',
                 totalAmount: 50,
+                discount: 0,
+                extraDiscount: 0,
+                paymentMethod: 'cash',
+                customerId: null,
+                createdAt: new Date(),
+                items: [],
             });
 
             const res = await request(app)
@@ -27,10 +31,39 @@ describe('Sale Domain API', () => {
                     paymentMethod: 'cash'
                 });
 
-            // Based on format: 'merge' pattern
             expect(res.status).toBe(201);
             expect(res.body.success).toBe(true);
-            expect(res.body.sale.invoiceNumber).toBe('INV-1001');
+            expect(res.body.sale.id).toBe(1);
+            expect(res.body.sale.totalAmount).toBe(50);
+            expect(prisma.$transaction).toHaveBeenCalled();
+        });
+
+        it('should link sale to customer when customerId is provided', async () => {
+            prisma.$transaction.mockResolvedValue({
+                id: 2,
+                totalAmount: 120,
+                discount: 0,
+                extraDiscount: 0,
+                paymentMethod: 'Cash',
+                customerId: 5,
+                createdAt: new Date(),
+                items: [],
+                customer: { id: 5, phone: '9876543210', name: 'Ravi' },
+            });
+
+            const res = await request(app)
+                .post('/api/sale')
+                .send({
+                    items: [{ batch_id: 1, quantity: 2, sellingPrice: 60, isFree: false }],
+                    discount: 0,
+                    extraDiscount: 0,
+                    paymentMethod: 'Cash',
+                    customerId: 5,
+                });
+
+            expect(res.status).toBe(201);
+            expect(res.body.success).toBe(true);
+            expect(res.body.sale.customerId).toBe(5);
             expect(prisma.$transaction).toHaveBeenCalled();
         });
     });
