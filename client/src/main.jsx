@@ -1,4 +1,32 @@
-import { StrictMode } from 'react';
+import { StrictMode, useEffect } from 'react';
+import * as Sentry from "@sentry/react";
+import { 
+  createRoutesFromElements, 
+  matchRoutes, 
+  useLocation, 
+  useNavigationType 
+} from "react-router-dom";
+
+if (import.meta.env.VITE_SENTRY_DSN) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    integrations: [
+      Sentry.reactRouterV6BrowserTracingIntegration({
+        useEffect,
+        useLocation,
+        useNavigationType,
+        createRoutesFromElements,
+        matchRoutes,
+      }),
+      Sentry.replayIntegration(),
+    ],
+    tracesSampleRate: 1.0,
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+    environment: import.meta.env.MODE || "production",
+  });
+}
+
 import { createRoot } from 'react-dom/client';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import { HashRouter } from 'react-router-dom';
