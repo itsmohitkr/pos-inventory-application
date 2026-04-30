@@ -30,6 +30,10 @@ server/prisma/pos.db.bak
 *.db
 *.db-journal
 
+# Migration cache (written next to pos.db at runtime)
+.migration-version
+server/prisma/.migration-version
+
 # OS files
 .DS_Store
 Thumbs.db
