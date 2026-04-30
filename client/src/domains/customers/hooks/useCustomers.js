@@ -12,13 +12,21 @@ export const useCustomers = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [order, setOrder] = useState('desc');
 
   const LIMIT = 50;
 
-  const fetchCustomers = useCallback(async (pageNum = 1, searchTerm = '') => {
+  const fetchCustomers = useCallback(async (pageNum = 1, searchTerm = '', sort = sortBy, ord = order) => {
     setIsLoading(true);
     try {
-      const res = await customerService.getAll({ page: pageNum, limit: LIMIT, search: searchTerm });
+      const res = await customerService.getAll({ 
+        page: pageNum, 
+        limit: LIMIT, 
+        search: searchTerm,
+        sortBy: sort,
+        order: ord
+      });
       setCustomers(res?.customers || []);
       setTotal(res?.total || 0);
     } catch (err) {
@@ -26,11 +34,11 @@ export const useCustomers = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [sortBy, order]);
 
   useEffect(() => {
-    fetchCustomers(page, search);
-  }, [fetchCustomers, page, search]);
+    fetchCustomers(page, search, sortBy, order);
+  }, [fetchCustomers, page, search, sortBy, order]);
 
   const handleSearchChange = useCallback((value) => {
     setSearch(value);
@@ -80,6 +88,10 @@ export const useCustomers = () => {
     isLoadingHistory,
     editingCustomer,
     LIMIT,
+    sortBy,
+    setSortBy,
+    order,
+    setOrder,
     setPage,
     handleSearchChange,
     openHistory,

@@ -1,33 +1,40 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import customerService from '@/shared/api/customerService';
 
-export const usePOSCustomer = ({ whatsappEnabled, showNotification, shopName }) => {
+export const usePOSCustomer = ({ showNotification, shopName }) => {
   const [activeCustomer, setActiveCustomer] = useState(null);
   const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const debounceRef = useRef(null);
+
+  const searchCustomers = useCallback((query) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query || query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await customerService.getAll({ search: query, limit: 8 });
+        setSearchResults(res.customers || res.data || []);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  }, []);
 
   const lookupByPhone = useCallback(async (phone) => {
     if (!phone?.trim()) return null;
     setIsLoadingCustomer(true);
     try {
       const res = await customerService.findOrCreate(phone.trim());
-      const { customer, isNew } = res;
+      const { customer } = res;
       setActiveCustomer(customer);
-
-      if (isNew && whatsappEnabled) {
-        try {
-          await customerService.sendBarcode({
-            phone: customer.phone,
-            barcode: customer.customerBarcode,
-            shopName,
-            customerName: customer.name,
-          });
-          showNotification(`New customer registered. Barcode sent via WhatsApp ✓`);
-        } catch {
-          showNotification(`Customer registered. WhatsApp send failed — barcode: ${customer.customerBarcode}`, 'warning');
-        }
-      } else {
-        showNotification(`Customer: ${customer.name || customer.phone}`);
-      }
+      showNotification(`Customer: ${customer.name || customer.phone}`);
       return customer;
     } catch (err) {
       showNotification(err.response?.data?.error || 'Customer lookup failed', 'error');
@@ -35,7 +42,7 @@ export const usePOSCustomer = ({ whatsappEnabled, showNotification, shopName }) 
     } finally {
       setIsLoadingCustomer(false);
     }
-  }, [whatsappEnabled, showNotification, shopName]);
+  }, [showNotification]);
 
   const lookupByBarcode = useCallback(async (barcode) => {
     setIsLoadingCustomer(true);
@@ -59,15 +66,49 @@ export const usePOSCustomer = ({ whatsappEnabled, showNotification, shopName }) 
     return lookupByPhone(query);
   }, [lookupByBarcode, lookupByPhone]);
 
-  const detachCustomer = useCallback(() => setActiveCustomer(null), []);
+  const selectCustomer = useCallback((customer) => {
+    setActiveCustomer(customer);
+    setSearchResults([]);
+    showNotification(`Customer: ${customer.name || customer.phone}`);
+  }, [showNotification]);
 
-  const clearOnSale = useCallback(() => setActiveCustomer(null), []);
+  const detachCustomer = useCallback(() => {
+    setActiveCustomer(null);
+    setSearchResults([]);
+  }, []);
+
+  const clearOnSale = useCallback(() => {
+    setActiveCustomer(null);
+    setSearchResults([]);
+  }, []);
+
+  const registerCustomer = useCallback(async (phone, name) => {
+    if (!phone?.trim()) return null;
+    setIsLoadingCustomer(true);
+    try {
+      const res = await customerService.findOrCreate(phone.trim(), name?.trim());
+      const { customer } = res;
+      setActiveCustomer(customer);
+      showNotification(`Customer Saved: ${customer.name || customer.phone}`);
+      return customer;
+    } catch (err) {
+      showNotification(err.response?.data?.error || 'Registration failed', 'error');
+      return null;
+    } finally {
+      setIsLoadingCustomer(false);
+    }
+  }, [showNotification]);
 
   return {
     activeCustomer,
     isLoadingCustomer,
+    searchResults,
+    isSearching,
+    searchCustomers,
     lookupCustomer,
+    selectCustomer,
     detachCustomer,
     clearOnSale,
+    registerCustomer,
   };
 };

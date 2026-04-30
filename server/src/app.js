@@ -75,7 +75,6 @@ apiRouter.use('/expenses', lazyLoad('./domains/expense/expense.router'));
 apiRouter.use('/purchases', lazyLoad('./domains/purchase/purchase.router'));
 apiRouter.use('/settings', lazyLoad('./domains/setting/setting.router'));
 apiRouter.use('/customers', lazyLoad('./domains/customer/customer.router'));
-apiRouter.use('/whatsapp', lazyLoad('./domains/whatsapp/whatsapp.router'));
 
 // Handle legacy un-prefixed routes if any (all should be prefixed now)
 // Note: If any routes were previously mounted without prefix (e.g. app.use(productRoutes)), 

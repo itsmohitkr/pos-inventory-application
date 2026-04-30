@@ -63,8 +63,6 @@ export const useSettings = (showError) => {
     shopGST: '',
     shopLogo: '',
   });
-  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
-
   const fetchSettings = useCallback(async function runFetch(retries = 3) {
     try {
       const settings = await settingsService.fetchSettings();
@@ -82,9 +80,6 @@ export const useSettings = (showError) => {
         shopGST: data.shopGST || '',
         shopLogo: data.shopLogo || '',
       });
-      if (data.whatsappEnabled !== undefined) {
-        setWhatsappEnabled(!!data.whatsappEnabled);
-      }
     } catch (error) {
       console.error(`Failed to fetch settings (remaining retries: ${retries}):`, error);
       if (retries > 0) {
@@ -220,7 +215,5 @@ export const useSettings = (showError) => {
     handleShopMetadataChange,
     handleSaveBillSettings,
     fetchSettings,
-    whatsappEnabled,
-    setWhatsappEnabled,
   };
 };

@@ -52,7 +52,7 @@ const POS = ({
     decodedPricesEnabled,
     changeCalculatorEnabled,
     paymentMethodsEnabled,
-    whatsappEnabled,
+    customerFeatureEnabled,
   } = usePOSData(propReceiptSettings, propShopMetadata);
 
   const {
@@ -106,9 +106,10 @@ const POS = ({
   const [scannedProduct, setScannedProduct] = useState(null);
   const [manualQuantityItem, setManualQuantityItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [customerSearchValue, setCustomerSearchValue] = useState('');
+  const [customerNameValue, setCustomerNameValue] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [receivedAmount, setReceivedAmount] = useState(0);
-  const [customerSearchValue, setCustomerSearchValue] = useState('');
 
   const [notification, setNotification] = useState({
     open: false,
@@ -120,12 +121,21 @@ const POS = ({
     setNotification({ open: true, message, severity });
   }, []);
 
-  const { activeCustomer, isLoadingCustomer, lookupCustomer, detachCustomer, clearOnSale } =
-    usePOSCustomer({
-      whatsappEnabled,
-      showNotification,
-      shopName: propShopName || 'Bachat Bazar',
-    });
+  const {
+    activeCustomer,
+    isLoadingCustomer,
+    searchResults,
+    isSearching,
+    searchCustomers,
+    lookupCustomer,
+    selectCustomer,
+    detachCustomer,
+    clearOnSale,
+    registerCustomer,
+  } = usePOSCustomer({
+    showNotification,
+    shopName: propShopName || 'Bachat Bazar',
+  });
 
   const {
     lastSale,
@@ -148,7 +158,6 @@ const POS = ({
     refocus,
     activeCustomer,
     clearCustomerOnSale: clearOnSale,
-    whatsappEnabled,
     shopName: propShopName || 'Bachat Bazar',
   });
 
@@ -341,21 +350,27 @@ const POS = ({
   // Keyboard Shortcuts handlers (memoized to avoid re-registration churn)
   const handlePayWithCustomerSync = useCallback(async (method) => {
     let customer = activeCustomer;
-    if (!customer && customerSearchValue.trim()) {
-      customer = await lookupCustomer(customerSearchValue.trim());
-      if (customer) setCustomerSearchValue('');
+    if (!customer && customerSearchValue.trim().length === 10) {
+      customer = await registerCustomer(customerSearchValue.trim(), customerNameValue.trim());
+      if (customer) {
+        setCustomerSearchValue('');
+        setCustomerNameValue('');
+      }
     }
     return handlePay(method, customer);
-  }, [activeCustomer, customerSearchValue, lookupCustomer, handlePay]);
+  }, [activeCustomer, customerSearchValue, customerNameValue, registerCustomer, handlePay]);
 
   const handlePayAndPrintWithCustomerSync = useCallback(async (method) => {
     let customer = activeCustomer;
-    if (!customer && customerSearchValue.trim()) {
-      customer = await lookupCustomer(customerSearchValue.trim());
-      if (customer) setCustomerSearchValue('');
+    if (!customer && customerSearchValue.trim().length === 10) {
+      customer = await registerCustomer(customerSearchValue.trim(), customerNameValue.trim());
+      if (customer) {
+        setCustomerSearchValue('');
+        setCustomerNameValue('');
+      }
     }
     return handlePayAndPrint(method, customer);
-  }, [activeCustomer, customerSearchValue, lookupCustomer, handlePayAndPrint]);
+  }, [activeCustomer, customerSearchValue, customerNameValue, registerCustomer, handlePayAndPrint]);
 
   const posShortcutHandlers = useMemo(
     () => ({
@@ -438,7 +453,7 @@ const POS = ({
             filterOptions={filterOptions}
             onLooseSale={() => setShowLooseSaleDialog(true)}
             looseSaleEnabled={looseSaleEnabled}
-            onCustomerBarcode={whatsappEnabled ? lookupCustomer : undefined}
+            onCustomerBarcode={customerFeatureEnabled ? lookupCustomer : undefined}
           />
           <CartTable
             cart={cart}
@@ -556,13 +571,20 @@ const POS = ({
             showNumpad={showNumpad}
             setShowNumpad={setShowNumpad}
             setShowDiscountNumpad={setShowDiscountNumpad}
-            whatsappEnabled={whatsappEnabled}
+            customerFeatureEnabled={customerFeatureEnabled}
             activeCustomer={activeCustomer}
+            onCustomerSelect={selectCustomer}
             onCustomerLookup={lookupCustomer}
             onCustomerDetach={detachCustomer}
             isLoadingCustomer={isLoadingCustomer}
+            searchResults={searchResults}
+            isSearching={isSearching}
+            onCustomerSearch={searchCustomers}
             customerSearchValue={customerSearchValue}
-            onCustomerSearchChange={setCustomerSearchValue}
+            setCustomerSearchValue={setCustomerSearchValue}
+            customerNameValue={customerNameValue}
+            setCustomerNameValue={setCustomerNameValue}
+            onCustomerRegister={registerCustomer}
           />
         </Box>
 
@@ -602,12 +624,14 @@ const POS = ({
         setShowDiscountNumpad={setShowDiscountNumpad}
         discount={discount}
         setDiscount={setDiscount}
+        customerFeatureEnabled={customerFeatureEnabled}
       />
 
       <POSPrintContainer
         lastSale={lastSale}
         receiptSettings={receiptSettings}
         shopMetadata={shopMetadata}
+        customerFeatureEnabled={customerFeatureEnabled}
       />
     </>
   );

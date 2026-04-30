@@ -81,7 +81,6 @@ function App() {
     handleShopMetadataChange,
     handleSaveBillSettings,
     isFullscreen,
-    whatsappEnabled,
   } = useSettings(showError);
 
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
@@ -195,7 +194,6 @@ function App() {
                 shopMetadata={shopMetadata}
                 printers={printers}
                 defaultPrinter={defaultPrinter}
-                whatsappEnabled={whatsappEnabled}
                 showError={showError}
               />
             }
@@ -231,7 +229,7 @@ function App() {
           />
         )}
         {permissions.canAccessCustomers && (
-          <Route path="/customers" element={<CustomersPage whatsappEnabled={whatsappEnabled} shopName={shopName} />} />
+          <Route path="/customers" element={<CustomersPage />} />
         )}
       </Routes>
 

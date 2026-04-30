@@ -11,6 +11,7 @@ export const RECEIPT_VISIBILITY_FIELDS = [
   'exp',
   'barcode',
   'totalSavings',
+  'customerDetails',
 ];
 
 export const resolvePrinterName = ({ receiptSettings, printers = [], defaultPrinter = null }) => {

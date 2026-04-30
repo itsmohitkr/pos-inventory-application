@@ -7,11 +7,12 @@ import CustomerListTable from '@/domains/customers/components/CustomerListTable'
 import CustomerHistoryDrawer from '@/domains/customers/components/CustomerHistoryDrawer';
 import EditCustomerDialog from '@/domains/customers/components/EditCustomerDialog';
 
-const CustomersPage = ({ whatsappEnabled, shopName }) => {
+const CustomersPage = () => {
   const {
     customers, total, page, search, isLoading,
     selectedCustomer, historyData, isLoadingHistory, LIMIT,
     editingCustomer, openEdit, closeEdit, handleSaveEdit,
+    sortBy, setSortBy, order, setOrder,
     setPage, handleSearchChange, openHistory, closeHistory, fetchCustomers,
   } = useCustomers();
 
@@ -46,11 +47,13 @@ const CustomersPage = ({ whatsappEnabled, shopName }) => {
         page={page}
         limit={LIMIT}
         isLoading={isLoading}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        order={order}
+        setOrder={setOrder}
         onPageChange={setPage}
         onRowClick={openHistory}
         onEdit={openEdit}
-        whatsappEnabled={whatsappEnabled}
-        shopName={shopName}
       />
 
       {/* History Drawer */}

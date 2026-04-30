@@ -139,113 +139,113 @@ const SalesListPanel = ({
           <TableBody>
             {saleType === 'pos'
               ? sales.map((sale) => (
-                  <TableRow
-                    key={sale.id}
-                    id={`sale-row-${sale.id}`}
-                    hover
-                    selected={selectedSale?.id === sale.id}
-                    onClick={() => onSelectSale(sale)}
-                    sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: '#e3f2fd' } }}
-                  >
-                    <TableCell sx={{ fontWeight: 600 }}>ORD-{sale.id}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {new Date(sale.createdAt).toLocaleDateString()}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(sale.createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
-                      ₹{sale.netTotalAmount.toFixed(2)}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={sale.paymentMethod || 'Cash'}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: '0.7rem',
-                          color: sale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
-                          borderColor: sale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      {(() => {
-                        const refundStatus = getRefundStatus(sale.items);
-                        const display = getStatusDisplay(refundStatus);
-                        return (
-                          <Chip
-                            label={display.label}
-                            size="small"
-                            sx={{
-                              bgcolor: display.bgcolor,
-                              color: display.color,
-                              fontWeight: 700,
-                            }}
-                          />
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
-                        <IconButton
+                <TableRow
+                  key={sale.id}
+                  id={`sale-row-${sale.id}`}
+                  hover
+                  selected={selectedSale?.id === sale.id}
+                  onClick={() => onSelectSale(sale)}
+                  sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: '#e3f2fd' } }}
+                >
+                  <TableCell sx={{ fontWeight: 600 }}>ORD-{sale.id}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {new Date(sale.createdAt).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(sale.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    ₹{sale.netTotalAmount.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      label={sale.paymentMethod || 'Cash'}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: '0.7rem',
+                        color: sale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
+                        borderColor: sale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    {(() => {
+                      const refundStatus = getRefundStatus(sale.items);
+                      const display = getStatusDisplay(refundStatus);
+                      return (
+                        <Chip
+                          label={display.label}
                           size="small"
-                          onClick={() => onPrintReceipt(sale)}
-                          color="success"
-                        >
-                          <PrintIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => onRefund(sale)} color="error">
-                          <RefundIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))
-              : looseSales.map((sale) => (
-                  <TableRow
-                    key={sale.id}
-                    id={`sale-row-${sale.id}`}
-                    hover
-                    selected={selectedSale?.id === sale.id}
-                    onClick={() => onSelectSale(sale)}
-                    sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: '#fff3e0' } }}
-                  >
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#e65100' }}>
-                        {sale.itemName || 'Loose Item'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        LOO-{sale.id}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {new Date(sale.createdAt).toLocaleDateString()}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(sale.createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
-                      ₹{sale.price.toFixed(2)}
-                    </TableCell>
-                    <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                      <IconButton size="small" color="error" onClick={() => onDeleteLoose(sale.id)}>
-                        <DeleteIcon fontSize="small" />
+                          sx={{
+                            bgcolor: display.bgcolor,
+                            color: display.color,
+                            fontWeight: 700,
+                          }}
+                        />
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => onPrintReceipt(sale)}
+                        color="success"
+                      >
+                        <PrintIcon fontSize="small" />
                       </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      <IconButton size="small" onClick={() => onRefund(sale)} color="error">
+                        <RefundIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))
+              : looseSales.map((sale) => (
+                <TableRow
+                  key={sale.id}
+                  id={`sale-row-${sale.id}`}
+                  hover
+                  selected={selectedSale?.id === sale.id}
+                  onClick={() => onSelectSale(sale)}
+                  sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: '#fff3e0' } }}
+                >
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#e65100' }}>
+                      {sale.itemName || 'Loose Item'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      LOO-{sale.id}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {new Date(sale.createdAt).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(sale.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    ₹{sale.price.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                    <IconButton size="small" color="error" onClick={() => onDeleteLoose(sale.id)}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
             {(saleType === 'pos' ? sales.length : looseSales.length) === 0 && (
               <TableRow>
                 <TableCell colSpan={saleType === 'pos' ? 6 : 4} align="center" sx={{ py: 8 }}>

@@ -22,7 +22,6 @@ const SaleHistory = ({
   shopMetadata,
   printers = [],
   defaultPrinter = null,
-  whatsappEnabled,
   showError,
 }) => {
   const [sales, setSales] = useState([]);
@@ -321,8 +320,6 @@ const SaleHistory = ({
                 <POSSaleDetailsPanel
                   selectedSale={selectedSale}
                   stats={stats}
-                  whatsappEnabled={whatsappEnabled}
-                  shopName={shopName || 'Bachat Bazar'}
                 />
               </Grid>
             )}

@@ -21,11 +21,21 @@ const generateCustomerBarcode = async () => {
 
 const findOrCreateCustomer = async ({ phone, name }) => {
   const existing = await prisma.customer.findUnique({ where: { phone } });
-  if (existing) return { customer: existing, isNew: false };
+  if (existing) {
+    // If customer exists but has no name, and we have one now, update it
+    if (!existing.name && name) {
+      const updated = await prisma.customer.update({
+        where: { id: existing.id },
+        data: { name: name.trim() },
+      });
+      return { customer: updated, isNew: false };
+    }
+    return { customer: existing, isNew: false };
+  }
 
   const customerBarcode = await generateCustomerBarcode();
   const customer = await prisma.customer.create({
-    data: { phone, name: name || null, customerBarcode },
+    data: { phone, name: name?.trim() || null, customerBarcode },
   });
   return { customer, isNew: true };
 };
@@ -62,7 +72,7 @@ const updateCustomer = async (id, { name, phone }) => {
   return updated;
 };
 
-const getAllCustomers = async ({ page = 1, limit = 50, search = '' }) => {
+const getAllCustomers = async ({ page = 1, limit = 50, search = '', sortBy = 'createdAt', order = 'desc' }) => {
   const skip = (page - 1) * limit;
   const where = search
     ? {
@@ -74,25 +84,42 @@ const getAllCustomers = async ({ page = 1, limit = 50, search = '' }) => {
       }
     : {};
 
+  // Map frontend sort keys to Prisma sort objects
+  let orderBy = { [sortBy]: order };
+  
+  if (sortBy === 'purchases') {
+    orderBy = { sales: { _count: order } };
+  } else if (sortBy === 'lastVisit') {
+    orderBy = { lastVisit: order };
+  } else if (sortBy === 'totalSpend') {
+    orderBy = { totalSpend: order };
+  }
+
   const [customers, total] = await Promise.all([
     prisma.customer.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       include: {
         _count: { select: { sales: true } },
         sales: {
           orderBy: { createdAt: 'desc' },
           take: 1,
-          select: { createdAt: true, totalAmount: true },
-        },
+          select: { createdAt: true }
+        }
       },
     }),
     prisma.customer.count({ where }),
   ]);
 
-  return { customers, total, page, limit };
+  // Map to include fallback for lastVisit
+  const customersWithFallback = customers.map(c => ({
+    ...c,
+    lastVisit: c.lastVisit || c.sales?.[0]?.createdAt || null
+  }));
+
+  return { customers: customersWithFallback, total, page, limit, sortBy, order };
 };
 
 const getCustomerById = async (id) => {

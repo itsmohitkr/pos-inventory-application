@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   enableDecodedPrices: 'posEnableDecodedPrices',
   adminAutoLogoutTime: 'posAdminAutoLogoutTime',
   enableWeightedAverageCost: 'posEnableWeightedAverageCost',
+  enableCustomerFeature: 'posEnableCustomerFeature',
   receipt: 'posReceiptSettings',
   shopName: 'posShopName',
 };
@@ -180,5 +181,23 @@ export const setWeightedAverageCostEnabled = (enabled) => {
     window.dispatchEvent(new Event('pos-settings-updated'));
   } catch (error) {
     console.error('Failed to save WAC setting:', error);
+  }
+};
+
+export const getCustomerFeatureEnabled = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.enableCustomerFeature);
+    return stored ? JSON.parse(stored) : false;
+  } catch {
+    return false;
+  }
+};
+
+export const setCustomerFeatureEnabled = (enabled) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.enableCustomerFeature, JSON.stringify(enabled));
+    window.dispatchEvent(new Event('pos-settings-updated'));
+  } catch (error) {
+    console.error('Failed to save customer feature setting:', error);
   }
 };

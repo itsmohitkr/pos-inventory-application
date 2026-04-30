@@ -48,6 +48,7 @@ const ReceiptPreviewDialog = ({
   shopMetadata,
   printers = [],
   defaultPrinter = null,
+  customerFeatureEnabled = true,
 }) => {
   const [snackbar, setSnackbar] = React.useState({ open: false, message: '', severity: 'info' });
 
@@ -430,7 +431,15 @@ const ReceiptPreviewDialog = ({
             }}
           >
             <Paper elevation={10} sx={{ height: 'fit-content', mb: 4 }}>
-              <Receipt sale={lastSale} settings={receiptSettings} shopMetadata={shopMetadata} />
+              <Receipt 
+                sale={lastSale ? {
+                  ...lastSale,
+                  customer: lastSale.customer || (receiptSettings.customerDetails ? { name: 'Mohit Kumar', phone: '9876543210' } : null)
+                } : null} 
+                settings={receiptSettings} 
+                shopMetadata={shopMetadata} 
+                customerFeatureEnabled={customerFeatureEnabled}
+              />
             </Paper>
           </Grid>
         </Grid>

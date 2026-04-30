@@ -33,7 +33,10 @@ const getAllCustomers = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const search = req.query.search || '';
-    const result = await customerService.getAllCustomers({ page, limit, search });
+    const sortBy = req.query.sortBy || 'createdAt';
+    const order = req.query.order || 'desc';
+    
+    const result = await customerService.getAllCustomers({ page, limit, search, sortBy, order });
     return sendSuccessResponse(res, StatusCodes.OK, result, 'Customers fetched', { format: 'raw' });
   } catch (error) {
     return mapCustomerError(error);
