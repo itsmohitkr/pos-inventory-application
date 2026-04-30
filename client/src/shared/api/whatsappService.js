@@ -6,6 +6,16 @@ const whatsappService = {
     return response.data;
   },
 
+  getBrowserStatus: async () => {
+    const response = await api.get('/api/whatsapp/browser-status');
+    return response.data;
+  },
+
+  installBrowser: async () => {
+    const response = await api.post('/api/whatsapp/install-browser');
+    return response.data;
+  },
+
   initialize: async () => {
     const response = await api.post('/api/whatsapp/initialize');
     return response.data;

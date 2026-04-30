@@ -1,20 +1,49 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Button, CircularProgress, Typography, Chip } from '@mui/material';
+import { Box, Button, CircularProgress, Typography, Chip, LinearProgress } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   QrCode2 as QrCodeIcon,
   WifiOff as DisconnectedIcon,
   ErrorOutline as ErrorIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import whatsappService from '@/shared/api/whatsappService';
 
 const POLL_INTERVAL = 3000;
+const INSTALL_POLL_INTERVAL = 1000;
+
+const formatBytes = (bytes) => {
+  if (!bytes) return '0 MB';
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(1)} MB`;
+};
 
 const WhatsAppQRPanel = () => {
+  // Browser install state — gate that runs before any WhatsApp UI
+  const [browserStatus, setBrowserStatus] = useState('checking');
+  const [installProgress, setInstallProgress] = useState({ progress: 0, bytesDownloaded: 0, bytesTotal: 0 });
+  const [browserError, setBrowserError] = useState(null);
+
+  // WhatsApp connection state
   const [status, setStatus] = useState('disconnected');
   const [qr, setQr] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const fetchBrowserStatus = useCallback(async () => {
+    try {
+      const res = await whatsappService.getBrowserStatus();
+      setBrowserStatus(res?.status || 'missing');
+      setInstallProgress({
+        progress: res?.progress || 0,
+        bytesDownloaded: res?.bytesDownloaded || 0,
+        bytesTotal: res?.bytesTotal || 0,
+      });
+      setBrowserError(res?.error || null);
+    } catch {
+      // Server may not be ready
+    }
+  }, []);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -23,15 +52,39 @@ const WhatsAppQRPanel = () => {
       setQr(res?.qr || null);
       setErrorMessage(res?.error || null);
     } catch {
-      // Server may not be ready; silently ignore
+      // Server may not be ready
     }
   }, []);
 
+  // Poll browser status. While installing we poll faster so the progress bar
+  // looks responsive. Once ready, we switch to the WhatsApp status poll.
   useEffect(() => {
+    fetchBrowserStatus();
+    const interval = setInterval(
+      fetchBrowserStatus,
+      browserStatus === 'installing' ? INSTALL_POLL_INTERVAL : POLL_INTERVAL
+    );
+    return () => clearInterval(interval);
+  }, [fetchBrowserStatus, browserStatus]);
+
+  // Only poll WhatsApp connection status once the browser is installed.
+  useEffect(() => {
+    if (browserStatus !== 'ready') return;
     fetchStatus();
     const interval = setInterval(fetchStatus, POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [fetchStatus]);
+  }, [fetchStatus, browserStatus]);
+
+  const handleInstallBrowser = async () => {
+    setLoading(true);
+    try {
+      await whatsappService.installBrowser();
+      // Server now downloads in the background. Our poll picks up progress.
+      await fetchBrowserStatus();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleConnect = async () => {
     setLoading(true);
@@ -54,6 +107,88 @@ const WhatsAppQRPanel = () => {
       setLoading(false);
     }
   };
+
+  // ── Browser install gate ────────────────────────────────────────────────────
+  // Until the headless browser component is installed, we never show the
+  // WhatsApp Connect button — clicking it would only fail.
+
+  if (browserStatus === 'checking') {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 3 }}>
+        <CircularProgress size={32} />
+      </Box>
+    );
+  }
+
+  if (browserStatus === 'installing') {
+    const { progress, bytesDownloaded, bytesTotal } = installProgress;
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 3, px: 4 }}>
+        <DownloadIcon sx={{ fontSize: 48, color: '#25D366' }} />
+        <Typography variant="subtitle1" fontWeight="bold">
+          Downloading WhatsApp browser component…
+        </Typography>
+        <Typography variant="body2" color="text.secondary" textAlign="center">
+          One-time setup. {formatBytes(bytesDownloaded)} of {formatBytes(bytesTotal)} ({progress}%)
+        </Typography>
+        <Box sx={{ width: '100%', maxWidth: 320 }}>
+          <LinearProgress variant="determinate" value={progress} />
+        </Box>
+        <Typography variant="caption" color="text.secondary" textAlign="center">
+          You can leave this page — the download will continue in the background.
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (browserStatus === 'missing') {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 3, px: 4 }}>
+        <DownloadIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+        <Typography variant="subtitle1" fontWeight="bold" textAlign="center">
+          One-time WhatsApp setup
+        </Typography>
+        <Typography variant="body2" color="text.secondary" textAlign="center">
+          WhatsApp needs a small browser component (~150 MB) to connect to WhatsApp Web.
+          This is a one-time download — internet is required only for setup.
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
+          onClick={handleInstallBrowser}
+          disabled={loading}
+          sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
+        >
+          Set up WhatsApp
+        </Button>
+      </Box>
+    );
+  }
+
+  if (browserStatus === 'error') {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 3, px: 4 }}>
+        <ErrorIcon sx={{ fontSize: 48, color: 'error.main' }} />
+        <Typography variant="body2" color="error" textAlign="center">
+          {browserError || 'Browser component download failed.'}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" textAlign="center">
+          Check your internet connection and try again.
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
+          onClick={handleInstallBrowser}
+          disabled={loading}
+          sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
+        >
+          Retry download
+        </Button>
+      </Box>
+    );
+  }
+
+  // ── WhatsApp connection states (browser is installed) ───────────────────────
 
   if (status === 'ready') {
     return (

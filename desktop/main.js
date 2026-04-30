@@ -528,6 +528,10 @@ const startServer = () => {
       process.env.PORT = SERVER_PORT;
       process.env.NODE_ENV = isDev ? 'development' : 'production';
       process.env.WA_SESSION_PATH = path.join(appDataPath, 'whatsapp-session');
+      // Where @puppeteer/browsers downloads chrome-headless-shell on first
+      // WhatsApp setup. Stored in userData so installs survive app updates
+      // (they live outside the asar) and per-user (not per-machine).
+      process.env.PUPPETEER_CACHE_DIR = path.join(appDataPath, 'puppeteer-cache');
 
       const serverDir = isDev
         ? path.resolve(__dirname, '../server')
