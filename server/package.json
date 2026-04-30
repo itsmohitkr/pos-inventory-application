@@ -16,7 +16,6 @@
   "type": "commonjs",
   "dependencies": {
     "@sentry/node": "^10.51.0",
-    "@sentry/profiling-node": "^10.51.0",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",
