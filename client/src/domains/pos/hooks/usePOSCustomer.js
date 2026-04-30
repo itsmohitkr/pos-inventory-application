@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import customerService from '@/shared/api/customerService';
 
-export const usePOSCustomer = ({ showNotification, shopName }) => {
+export const usePOSCustomer = ({ showNotification }) => {
   const [activeCustomer, setActiveCustomer] = useState(null);
   const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
   const [searchResults, setSearchResults] = useState([]);

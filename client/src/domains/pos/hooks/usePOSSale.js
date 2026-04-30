@@ -18,7 +18,6 @@ export const usePOSSale = ({
   refocus,
   activeCustomer,
   clearCustomerOnSale,
-  shopName,
 }) => {
   const [lastSale, setLastSale] = useState(null);
   const [isPaying, setIsPaying] = useState(false);

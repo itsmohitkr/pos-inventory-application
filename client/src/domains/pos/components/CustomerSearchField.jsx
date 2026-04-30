@@ -23,7 +23,6 @@ const PHONE_RE = /^\d{10}$/;
 const CustomerSearchField = ({
   activeCustomer,
   onSelect,
-  onLookup,
   onDetach,
   isLoading,
   searchResults = [],

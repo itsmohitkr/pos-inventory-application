@@ -18,7 +18,6 @@ import { IPC } from '@/shared/ipcChannels';
 
 const SaleHistory = ({
   receiptSettings,
-  shopName,
   shopMetadata,
   printers = [],
   defaultPrinter = null,
