@@ -90,7 +90,10 @@ jobs:
             server/package-lock.json
 
       - name: Update version
-        run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
+        run: |
+          TAG="${{ github.ref_name }}"
+          NUM="${TAG#v}"
+          npm version "1.0.$NUM" --no-git-tag-version
 
       - name: Install root dependencies
         run: npm ci
@@ -145,7 +148,10 @@ jobs:
             server/package-lock.json
 
       - name: Update version
-        run: npm version 1.0.${{ github.run_number }} --no-git-tag-version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $num = $tag.TrimStart('v')
+          npm version "1.0.$num" --no-git-tag-version
 
       - name: Install root dependencies
         run: npm ci
