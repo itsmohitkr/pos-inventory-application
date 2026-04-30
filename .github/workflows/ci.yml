@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm install
+
+      - name: Install Client Dependencies
+        run: cd client && npm install
+
+      - name: Install Server Dependencies
+        run: cd server && npm install
+
+      # 1. LINTING
+      - name: Lint Client
+        run: cd client && npm run lint
+      
+      # 2. PRISMA & DATABASE INTEGRITY
+      - name: Validate Prisma Schema
+        run: |
+          cd server
+          npx prisma validate
+          npx prisma migrate status || (echo "Migrations are out of sync with schema!" && exit 1)
+
+      # 3. UNIT TESTS
+      - name: Run Server Unit Tests
+        run: |
+          cd server
+          # Ensure .env exists for tests if needed, or use env vars
+          echo "DATABASE_URL=\"file:./test.db\"" > .env
+          npx prisma migrate deploy
+          npm test
+
+      - name: Run Client Unit Tests
+        run: cd client && npm run test:unit
+
+      # 4. BUILD VERIFICATION
+      - name: Build Client
+        run: cd client && npm run build
+
+      - name: Build Desktop (Check for compilation errors)
+        # We don't need to do a full pack, just ensure vite and scripts work
+        run: npm run client-build
+
+      # 5. E2E TESTS (Optional: This can be slow, but it's the safest check)
+      - name: Install Playwright Browsers
+        run: cd client && npx playwright install --with-deps chromium
+
+      - name: Run E2E Tests
+        run: cd client && npx playwright test --project=chromium
+        env:
+          # You might need to provide a test DB URL here if your E2E tests need it
+          DATABASE_URL: "file:./e2e.db"
+
+  # 6. SLACK/DISCORD NOTIFICATION (Optional but recommended)
+  # notify:
+  #   needs: lint-and-test
+  #   if: failure()
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Notify on failure
+  #       run: # Add your notification script here
