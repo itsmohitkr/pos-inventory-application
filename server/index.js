@@ -296,70 +296,117 @@ async function seedDefaults(prisma, logger) {
 // migrated and seeded — this is the only way to guarantee no API request
 // ever hits a half-initialised schema.
 
-async function main() {
-  // Fail fast at the top level: any unhandled error here is logged with full
-  // detail. Caller (server-wrapper.js → desktop/main.js) shows a dialog.
-  try {
-    tlog('Loading prisma client...');
-    const prisma = require('./src/config/prisma');
-    tlog('Prisma client loaded');
+let isSystemReady = false;
+let systemError = null;
 
-    const logger = require('./src/shared/utils/logger');
-
-    sendSplashMsg('Checking database...');
-    await ensureMigrationsApplied(prisma, logger);
-
-    sendSplashMsg('Loading data...');
-    await seedDefaults(prisma, logger);
-    tlog('Seeding done');
-
-    tlog('Loading express app...');
-    const app = require('./src/app');
-    tlog('Express app loaded');
-
-    app.on('error', (err) => {
-      logger.error({ err: err.message, code: err.code }, '[BOOT FATAL] Server error');
-      if (err.code === 'EADDRINUSE') {
-        logger.error(`[BOOT FATAL] Port ${PORT} already in use`);
-      }
-      process.exit(1);
-    });
-
-    await new Promise((resolve, reject) => {
-      const server = app.listen(PORT, '127.0.0.1', () => {
-        tlog(`Server listening on port ${PORT}`);
-        sendSplashMsg('Starting UI...');
-        resolve();
-      });
-      server.once('error', reject);
-    });
-
-    // ── Non-critical post-listen tasks ──
-    // These don't block the UI — the user can already use the app.
-
-    setImmediate(() => {
-      migratePasswordsToHash(prisma, logger).catch(() => {});
-    });
-
-    // Delay WhatsApp auto-reconnect so Puppeteer/Chromium doesn't compete
-    // with app loading. 15 s is enough for the user to start interacting.
-    setTimeout(async () => {
-      try {
-        const whatsappService = require('./src/domains/whatsapp/whatsapp.service');
-        const isWaEnabled = await whatsappService.isEnabled();
-        if (isWaEnabled) {
-          logger.info('[BOOT] WhatsApp enabled — auto-reconnecting session...');
-          whatsappService.initializeClient();
-        }
-      } catch (waErr) {
-        logger.warn({ err: waErr.message }, '[BOOT] Failed to auto-init WhatsApp');
-      }
-    }, 15_000);
-  } catch (err) {
-    console.error('[BOOT FATAL]', err);
-    // Re-throw so server-wrapper / Electron main shows the error dialog
-    throw err;
+/**
+ * Gating middleware that holds requests until the system is ready.
+ * If the system is ready, it passes through to the next middleware (the real app).
+ * If booting, it waits. If it failed, it returns 503.
+ */
+function gatingMiddleware(req, res, next) {
+  if (isSystemReady) {
+    return next();
   }
+  if (systemError) {
+    return res.status(503).json({
+      error: 'System failed to initialize',
+      details: systemError.message,
+    });
+  }
+
+  // If not ready, we could either return 503 or wait.
+  // Waiting is better for UX as it avoids a 'retry' loop in the frontend.
+  const checkReady = setInterval(() => {
+    if (isSystemReady) {
+      clearInterval(checkReady);
+      next();
+    } else if (systemError) {
+      clearInterval(checkReady);
+      res.status(503).json({
+        error: 'System failed to initialize during boot',
+        details: systemError.message,
+      });
+    }
+  }, 500);
+
+  // Safety timeout for the request itself (30s)
+  setTimeout(() => {
+    if (!isSystemReady && !res.headersSent) {
+      clearInterval(checkReady);
+      res.status(503).json({ error: 'System boot timeout' });
+    }
+  }, 30000);
+}
+
+async function main() {
+  const express = require('express');
+  const bootApp = express();
+
+  // 1. Start listening IMMEDIATELY to satisfy Electron's port check
+  const server = bootApp.listen(PORT, '127.0.0.1', () => {
+    tlog(`Server listening on port ${PORT} (Parallel Boot)`);
+    sendSplashMsg('Server engine started...');
+  });
+
+  server.on('error', (err) => {
+    console.error('[BOOT FATAL] Server failed to bind port:', err);
+    process.exit(1);
+  });
+
+  // 2. Background Bootstrap
+  // We don't 'await' this so the main thread continues
+  (async () => {
+    try {
+      tlog('Background bootstrap started');
+      
+      tlog('Loading prisma client...');
+      const prisma = require('./src/config/prisma');
+      tlog('Prisma client loaded');
+
+      const logger = require('./src/shared/utils/logger');
+
+      sendSplashMsg('Checking database schema...');
+      await ensureMigrationsApplied(prisma, logger);
+
+      sendSplashMsg('Syncing database defaults...');
+      await seedDefaults(prisma, logger);
+      tlog('Database bootstrap done');
+
+      tlog('Loading core application...');
+      const realApp = require('./src/app');
+      
+      // Inject gating and then mount the real app
+      bootApp.use(gatingMiddleware);
+      bootApp.use(realApp);
+      
+      isSystemReady = true;
+      tlog('System is ready');
+      sendSplashMsg('Ready!');
+
+      // Post-ready tasks
+      migratePasswordsToHash(prisma, logger).catch(() => {});
+
+      // WhatsApp init (delayed further to ensure UI is snappy)
+      setTimeout(async () => {
+        try {
+          const whatsappService = require('./src/domains/whatsapp/whatsapp.service');
+          const isWaEnabled = await whatsappService.isEnabled();
+          if (isWaEnabled) {
+            logger.info('[BOOT] WhatsApp enabled — auto-reconnecting...');
+            whatsappService.initializeClient();
+          }
+        } catch (waErr) {
+          logger.warn({ err: waErr.message }, '[BOOT] WhatsApp auto-init failed');
+        }
+      }, 20000);
+
+    } catch (err) {
+      systemError = err;
+      console.error('[BOOT FATAL BACKGROUND]', err);
+      sendSplashMsg('Initialization failed!');
+    }
+  })();
 }
 
 main().catch((err) => {
