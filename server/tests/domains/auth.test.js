@@ -162,7 +162,8 @@ describe('Auth Domain API', () => {
             prisma.shop.create.mockResolvedValue({ id: 1, name: 'Test Shop' });
             prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
             prisma.user.update.mockResolvedValue({ id: 1 });
-            prisma.setting.upsert.mockResolvedValue({ key: 'onboardingVersion', value: '1' });
+            prisma.setting.upsert.mockResolvedValue({});
+            prisma.setting.findUnique.mockResolvedValue(null);
             prisma.$transaction.mockImplementation((cb) => cb(prisma));
 
             const res = await request(app)
@@ -175,6 +176,12 @@ describe('Auth Domain API', () => {
             expect(prisma.user.update).toHaveBeenCalled();
             expect(prisma.setting.upsert).toHaveBeenCalledWith(
                 expect.objectContaining({ where: { key: 'onboardingVersion' } })
+            );
+            expect(prisma.setting.upsert).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { key: 'posShopName' } })
+            );
+            expect(prisma.setting.upsert).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { key: 'posReceiptSettings' } })
             );
         });
 
@@ -199,7 +206,8 @@ describe('Auth Domain API', () => {
             prisma.shop.update.mockResolvedValue({ id: 1, name: 'New Name' });
             prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
             prisma.user.update.mockResolvedValue({ id: 1 });
-            prisma.setting.upsert.mockResolvedValue({ key: 'onboardingVersion', value: '1' });
+            prisma.setting.upsert.mockResolvedValue({});
+            prisma.setting.findUnique.mockResolvedValue(null);
             prisma.$transaction.mockImplementation((cb) => cb(prisma));
 
             const res = await request(app)
@@ -209,6 +217,56 @@ describe('Auth Domain API', () => {
             expect(res.status).toBe(200);
             expect(prisma.shop.update).toHaveBeenCalled();
             expect(prisma.shop.create).not.toHaveBeenCalled();
+        });
+
+        it('seeds posReceiptSettings with shop name and address from onboarding', async () => {
+            prisma.shop.findFirst.mockResolvedValue(null);
+            prisma.shop.create.mockResolvedValue({ id: 1, name: 'Corner Store' });
+            prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
+            prisma.user.update.mockResolvedValue({ id: 1 });
+            prisma.setting.upsert.mockResolvedValue({});
+            prisma.setting.findUnique.mockResolvedValue(null);
+            prisma.$transaction.mockImplementation((cb) => cb(prisma));
+
+            const res = await request(app)
+                .post('/api/auth/complete-onboarding')
+                .send({ shopName: 'Corner Store', address: '42 Market Lane', adminPassword: 'securePass123' });
+
+            expect(res.status).toBe(200);
+
+            const receiptCall = prisma.setting.upsert.mock.calls.find(
+                (args) => args[0].where.key === 'posReceiptSettings'
+            );
+            expect(receiptCall).toBeDefined();
+            const written = JSON.parse(receiptCall[0].create.value);
+            expect(written.customShopName).toBe('Corner Store');
+            expect(written.customHeader).toBe('42 Market Lane');
+        });
+
+        it('does not overwrite customHeader when address is empty', async () => {
+            prisma.shop.findFirst.mockResolvedValue(null);
+            prisma.shop.create.mockResolvedValue({ id: 1, name: 'No Address Shop' });
+            prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
+            prisma.user.update.mockResolvedValue({ id: 1 });
+            prisma.setting.upsert.mockResolvedValue({});
+            prisma.setting.findUnique.mockResolvedValue({
+                key: 'posReceiptSettings',
+                value: JSON.stringify({ customHeader: 'My Custom Tagline', customShopName: 'Old Name' }),
+            });
+            prisma.$transaction.mockImplementation((cb) => cb(prisma));
+
+            const res = await request(app)
+                .post('/api/auth/complete-onboarding')
+                .send({ shopName: 'No Address Shop', adminPassword: 'securePass123' });
+
+            expect(res.status).toBe(200);
+
+            const receiptCall = prisma.setting.upsert.mock.calls.find(
+                (args) => args[0].where.key === 'posReceiptSettings'
+            );
+            const written = JSON.parse(receiptCall[0].update.value);
+            expect(written.customHeader).toBe('My Custom Tagline');
+            expect(written.customShopName).toBe('No Address Shop');
         });
     });
 });

@@ -3,6 +3,7 @@ const { StatusCodes } = require('http-status-codes');
 const prisma = require('../../config/prisma');
 const { createHttpError } = require('../../shared/error/appError');
 const logger = require('../../shared/utils/logger');
+const { DEFAULT_RECEIPT_SETTINGS } = require('../../config/constants');
 
 const SALT_ROUNDS = 10;
 
@@ -346,6 +347,42 @@ const completeOnboarding = async ({ shopName, address, phone, phone2, email, gst
       where:  { key: 'onboardingVersion' },
       create: { key: 'onboardingVersion', value: String(ONBOARDING_VERSION) },
       update: { value: String(ONBOARDING_VERSION) },
+    });
+
+    // Sync flat metadata Setting keys so AccountDetailsDialog and receipt read them immediately
+    const metadataUpserts = [
+      { key: 'posShopName', value: shopName },
+      { key: 'shopAddress',  value: address  || '' },
+      { key: 'shopMobile',   value: phone    || '' },
+      { key: 'shopMobile2',  value: phone2   || '' },
+      { key: 'shopEmail',    value: email    || '' },
+      { key: 'shopGST',      value: gst      || '' },
+    ].map(({ key, value }) =>
+      tx.setting.upsert({
+        where:  { key },
+        create: { key, value },
+        update: { value },
+      })
+    );
+    await Promise.all(metadataUpserts);
+
+    // Seed posReceiptSettings — preserve any existing customisations, update name + address
+    const existingReceiptSetting = await tx.setting.findUnique({
+      where: { key: 'posReceiptSettings' },
+    });
+    const existingReceipt = existingReceiptSetting
+      ? JSON.parse(existingReceiptSetting.value)
+      : {};
+    const updatedReceipt = {
+      ...DEFAULT_RECEIPT_SETTINGS,
+      ...existingReceipt,
+      customShopName: shopName,
+      ...(address ? { customHeader: address } : {}),
+    };
+    await tx.setting.upsert({
+      where:  { key: 'posReceiptSettings' },
+      create: { key: 'posReceiptSettings', value: JSON.stringify(updatedReceipt) },
+      update: { value: JSON.stringify(updatedReceipt) },
     });
   });
 };
