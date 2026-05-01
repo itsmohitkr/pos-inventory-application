@@ -1,4 +1,4 @@
-import React, { useState, useRef, useTransition } from 'react';
+    import React, { useState, useRef, useTransition } from 'react';
 import { Box, Paper, Typography, Stack, Button, Container } from '@mui/material';
 import {
   FileUpload as UploadIcon,
@@ -99,11 +99,11 @@ const InventoryPage = () => {
       <Paper
         elevation={0}
         sx={{
-          m: 2.5,
-          px: 3,
-          py: 2.25,
-          background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
-          borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
+          m: 1.5,
+          px: 2.5,
+          py: 1.75,
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -111,7 +111,7 @@ const InventoryPage = () => {
         }}
       >
         <Box>
-          <Typography variant="h4" component="h1" gutterBottom color="primary">
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
             Inventory Management
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -181,7 +181,7 @@ const InventoryPage = () => {
         </Stack>
       </Paper>
 
-      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 2.5, pb: 2.5 }}>
+      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 1.5, pb: 1.5 }}>
         {showBulkAdd ? (
           <BulkAddGrid
             onProductsAdded={handleProductAdded}

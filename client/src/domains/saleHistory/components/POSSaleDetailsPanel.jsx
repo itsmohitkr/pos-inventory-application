@@ -22,16 +22,16 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
           alignItems: 'center',
           justifyContent: 'center',
           flex: 1,
-          border: '2px dashed #e2e8f0',
-          bgcolor: '#f8fafc',
-          borderRadius: 3,
+          border: '1px solid #e2e8f0',
+          bgcolor: '#ffffff',
+          borderRadius: '10px',
         }}
       >
         <Box>
-          <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 600 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39', mb: 1 }}>
             No Transaction Selected
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: '#475569' }}>
             Select a POS sale from the list to view its full details.
           </Typography>
         </Box>
@@ -98,10 +98,10 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
           <Box
             sx={{
               flex: 1,
-              p: 1,
-              borderRadius: '10px',
-              bgcolor: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              p: 1.25,
+              borderRadius: '8px',
+              bgcolor: '#3b82f60A',
+              border: '1px solid #3b82f633',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
@@ -109,22 +109,29 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
           >
             <Typography
               variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 700, display: 'block' }}
+              sx={{ 
+                fontWeight: 500, 
+                display: 'block', 
+                color: '#3b82f6',
+                textTransform: 'uppercase',
+                fontSize: '0.85rem',
+                letterSpacing: '0.5px',
+                mb: 0.5
+              }}
             >
               TOTAL VALUE
             </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: '#1976d2' }}>
+            <Typography variant="body1" sx={{ fontWeight: 500, color: '#0b1d39', fontSize: '0.85rem', lineHeight: 1 }}>
               ₹{stats.total.toFixed(2)}
             </Typography>
           </Box>
           <Box
             sx={{
               flex: 1.4,
-              p: 1,
-              borderRadius: '10px',
-              bgcolor: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              p: 1.25,
+              borderRadius: '8px',
+              bgcolor: '#f43f5e0A',
+              border: '1px solid #f43f5e33',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
@@ -132,29 +139,36 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
           >
             <Typography
               variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 700, display: 'block' }}
+              sx={{ 
+                fontWeight: 500, 
+                display: 'block', 
+                color: '#f43f5e',
+                textTransform: 'uppercase',
+                fontSize: '0.85rem',
+                letterSpacing: '0.5px',
+                mb: 0.5
+              }}
             >
               TOTAL DISCOUNT
             </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: '#d32f2f' }}>
+            <Typography variant="body1" sx={{ fontWeight: 500, color: '#0b1d39', fontSize: '0.85rem', lineHeight: 1 }}>
               ₹{stats.totalDiscount.toFixed(2)}
             </Typography>
             <Typography
               variant="caption"
               sx={{
-                fontWeight: 600,
+                fontWeight: 500,
                 color: '#64748b',
                 display: 'block',
                 whiteSpace: 'normal',
                 lineHeight: 1.2,
-                mt: 0.5,
+                mt: 0.75,
+                fontSize: '0.75rem'
               }}
             >
               ₹{stats.mrpDiscount.toFixed(2)} MRP + ₹{stats.extraDiscount.toFixed(2)} Extra ·{' '}
               {stats.discountPercent}% of MRP
             </Typography>
-
           </Box>
         </Box>
       </Paper>

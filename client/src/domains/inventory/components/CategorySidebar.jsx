@@ -117,7 +117,8 @@ const CategorySidebar = ({
         elevation={0}
         onDoubleClick={onDoubleClick}
         sx={{
-          p: 2,
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -126,13 +127,13 @@ const CategorySidebar = ({
       >
         <Box
           sx={{
+            p: 1.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            mb: 1.5,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
             Categories
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -148,8 +149,8 @@ const CategorySidebar = ({
             </IconButton>
           </Box>
         </Box>
-        <Divider sx={{ mb: 1.5 }} />
-        <List disablePadding sx={{ overflow: 'auto', flex: 1 }}>
+        <Divider sx={{ borderColor: '#e2e8f0' }} />
+        <List disablePadding sx={{ overflow: 'auto', flex: 1, px: 1, pt: 1 }}>
           <ListItemButton
             selected={categoryFilter === 'all'}
             onClick={() => onCategorySelect('all')}

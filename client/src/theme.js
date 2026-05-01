@@ -105,7 +105,9 @@ let theme = createTheme({
         root: {
           background: 'linear-gradient(135deg, #0b1d39 0%, #1b3e6f 100%)',
           color: '#f8f5f0',
+          border: 'none',
           borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius: 0,
         },
       },
     },

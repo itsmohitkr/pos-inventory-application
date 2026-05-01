@@ -20,10 +20,11 @@ const ProductListToolbar = ({
       onClick={onToggleCategories}
       sx={{
         color: '#1f2937',
-        borderColor: 'rgba(31, 41, 55, 0.4)',
-        fontSize: '0.75rem',
-        padding: '4px 12px',
-        '&:hover': { borderColor: 'rgba(31, 41, 55, 0.7)', bgcolor: 'rgba(31, 41, 55, 0.1)' },
+        borderColor: '#e2e8f0',
+        fontSize: '0.8rem',
+        height: '36px',
+        textTransform: 'none',
+        '&:hover': { borderColor: '#cbd5e1', bgcolor: 'rgba(31, 41, 55, 0.05)' },
       }}
     >
       {showCategories ? 'Hide Categories' : 'Show Categories'}
@@ -35,10 +36,11 @@ const ProductListToolbar = ({
       onClick={onReset}
       sx={{
         color: '#1f2937',
-        borderColor: 'rgba(31, 41, 55, 0.4)',
-        fontSize: '0.75rem',
-        padding: '4px 12px',
-        '&:hover': { borderColor: 'rgba(31, 41, 55, 0.7)', bgcolor: 'rgba(31, 41, 55, 0.1)' },
+        borderColor: '#e2e8f0',
+        fontSize: '0.8rem',
+        height: '36px',
+        textTransform: 'none',
+        '&:hover': { borderColor: '#cbd5e1', bgcolor: 'rgba(31, 41, 55, 0.05)' },
       }}
     >
       Reset
@@ -48,7 +50,7 @@ const ProductListToolbar = ({
       exclusive
       onChange={(_, value) => { if (value) onStockFilterChange(value); }}
       size="small"
-      sx={{ ml: 1 }}
+      sx={{ ml: 1, height: '36px' }}
     >
       <ToggleButton value="all" sx={{ fontSize: '0.75rem', px: 2 }}>All</ToggleButton>
       <ToggleButton value="low" sx={{ fontSize: '0.75rem', px: 2 }}>

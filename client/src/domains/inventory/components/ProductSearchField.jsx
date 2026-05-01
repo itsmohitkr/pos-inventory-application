@@ -63,13 +63,14 @@ const ProductSearchField = ({
           '& .MuiOutlinedInput-root': {
             color: '#1f2937',
             fontSize: '0.85rem',
-            bgcolor: 'rgba(255, 255, 255, 0.5)',
-            '& fieldset': { borderColor: 'rgba(31, 41, 55, 0.3)' },
-            '&:hover fieldset': { borderColor: 'rgba(31, 41, 55, 0.5)' },
-            '&.Mui-focused fieldset': { borderColor: '#d97706' },
+            bgcolor: '#ffffff',
+            height: '36px',
+            '& fieldset': { borderColor: '#e2e8f0' },
+            '&:hover fieldset': { borderColor: '#cbd5e1' },
+            '&.Mui-focused fieldset': { borderColor: '#0b1d39' },
           },
           '& .MuiOutlinedInput-input': {
-            padding: '7px 10px',
+            padding: '0 12px',
             '&::placeholder': { color: 'rgba(31, 41, 55, 0.5)', opacity: 1 },
           },
         }}

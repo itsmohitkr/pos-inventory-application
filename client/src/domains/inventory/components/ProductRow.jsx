@@ -34,56 +34,66 @@ const ProductRow = React.memo(
         >
           {index + 1}
         </TableCell>
-        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+        <TableCell sx={{ px: 1.5, minWidth: '220px', maxWidth: '220px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CircleIcon sx={{ fontSize: 12, color: statusColor }} />
-            <Box>
-              <Typography variant="body1">{product.name}</Typography>
-              <Typography variant="body2" color="text.secondary">
+            <CircleIcon sx={{ fontSize: 10, color: statusColor, opacity: 0.8 }} />
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontWeight: 600, 
+                  color: 'text.primary',
+                }}
+              >
+                {product.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
                 {product.category || 'Uncategorized'}
               </Typography>
             </Box>
           </Box>
         </TableCell>
-        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+        <TableCell sx={{ px: 1.5, minWidth: '200px', maxWidth: '200px' }}>
           <BarcodeChips barcode={product.barcode} size="small" />
         </TableCell>
-        <TableCell align="center" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
           <Chip
             label={product.batchTrackingEnabled ? 'Enabled' : 'Disabled'}
             size="small"
-            color={product.batchTrackingEnabled ? 'primary' : 'default'}
-            variant={product.batchTrackingEnabled ? 'filled' : 'outlined'}
-            sx={{ height: '20px', fontSize: '0.65rem', fontWeight: 700 }}
-          />
-        </TableCell>
-        <TableCell align="center" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
-          <Chip
-            label={product.lowStockWarningEnabled ? 'Enabled' : 'Disabled'}
-            size="small"
-            color={product.lowStockWarningEnabled ? 'warning' : 'default'}
-            variant={product.lowStockWarningEnabled ? 'filled' : 'outlined'}
             sx={{
               height: '20px',
               fontSize: '0.65rem',
-              fontWeight: 700,
-              ...(product.lowStockWarningEnabled && {
-                bgcolor: 'rgba(217, 119, 6, 0.1)',
-                color: '#d97706',
-                borderColor: '#d97706',
-              }),
+              fontWeight: 600,
+              bgcolor: product.batchTrackingEnabled ? 'rgba(11, 29, 57, 0.08)' : '#f1f5f9',
+              color: product.batchTrackingEnabled ? '#0b1d39' : '#475569',
+              border: 'none',
             }}
           />
         </TableCell>
-        <TableCell align="right" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
-          <Typography variant="body1">{product.total_stock}</Typography>
+        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+          <Chip
+            label={product.lowStockWarningEnabled ? 'Enabled' : 'Disabled'}
+            size="small"
+            sx={{
+              height: '20px',
+              fontSize: '0.65rem',
+              fontWeight: 600,
+              bgcolor: product.lowStockWarningEnabled ? 'rgba(217, 119, 6, 0.1)' : '#f1f5f9',
+              color: product.lowStockWarningEnabled ? '#d97706' : '#475569',
+              border: 'none',
+            }}
+          />
+        </TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: statusColor }}>
+            {product.total_stock}
+          </Typography>
         </TableCell>
         <TableCell
-          align="right"
           onClick={(e) => e.stopPropagation()}
           sx={{ whiteSpace: 'nowrap', px: 1.5 }}
         >
-          <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
               <IconButton
                 size="small"

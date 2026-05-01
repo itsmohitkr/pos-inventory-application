@@ -24,37 +24,39 @@ const ProductBatchTable = ({
 }) => {
   return (
     <Box sx={{ flex: 1, overflow: 'auto' }}>
-      <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-        Stock Lots / Batches
-      </Typography>
+      <Box sx={{ p: 1.5, pb: 1 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1f2937', fontSize: '0.9rem' }}>
+          Stock Lots / Batches
+        </Typography>
+      </Box>
       <Table size="small">
         <TableHead>
-          <TableRow sx={{ bgcolor: 'background.default' }}>
+          <TableRow sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0' }}>
             {batchTrackingEnabled && (
-              <TableCell sx={{ fontWeight: 'bold' }}>Batch Code</TableCell>
+              <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>Batch Code</TableCell>
             )}
-            <TableCell sx={{ fontWeight: 'bold' }}>Qty</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>Qty</TableCell>
+            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               MRP
             </TableCell>
-            <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Cost
             </TableCell>
-            <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Selling
             </TableCell>
-            <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Disc %
             </TableCell>
-            <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Margin
             </TableCell>
             {batchTrackingEnabled && (
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+              <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
                 Expiry
               </TableCell>
             )}
-            <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Action
             </TableCell>
           </TableRow>
@@ -73,17 +75,28 @@ const ProductBatchTable = ({
             return (
               <TableRow key={batch.id} data-testid={`inventory-batch-row-${batch.id}`}>
                 {batchTrackingEnabled && (
-                  <TableCell>{batch.batchCode || 'N/A'}</TableCell>
+                  <TableCell sx={{ px: 1.5 }}>
+                    <Typography variant="body2" fontWeight={500}>{batch.batchCode || 'N/A'}</Typography>
+                  </TableCell>
                 )}
-                <TableCell>{batch.quantity}</TableCell>
-                <TableCell align="right">₹{batch.mrp}</TableCell>
-                <TableCell align="right">₹{batch.costPrice}</TableCell>
-                <TableCell align="right">₹{batch.sellingPrice}</TableCell>
-                <TableCell align="center">
-                  <Box sx={{ color: 'primary.main', fontWeight: 'bold' }}>{discount}%</Box>
+                <TableCell sx={{ px: 1.5 }}>
+                  <Typography variant="body2" fontWeight={600}>{batch.quantity}</Typography>
                 </TableCell>
-                <TableCell align="center">
-                  <Box
+                <TableCell sx={{ px: 1.5 }}>
+                  <Typography variant="body2">₹{batch.mrp}</Typography>
+                </TableCell>
+                <TableCell sx={{ px: 1.5 }}>
+                  <Typography variant="body2">₹{batch.costPrice}</Typography>
+                </TableCell>
+                <TableCell sx={{ px: 1.5 }}>
+                  <Typography variant="body2" fontWeight={600}>₹{batch.sellingPrice}</Typography>
+                </TableCell>
+                <TableCell sx={{ px: 1.5 }}>
+                  <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600 }}>{discount}%</Typography>
+                </TableCell>
+                <TableCell sx={{ px: 1.5 }}>
+                  <Typography
+                    variant="body2"
                     sx={{
                       color:
                         margin > 20
@@ -91,21 +104,23 @@ const ProductBatchTable = ({
                           : margin > 10
                             ? 'warning.main'
                             : 'error.main',
-                      fontWeight: 'bold',
+                      fontWeight: 600,
                     }}
                   >
                     {margin}%
-                  </Box>
+                  </Typography>
                 </TableCell>
                 {batchTrackingEnabled && (
-                  <TableCell align="right">
-                    {batch.expiryDate
-                      ? new Date(batch.expiryDate).toLocaleDateString()
-                      : 'N/A'}
+                  <TableCell sx={{ px: 1.5 }}>
+                    <Typography variant="body2">
+                      {batch.expiryDate
+                        ? new Date(batch.expiryDate).toLocaleDateString()
+                        : 'N/A'}
+                    </Typography>
                   </TableCell>
                 )}
-                <TableCell align="center">
-                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
+                <TableCell sx={{ px: 1.5 }}>
+                  <Box sx={{ display: 'flex', gap: 1.5 }}>
                     <ActionButton
                       icon={<InventoryIcon fontSize="small" />}
                       label="Stock"
