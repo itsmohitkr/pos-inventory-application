@@ -251,8 +251,8 @@ const SaleHistory = ({
           flexDirection: 'column',
           overflow: 'hidden',
           pt: 0,
-          px: 2.5,
-          pb: 2.5,
+          px: 1.5,
+          pb: 1.5,
         }}
       >
         {loading ? (
@@ -269,7 +269,7 @@ const SaleHistory = ({
         ) : (
           <Grid
             container
-            spacing={2}
+            spacing={1.5}
             wrap="nowrap"
             className="no-print"
             sx={{ flex: 1, minHeight: 0, overflow: 'hidden', flexWrap: 'nowrap' }}

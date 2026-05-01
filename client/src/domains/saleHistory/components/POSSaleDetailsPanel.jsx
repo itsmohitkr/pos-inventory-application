@@ -44,16 +44,16 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 2,
+        gap: 1.5,
         height: '100%',
         overflow: 'hidden',
       }}
     >
       <Paper
         sx={{
-          p: 1.75,
-          borderRadius: 1.5,
-          border: '1px solid #eef2f6',
+          p: 1.25,
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           bgcolor: '#ffffff',
         }}
       >
@@ -89,8 +89,8 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
                   height: 20,
                   fontWeight: 700,
                   fontSize: '0.65rem',
-                  color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
-                  borderColor: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
+                  color: selectedSale.paymentMethod === 'Cash' ? '#0b1d39' : '#1e293b',
+                  borderColor: selectedSale.paymentMethod === 'Cash' ? '#0b1d39' : '#cbd5e1',
                 }}
               />
             </Box>
@@ -99,9 +99,9 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
             sx={{
               flex: 1,
               p: 1,
-              borderRadius: 1.5,
+              borderRadius: '10px',
               bgcolor: '#f8fafc',
-              border: '1px solid #eef2f6',
+              border: '1px solid #e2e8f0',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
@@ -122,9 +122,9 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
             sx={{
               flex: 1.4,
               p: 1,
-              borderRadius: 1.5,
-              bgcolor: '#fff5f5',
-              border: '1px solid #ffe4e6',
+              borderRadius: '10px',
+              bgcolor: '#f8fafc',
+              border: '1px solid #e2e8f0',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
@@ -167,7 +167,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
           overflow: 'hidden',
         }}
       >
-        <Box sx={{ p: 2, borderBottom: '1px solid #eee', flexShrink: 0 }}>
+        <Box sx={{ p: 2, borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
             Products ({selectedSale.items.length})
           </Typography>
@@ -222,7 +222,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
                     </TableCell>
                     <TableCell align="center">{item.quantity}</TableCell>
                     <TableCell align="right">₹{mrp.toFixed(2)}</TableCell>
-                    <TableCell align="right">₹{item.sellingPrice.toFixed(2)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>₹{item.sellingPrice.toFixed(2)}</TableCell>
                     <TableCell align="right">
                       <Box>
                         <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 700 }}>

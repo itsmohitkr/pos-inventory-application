@@ -237,8 +237,8 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                     position: 'sticky',
                     bottom: 0,
                     zIndex: 2,
-                    bgcolor: '#f3eee6',
-                    '&:hover': { bgcolor: '#f3eee6' },
+                    bgcolor: '#f1f5f9',
+                    '&:hover': { bgcolor: '#f1f5f9' },
                   }}
                 >
                   <TableCell

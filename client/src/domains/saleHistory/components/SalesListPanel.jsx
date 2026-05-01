@@ -44,7 +44,7 @@ const SalesListPanel = ({
     >
       <Box
         sx={{
-          p: 2,
+          p: 1.5,
           borderBottom: '1px solid',
           borderColor: 'divider',
           flexShrink: 0,
@@ -57,50 +57,6 @@ const SalesListPanel = ({
           {saleType === 'pos' ? 'Sales' : 'Loose Sales'} (
           {saleType === 'pos' ? sales.length : looseSales.length})
         </Typography>
-        <Chip
-          label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
-              <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#1b5e20' }}>
-                Total Sales: ₹
-                {combinedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </Typography>
-              <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#64748b' }}>
-                =
-              </Typography>
-              <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1565c0' }}>
-                {posTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </Typography>
-              <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#64748b' }}>
-                +
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#ef6c00' }}>
-                  {looseTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    color: '#f57c00',
-                    ml: 0.5,
-                    opacity: 0.9,
-                  }}
-                >
-                  (Loose sale)
-                </Typography>
-              </Box>
-            </Box>
-          }
-          sx={{
-            height: 'auto',
-            py: 1.5,
-            px: 2,
-            bgcolor: '#f1f8e9',
-            border: '2px solid #a5d6a7',
-            borderRadius: 1,
-            '& .MuiChip-label': { p: 0 },
-          }}
-        />
       </Box>
 
       <TableContainer sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
@@ -150,7 +106,7 @@ const SalesListPanel = ({
                 >
                   <TableCell sx={{ fontWeight: 600 }}>ORD-{sale.id}</TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <Typography variant="body2">
                       {new Date(sale.createdAt).toLocaleDateString()}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -171,8 +127,8 @@ const SalesListPanel = ({
                       sx={{
                         fontWeight: 600,
                         fontSize: '0.7rem',
-                        color: sale.paymentMethod === 'Cash' ? '#16a34a' : '#1e293b',
-                        borderColor: sale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
+                        color: sale.paymentMethod === 'Cash' ? '#0b1d39' : '#1e293b',
+                        borderColor: sale.paymentMethod === 'Cash' ? '#0b1d39' : '#cbd5e1',
                       }}
                     />
                   </TableCell>
@@ -187,7 +143,7 @@ const SalesListPanel = ({
                           sx={{
                             bgcolor: display.bgcolor,
                             color: display.color,
-                            fontWeight: 700,
+                            fontWeight: 500,
                           }}
                         />
                       );
@@ -216,7 +172,7 @@ const SalesListPanel = ({
                   hover
                   selected={selectedSale?.id === sale.id}
                   onClick={() => onSelectSale(sale)}
-                  sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: 'rgba(242, 181, 68, 0.16)' } }}
+                  sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: 'rgba(11, 29, 57, 0.08)' } }}
                 >
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: '#e65100' }}>
@@ -259,6 +215,44 @@ const SalesListPanel = ({
           </TableBody>
         </Table>
       </TableContainer>
+      <Box
+        sx={{
+          p: 1.5,
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          bgcolor: '#ffffff',
+          display: 'flex',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: '#1b5e20' }}>
+            Total Sales: ₹{combinedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </Typography>
+          <Typography sx={{ fontWeight: 500, fontSize: '1rem', color: 'text.secondary' }}>=</Typography>
+          <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'primary.main' }}>
+            {posTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </Typography>
+          <Typography sx={{ fontWeight: 500, fontSize: '1rem', color: 'text.secondary' }}>+</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: '#ef6c00' }}>
+              {looseTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </Typography>
+            <Typography
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.75rem',
+                color: '#ef6c00',
+                ml: 0.5,
+                opacity: 0.8,
+              }}
+            >
+              (Loose sale)
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
     </Paper>
   );
 };

@@ -20,14 +20,14 @@ let theme = createTheme({
       main: '#dc2626',
     },
     background: {
-      default: '#f6f3ee',
+      default: '#f8fafc',
       paper: '#ffffff',
     },
     text: {
       primary: '#101828',
       secondary: '#475467',
     },
-    divider: '#e7dece',
+    divider: '#e2e8f0',
   },
   shape: {
     borderRadius: 10,
@@ -115,7 +115,7 @@ let theme = createTheme({
       },
       styleOverrides: {
         root: {
-          border: '1px solid #e7dece',
+          border: '1px solid #e2e8f0',
           boxShadow: 'none',
           borderRadius: 10,
         },
@@ -128,7 +128,7 @@ let theme = createTheme({
       styleOverrides: {
         root: {
           boxShadow: 'none',
-          border: '1px solid #e7dece',
+          border: '1px solid #e2e8f0',
           borderRadius: 10,
         },
       },
@@ -140,7 +140,7 @@ let theme = createTheme({
       styleOverrides: {
         paper: {
           borderRadius: 12,
-          border: '1px solid #e7dece',
+          border: '1px solid #e2e8f0',
         },
       },
     },
@@ -164,7 +164,7 @@ let theme = createTheme({
           color: '#0b1d39',
         },
         outlined: {
-          borderColor: '#d8cdbb',
+          borderColor: '#e2e8f0',
           '&:hover': {
             borderColor: '#b9ab95',
           },
@@ -184,7 +184,7 @@ let theme = createTheme({
           borderRadius: 8,
           backgroundColor: '#ffffff',
           '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#d8cdbb',
+            borderColor: '#e2e8f0',
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
             borderColor: '#b9ab95',
@@ -214,7 +214,7 @@ let theme = createTheme({
     MuiTableHead: {
       styleOverrides: {
         root: {
-          backgroundColor: '#f3eee6',
+          backgroundColor: '#f8fafc',
         },
       },
     },
@@ -223,7 +223,7 @@ let theme = createTheme({
         head: {
           fontWeight: 600,
           color: '#344054',
-          borderBottom: '1px solid #d8cdbb',
+          borderBottom: '1px solid #e2e8f0',
           fontSize: '0.8rem',
           paddingTop: 10,
           paddingBottom: 10,
@@ -232,7 +232,7 @@ let theme = createTheme({
           fontSize: '0.85rem',
           paddingTop: 10,
           paddingBottom: 10,
-          borderBottom: '1px solid #e7dece',
+          borderBottom: '1px solid #e2e8f0',
         },
       },
     },
