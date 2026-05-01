@@ -10,7 +10,7 @@ export const clearBrowserStorage = async (page) => {
 export const loginAsAdmin = async (page) => {
   await page.goto('/');
   await expect(page.getByText('POS System Login')).toBeVisible();
-  await page.getByLabel('Admin Username').fill('admin');
+  await page.getByLabel('Username').fill('admin');
   await page.getByLabel('Password').fill('admin123');
-  await page.getByRole('button', { name: 'Login as Admin' }).click();
+  await page.getByRole('button', { name: 'Log In' }).click();
 };

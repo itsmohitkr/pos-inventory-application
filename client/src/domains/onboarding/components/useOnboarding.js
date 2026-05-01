@@ -33,7 +33,7 @@ export function useOnboarding({ onComplete }) {
         email: prev.email || d.shopEmail || '',
         gst: prev.gst || d.shopGST || '',
       }));
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   const handleShopChange = (field) => (e) => {

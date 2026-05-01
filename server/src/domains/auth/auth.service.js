@@ -344,7 +344,7 @@ const completeOnboarding = async ({ shopName, address, phone, phone2, email, gst
     await tx.user.update({ where: { id: admin.id }, data: { password: hashed } });
 
     await tx.setting.upsert({
-      where:  { key: 'onboardingVersion' },
+      where: { key: 'onboardingVersion' },
       create: { key: 'onboardingVersion', value: String(ONBOARDING_VERSION) },
       update: { value: String(ONBOARDING_VERSION) },
     });
@@ -352,14 +352,14 @@ const completeOnboarding = async ({ shopName, address, phone, phone2, email, gst
     // Sync flat metadata Setting keys so AccountDetailsDialog and receipt read them immediately
     const metadataUpserts = [
       { key: 'posShopName', value: shopName },
-      { key: 'shopAddress',  value: address  || '' },
-      { key: 'shopMobile',   value: phone    || '' },
-      { key: 'shopMobile2',  value: phone2   || '' },
-      { key: 'shopEmail',    value: email    || '' },
-      { key: 'shopGST',      value: gst      || '' },
+      { key: 'shopAddress', value: address || '' },
+      { key: 'shopMobile', value: phone || '' },
+      { key: 'shopMobile2', value: phone2 || '' },
+      { key: 'shopEmail', value: email || '' },
+      { key: 'shopGST', value: gst || '' },
     ].map(({ key, value }) =>
       tx.setting.upsert({
-        where:  { key },
+        where: { key },
         create: { key, value },
         update: { value },
       })
@@ -380,7 +380,7 @@ const completeOnboarding = async ({ shopName, address, phone, phone2, email, gst
       ...(address ? { customHeader: address } : {}),
     };
     await tx.setting.upsert({
-      where:  { key: 'posReceiptSettings' },
+      where: { key: 'posReceiptSettings' },
       create: { key: 'posReceiptSettings', value: JSON.stringify(updatedReceipt) },
       update: { value: JSON.stringify(updatedReceipt) },
     });

@@ -210,5 +210,6 @@ export const settingsFixture = {
     shopEmail: '',
     shopGST: '',
     shopLogo: '',
+    onboardingVersion: 1,
   },
 };

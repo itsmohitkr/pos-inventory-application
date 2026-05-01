@@ -31,13 +31,13 @@ const changePasswordBodySchema = Joi.object({
 });
 
 const completeOnboardingBodySchema = Joi.object({
-  shopName:      Joi.string().min(1).max(100).required(),
-  address:       Joi.string().max(255).optional().allow(''),
-  phone:         Joi.string().max(20).optional().allow(''),
-  phone2:        Joi.string().max(20).optional().allow(''),
-  email:         Joi.string().email().optional().allow(''),
-  gst:           Joi.string().max(20).optional().allow(''),
-  logo:          Joi.string().optional().allow(''),
+  shopName: Joi.string().min(1).max(100).required(),
+  address: Joi.string().max(255).optional().allow(''),
+  phone: Joi.string().max(20).optional().allow(''),
+  phone2: Joi.string().max(20).optional().allow(''),
+  email: Joi.string().email().optional().allow(''),
+  gst: Joi.string().max(20).optional().allow(''),
+  logo: Joi.string().optional().allow(''),
   adminPassword: Joi.string().min(8).max(255).required(),
 });
 
