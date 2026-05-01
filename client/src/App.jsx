@@ -5,6 +5,9 @@ import { Box, LinearProgress } from '@mui/material';
 // Pages and Components — POS and auth are eager (critical path)
 import POSPage from '@/domains/pos/pages/POSPage';
 import LoginPage from '@/domains/auth/components/LoginPage';
+import OnboardingWizard from '@/domains/onboarding/components/OnboardingWizard';
+
+const REQUIRED_ONBOARDING_VERSION = 1;
 import ReceiptPreviewDialog from '@/domains/pos/components/ReceiptPreviewDialog';
 
 // Admin/back-office routes loaded on first navigation
@@ -83,6 +86,9 @@ function App() {
     handleShopMetadataChange,
     handleSaveBillSettings,
     isFullscreen,
+    onboardingVersion,
+    settingsLoaded,
+    fetchSettings,
   } = useSettings(showError);
 
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
@@ -132,7 +138,7 @@ function App() {
     }
   };
 
-  if (loading)
+  if (loading || !settingsLoaded)
     return (
       <Box
         sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
@@ -140,6 +146,13 @@ function App() {
         Loading...
       </Box>
     );
+
+  const onboardingComplete =
+    onboardingVersion != null && onboardingVersion >= REQUIRED_ONBOARDING_VERSION;
+
+  if (!onboardingComplete)
+    return <OnboardingWizard onComplete={fetchSettings} />;
+
   if (!currentUser) return <LoginPage onLogin={handleLogin} />;
 
   const isAdmin = currentUser?.role === 'admin';

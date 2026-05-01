@@ -12,6 +12,7 @@ const {
   changePasswordBodySchema,
   verifyAdminBodySchema,
   wipeDatabaseBodySchema,
+  completeOnboardingBodySchema,
 } = require('./auth.validation');
 
 const router = express.Router();
@@ -54,6 +55,13 @@ router
 router
   .route('/verify-admin')
   .post(validateRequest({ body: verifyAdminBodySchema }), asyncHandler(authController.verifyAdmin))
+  .all(methodNotAllowed);
+router
+  .route('/complete-onboarding')
+  .post(
+    validateRequest({ body: completeOnboardingBodySchema }),
+    asyncHandler(authController.completeOnboarding)
+  )
   .all(methodNotAllowed);
 
 module.exports = router;

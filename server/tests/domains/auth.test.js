@@ -155,4 +155,60 @@ describe('Auth Domain API', () => {
             expect(res.body.success).toBe(true);
         });
     });
+
+    describe('POST /api/auth/complete-onboarding', () => {
+        it('creates shop, updates admin password, and sets onboardingVersion', async () => {
+            prisma.shop.findFirst.mockResolvedValue(null);
+            prisma.shop.create.mockResolvedValue({ id: 1, name: 'Test Shop' });
+            prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
+            prisma.user.update.mockResolvedValue({ id: 1 });
+            prisma.setting.upsert.mockResolvedValue({ key: 'onboardingVersion', value: '1' });
+            prisma.$transaction.mockImplementation((cb) => cb(prisma));
+
+            const res = await request(app)
+                .post('/api/auth/complete-onboarding')
+                .send({ shopName: 'My Shop', adminPassword: 'securePass123' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(prisma.shop.create).toHaveBeenCalled();
+            expect(prisma.user.update).toHaveBeenCalled();
+            expect(prisma.setting.upsert).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { key: 'onboardingVersion' } })
+            );
+        });
+
+        it('rejects missing shopName with 400', async () => {
+            const res = await request(app)
+                .post('/api/auth/complete-onboarding')
+                .send({ adminPassword: 'securePass123' });
+
+            expect(res.status).toBe(400);
+        });
+
+        it('rejects adminPassword shorter than 8 characters with 400', async () => {
+            const res = await request(app)
+                .post('/api/auth/complete-onboarding')
+                .send({ shopName: 'My Shop', adminPassword: 'short' });
+
+            expect(res.status).toBe(400);
+        });
+
+        it('upserts existing shop instead of creating a duplicate', async () => {
+            prisma.shop.findFirst.mockResolvedValue({ id: 1, name: 'Old Name' });
+            prisma.shop.update.mockResolvedValue({ id: 1, name: 'New Name' });
+            prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
+            prisma.user.update.mockResolvedValue({ id: 1 });
+            prisma.setting.upsert.mockResolvedValue({ key: 'onboardingVersion', value: '1' });
+            prisma.$transaction.mockImplementation((cb) => cb(prisma));
+
+            const res = await request(app)
+                .post('/api/auth/complete-onboarding')
+                .send({ shopName: 'New Name', adminPassword: 'securePass123' });
+
+            expect(res.status).toBe(200);
+            expect(prisma.shop.update).toHaveBeenCalled();
+            expect(prisma.shop.create).not.toHaveBeenCalled();
+        });
+    });
 });

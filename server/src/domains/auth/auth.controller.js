@@ -72,6 +72,14 @@ const verifyAdmin = async (req, res) => {
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Admin verified');
 };
 
+const completeOnboarding = async (req, res) => {
+  await authService.completeOnboarding(req.body);
+
+  return sendSuccessResponse(res, StatusCodes.OK, { success: true }, 'Onboarding completed', {
+    format: 'merge',
+  });
+};
+
 module.exports = {
   login,
   getProfile,
@@ -82,4 +90,5 @@ module.exports = {
   changePassword,
   wipeDatabase,
   verifyAdmin,
+  completeOnboarding,
 };

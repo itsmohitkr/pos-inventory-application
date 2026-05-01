@@ -319,6 +319,37 @@ const verifyAdmin = async ({ password }) => {
   }
 };
 
+const ONBOARDING_VERSION = 1;
+
+const completeOnboarding = async ({ shopName, address, phone, phone2, email, gst, logo, adminPassword }) => {
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.shop.findFirst();
+    if (existing) {
+      await tx.shop.update({
+        where: { id: existing.id },
+        data: { name: shopName, address, phone, phone2, email, gst, logo },
+      });
+    } else {
+      await tx.shop.create({
+        data: { name: shopName, address, phone, phone2, email, gst, logo },
+      });
+    }
+
+    const admin = await tx.user.findFirst({ where: { role: 'admin' } });
+    if (!admin) {
+      throw createHttpError(StatusCodes.INTERNAL_SERVER_ERROR, 'No admin user found');
+    }
+    const hashed = await bcrypt.hash(adminPassword, SALT_ROUNDS);
+    await tx.user.update({ where: { id: admin.id }, data: { password: hashed } });
+
+    await tx.setting.upsert({
+      where:  { key: 'onboardingVersion' },
+      create: { key: 'onboardingVersion', value: String(ONBOARDING_VERSION) },
+      update: { value: String(ONBOARDING_VERSION) },
+    });
+  });
+};
+
 module.exports = {
   login,
   getProfile,
@@ -329,4 +360,5 @@ module.exports = {
   changePassword,
   wipeDatabase,
   verifyAdmin,
+  completeOnboarding,
 };

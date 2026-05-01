@@ -290,6 +290,19 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
 app.setName('Trovix');
 app.setAppUserModelId('com.bachatbazaar.pos');
 
+// Single-instance lock — second launch focuses the existing window instead of opening a new one
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
 // Check if running in development mode
 const isDev = !app.isPackaged;
 
