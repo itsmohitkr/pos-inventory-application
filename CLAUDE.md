@@ -77,6 +77,12 @@ Electron desktop POS (Point of Sale) — "Where Retail Meets Intelligence". Pack
 │       │   │   │   ├── ExpenseListTab.jsx
 │       │   │   │   └── PurchaseListTab.jsx
 │       │   │   └── ...
+│       │   ├── onboarding/
+│       │   │   └── components/
+│       │   │       ├── OnboardingWizard.jsx   2-step wizard shell (Shop Profile → Admin Password)
+│       │   │       ├── useOnboarding.js       All wizard state, pre-fill from existing settings, submit
+│       │   │       ├── ShopProfileStep.jsx    Step 1 — shopName (required), address, phone, phone2, email, gst
+│       │   │       └── AdminPasswordStep.jsx  Step 2 — adminPassword + confirmPassword with PasswordStrength bar
 │       │   ├── auth/
 │       │   │   ├── components/               LoginPage, AdminElevationDialog, UserManagementDialog
 │       │   │   └── hooks/useAuth.js          currentUser, admin elevation, auto-logout timer
@@ -92,6 +98,7 @@ Electron desktop POS (Point of Sale) — "Where Retail Meets Intelligence". Pack
 │       └── shared/
 │           ├── api/
 │           │   ├── api.js               axios instance (baseURL: http://localhost:5001)
+│           │   ├── authService.js       completeOnboarding (POST /api/auth/complete-onboarding)
 │           │   ├── inventoryService.js
 │           │   ├── posService.js
 │           │   ├── dashboardService.js
@@ -173,6 +180,9 @@ The Express server binds exclusively to `127.0.0.1:5001` — it is never reachab
 
 Because the server is localhost-only, there is **no JWT/session middleware** on API routes — auth is UI-enforced in the renderer. Do not add network-facing endpoints without also adding authentication middleware.
 
+### Single-instance lock
+`desktop/main.js` calls `app.requestSingleInstanceLock()` immediately after `app.setAppUserModelId`. If the lock is not granted the process quits; if a second instance is launched while the first is running, the `second-instance` event brings the existing window to the foreground. Do not remove this lock.
+
 ### Print flow (critical — handle with care)
 Both receipt and barcode printing use the same `print-manual` IPC channel. The flow is **always silent** (no OS print dialog) and **always direct** (no pop-ups for the cashier).
 
@@ -182,7 +192,7 @@ User clicks Pay & Print / Print Label
   ├─ Resolve printer name:
   │    receiptSettings.printerType   (user-configured, stored in DB)
   │    → defaultPrinter              (system default from getPrintersAsync)
-  │    → printers[0]                 (first available)
+  │    → printers[0]                 (first available, virtual printers filtered out)
   │    → error snackbar if none found
   │
   ├─ window.electron.ipcRenderer.invoke('print-manual', { printerName })
@@ -198,6 +208,7 @@ For barcode labels specifically, `document.body.classList.add('is-printing-label
 **IPC/print code location rule:** `ipcRenderer.invoke` calls for printing must never be moved out of their current file:
 - Receipt print (Pay & Print / Last Receipt) → `usePOSSale.js` (`handlePayAndPrint`, `handlePrintLastReceipt`)
 - Receipt print (Sales History) → `SaleHistory.jsx` (`handlePrintReceipt`)
+- Receipt print (Bill Settings test) → `receiptPreviewDialogUtils.js` (`handleManualPrint`)
 - Barcode label print → `BarcodePrintDialog.jsx` (`handlePrint`)
 - Price list print → `PriceListPanel.jsx` (`handlePrint`)
 
@@ -227,6 +238,8 @@ Receipt settings live in two places:
 
 `useSettings.js → handleSaveBillSettings` writes to both on every save. On load, the DB value wins (fetched with 3 retries); localStorage is a fallback if the API is unreachable during startup. The authoritative default shape is `server/src/config/constants.js → DEFAULT_RECEIPT_SETTINGS`.
 
+Shop metadata (name, address, phone, GST, etc.) is stored as flat `Setting` keys (`posShopName`, `shopAddress`, `shopMobile`, `shopMobile2`, `shopEmail`, `shopGST`, `shopLogo`). These are the single source of truth read by `AccountDetailsDialog`, receipts, and the POS. The `Shop` model in Prisma is a structured mirror written in parallel — do not read shop data from the `Shop` model in the client.
+
 ### Database bootstrap and migrations
 On every startup:
 1. `desktop/main.js` copies bundled `pos.db` to `~/{userData}/pos.db` if missing or <5 KB
@@ -237,6 +250,16 @@ On every startup:
 6. `checkAndSeed()` seeds default settings + admin user if DB is empty
 
 Default users seeded on first boot: `admin / admin123`, `cashier / cashier123`, `salesman / salesman123`. Passwords are bcrypt-hashed at seed time (not plaintext). Change the admin password before deploying to a production machine.
+
+### First-run onboarding
+On first launch, `App.jsx` checks the `onboardingVersion` Setting key. If it is absent or below `REQUIRED_ONBOARDING_VERSION = 1`, the `OnboardingWizard` is shown instead of the login screen. The wizard collects shop details and a new admin password, then calls `POST /api/auth/complete-onboarding`. That endpoint atomically:
+- Upserts the `Shop` record
+- Re-hashes the admin password
+- Writes `onboardingVersion = 1` to the Setting table
+- Writes flat metadata keys (`posShopName`, `shopAddress`, `shopMobile`, `shopMobile2`, `shopEmail`, `shopGST`) so `AccountDetailsDialog` and receipts are populated immediately
+- Seeds `posReceiptSettings` with `customShopName` and `customHeader` (address), preserving any prior receipt customisations
+
+`seed.js → seedEssential()` upserts `onboardingVersion = 1` so that dev/test databases skip the wizard on first run. Password minimum length for new users and password changes is **8 characters** (enforced in `auth.validation.js`).
 
 ### Wipe-database flow
 Settings → Account Details → Wipe Database requires **two** inputs before the server accepts the request:
@@ -356,3 +379,5 @@ Set automatically by `desktop/main.js` at runtime. For standalone server develop
 - **server/node_modules must be bundled explicitly** — `server/node_modules/**/*` is listed in both `files` and `asarUnpack` in `package.json`. electron-builder does not automatically bundle nested node_modules directories the same way it handles the root one. The build workflow must run `npm ci` inside `server/` for these to exist at build time.
 - **Build workflow must install server deps** — `build-mac` and `build-win` jobs in `build-release.yml` must each run `npm ci` in the `server/` directory before packaging. Skipping this means `server/node_modules` is empty and server-only packages are missing from the installer.
 - **Releases are tag-triggered** — `build-release.yml` only runs on `v*` tag pushes or manual dispatch. Push a tag (`git tag vX.Y.Z && git push origin vX.Y.Z`) to cut a release. Quality workflows (`client-quality`, `server-quality`) run on every main push but do not trigger builds.
+- **macOS virtual printers** — macOS exposes virtual "Save PDF to ..." printers (e.g. "Save PDF to Notes") in the system printer list. If selected as the device, `webContents.print()` silently routes the job to an app instead of a physical printer. Always configure a real printer in Bill Settings (`receiptSettings.printerType`). The printer list in `useSettings.js` is fetched via `get-printers` IPC and should only show physical devices.
+- **LoginPage has no demo accounts** — the login screen shows a single username/password form. Demo credential buttons were removed; use the seeded `admin / admin123` credentials in development.
