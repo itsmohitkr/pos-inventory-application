@@ -409,9 +409,9 @@ const POS = ({
         sx={{
           display: 'flex',
           flexDirection: { xs: 'column', lg: 'row' },
-          gap: 0,
-          px: { xs: 2, md: 3 },
-          py: { xs: 2, md: 3 },
+          gap: { xs: 2, lg: 2.5 },
+          px: { xs: 2, md: 2.5 },
+          py: { xs: 2, md: 2.5 },
           height: 'calc(100vh - 72px)',
           overflow: 'hidden',
           position: 'relative',
@@ -433,7 +433,6 @@ const POS = ({
             flexDirection: 'column',
             overflow: 'hidden',
             height: '100%',
-            mr: { lg: 2 },
           }}
         >
           <POSTabs
@@ -513,7 +512,6 @@ const POS = ({
             cursor: 'col-resize',
             alignItems: 'center',
             justifyContent: 'center',
-            mr: 1,
             '&:hover .handle': {
               bgcolor: 'primary.main',
               width: '4px',

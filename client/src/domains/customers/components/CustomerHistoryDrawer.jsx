@@ -104,27 +104,27 @@ const CustomerHistoryDrawer = ({ open, customer, historyData, isLoading, onClose
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ py: 0.5, fontSize: '0.7rem', color: 'text.secondary' }}>Item</TableCell>
-                          <TableCell align="right" sx={{ py: 0.5, fontSize: '0.7rem', color: 'text.secondary' }}>Qty</TableCell>
-                          <TableCell align="right" sx={{ py: 0.5, fontSize: '0.7rem', color: 'text.secondary' }}>Price</TableCell>
+                          <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Item</TableCell>
+                          <TableCell align="right" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Qty</TableCell>
+                          <TableCell align="right" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Price</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {sale.items.map((item) => (
                           <TableRow key={item.id}>
-                            <TableCell sx={{ py: 0.5, fontSize: '0.8rem' }}>
+                            <TableCell sx={{ fontSize: '0.8rem' }}>
                               {item.batch?.product?.name || 'Unknown'}
                               {item.returnedQuantity > 0 && (
-                                <Chip 
-                                  label={`-${item.returnedQuantity} returned`} 
-                                  size="small" 
-                                  color="error" 
+                                <Chip
+                                  label={`-${item.returnedQuantity} returned`}
+                                  size="small"
+                                  color="error"
                                   variant="outlined"
                                   sx={{ height: 16, fontSize: '0.6rem', ml: 1 }}
                                 />
                               )}
                             </TableCell>
-                            <TableCell align="right" sx={{ py: 0.5, fontSize: '0.8rem' }}>
+                            <TableCell align="right" sx={{ fontSize: '0.8rem' }}>
                               {item.returnedQuantity > 0 ? (
                                 <Box component="span">
                                   <Box component="span" sx={{ textDecoration: 'line-through', opacity: 0.5, mr: 0.5 }}>
@@ -134,7 +134,7 @@ const CustomerHistoryDrawer = ({ open, customer, historyData, isLoading, onClose
                                 </Box>
                               ) : item.quantity}
                             </TableCell>
-                            <TableCell align="right" sx={{ py: 0.5, fontSize: '0.8rem' }}>₹{item.sellingPrice}</TableCell>
+                            <TableCell align="right" sx={{ fontSize: '0.8rem' }}>₹{item.sellingPrice}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

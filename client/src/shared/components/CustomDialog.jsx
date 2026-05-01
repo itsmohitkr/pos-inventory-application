@@ -79,7 +79,7 @@ const CustomDialog = ({
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 2,
+          borderRadius: 2.5,
           p: 1,
         },
       }}

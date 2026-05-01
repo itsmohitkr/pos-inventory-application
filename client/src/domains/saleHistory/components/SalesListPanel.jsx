@@ -45,7 +45,8 @@ const SalesListPanel = ({
       <Box
         sx={{
           p: 2,
-          borderBottom: '1px solid #eee',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
@@ -96,7 +97,7 @@ const SalesListPanel = ({
             px: 2,
             bgcolor: '#f1f8e9',
             border: '2px solid #a5d6a7',
-            borderRadius: 3,
+            borderRadius: 1,
             '& .MuiChip-label': { p: 0 },
           }}
         />
@@ -145,7 +146,7 @@ const SalesListPanel = ({
                   hover
                   selected={selectedSale?.id === sale.id}
                   onClick={() => onSelectSale(sale)}
-                  sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: '#e3f2fd' } }}
+                  sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: 'rgba(11, 29, 57, 0.08)' } }}
                 >
                   <TableCell sx={{ fontWeight: 600 }}>ORD-{sale.id}</TableCell>
                   <TableCell>
@@ -215,7 +216,7 @@ const SalesListPanel = ({
                   hover
                   selected={selectedSale?.id === sale.id}
                   onClick={() => onSelectSale(sale)}
-                  sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: '#fff3e0' } }}
+                  sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: 'rgba(242, 181, 68, 0.16)' } }}
                 >
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: '#e65100' }}>

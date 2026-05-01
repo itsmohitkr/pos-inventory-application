@@ -251,8 +251,8 @@ const SaleHistory = ({
           flexDirection: 'column',
           overflow: 'hidden',
           pt: 0,
-          px: 3,
-          pb: 3,
+          px: 2.5,
+          pb: 2.5,
         }}
       >
         {loading ? (

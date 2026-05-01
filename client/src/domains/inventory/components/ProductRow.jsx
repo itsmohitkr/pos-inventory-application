@@ -26,15 +26,15 @@ const ProductRow = React.memo(
         sx={{
           cursor: 'pointer',
           bgcolor: isSelected ? 'rgba(11, 29, 57, 0.08)' : 'transparent',
-          '& td': { py: 0.5, px: 1.5 },
+          '& td': { px: 1.5 },
         }}
       >
         <TableCell
-          sx={{ py: 0.5, px: 1.5, fontWeight: 600, color: 'text.secondary', width: '30px' }}
+          sx={{ px: 1.5, fontWeight: 600, color: 'text.secondary', width: '30px' }}
         >
           {index + 1}
         </TableCell>
-        <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CircleIcon sx={{ fontSize: 12, color: statusColor }} />
             <Box>
@@ -45,10 +45,10 @@ const ProductRow = React.memo(
             </Box>
           </Box>
         </TableCell>
-        <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
           <BarcodeChips barcode={product.barcode} size="small" />
         </TableCell>
-        <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+        <TableCell align="center" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
           <Chip
             label={product.batchTrackingEnabled ? 'Enabled' : 'Disabled'}
             size="small"
@@ -57,7 +57,7 @@ const ProductRow = React.memo(
             sx={{ height: '20px', fontSize: '0.65rem', fontWeight: 700 }}
           />
         </TableCell>
-        <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+        <TableCell align="center" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
           <Chip
             label={product.lowStockWarningEnabled ? 'Enabled' : 'Disabled'}
             size="small"
@@ -75,13 +75,13 @@ const ProductRow = React.memo(
             }}
           />
         </TableCell>
-        <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+        <TableCell align="right" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
           <Typography variant="body1">{product.total_stock}</Typography>
         </TableCell>
         <TableCell
           align="right"
           onClick={(e) => e.stopPropagation()}
-          sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}
+          sx={{ whiteSpace: 'nowrap', px: 1.5 }}
         >
           <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>

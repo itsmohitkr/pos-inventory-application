@@ -38,10 +38,10 @@ const ProductListTable = ({
       <Table size="small" stickyHeader>
         <TableHead>
           <TableRow sx={{ bgcolor: 'background.default' }}>
-            <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5, width: '50px', fontWeight: 'bold' }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '50px' }}>
               S.No.
             </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
               <TableSortLabel
                 active={sortBy === 'name'}
                 direction={sortBy === 'name' ? sortOrder : 'asc'}
@@ -50,7 +50,7 @@ const ProductListTable = ({
                 Name
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
               <TableSortLabel
                 active={sortBy === 'barcode'}
                 direction={sortBy === 'barcode' ? sortOrder : 'asc'}
@@ -59,7 +59,7 @@ const ProductListTable = ({
                 Barcode
               </TableSortLabel>
             </TableCell>
-            <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell align="center" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
               <TableSortLabel
                 active={sortBy === 'batchTrackingEnabled'}
                 direction={sortBy === 'batchTrackingEnabled' ? sortOrder : 'asc'}
@@ -68,7 +68,7 @@ const ProductListTable = ({
                 Batch Tracking
               </TableSortLabel>
             </TableCell>
-            <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell align="center" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
               <TableSortLabel
                 active={sortBy === 'lowStockWarningEnabled'}
                 direction={sortBy === 'lowStockWarningEnabled' ? sortOrder : 'asc'}
@@ -77,7 +77,7 @@ const ProductListTable = ({
                 Low Stock
               </TableSortLabel>
             </TableCell>
-            <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell align="right" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
               <TableSortLabel
                 active={sortBy === 'stock'}
                 direction={sortBy === 'stock' ? sortOrder : 'asc'}
@@ -86,7 +86,7 @@ const ProductListTable = ({
                 Stock
               </TableSortLabel>
             </TableCell>
-            <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell align="right" sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
               Actions
             </TableCell>
           </TableRow>

@@ -17,18 +17,13 @@ const StatCard = ({
       elevation={0}
       sx={{
         width: width,
-        p: 3,
-        borderRadius: 2,
-        border: '1px solid #e2e8f0',
+        p: 2.5,
         display: 'flex',
         flexDirection: 'column',
         bgcolor: bgcolor,
       }}
     >
-      <Typography
-        variant="h6"
-        sx={{ color: textColor === '#f8fafc' ? '#94a3b8' : '#64748b', fontWeight: 500 }}
-      >
+      <Typography variant="h6" sx={{ color: textColor === '#f8fafc' ? '#94a3b8' : '#64748b', fontWeight: 500 }}>
         {title}
       </Typography>
       {subtitle && (
@@ -37,7 +32,7 @@ const StatCard = ({
         </Typography>
       )}
       <Typography
-        variant="h2"
+        variant="h3"
         sx={{ fontWeight: 800, color: valueColor, mt: 0, letterSpacing: '-1px' }}
       >
         {value}

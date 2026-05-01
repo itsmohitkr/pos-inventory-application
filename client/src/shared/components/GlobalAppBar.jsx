@@ -19,12 +19,12 @@ const NavButton = ({ to, children, ...props }) => {
         bgcolor: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
         color: isActive ? '#ffffff' : 'rgba(248, 245, 240, 0.85)',
         borderBottom: isActive ? '3px solid #f2b544' : '3px solid transparent',
-        borderRadius: '4px 4px 0 0',
+        borderRadius: '10px 10px 0 0',
         transition: 'all 0.2s ease',
         '&:hover': {
           bgcolor: 'rgba(255, 255, 255, 0.2)',
           color: '#ffffff',
-          borderRadius: '4px',
+          borderRadius: '10px 10px 0 0',
         },
         ...props.sx,
       }}
@@ -126,7 +126,6 @@ const GlobalAppBar = ({
               height: 40,
               alignSelf: 'center',
               bgcolor: 'rgba(255, 255, 255, 0.08)',
-              borderRadius: '50%',
               '&:hover': {
                 bgcolor: 'rgba(255, 255, 255, 0.18)',
               },

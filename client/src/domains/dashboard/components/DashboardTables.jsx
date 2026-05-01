@@ -18,9 +18,7 @@ export const TopProductsTable = ({ products }) => {
       elevation={0}
       sx={{
         flex: '1 1 30%',
-        p: 2,
-        borderRadius: 2,
-        border: '1px solid #e2e8f0',
+        p: 2.5,
         display: 'flex',
         flexDirection: 'column',
 
@@ -39,9 +37,7 @@ export const TopProductsTable = ({ products }) => {
               <TableCell
                 sx={{
                   color: '#0b1d39',
-                  borderBottom: '2px solid #0b1d39',
-                  py: 0.5,
-                  px: 0,
+                  borderBottom: '1px solid #e7dece',
                   bgcolor: 'white',
                 }}
               >
@@ -50,10 +46,8 @@ export const TopProductsTable = ({ products }) => {
               <TableCell
                 align="right"
                 sx={{
-                  color: '#64748b',
-                  borderBottom: '1px solid #e2e8f0',
-                  py: 0.5,
-                  px: 0,
+                  color: '#344054',
+                  borderBottom: '1px solid #e7dece',
                   bgcolor: 'white',
                 }}
               >
@@ -65,13 +59,13 @@ export const TopProductsTable = ({ products }) => {
             {products.map(([name, total]) => (
               <TableRow key={name}>
                 <TableCell
-                  sx={{ py: 1, px: 0, color: '#4b5563', borderBottom: '1px solid #f3f4f6' }}
+                  sx={{ color: 'text.primary' }}
                 >
                   {name}
                 </TableCell>
                 <TableCell
                   align="right"
-                  sx={{ py: 1, px: 0, color: '#4b5563', borderBottom: '1px solid #f3f4f6' }}
+                  sx={{ color: 'text.primary' }}
                 >
                   {total.toLocaleString('en-IN', {
                     minimumFractionDigits: 2,
@@ -93,9 +87,7 @@ export const CategoryMixChart = ({ mix }) => {
       elevation={0}
       sx={{
         flex: '1 1 30%',
-        p: 2,
-        borderRadius: 2,
-        border: '1px solid #e2e8f0',
+        p: 2.5,
         display: 'flex',
         flexDirection: 'column',
 

@@ -354,9 +354,9 @@ const PromotionManagement = () => {
       <Paper
         elevation={0}
         sx={{
-          m: 3,
-          px: 4,
-          py: 2.5,
+          m: 2.5,
+          px: 3,
+          py: 2.25,
           flexShrink: 0,
           background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
           borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
@@ -380,13 +380,13 @@ const PromotionManagement = () => {
       <Container
         disableGutters
         maxWidth={false}
-        sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, px: 3, pb: 3 }}
+        sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, px: 2.5, pb: 2.5 }}
       >
         <Box
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
+            gap: 2.5,
             flex: 1,
             minHeight: 0,
           }}

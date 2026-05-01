@@ -22,7 +22,7 @@ const ExpenseManagement = () => {
   return (
     <Box sx={{ bgcolor: 'background.default', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
-      <Paper elevation={0} sx={{ m: 3, px: 4, py: 2.5, background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)', borderBottom: '1px solid rgba(16, 24, 40, 0.08)', flexShrink: 0 }}>
+      <Paper elevation={0} sx={{ m: 2.5, px: 3, py: 2.25, background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)', borderBottom: '1px solid rgba(16, 24, 40, 0.08)', flexShrink: 0 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} spacing={2}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>Financial Tracking</Typography>
@@ -50,7 +50,7 @@ const ExpenseManagement = () => {
       </Paper>
 
       {/* Content */}
-      <Box sx={{ flex: 1, overflow: 'auto', px: 3, pb: 3 }}>
+      <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, pb: 2.5 }}>
         <Paper sx={{ mb: 3 }}>
           <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tab icon={<ReceiptIcon />} iconPosition="start" label="Expenses" />

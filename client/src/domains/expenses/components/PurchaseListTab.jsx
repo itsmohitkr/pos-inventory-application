@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Box, Typography, Stack, Button, TextField, FormControl, InputLabel, Select, MenuItem,
-  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Autocomplete,
+  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Autocomplete, IconButton,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Payment as PaymentIcon } from '@mui/icons-material';
 
@@ -61,7 +61,7 @@ const PurchaseListTab = ({
     <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 'calc(100vh - 350px)', overflow: 'auto' }}>
       <Table stickyHeader>
         <TableHead>
-          <TableRow sx={{ bgcolor: '#f8fafc' }}>
+          <TableRow>
             {['DATE', 'VENDOR', 'METHOD', 'NOTE', 'AMOUNT', 'DUE', 'STATUS', 'ACTIONS'].map((h, i) => (
               <TableCell key={h} align={i >= 4 && i <= 5 ? 'right' : i >= 6 ? 'center' : 'left'} sx={{ fontWeight: 800 }}>{h}</TableCell>
             ))}
@@ -84,19 +84,19 @@ const PurchaseListTab = ({
                 <Chip label={row.paymentStatus || 'Paid'} size="small" sx={{ fontWeight: 'bold', minWidth: 70 }}
                   color={row.paymentStatus === 'Paid' ? 'success' : row.paymentStatus === 'Due' ? 'warning' : 'error'} />
               </TableCell>
-              <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5 }}>
+              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                 <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
                   {row.dueAmount > 0 && (
-                    <Button size="small" color="success" onClick={() => onOpenPaymentDialog(row)} sx={{ flexDirection: 'column', fontSize: '0.65rem', minWidth: '60px', textTransform: 'none', lineHeight: 1.2, py: 0.5 }}>
-                      <PaymentIcon sx={{ fontSize: '1.2rem', mb: 0.2 }} /> Pay
-                    </Button>
+                    <IconButton size="small" color="success" onClick={() => onOpenPaymentDialog(row)} aria-label="Pay">
+                      <PaymentIcon fontSize="small" />
+                    </IconButton>
                   )}
-                  <Button size="small" color="primary" onClick={() => onEditPurchase(row)} sx={{ flexDirection: 'column', fontSize: '0.65rem', minWidth: '50px', textTransform: 'none', lineHeight: 1.2, py: 0.5 }}>
-                    <EditIcon sx={{ fontSize: '1.2rem', mb: 0.2 }} /> Edit
-                  </Button>
-                  <Button size="small" color="error" onClick={() => onDeletePurchase(row.id)} sx={{ flexDirection: 'column', fontSize: '0.65rem', minWidth: '50px', textTransform: 'none', lineHeight: 1.2, py: 0.5 }}>
-                    <DeleteIcon sx={{ fontSize: '1.2rem', mb: 0.2 }} /> Delete
-                  </Button>
+                  <IconButton size="small" color="primary" onClick={() => onEditPurchase(row)} aria-label="Edit">
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" color="error" onClick={() => onDeletePurchase(row.id)} aria-label="Delete">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 </Box>
               </TableCell>
             </TableRow>
@@ -105,17 +105,17 @@ const PurchaseListTab = ({
             <TableRow><TableCell colSpan={8} align="center">No purchases match criteria</TableCell></TableRow>
           )}
           {filteredPurchases.length > 0 && (
-            <TableRow sx={{ bgcolor: 'rgba(242, 181, 68, 0.1)', position: 'sticky', bottom: 0, zIndex: 1 }}>
-              <TableCell colSpan={4} sx={{ py: 1.5 }}>
-                <Typography variant="subtitle1" fontWeight="bold" textAlign="right" color="primary.dark">Total Current Period</Typography>
+            <TableRow sx={{ bgcolor: '#f3eee6', position: 'sticky', bottom: 0, zIndex: 1 }}>
+              <TableCell colSpan={4} sx={{ py: 1.25, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="body2" fontWeight={700} textAlign="right" color="text.secondary">Total Current Period</Typography>
               </TableCell>
-              <TableCell align="right" sx={{ py: 1.5 }}>
-                <Typography variant="h6" fontWeight="bold" color="primary.dark">₹{totalPurchasesAmount.toLocaleString()}</Typography>
+              <TableCell align="right" sx={{ py: 1.25, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="body1" fontWeight={700} color="text.primary">₹{totalPurchasesAmount.toLocaleString()}</Typography>
               </TableCell>
-              <TableCell align="right" sx={{ py: 1.5 }}>
-                <Typography variant="h6" fontWeight="bold" color="error.main">₹{totalPurchasesDue.toLocaleString()}</Typography>
+              <TableCell align="right" sx={{ py: 1.25, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="body1" fontWeight={700} color="error.main">₹{totalPurchasesDue.toLocaleString()}</Typography>
               </TableCell>
-              <TableCell colSpan={2} sx={{ py: 1.5 }} />
+              <TableCell colSpan={2} sx={{ py: 1.25, borderTop: '1px solid', borderColor: 'divider' }} />
             </TableRow>
           )}
         </TableBody>

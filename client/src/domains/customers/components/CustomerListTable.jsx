@@ -8,7 +8,7 @@ import { TableSortLabel } from '@mui/material';
 import CustomerCardPreview from './CustomerCardPreview';
 
 const CustomerListTable = ({
-  customers, total, page, limit, isLoading, 
+  customers, total, page, limit, isLoading,
   sortBy, setSortBy, order, setOrder,
   onPageChange, onRowClick, onEdit,
 }) => {
@@ -63,9 +63,9 @@ const CustomerListTable = ({
                   key={column.id}
                   align={column.align}
                   sortDirection={sortBy === column.id ? order : false}
-                  sx={{ 
-                    fontWeight: 700, 
-                    bgcolor: '#f8fafc', 
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: '#f8fafc',
                     borderBottom: '2px solid',
                     borderColor: 'divider',
                     whiteSpace: 'nowrap'
@@ -84,13 +84,13 @@ const CustomerListTable = ({
                   </TableSortLabel>
                 </TableCell>
               ))}
-              <TableCell 
-                sx={{ 
-                  fontWeight: 700, 
-                  bgcolor: '#f8fafc', 
+              <TableCell
+                sx={{
+                  fontWeight: 700,
+                  bgcolor: '#f8fafc',
                   borderBottom: '2px solid',
                   borderColor: 'divider'
-                }} 
+                }}
                 align="right"
               >
                 Actions

@@ -119,17 +119,17 @@ const Dashboard = () => {
   }
 
   return (
-    <Box sx={{ bgcolor: '#f8fafc', height: '100%', overflowY: 'auto', p: 2 }}>
+    <Box sx={{ bgcolor: 'background.default', height: '100%', overflowY: 'auto', p: 2.5 }}>
       <Box
         sx={{
-          maxWidth: '1400px',
+          maxWidth: '1440px',
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: 2,
+          gap: 2.5,
         }}
       >
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
+        <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'stretch' }}>
           <MonthlySalesChart
             data={monthlyData}
             year={selectedYear}
@@ -140,11 +140,11 @@ const Dashboard = () => {
             maxVal={yearMetrics.maxMonthVal}
           />
           <StatCard
-            title="Total Sales"
+            title="Annual Sales"
             value={formatShortNum(yearMetrics.totalYearlySales)}
-            footerLabel="Top performing month:"
-            footerValue={`${yearMetrics.topMonthName} (Rs. ${formatShortNum(yearMetrics.topMonthVal)})`}
-            width="300px"
+            footerLabel="Best Month"
+            footerValue={`${yearMetrics.topMonthName} (₹${formatShortNum(yearMetrics.topMonthVal)})`}
+            width="320px"
           />
         </Box>
 
@@ -177,7 +177,7 @@ const Dashboard = () => {
           onApplyCustomRange={handleApplyCustomRange}
         />
 
-        <Box sx={{ display: 'flex', gap: 2, height: '300px' }}>
+        <Box sx={{ display: 'flex', gap: 2.5, height: '320px' }}>
           <TopProductsTable products={periodicMetrics.topProducts} />
           <HourlySalesChart
             activeHourlyData={periodicMetrics.activeHourlyData}
@@ -188,38 +188,31 @@ const Dashboard = () => {
             onMetricChange={setHourlyMetric}
           />
           <StatCard
-            title="Total Sales (Period)"
+            title="Period Revenue"
             value={formatShortNum(periodicMetrics.totalSalesAmount)}
             subtitle={
               periodicMetrics.totalLooseSalesAmount > 0
-                ? `(Includes Rs.${periodicMetrics.totalLooseSalesAmount.toFixed(2)} loose sales)`
-                : ''
+                ? `Incl. ₹${periodicMetrics.totalLooseSalesAmount.toFixed(0)} loose`
+                : 'Total for selected period'
             }
-            bgcolor="#fff"
-            textColor="#64748b"
-            valueColor="#374151"
-            width="30%"
+            width="320px"
           />
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, height: '220px', mb: 4 }}>
+        <Box sx={{ display: 'flex', gap: 2.5, height: '240px', mb: 2.5 }}>
           <CategoryMixChart mix={categoryMixData} />
           <StatCard
-            title="Average Sale Value"
-            subtitle={`Across ${periodicMetrics.totalTransactions} transactions`}
-            value={`Rs.${periodicMetrics.avgSaleValue.toFixed(2)}`}
-            bgcolor="#fff"
-            textColor="#64748b"
-            valueColor="#0b1d39"
-            width="35%"
+            title="Avg. Transaction"
+            subtitle={`Across ${periodicMetrics.totalTransactions} sales`}
+            value={`₹${periodicMetrics.avgSaleValue.toFixed(0)}`}
+            width="320px"
           />
           <StatCard
-            title="Net Profit Margin"
-            subtitle="Estimated aggregate markup"
+            variant="primary"
+            title="Profit Margin"
+            subtitle="Est. aggregate markup"
             value={`${periodicMetrics.netProfitMargin.toFixed(1)}%`}
-            bgcolor="#0b1d39"
-            valueColor="#10b981"
-            width="35%"
+            width="320px"
           />
         </Box>
       </Box>
@@ -228,3 +221,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

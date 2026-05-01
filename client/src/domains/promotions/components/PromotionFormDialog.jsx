@@ -282,15 +282,15 @@ const PromotionFormDialog = ({
             <Table size="small">
               <TableHead sx={{ bgcolor: '#f8fafc' }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, color: '#475569', py: 2 }}>Product</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: '#475569', py: 2 }}>MRP</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: '#475569', py: 2 }}>
+                  <TableCell sx={{ fontWeight: 700, color: '#475569' }}>Product</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: '#475569' }}>MRP</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: '#475569' }}>
                     Current SP
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 800, color: '#0b1d39', py: 2 }}>
+                  <TableCell sx={{ fontWeight: 800, color: '#0b1d39' }}>
                     Sale Price
                   </TableCell>
-                  <TableCell align="right" sx={{ py: 2 }} />
+                  <TableCell align="right" />
                 </TableRow>
               </TableHead>
               <TableBody>

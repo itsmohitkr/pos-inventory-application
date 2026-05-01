@@ -35,7 +35,7 @@ const DashboardHeader = ({
           <Select
             value={tabValue}
             onChange={(e) => onTabChange(e.target.value)}
-            sx={{ bgcolor: '#fff', borderRadius: 1, height: 32, fontSize: '0.85rem' }}
+            sx={{ bgcolor: '#fff', height: 34 }}
           >
             {timeframes.map((tf, idx) => (
               <MenuItem key={idx} value={idx}>
@@ -54,7 +54,7 @@ const DashboardHeader = ({
               onChange={(e) => onStartDateChange(e.target.value)}
               sx={{
                 bgcolor: '#fff',
-                '& .MuiInputBase-root': { height: 32, fontSize: '0.85rem', borderRadius: 1 },
+                '& .MuiInputBase-root': { height: 34 },
               }}
             />
             <TextField
@@ -64,15 +64,14 @@ const DashboardHeader = ({
               onChange={(e) => onEndDateChange(e.target.value)}
               sx={{
                 bgcolor: '#fff',
-                '& .MuiInputBase-root': { height: 32, fontSize: '0.85rem', borderRadius: 1 },
+                '& .MuiInputBase-root': { height: 34 },
               }}
             />
             <Button
               variant="contained"
               onClick={onApplyCustomRange}
               sx={{
-                height: 32,
-                borderRadius: 1,
+                height: 34,
                 bgcolor: '#0b1d39',
                 '&:hover': { bgcolor: '#1e3a8a' },
                 boxShadow: 'none',
