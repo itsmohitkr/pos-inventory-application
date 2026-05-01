@@ -24,14 +24,14 @@ export const resolvePrinterName = ({ receiptSettings, printers = [], defaultPrin
   return defaultPrinter || (printers.find((p) => p.isDefault) || printers[0])?.name;
 };
 
-export const handleManualPrint = ({ receiptSettings, printers, defaultPrinter }) => {
+export const handleManualPrint = async ({ receiptSettings, printers, defaultPrinter }) => {
   if (receiptSettings?.directPrint && window.electron) {
     const printer = resolvePrinterName({ receiptSettings, printers, defaultPrinter });
-    window.electron.ipcRenderer.send('print-manual', { printerName: printer });
-    return;
+    return window.electron.ipcRenderer.invoke('print-manual', { printerName: printer });
   }
 
   window.print();
+  return { success: true };
 };
 
 export const fetchPrintersForPreview = async () => {
