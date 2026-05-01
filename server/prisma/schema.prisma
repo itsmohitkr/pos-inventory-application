@@ -15,6 +15,20 @@ model User {
   password  String
   role      String   @default("cashier")
   status    String   @default("active")
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Shop {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
+  phone     String?
+  phone2    String?
+  email     String?
+  gst       String?
+  logo      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

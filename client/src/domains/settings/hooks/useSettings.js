@@ -63,6 +63,10 @@ export const useSettings = (showError) => {
     shopGST: '',
     shopLogo: '',
   });
+
+  const [onboardingVersion, setOnboardingVersion] = useState(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
   const fetchSettings = useCallback(async function runFetch(retries = 3) {
     try {
       const settings = await settingsService.fetchSettings();
@@ -80,10 +84,14 @@ export const useSettings = (showError) => {
         shopGST: data.shopGST || '',
         shopLogo: data.shopLogo || '',
       });
+      setOnboardingVersion(data.onboardingVersion != null ? Number(data.onboardingVersion) : null);
+      setSettingsLoaded(true);
     } catch (error) {
       console.error(`Failed to fetch settings (remaining retries: ${retries}):`, error);
       if (retries > 0) {
         setTimeout(() => runFetch(retries - 1), 1000);
+      } else {
+        setSettingsLoaded(true);
       }
     }
   }, []);
@@ -215,5 +223,7 @@ export const useSettings = (showError) => {
     handleShopMetadataChange,
     handleSaveBillSettings,
     fetchSettings,
+    onboardingVersion,
+    settingsLoaded,
   };
 };
