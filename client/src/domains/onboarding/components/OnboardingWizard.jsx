@@ -14,6 +14,7 @@ import {
 import { useOnboarding } from './useOnboarding';
 import ShopProfileStep from './ShopProfileStep';
 import AdminPasswordStep from './AdminPasswordStep';
+import trovixLogo from '@/assets/trovix.png';
 
 const STEPS = ['Shop Profile', 'Admin Password'];
 
@@ -48,6 +49,12 @@ export default function OnboardingWizard({ onComplete }) {
         <CardContent sx={{ p: 4 }}>
           <Stack spacing={3}>
             <Box textAlign="center">
+              <Box
+                component="img"
+                src={trovixLogo}
+                alt="Trovix"
+                sx={{ width: 72, height: 72, objectFit: 'contain', mb: 2, borderRadius: 2 }}
+              />
               <Typography variant="h5" fontWeight={700}>
                 Welcome to Trovix
               </Typography>
