@@ -267,6 +267,32 @@ export const installMockApi = async (page) => {
       return;
     }
 
+    if (path === '/api/customers' && method === 'GET') {
+      await jsonResponse(route, { customers: state.getCustomers(), total: state.getCustomers().length });
+      return;
+    }
+
+    if (path.startsWith('/api/customers/') && path.endsWith('/history') && method === 'GET') {
+      const customerId = path.split('/')[3];
+      const history = state.getCustomerHistory(customerId);
+      if (!history) {
+        await notFound(route, 'Customer not found');
+        return;
+      }
+      await jsonResponse(route, history);
+      return;
+    }
+
+    if (path.startsWith('/api/customers/') && method === 'GET') {
+      const customer = state.getCustomerById(path.split('/').pop());
+      if (!customer) {
+        await notFound(route, 'Customer not found');
+        return;
+      }
+      await jsonResponse(route, customer);
+      return;
+    }
+
     if (path.startsWith('/api/promotions/') && method === 'DELETE') {
       const promotionId = path.split('/').pop();
       const removed = state.deletePromotion(promotionId);

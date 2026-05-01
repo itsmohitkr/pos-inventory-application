@@ -69,15 +69,28 @@ describe('Sale Domain API', () => {
     });
 
     describe('POST /api/sale/:id/return', () => {
-        it('should refund/void sale and restore inventory', async () => {
+        it('should refund/void sale, restore inventory, and update customer spend', async () => {
             const mockSale = {
                 id: 1,
-                status: 'completed',
-                items: [{ id: 1, productId: 1, batchId: 1, quantity: 1 }]
+                customerId: 5,
+                items: [
+                    { 
+                        id: 1, 
+                        batchId: 1, 
+                        quantity: 2, 
+                        returnedQuantity: 0, 
+                        sellingPrice: 100 
+                    }
+                ]
             };
 
+            // Setup mocks for the service logic
             prisma.sale.findUnique.mockResolvedValue(mockSale);
-            prisma.$transaction.mockResolvedValue({ success: true, processedReturns: 1 });
+            prisma.saleItem.findUnique.mockResolvedValue(mockSale.items[0]);
+            prisma.batch.findUnique.mockResolvedValue({ id: 1, productId: 1 });
+            prisma.$transaction.mockImplementation(async (callback) => {
+                return await callback(prisma);
+            });
 
             const res = await request(app)
                 .post('/api/sale/1/return')
@@ -87,7 +100,19 @@ describe('Sale Domain API', () => {
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
-            expect(prisma.$transaction).toHaveBeenCalled();
+            
+            // Verify customer spend was decremented
+            expect(prisma.customer.update).toHaveBeenCalledWith({
+                where: { id: 5 },
+                data: { totalSpend: { decrement: 100 } }
+            });
+            
+            // Verify sale item return quantity was updated
+            expect(prisma.saleItem.update).toHaveBeenCalledWith({
+                where: { id: 1 },
+                data: { returnedQuantity: 1 }
+            });
         });
     });
+
 });

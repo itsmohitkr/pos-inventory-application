@@ -9,7 +9,9 @@ import {
   purchasesFixture,
   salesFixture,
   settingsFixture,
+  customersFixture,
 } from './mockFixtures';
+
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -106,7 +108,9 @@ export const createMockState = () => {
     monthlyReport: clone(monthlyReportFixture),
     dailyReport: clone(dailyReportFixture),
     sales: clone(salesFixture),
+    customers: clone(customersFixture),
     nextSaleId: Math.max(0, ...salesFixture.map((sale) => Number(sale.id) || 0)) + 1,
+    nextCustomerId: Math.max(0, ...customersFixture.map((c) => Number(c.id) || 0)) + 1,
     nextSaleItemId:
       Math.max(
         0,
@@ -264,12 +268,23 @@ export const createMockState = () => {
         discount: toNumeric(payload.extraDiscount, 0),
         extraDiscount: toNumeric(payload.extraDiscount, 0),
         paymentMethod: payload.paymentMethod || 'Cash',
+        customerId: payload.customerId || null,
         items: saleItems,
       };
 
       state.sales.push(sale);
+
+      if (payload.customerId) {
+        const customer = state.customers.find(c => String(c.id) === String(payload.customerId));
+        if (customer) {
+          customer.totalSpend = toNumeric(customer.totalSpend, 0) + totalAmount;
+          customer.lastVisit = sale.createdAt;
+        }
+      }
+
       return { saleId, sale };
     },
+
     getSaleById: (saleId) => state.sales.find((sale) => String(sale.id) === String(saleId)) || null,
     processRefund: (saleId, items) => {
       const sale = state.sales.find((entry) => String(entry.id) === String(saleId));
@@ -296,10 +311,28 @@ export const createMockState = () => {
           match.batch.quantity = toNumeric(match.batch.quantity, 0) + acceptedReturnQty;
           recalculateProductTotals(match.product);
         }
+
+        if (sale.customerId) {
+          const customer = state.customers.find(c => String(c.id) === String(sale.customerId));
+          if (customer) {
+            customer.totalSpend = Math.max(0, toNumeric(customer.totalSpend, 0) - (acceptedReturnQty * saleItem.sellingPrice));
+          }
+        }
       }
 
       return { success: true, sale };
     },
+    getCustomers: () => state.customers,
+    getCustomerById: (id) => state.customers.find(c => String(c.id) === String(id)) || null,
+    getCustomerHistory: (id) => {
+      const customer = state.customers.find(c => String(c.id) === String(id));
+      if (!customer) return null;
+      return {
+        customer,
+        sales: state.sales.filter(s => String(s.customerId) === String(id))
+      };
+    },
+
     getPromotions: () => state.promotions,
     updatePromotion: (id, payload) => {
       const promotion = state.promotions.find((item) => String(item.id) === String(id));
