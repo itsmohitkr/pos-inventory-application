@@ -13,11 +13,11 @@ const AnalyticsPayoutSection = ({ totalProfit, netProfit, totalExpenses }) => {
       >
         Profit & Takeout Calculation
       </Typography>
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid #e2e8f0', borderRadius: 2, bgcolor: '#fafbfc' }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid #e2e8f0', borderRadius: '10px', bgcolor: '#fafbfc' }}>
         <Grid container spacing={3} alignItems="stretch">
           {/* Profit Calculation */}
           <Grid size={{ xs: 12, md: 5 }}>
-            <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 2, border: '2px solid #f0fdf4', height: '100%' }}>
+            <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: '10px', border: '2px solid #f0fdf4', height: '100%' }}>
               <Typography variant="subtitle2" sx={{ color: '#475569', fontWeight: 700, mb: 2.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span style={{ color: '#16a34a' }}>📊</span> Profit Calculation
               </Typography>
@@ -33,7 +33,7 @@ const AnalyticsPayoutSection = ({ totalProfit, netProfit, totalExpenses }) => {
                   - ₹ {totalExpenses.toLocaleString()}
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, px: 2, mt: 1.5, bgcolor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 1.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, px: 2, mt: 1.5, bgcolor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
                 <Typography sx={{ color: '#166534', fontWeight: 700 }}>Net Profit</Typography>
                 <Typography sx={{ color: '#166534', fontWeight: 800, fontSize: '1.1rem' }}>
                   ₹ {netProfit.toLocaleString()}
@@ -45,7 +45,7 @@ const AnalyticsPayoutSection = ({ totalProfit, netProfit, totalExpenses }) => {
           {/* Owner Payout */}
           <Grid size={{ xs: 12, md: 7 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%' }}>
-              <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 2, border: '2px solid #e0e7ff' }}>
+              <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: '10px', border: '2px solid #e0e7ff' }}>
                 <Typography variant="subtitle2" sx={{ color: '#475569', fontWeight: 700, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <span style={{ color: '#6366f1' }}>⚙️</span> Owner Takeout Percentage
                 </Typography>
@@ -62,7 +62,7 @@ const AnalyticsPayoutSection = ({ totalProfit, netProfit, totalExpenses }) => {
                   <Typography sx={{ color: '#64748b', fontWeight: 600 }}>% of Net Profit</Typography>
                 </Box>
               </Box>
-              <Box sx={{ p: 3, bgcolor: '#eff6ff', border: '2px solid #7dd3fc', borderRadius: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
+              <Box sx={{ p: 3, bgcolor: '#eff6ff', border: '2px solid #7dd3fc', borderRadius: '10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
                 <Typography sx={{ color: '#0c4a6e', fontWeight: 700, fontSize: '0.9rem', mb: 1 }}>
                   💰 Your Payout
                 </Typography>

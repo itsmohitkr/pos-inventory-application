@@ -74,31 +74,6 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }) => {
     );
   }
 
-  if (!data || data.length === 0) {
-    return (
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: 2,
-            border: '1px solid rgba(0,0,0,0.06)',
-            overflow: 'hidden',
-            p: 4,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography variant="h6" color="text.secondary">
-            No products expiring in this timeframe.
-          </Typography>
-        </Paper>
-      </Box>
-    );
-  }
-
   return (
     <Box
       className="report-print-area"
@@ -110,37 +85,53 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }) => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 2,
-          border: '1px solid rgba(0,0,0,0.06)',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
         }}
       >
         <Box
           className="no-print"
           sx={{
-            p: 3,
+            p: 2,
             flexShrink: 0,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: 2,
             flexWrap: 'wrap',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
           }}
         >
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
               Expiring Products
+              <Box
+                component="span"
+                sx={{
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  bgcolor: 'primary.lighter',
+                  px: 1,
+                  borderRadius: 1,
+                }}
+              >
+                ({sortedData.length})
+              </Box>
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Items reaching expiration in: {timeframeLabel}
+              Inventory items reaching their expiration date soon
             </Typography>
           </Box>
-          <ExportOptions onExportPDF={handleExportPDF} onPrint={handlePrint} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <ExportOptions onExportPDF={handleExportPDF} onPrint={handlePrint} />
+          </Box>
         </Box>
 
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 800 }}>
+          <Table stickyHeader sx={{ minWidth: 1100, tableLayout: 'fixed' }}>
             <SortableTableHead
               columns={[
                 { id: 'productName', label: 'PRODUCT' },
@@ -153,51 +144,63 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }) => {
               requestSort={requestSort}
             />
             <TableBody>
-              {sortedData.map((batch) => {
-                const daysUntilExpiry = Math.ceil(
-                  (new Date(batch.expiryDate) - new Date()) / (1000 * 60 * 60 * 24)
-                );
-                const isCritical = daysUntilExpiry <= 7;
+              {sortedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
+                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      No products expiring in this timeframe.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedData.map((batch) => {
+                  const daysUntilExpiry = Math.ceil(
+                    (new Date(batch.expiryDate) - new Date()) / (1000 * 60 * 60 * 24)
+                  );
+                  const isCritical = daysUntilExpiry <= 7;
 
-                return (
-                  <TableRow key={batch.id} hover>
-                    <TableCell sx={{ fontWeight: 600 }}>{batch.productName}</TableCell>
-                    <TableCell>
-                      <Chip label={batch.category} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell>{batch.batchCode || '-'}</TableCell>
-                    <TableCell align="center">
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 700, color: batch.quantity <= 5 ? '#d32f2f' : 'inherit' }}
-                      >
-                        {batch.quantity}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box
-                        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}
-                      >
+                  return (
+                    <TableRow key={batch.id} hover>
+                      <TableCell sx={{ fontWeight: 700 }}>{batch.productName}</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        {batch.category}
+                      </TableCell>
+                      <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        {batch.batchCode || '-'}
+                      </TableCell>
+                      <TableCell align="center">
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 600, color: isCritical ? '#d32f2f' : 'inherit' }}
+                          sx={{ fontWeight: 700, color: batch.quantity <= 5 ? '#d32f2f' : 'inherit' }}
                         >
-                          {new Date(batch.expiryDate).toLocaleDateString()}
+                          {batch.quantity}
                         </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: isCritical ? '#d32f2f' : 'text.secondary',
-                            fontWeight: isCritical ? 700 : 400,
-                          }}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Box
+                          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}
                         >
-                          {daysUntilExpiry > 0 ? `in ${daysUntilExpiry} days` : 'Expired'}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 600, color: isCritical ? '#d32f2f' : 'inherit' }}
+                          >
+                            {new Date(batch.expiryDate).toLocaleDateString()}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: isCritical ? '#d32f2f' : 'text.secondary',
+                              fontWeight: isCritical ? 700 : 400,
+                            }}
+                          >
+                            {daysUntilExpiry > 0 ? `in ${daysUntilExpiry} days` : 'Expired'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </TableContainer>

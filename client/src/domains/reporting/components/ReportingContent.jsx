@@ -24,8 +24,8 @@ const ReportingContent = ({
 
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-      {reportType === 'financial_summary' ? (
-        <AnalyticsPanel reportData={reportData} loading={loading} />
+      {['cash_flow', 'profit_payout', 'analytics'].includes(reportType) ? (
+        <AnalyticsPanel reportData={reportData} loading={loading} reportType={reportType} />
       ) : reportType === 'profit_margin' ? (
         <SalesHistory
           sales={reportData?.sales}

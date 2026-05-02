@@ -8,7 +8,7 @@ import ReportingContent from '@/domains/reporting/components/ReportingContent';
 import { useReportingData } from '@/domains/reporting/components/useReportingData';
 
 const Reporting = () => {
-  const [reportType, setReportType] = useState('financial_summary');
+  const [reportType, setReportType] = useState('cash_flow');
   const [selectedSale, setSelectedSale] = useState(null);
 
   const {
@@ -40,56 +40,51 @@ const Reporting = () => {
       <Paper
         elevation={0}
         sx={{
-          m: 2.5,
-          px: 3,
-          py: 2.25,
-          background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
-          borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
+          m: 1.5,
+          px: 2.5,
+          py: 1.75,
+          bgcolor: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexShrink: 0,
         }}
       >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 2,
-            flexWrap: 'wrap',
-          }}
-        >
-          <Box>
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}
-            >
-              Reports & Analytics
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Gain insights into your sales, profits, and inventory trends.
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-            <ReportingTimeframeControls
-              reportType={reportType}
-              tabValue={tabValue}
-              timeframes={timeframes}
-              dateRange={dateRange}
-              onTabChange={handleTabChange}
-              onDateRangeChange={(key, value) =>
-                setDateRange((prev) => ({
-                  ...prev,
-                  [key]: value,
-                }))
-              }
-              onApplyCustomRange={handleApplyCustomRange}
-            />
-          </Stack>
+        <Box>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}
+          >
+            Reports & Analytics
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Gain insights into your sales, profits, and inventory trends.
+          </Typography>
         </Box>
+        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+          <ReportingTimeframeControls
+            reportType={reportType}
+            tabValue={tabValue}
+            timeframes={timeframes}
+            dateRange={dateRange}
+            onTabChange={handleTabChange}
+            onDateRangeChange={(key, value) =>
+              setDateRange((prev) => ({
+                ...prev,
+                [key]: value,
+              }))
+            }
+            onApplyCustomRange={handleApplyCustomRange}
+          />
+        </Stack>
       </Paper>
 
       <Container
         disableGutters
         maxWidth={false}
-        sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, px: 2.5, pb: 2.5 }}
+        sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, px: 1.5, pb: 1.5 }}
       >
         {loading && !reportData && !expiryData && !lowStockData && !looseSalesData ? (
           <Box
@@ -107,7 +102,7 @@ const Reporting = () => {
             sx={{
               display: 'flex',
               flexDirection: { xs: 'column', md: 'row' },
-              gap: 2.5,
+              gap: 1.5,
               flex: 1,
               minHeight: 0,
             }}

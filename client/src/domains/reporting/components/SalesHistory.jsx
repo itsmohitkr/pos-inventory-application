@@ -154,32 +154,47 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
         }}
       >
         <Box
           className="no-print"
           sx={{
-            p: 3,
+            p: 2,
             flexShrink: 0,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: 2,
             flexWrap: 'wrap',
-            borderBottom: '1px solid',
-            borderColor: 'divider',
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#333' }}>
-            Sales History - {timeframeLabel}
-          </Typography>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+              Profit & Margin Report
+              <Box
+                component="span"
+                sx={{
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  bgcolor: 'primary.lighter',
+                  px: 1,
+                  borderRadius: 1,
+                }}
+              >
+                ({sales?.length || 0})
+              </Box>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Complete transaction history with financial margin insights
+            </Typography>
+          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Chip
-              label={`${sales?.length || 0} Transactions`}
-              size="small"
-              sx={{ bgcolor: '#f0f4f8', color: '#1a73e8', fontWeight: 700 }}
-            />
             <ExportOptions onPrint={handlePrint} onExportPDF={handleExportPDF} />
           </Box>
         </Box>

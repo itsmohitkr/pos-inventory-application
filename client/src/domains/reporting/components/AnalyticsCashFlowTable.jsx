@@ -25,7 +25,7 @@ const AnalyticsCashFlowTable = ({ totalSales, cashFlowItems, totalCashBalance })
       elevation={0}
       sx={{
         border: '1px solid #e2e8f0',
-        borderRadius: 3,
+        borderRadius: '10px',
         overflow: 'hidden',
         maxHeight: '400px',
         overflowY: 'auto',
@@ -34,10 +34,10 @@ const AnalyticsCashFlowTable = ({ totalSales, cashFlowItems, totalCashBalance })
       <Table stickyHeader>
         <TableHead sx={{ bgcolor: '#f8fafc' }}>
           <TableRow>
-            <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', top: 0, zIndex: 2 }}>
+            <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', top: 0, zIndex: 2, py: 1 }}>
               PARTICULARS
             </TableCell>
-            <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', top: 0, zIndex: 2 }}>
+            <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc', top: 0, zIndex: 2, py: 1 }}>
               AMOUNT (₹)
             </TableCell>
           </TableRow>

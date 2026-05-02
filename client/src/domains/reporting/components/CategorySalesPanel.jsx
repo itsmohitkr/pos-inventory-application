@@ -121,8 +121,8 @@ const CategorySalesPanel = ({ sales }) => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 2,
-          border: '1px solid rgba(0,0,0,0.06)',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
           '@media print': {
             p: 0,
@@ -145,53 +145,74 @@ const CategorySalesPanel = ({ sales }) => {
         <Box
           className="no-print"
           sx={{
-            p: 3,
+            p: 2,
             flexShrink: 0,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: 2,
             flexWrap: 'wrap',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Sales Performance by Category
-          </Typography>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+              Category Sales Performance
+              <Box
+                component="span"
+                sx={{
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  bgcolor: 'primary.lighter',
+                  px: 1,
+                  borderRadius: 1,
+                }}
+              >
+                ({sortedData.length})
+              </Box>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Performance metrics grouped by category
+            </Typography>
+          </Box>
 
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>Filter Category</InputLabel>
-            <Select
-              value={selectedCategory}
-              label="Filter Category"
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              sx={{ borderRadius: 2, fontWeight: 600 }}
-            >
-              <MenuItem value="All Categories">
-                <em>All Categories</em>
-              </MenuItem>
-              {allCategories.map((cat) => (
-                <MenuItem key={cat} value={cat}>
-                  {cat}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Filter Category</InputLabel>
+              <Select
+                value={selectedCategory}
+                label="Filter Category"
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                <MenuItem value="All Categories">
+                  <em>All Categories</em>
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+                {allCategories.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
         </Box>
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 800, tableLayout: 'fixed' }}>
+          <Table stickyHeader sx={{ minWidth: 1200, tableLayout: 'fixed' }}>
             <SortableTableHead
               columns={[
-                { id: 'name', label: 'CATEGORY NAME', sx: { width: '30%' } },
+                { id: 'name', label: 'CATEGORY NAME', sx: { width: '25%' } },
                 { id: 'itemCount', label: 'ITEMS SOLD', align: 'center', sx: { width: '12%' } },
-                { id: 'totalCost', label: 'TOTAL COST', align: 'right', sx: { width: '18%' } },
-                { id: 'totalSales', label: 'TOTAL SALES', align: 'right', sx: { width: '18%' } },
-                { id: 'totalProfit', label: 'TOTAL PROFIT', align: 'right', sx: { width: '14%' } },
+                { id: 'totalCost', label: 'TOTAL COST', align: 'right', sx: { width: '15%' } },
+                { id: 'totalSales', label: 'TOTAL SALES', align: 'right', sx: { width: '15%' } },
+                { id: 'totalProfit', label: 'TOTAL PROFIT', align: 'right', sx: { width: '15%' } },
                 {
                   id: 'margin',
                   label: 'AVG. MARGIN',
                   align: 'right',
-                  sx: { width: '8%' },
+                  sx: { width: '18%' },
                   getter: (cat) =>
                     cat.totalSales > 0 ? (cat.totalProfit / cat.totalSales) * 100 : 0,
                 },
@@ -213,7 +234,7 @@ const CategorySalesPanel = ({ sales }) => {
                   onClick={() => setSelectedIndex(idx)}
                 >
                   <TableCell sx={{ fontWeight: 700 }}>{cat.name}</TableCell>
-                  <TableCell align="center">{cat.itemCount}</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>{cat.itemCount}</TableCell>
                   <TableCell align="right" sx={{ color: '#64748b' }}>
                     ₹{cat.totalCost.toFixed(2)}
                   </TableCell>
