@@ -15,7 +15,11 @@ import {
   Select,
   MenuItem,
   Checkbox,
+  Autocomplete,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
+import { FilterAlt } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from '@/domains/reporting/components/ExportOptions';
@@ -164,21 +168,46 @@ const LowStockReportPanel = ({ data, loading }) => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Filter Category</InputLabel>
-              <Select
-                value={selectedCategory}
-                label="Filter Category"
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                sx={{ borderRadius: 2, fontWeight: 600 }}
-              >
-                {categories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    {cat}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              size="small"
+              options={categories}
+              value={selectedCategory}
+              onChange={(event, newValue) => setSelectedCategory(newValue || 'All Categories')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search Category"
+                  placeholder="Type to filter..."
+                  sx={{
+                    minWidth: 240,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                      bgcolor: '#f8fafc',
+                      fontWeight: 600,
+                      '& fieldset': { borderColor: '#e2e8f0' },
+                      '&:hover fieldset': { borderColor: '#cbd5e1' },
+                      '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '2px' },
+                    },
+                    '& .MuiInputLabel-root': { fontWeight: 500, color: '#64748b' },
+                  }}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FilterAlt sx={{ fontSize: 18, color: '#94a3b8' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+              sx={{
+                '& .MuiAutocomplete-option': {
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  py: 1,
+                },
+              }}
+            />
             <ExportOptions
               onExportPDF={handleExportPDF}
               onPrint={handlePrint}
@@ -192,11 +221,11 @@ const LowStockReportPanel = ({ data, loading }) => {
             <TableHead>
               <TableRow>
                 <TableCell
+                  padding="checkbox"
                   sx={{
                     bgcolor: '#f1f5f9',
-                    py: 1.2,
                     borderBottom: '2px solid #e2e8f0',
-                    width: '35px',
+                    zIndex: 3,
                   }}
                 >
                   <Checkbox
@@ -208,7 +237,6 @@ const LowStockReportPanel = ({ data, loading }) => {
                       filteredData.length > 0 && selectedItems.length === filteredData.length
                     }
                     onChange={handleSelectAll}
-                    sx={{ p: 0.5 }}
                   />
                 </TableCell>
                 <TableCell
@@ -327,7 +355,7 @@ const LowStockReportPanel = ({ data, loading }) => {
                       sx={{ cursor: 'pointer' }}
                     >
                       <TableCell padding="checkbox">
-                        <Checkbox checked={isItemSelected} />
+                        <Checkbox size="small" checked={isItemSelected} />
                       </TableCell>
                       <TableCell sx={{ fontWeight: 500, color: 'text.secondary' }}>
                         {index + 1}

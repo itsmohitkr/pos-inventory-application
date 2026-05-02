@@ -13,7 +13,11 @@ import {
   TableRow,
   TableCell,
   Chip,
+  Autocomplete,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
+import { FilterAlt } from '@mui/icons-material';
 import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
 
@@ -179,24 +183,46 @@ const CategorySalesPanel = ({ sales }) => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Filter Category</InputLabel>
-              <Select
-                value={selectedCategory}
-                label="Filter Category"
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                sx={{ borderRadius: 2, fontWeight: 600 }}
-              >
-                <MenuItem value="All Categories">
-                  <em>All Categories</em>
-                </MenuItem>
-                {allCategories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    {cat}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              size="small"
+              options={['All Categories', ...allCategories]}
+              value={selectedCategory}
+              onChange={(event, newValue) => setSelectedCategory(newValue || 'All Categories')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search Category"
+                  placeholder="Type to filter..."
+                  sx={{
+                    minWidth: 240,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                      bgcolor: '#f8fafc',
+                      fontWeight: 600,
+                      '& fieldset': { borderColor: '#e2e8f0' },
+                      '&:hover fieldset': { borderColor: '#cbd5e1' },
+                      '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '2px' },
+                    },
+                    '& .MuiInputLabel-root': { fontWeight: 500, color: '#64748b' },
+                  }}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FilterAlt sx={{ fontSize: 18, color: '#94a3b8' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+              sx={{
+                '& .MuiAutocomplete-option': {
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  py: 1,
+                },
+              }}
+            />
           </Box>
         </Box>
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>

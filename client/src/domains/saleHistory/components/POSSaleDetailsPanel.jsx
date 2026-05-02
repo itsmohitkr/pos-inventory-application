@@ -109,9 +109,9 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
           >
             <Typography
               variant="caption"
-              sx={{ 
-                fontWeight: 500, 
-                display: 'block', 
+              sx={{
+                fontWeight: 500,
+                display: 'block',
                 color: '#3b82f6',
                 textTransform: 'uppercase',
                 fontSize: '0.85rem',
@@ -139,9 +139,9 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
           >
             <Typography
               variant="caption"
-              sx={{ 
-                fontWeight: 500, 
-                display: 'block', 
+              sx={{
+                fontWeight: 500,
+                display: 'block',
                 color: '#f43f5e',
                 textTransform: 'uppercase',
                 fontSize: '0.85rem',

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,11 @@ import {
   TableCell,
   TableBody,
   Chip,
+  Autocomplete,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
+import { FilterAlt } from '@mui/icons-material';
 import ExportOptions from '@/domains/reporting/components/ExportOptions';
 import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
@@ -49,15 +53,38 @@ const ItemSalesRow = ({ item }) => {
 };
 
 const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
-  const { aggregatedData, totals } = useMemo(() => aggregateItemSales(sales), [sales]);
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const { aggregatedData } = useMemo(() => aggregateItemSales(sales), [sales]);
+
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set(aggregatedData.map((item) => item.category).filter(Boolean));
+    return ['All Categories', ...Array.from(uniqueCategories).sort()];
+  }, [aggregatedData]);
+
+  const filteredAggregatedData = useMemo(() => {
+    if (selectedCategory === 'All Categories') return aggregatedData;
+    return aggregatedData.filter((item) => item.category === selectedCategory);
+  }, [aggregatedData, selectedCategory]);
+
+  const filteredTotals = useMemo(() => {
+    return filteredAggregatedData.reduce(
+      (acc, item) => ({
+        quantity: acc.quantity + item.quantity,
+        revenue: acc.revenue + item.revenue,
+        profit: acc.profit + item.profit,
+        cost: acc.cost + item.cost,
+      }),
+      { quantity: 0, revenue: 0, profit: 0, cost: 0 }
+    );
+  }, [filteredAggregatedData]);
 
   const {
     items: sortedData,
     requestSort,
     sortConfig,
-  } = useSortableTable(aggregatedData, { key: 'revenue', direction: 'desc' });
+  } = useSortableTable(filteredAggregatedData, { key: 'revenue', direction: 'desc' });
 
-  const handleExportPDF = () => exportItemSalesToPDF(aggregatedData, totals, timeframeLabel);
+  const handleExportPDF = () => exportItemSalesToPDF(filteredAggregatedData, filteredTotals, timeframeLabel);
   const handlePrint = () => window.print();
 
   if (loading) {
@@ -67,8 +94,6 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
       </Box>
     );
   }
-
-
 
   return (
     <Box
@@ -136,6 +161,46 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Autocomplete
+              size="small"
+              options={categories}
+              value={selectedCategory}
+              onChange={(event, newValue) => setSelectedCategory(newValue || 'All Categories')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search Category"
+                  placeholder="Type to filter..."
+                  sx={{
+                    minWidth: 240,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                      bgcolor: '#f8fafc',
+                      fontWeight: 600,
+                      '& fieldset': { borderColor: '#e2e8f0' },
+                      '&:hover fieldset': { borderColor: '#cbd5e1' },
+                      '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '2px' },
+                    },
+                    '& .MuiInputLabel-root': { fontWeight: 500, color: '#64748b' },
+                  }}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FilterAlt sx={{ fontSize: 18, color: '#94a3b8' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+              sx={{
+                '& .MuiAutocomplete-option': {
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  py: 1,
+                },
+              }}
+            />
             <ExportOptions onExportPDF={handleExportPDF} onPrint={handlePrint} />
           </Box>
         </Box>
@@ -204,7 +269,7 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
                         borderTop: '2px solid #e2e8f0',
                       }}
                     >
-                      {totals.quantity}
+                      {filteredTotals.quantity}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -215,7 +280,7 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
                         borderTop: '2px solid #e2e8f0',
                       }}
                     >
-                      ₹{totals.cost.toFixed(2)}
+                      ₹{filteredTotals.cost.toFixed(2)}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -226,7 +291,7 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
                         borderTop: '2px solid #e2e8f0',
                       }}
                     >
-                      ₹{totals.revenue.toFixed(2)}
+                      ₹{filteredTotals.revenue.toFixed(2)}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -237,11 +302,11 @@ const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
                         borderTop: '2px solid #e2e8f0',
                       }}
                     >
-                      ₹{totals.profit.toFixed(2)}
+                      ₹{filteredTotals.profit.toFixed(2)}
                     </TableCell>
                     <TableCell align="right" sx={{ bgcolor: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
                       <Chip
-                        label={`${totals.revenue > 0 ? ((totals.profit / totals.revenue) * 100).toFixed(1) : 0}%`}
+                        label={`${filteredTotals.revenue > 0 ? ((filteredTotals.profit / filteredTotals.revenue) * 100).toFixed(1) : 0}%`}
                         size="small"
                         color="primary"
                         sx={{ fontWeight: 800 }}

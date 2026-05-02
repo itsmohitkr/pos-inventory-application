@@ -10,7 +10,11 @@ import {
   TableCell,
   TableBody,
   Chip,
+  Autocomplete,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
+import { FilterAlt } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from '@/domains/reporting/components/ExportOptions';
@@ -18,14 +22,28 @@ import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
 
 const ExpiryReportPanel = ({ data, loading, timeframeLabel }) => {
+  const [selectedCategory, setSelectedCategory] = React.useState('All Categories');
+
+  const categories = React.useMemo(() => {
+    if (!data) return [];
+    const uniqueCategories = new Set(data.map((p) => p.category).filter(Boolean));
+    return ['All Categories', ...Array.from(uniqueCategories).sort()];
+  }, [data]);
+
+  const filteredData = React.useMemo(() => {
+    if (!data) return [];
+    if (selectedCategory === 'All Categories') return data;
+    return data.filter((p) => p.category === selectedCategory);
+  }, [data, selectedCategory]);
+
   const {
     items: sortedData,
     requestSort,
     sortConfig,
-  } = useSortableTable(data || [], { key: 'expiryDate', direction: 'asc' });
+  } = useSortableTable(filteredData || [], { key: 'expiryDate', direction: 'asc' });
 
   const handleExportPDF = () => {
-    if (!data || data.length === 0) return;
+    if (!filteredData || filteredData.length === 0) return;
 
     const doc = new jsPDF();
     doc.setFontSize(18);
@@ -33,33 +51,29 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }) => {
 
     doc.setFontSize(11);
     doc.setTextColor(100);
-    doc.text(`Timeframe: ${timeframeLabel}`, 14, 28);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34);
+    doc.text(`Category: ${selectedCategory}`, 14, 28);
+    doc.text(`Timeframe: ${timeframeLabel}`, 14, 34);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
 
     const tableColumn = ['Product Name', 'Category', 'Batch Code', 'Quantity', 'Expiry Date'];
-    const tableRows = [];
-
-    data.forEach((batch) => {
-      const rowData = [
-        batch.productName,
-        batch.category,
-        batch.batchCode || 'N/A',
-        batch.quantity.toString(),
-        new Date(batch.expiryDate).toLocaleDateString(),
-      ];
-      tableRows.push(rowData);
-    });
+    const tableRows = filteredData.map((batch) => [
+      batch.productName,
+      batch.category,
+      batch.batchCode || 'N/A',
+      batch.quantity.toString(),
+      new Date(batch.expiryDate).toLocaleDateString(),
+    ]);
 
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 40,
+      startY: 46,
       theme: 'striped',
       styles: { fontSize: 10 },
-      headStyles: { fillColor: [25, 118, 210] }, // MUI Primary color
+      headStyles: { fillColor: [25, 118, 210] },
     });
 
-    doc.save(`expiry_report_${timeframeLabel.replace(/\s+/g, '_').toLowerCase()}.pdf`);
+    doc.save(`expiry_report_${selectedCategory.toLowerCase().replace(/\s+/g, '_')}_${timeframeLabel.replace(/\s+/g, '_').toLowerCase()}.pdf`);
   };
 
   const handlePrint = () => {
@@ -126,6 +140,46 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }) => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Autocomplete
+              size="small"
+              options={categories}
+              value={selectedCategory}
+              onChange={(event, newValue) => setSelectedCategory(newValue || 'All Categories')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search Category"
+                  placeholder="Type to filter..."
+                  sx={{
+                    minWidth: 240,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                      bgcolor: '#f8fafc',
+                      fontWeight: 600,
+                      '& fieldset': { borderColor: '#e2e8f0' },
+                      '&:hover fieldset': { borderColor: '#cbd5e1' },
+                      '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '2px' },
+                    },
+                    '& .MuiInputLabel-root': { fontWeight: 500, color: '#64748b' },
+                  }}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FilterAlt sx={{ fontSize: 18, color: '#94a3b8' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+              sx={{
+                '& .MuiAutocomplete-option': {
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  py: 1,
+                },
+              }}
+            />
             <ExportOptions onExportPDF={handleExportPDF} onPrint={handlePrint} />
           </Box>
         </Box>

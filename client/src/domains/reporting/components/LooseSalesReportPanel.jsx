@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  TableFooter,
 } from '@mui/material';
 import { DeleteOutline } from '@mui/icons-material';
 import jsPDF from 'jspdf';
@@ -95,44 +96,6 @@ const LooseSalesReportPanel = ({ data, loading, timeframeLabel, onRefresh }) => 
       className="report-print-area"
       sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
     >
-      {/* Summary Card */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 1.5,
-            flex: 1,
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0',
-            bgcolor: '#fffbeb',
-          }}
-        >
-          <Typography variant="caption" sx={{ color: '#b45309', fontWeight: 'bold' }}>
-            TOTAL LOOSE REVENUE
-          </Typography>
-          <Typography variant="h4" fontWeight="bold" sx={{ color: '#92400e' }}>
-            ₹{totalRevenue.toFixed(2)}
-          </Typography>
-        </Paper>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 1.5,
-            flex: 1,
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0',
-            bgcolor: '#f8fafc',
-          }}
-        >
-          <Typography variant="caption" color="text.secondary" fontWeight="bold">
-            TOTAL TRANSACTIONS
-          </Typography>
-          <Typography variant="h4" fontWeight="bold" color="text.primary">
-            {(data || []).length}
-          </Typography>
-        </Paper>
-      </Box>
-
       <Paper
         elevation={0}
         sx={{
@@ -191,7 +154,7 @@ const LooseSalesReportPanel = ({ data, loading, timeframeLabel, onRefresh }) => 
                 { id: 'createdAt', label: 'DATE & TIME' },
                 { id: 'itemName', label: 'ITEM NAME / NOTES' },
                 { id: 'price', label: 'PRICE (₹)', align: 'right' },
-                { id: 'actions', label: '', align: 'right' },
+                { id: 'actions', label: 'ACTIONS', align: 'right' },
               ]}
               sortConfig={sortConfig}
               requestSort={requestSort}
@@ -208,8 +171,18 @@ const LooseSalesReportPanel = ({ data, loading, timeframeLabel, onRefresh }) => 
               ) : (
                 sortedData.map((item) => (
                   <TableRow key={item.id} hover>
-                    <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                      {new Date(item.createdAt).toLocaleString()}
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {item.createdAt
+                          ? new Date(item.createdAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : ''}
+                      </Typography>
                     </TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>{item.itemName || 'Loose Item'}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>
@@ -224,6 +197,41 @@ const LooseSalesReportPanel = ({ data, loading, timeframeLabel, onRefresh }) => 
                 ))
               )}
             </TableBody>
+            <TableFooter
+              sx={{
+                position: 'sticky',
+                bottom: 0,
+                zIndex: 10,
+                bgcolor: '#f1f5f9', // Slate background to match Profit & Margin
+              }}
+            >
+              <TableRow sx={{ '&:hover': { bgcolor: '#f1f5f9' } }}>
+                <TableCell
+                  colSpan={2}
+                  sx={{
+                    fontWeight: 700,
+                    color: 'text.secondary',
+                    py: 1.5,
+                    borderTop: '1px solid #e2e8f0'
+                  }}
+                >
+                  Total Current Period
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#1e293b',
+                    py: 1.5,
+                    fontSize: '1rem',
+                    borderTop: '1px solid #e2e8f0'
+                  }}
+                >
+                  ₹ {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </TableCell>
+                <TableCell sx={{ borderTop: '1px solid #e2e8f0' }} />
+              </TableRow>
+            </TableFooter>
           </Table>
         </TableContainer>
       </Paper>

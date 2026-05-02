@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, CircularProgress, Typography, Paper } from '@mui/material';
 import {
   buildCashFlowItems,
   buildCategorySegments,
@@ -41,68 +41,88 @@ const AnalyticsPanel = ({ reportData, loading, reportType }) => {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        gap: 2.5,
         height: '100%',
-        overflowY: 'auto',
+        minHeight: 0,
       }}
     >
-      <Box
-        className="no-print"
+      <Paper
+        elevation={0}
         sx={{
-          p: 2,
-          flexShrink: 0,
+          flex: 1,
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 2,
-          flexWrap: 'wrap',
-          borderBottom: '1px solid #e2e8f0',
-          bgcolor: '#ffffff',
-          borderRadius: '10px 10px 0 0',
+          flexDirection: 'column',
+          borderRadius: '10px',
           border: '1px solid #e2e8f0',
-          mb: 1,
+          overflow: 'hidden',
+          bgcolor: '#ffffff',
         }}
       >
-        <Box>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            {reportType === 'cash_flow'
-              ? 'Cash Flow Statement'
-              : reportType === 'profit_payout'
-              ? 'Profit & Payout'
-              : 'Category Analytics'}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {reportType === 'cash_flow'
-              ? 'Chronological breakdown of shop income, expenses, and purchases'
-              : reportType === 'profit_payout'
-              ? 'Net profit calculation and owner distribution breakdown'
-              : 'Visual breakdown of expenses and purchase categories'}
-          </Typography>
+        <Box
+          className="no-print"
+          sx={{
+            p: 2,
+            flexShrink: 0,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 2,
+            flexWrap: 'wrap',
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
+          }}
+        >
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              {reportType === 'cash_flow'
+                ? 'Cash Flow Statement'
+                : reportType === 'profit_payout'
+                ? 'Profit & Payout'
+                : 'Category Analytics'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {reportType === 'cash_flow'
+                ? 'Chronological breakdown of shop income, expenses, and purchases'
+                : reportType === 'profit_payout'
+                ? 'Net profit calculation and owner distribution breakdown'
+                : 'Visual breakdown of expenses and purchase categories'}
+            </Typography>
+          </Box>
         </Box>
-      </Box>
 
-      {reportType === 'cash_flow' && (
-        <AnalyticsCashFlowTable
-          totalSales={totalSales}
-          cashFlowItems={cashFlowItems}
-          totalCashBalance={totalCashBalance}
-        />
-      )}
-      {reportType === 'profit_payout' && (
-        <AnalyticsPayoutSection
-          totalProfit={totalProfit}
-          netProfit={netProfit}
-          totalExpenses={totalExpenses}
-        />
-      )}
-      {reportType === 'analytics' && (
-        <AnalyticsCategoryBreakdown
-          expenseSegments={expenseSegments}
-          expenseGradient={expenseGradient}
-          purchaseSegments={purchaseSegments}
-          purchaseGradient={purchaseGradient}
-        />
-      )}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2.5,
+            p: 2,
+            overflowY: 'auto',
+          }}
+        >
+          {reportType === 'cash_flow' && (
+            <AnalyticsCashFlowTable
+              totalSales={totalSales}
+              cashFlowItems={cashFlowItems}
+              totalCashBalance={totalCashBalance}
+            />
+          )}
+          {reportType === 'profit_payout' && (
+            <AnalyticsPayoutSection
+              totalProfit={totalProfit}
+              netProfit={netProfit}
+              totalExpenses={totalExpenses}
+            />
+          )}
+          {reportType === 'analytics' && (
+            <AnalyticsCategoryBreakdown
+              expenseSegments={expenseSegments}
+              expenseGradient={expenseGradient}
+              purchaseSegments={purchaseSegments}
+              purchaseGradient={purchaseGradient}
+            />
+          )}
+        </Box>
+      </Paper>
     </Box>
   );
 };

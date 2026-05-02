@@ -114,14 +114,7 @@ const ReportSidebar = ({ reportType, onReportTypeChange }) => {
       </Box>
 
       <Box sx={{ px: 1, py: 1.5 }}>
-        <Typography 
-          variant="caption" 
-          sx={{ px: 1.5, py: 1, display: 'block', color: '#94a3b8', fontWeight: 700, letterSpacing: 1 }}
-        >
-          SALES REPORT
-        </Typography>
-
-        <List sx={{ pt: 0.5 }}>
+        <List sx={{ pt: 0 }}>
           {REPORT_ITEMS.map((item, idx) => {
             const IconComponent = item.Icon;
             const hasChildren = !!item.children;

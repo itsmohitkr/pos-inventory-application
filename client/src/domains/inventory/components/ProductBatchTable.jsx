@@ -8,6 +8,7 @@ import {
   Box,
   IconButton,
   Typography,
+  Tooltip,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -40,10 +41,10 @@ const ProductBatchTable = ({
               MRP
             </TableCell>
             <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Cost
+              CP
             </TableCell>
             <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Selling
+              SP
             </TableCell>
             <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Disc %
@@ -53,7 +54,7 @@ const ProductBatchTable = ({
             </TableCell>
             {batchTrackingEnabled && (
               <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-                Expiry
+                EXP
               </TableCell>
             )}
             <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
@@ -76,7 +77,13 @@ const ProductBatchTable = ({
               <TableRow key={batch.id} data-testid={`inventory-batch-row-${batch.id}`}>
                 {batchTrackingEnabled && (
                   <TableCell sx={{ px: 1.5 }}>
-                    <Typography variant="body2" fontWeight={500}>{batch.batchCode || 'N/A'}</Typography>
+                    <Tooltip title={batch.batchCode || 'N/A'} arrow placement="top">
+                      <Typography variant="body2" fontWeight={500} sx={{ cursor: 'help' }}>
+                        {batch.batchCode 
+                          ? (batch.batchCode.length > 8 ? `${batch.batchCode.substring(0, 8)}...` : batch.batchCode)
+                          : 'N/A'}
+                      </Typography>
+                    </Tooltip>
                   </TableCell>
                 )}
                 <TableCell sx={{ px: 1.5 }}>
