@@ -222,9 +222,8 @@ const SaleHistory = ({
   return (
     <Box
       sx={{
-        bgcolor: 'background.default',
+        bgcolor: '#f8fafc',
         height: '100%',
-        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',

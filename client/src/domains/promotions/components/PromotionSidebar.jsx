@@ -7,22 +7,21 @@ const PromotionSidebar = ({ activeTab, onChangeTab }) => (
     elevation={0}
     sx={{
       width: 280,
-      border: '1px solid rgba(0,0,0,0.06)',
-      bgcolor: '#fff',
+      border: '1px solid #e2e8f0',
+      bgcolor: '#ffffff',
       display: 'flex',
       flexDirection: 'column',
-      borderRadius: 2,
-      p: 1.5,
-      gap: 0.5,
+      borderRadius: '12px',
+      overflow: 'hidden',
       flexShrink: 0,
     }}
   >
-    <Box sx={{ p: 2, bgcolor: '#f8fafc', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-      <Typography variant="overline" sx={{ fontWeight: 800, color: '#64748b' }}>
+    <Box sx={{ p: 2, bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+      <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', letterSpacing: '1px', textTransform: 'uppercase' }}>
         PROMOTION MODULES
       </Typography>
     </Box>
-    <Box sx={{ p: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
       <Button
         fullWidth
         onClick={() => onChangeTab('threshold')}
@@ -30,15 +29,19 @@ const PromotionSidebar = ({ activeTab, onChangeTab }) => (
           justifyContent: 'flex-start',
           py: 1.5,
           px: 2,
-          borderRadius: 2,
-          bgcolor: activeTab === 'threshold' ? 'rgba(11, 29, 57, 0.04)' : 'transparent',
-          color: activeTab === 'threshold' ? '#0b1d39' : '#64748b',
-          fontWeight: activeTab === 'threshold' ? 700 : 500,
+          borderRadius: '10px',
+          bgcolor: activeTab === 'threshold' ? '#0f172a' : 'transparent',
+          color: activeTab === 'threshold' ? '#ffffff' : '#475569',
+          fontWeight: 800,
           textTransform: 'none',
-          '&:hover': { bgcolor: 'rgba(11, 29, 57, 0.08)' },
+          '&:hover': { 
+            bgcolor: activeTab === 'threshold' ? '#1e293b' : '#f1f5f9',
+            color: activeTab === 'threshold' ? '#ffffff' : '#0f172a'
+          },
+          transition: 'all 0.2s ease'
         }}
         startIcon={
-          <SettingsIcon sx={{ color: activeTab === 'threshold' ? '#0b1d39' : '#94a3b8' }} />
+          <SettingsIcon sx={{ color: activeTab === 'threshold' ? '#ffffff' : '#94a3b8' }} />
         }
       >
         Order Thresholding
@@ -50,14 +53,18 @@ const PromotionSidebar = ({ activeTab, onChangeTab }) => (
           justifyContent: 'flex-start',
           py: 1.5,
           px: 2,
-          borderRadius: 2,
-          bgcolor: activeTab === 'sales' ? 'rgba(11, 29, 57, 0.04)' : 'transparent',
-          color: activeTab === 'sales' ? '#0b1d39' : '#64748b',
-          fontWeight: activeTab === 'sales' ? 700 : 500,
+          borderRadius: '10px',
+          bgcolor: activeTab === 'sales' ? '#0f172a' : 'transparent',
+          color: activeTab === 'sales' ? '#ffffff' : '#475569',
+          fontWeight: 800,
           textTransform: 'none',
-          '&:hover': { bgcolor: 'rgba(11, 29, 57, 0.08)' },
+          '&:hover': { 
+            bgcolor: activeTab === 'sales' ? '#1e293b' : '#f1f5f9',
+            color: activeTab === 'sales' ? '#ffffff' : '#0f172a'
+          },
+          transition: 'all 0.2s ease'
         }}
-        startIcon={<CalendarIcon sx={{ color: activeTab === 'sales' ? '#0b1d39' : '#94a3b8' }} />}
+        startIcon={<CalendarIcon sx={{ color: activeTab === 'sales' ? '#ffffff' : '#94a3b8' }} />}
       >
         Scheduled Sales
       </Button>

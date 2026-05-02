@@ -88,9 +88,8 @@ const InventoryPage = () => {
   return (
     <Box
       sx={{
-        bgcolor: 'background.default',
+        bgcolor: '#f8fafc',
         height: '100%',
-        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -189,7 +188,7 @@ const InventoryPage = () => {
           />
         ) : showAddProduct ? (
           <Container maxWidth="md" sx={{ height: '100%', overflowY: 'auto' }}>
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ p: 3, borderRadius: '12px', border: '1px solid #e2e8f0', bgcolor: '#ffffff', minHeight: '100%' }}>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
                 <Button
                   size="small"
