@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Box, Typography, Stack, Button, TextField, FormControl, InputLabel, Select, MenuItem,
-  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton,
+  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableFooter, Chip, IconButton, Autocomplete
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Payment as PaymentIcon } from '@mui/icons-material';
 import { EXPENSE_CATEGORIES } from '@/domains/expenses/components/useExpenseManagement';
@@ -17,29 +17,34 @@ const ExpenseListTab = ({
   onOpenPaymentDialog,
   onOpenPaymentHistoryDialog,
 }) => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-    <Stack
-      direction={{ xs: 'column', md: 'row' }}
-      justifyContent="space-between"
-      alignItems={{ xs: 'stretch', md: 'center' }}
-      spacing={2}
-      sx={{ mb: 2.5, px: 1 }}
+  <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        py: 3,
+        px: 2,
+        borderBottom: '1px solid #f1f5f9',
+        mb: 2
+      }}
     >
       <Box>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: '#1e293b' }}>Operating Expenses</Typography>
-        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>Track recurring costs and bills</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>Operating Expenses</Typography>
+        <Typography variant="body2" sx={{ color: '#64748b' }}>Track recurring costs, bills, and miscellaneous spends</Typography>
       </Box>
-      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+      <Stack direction="row" spacing={1.5} alignItems="center">
         <TextField
           size="small"
           placeholder="Search descriptions..."
           value={expenseSearchFilter}
           onChange={(e) => setExpenseSearchFilter(e.target.value)}
-          sx={{ 
-            minWidth: 220,
+          sx={{
+            minWidth: 260,
             '& .MuiOutlinedInput-root': {
               borderRadius: '10px',
               bgcolor: '#f8fafc',
+              fontWeight: 600,
               '& fieldset': { borderColor: '#e2e8f0' },
             }
           }}
@@ -49,25 +54,26 @@ const ExpenseListTab = ({
           options={['All', ...EXPENSE_CATEGORIES]}
           value={expenseCategoryFilter}
           onChange={(e, val) => setExpenseCategoryFilter(val || 'All')}
-          sx={{ minWidth: 180 }}
+          sx={{ minWidth: 200 }}
           renderInput={(params) => (
-            <TextField 
-              {...params} 
-              label="Category" 
-              sx={{ 
-                '& .MuiOutlinedInput-root': { 
+            <TextField
+              {...params}
+              label="Filter Category"
+              sx={{
+                '& .MuiOutlinedInput-root': {
                   borderRadius: '10px',
-                  bgcolor: '#f8fafc'
-                } 
-              }} 
+                  bgcolor: '#f8fafc',
+                  fontWeight: 600
+                }
+              }}
             />
           )}
         />
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />} 
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={onAddExpense}
-          sx={{ 
+          sx={{
             borderRadius: '10px',
             textTransform: 'none',
             fontWeight: 700,
@@ -79,7 +85,7 @@ const ExpenseListTab = ({
           Add Expense
         </Button>
       </Stack>
-    </Stack>
+    </Box>
 
     <TableContainer sx={{ flex: 1, borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'auto', bgcolor: '#ffffff' }}>
       <Table stickyHeader size="small">
@@ -97,9 +103,9 @@ const ExpenseListTab = ({
         </TableHead>
         <TableBody>
           {filteredExpenses.map((row) => (
-            <TableRow 
-              key={row.id} 
-              onDoubleClick={() => onOpenPaymentHistoryDialog(row)} 
+            <TableRow
+              key={row.id}
+              onDoubleClick={() => onOpenPaymentHistoryDialog(row)}
               hover
               sx={{ '&:hover': { cursor: 'pointer' } }}
             >
@@ -112,63 +118,64 @@ const ExpenseListTab = ({
                 </Typography>
               </TableCell>
               <TableCell>
-                <Chip 
-                  label={row.category} 
-                  size="small" 
-                  sx={{ 
-                    fontWeight: 700, 
-                    fontSize: '0.65rem', 
-                    bgcolor: '#f1f5f9', 
+                <Chip
+                  label={row.category?.toUpperCase()}
+                  size="small"
+                  sx={{
+                    fontWeight: 900,
+                    fontSize: '0.6rem',
+                    bgcolor: '#f8fafc',
                     color: '#475569',
-                    border: '1px solid #e2e8f0'
-                  }} 
+                    border: '1px solid #e2e8f0',
+                    height: 20
+                  }}
                 />
               </TableCell>
               <TableCell sx={{ maxWidth: 300 }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b' }}>{row.description}</Typography>
               </TableCell>
               <TableCell align="center">
-                <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-                  {row.paymentMethod || 'Cash'}
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {row.paymentMethod || 'CASH'}
                 </Typography>
               </TableCell>
-              <TableCell align="right" sx={{ fontWeight: 800, color: '#1e293b' }}>
+              <TableCell align="right" sx={{ fontWeight: 900, color: '#0f172a' }}>
                 ₹{row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </TableCell>
               <TableCell align="right">
                 {(row.dueAmount || 0) > 0 ? (
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#dc2626' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 900, color: '#dc2626' }}>
                     ₹{row.dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </Typography>
                 ) : (
-                  <Typography variant="caption" sx={{ color: '#94a3b8' }}>Settled</Typography>
+                  <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>SETTLED</Typography>
                 )}
               </TableCell>
               <TableCell align="center">
-                <Chip 
-                  label={row.paymentStatus?.toUpperCase() || 'PAID'} 
-                  size="small" 
-                  sx={{ 
-                    fontWeight: 900, 
+                <Chip
+                  label={row.paymentStatus?.toUpperCase() || 'PAID'}
+                  size="small"
+                  sx={{
+                    fontWeight: 900,
                     fontSize: '0.65rem',
                     bgcolor: row.paymentStatus === 'Paid' ? '#f0fdf4' : row.paymentStatus === 'Due' ? '#fffbeb' : '#fef2f2',
                     color: row.paymentStatus === 'Paid' ? '#166534' : row.paymentStatus === 'Due' ? '#92400e' : '#991b1b',
-                    border: '1px solid currentColor'
-                  }} 
+                    border: `1px solid ${row.paymentStatus === 'Paid' ? '#16a34a' : row.paymentStatus === 'Due' ? '#f59e0b' : '#dc2626'}`,
+                  }}
                 />
               </TableCell>
               <TableCell align="center">
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                   {(row.dueAmount || 0) > 0 && (
                     <IconButton size="small" onClick={() => onOpenPaymentDialog(row)} sx={{ bgcolor: '#f0fdf4', color: '#16a34a', '&:hover': { bgcolor: '#dcfce7' } }}>
-                      <PaymentIcon fontSize="small" />
+                      <PaymentIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   )}
                   <IconButton size="small" onClick={() => onEditExpense(row)} sx={{ bgcolor: '#eff6ff', color: '#2563eb', '&:hover': { bgcolor: '#dbeafe' } }}>
-                    <EditIcon fontSize="small" />
+                    <EditIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                   <IconButton size="small" onClick={() => onDeleteExpense(row.id)} sx={{ bgcolor: '#fef2f2', color: '#dc2626', '&:hover': { bgcolor: '#fee2e2' } }}>
-                    <DeleteIcon fontSize="small" />
+                    <DeleteIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                 </Box>
               </TableCell>
@@ -177,41 +184,51 @@ const ExpenseListTab = ({
           {filteredExpenses.length === 0 && (
             <TableRow>
               <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
-                <Typography variant="body2" sx={{ color: '#94a3b8', fontWeight: 600 }}>No operating expenses found.</Typography>
+                <Box sx={{ opacity: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: '#94a3b8', fontWeight: 800 }}>NO EXPENSES FOUND</Typography>
+                  <Typography variant="caption" sx={{ color: '#cbd5e1' }}>Try adjusting your filters or date range</Typography>
+                </Box>
               </TableCell>
             </TableRow>
           )}
         </TableBody>
+        {filteredExpenses.length > 0 && (
+          <TableFooter
+            sx={{
+              position: 'sticky',
+              bottom: 0,
+              bgcolor: '#f8fafc',
+              zIndex: 2,
+              borderTop: '2px solid #e2e8f0',
+              '& .MuiTableCell-root': { border: 'none' }
+            }}
+          >
+            <TableRow>
+              <TableCell colSpan={4} align="right" sx={{ py: 1.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#64748b', letterSpacing: '0.5px' }}>
+                  PERIOD TOTALS
+                </Typography>
+              </TableCell>
+              <TableCell align="right">
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#3b82f6', display: 'block', fontSize: '0.65rem' }}>TOTAL AMOUNT</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 900, color: '#0f172a' }}>
+                  ₹{totalExpensesAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </Typography>
+              </TableCell>
+              <TableCell align="right">
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#ef4444', display: 'block', fontSize: '0.65rem' }}>TOTAL DUE</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 900, color: '#b91c1c' }}>
+                  ₹{totalExpensesDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </Typography>
+              </TableCell>
+              <TableCell colSpan={2} />
+            </TableRow>
+          </TableFooter>
+        )}
       </Table>
     </TableContainer>
-
-    {filteredExpenses.length > 0 && (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          mt: 2, 
-          p: 2, 
-          borderRadius: '12px', 
-          bgcolor: '#f0fdf4', 
-          border: '1px solid #dcfce7',
-          justifyContent: 'flex-end',
-          gap: 4
-        }}
-      >
-        <Box>
-          <Typography variant="caption" sx={{ fontWeight: 800, color: '#166534', display: 'block' }}>TOTAL EXPENDITURE</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: '#065f46' }}>₹{totalExpensesAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Typography>
-        </Box>
-        <Box sx={{ textAlign: 'right' }}>
-          <Typography variant="caption" sx={{ fontWeight: 800, color: '#991b1b', display: 'block' }}>TOTAL OUTSTANDING</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 900, color: '#7f1d1d' }}>₹{totalExpensesDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Typography>
-        </Box>
-      </Box>
-    )}
   </Box>
 );
 
 export default ExpenseListTab;
-);
 
-export default ExpenseListTab;
