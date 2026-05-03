@@ -1,9 +1,17 @@
 import { expect } from '@playwright/test';
 
 export const clearBrowserStorage = async (page) => {
-  await page.addInitScript(() => {
-    window.localStorage.clear();
-    window.sessionStorage.clear();
+  // Ensure we are on the application's domain before clearing localStorage to avoid SecurityError
+  if (page.url() === 'about:blank') {
+    await page.goto('/');
+  }
+  await page.evaluate(() => {
+    try {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    } catch (e) {
+      console.warn('Could not clear storage:', e);
+    }
   });
 };
 

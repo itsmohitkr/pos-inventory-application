@@ -21,6 +21,14 @@ export const createReportsPage = (page) => {
       const endInput = page.locator('input[type="date"]').last();
       await startInput.fill(startDate);
       await endInput.fill(endDate);
+    },
+    selectReport: async (label) => {
+      await page.getByRole('button', { name: label }).click();
+    },
+    setTimeframe: async (label) => {
+      // Find the combobox that is near the "Time Frame" text
+      await page.getByText('Time Frame').locator('..').getByRole('combobox').click();
+      await page.getByRole('option', { name: label }).click();
     }
   };
 };

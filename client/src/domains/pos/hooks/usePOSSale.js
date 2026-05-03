@@ -48,6 +48,7 @@ export const usePOSSale = ({
       clearCustomerOnSale?.();
       fetchProducts();
       showNotification('Sale Completed Successfully!');
+      setShowReceipt(true);
       refocus();
     } catch (error) {
       console.error(error);

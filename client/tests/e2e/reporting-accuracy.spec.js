@@ -33,6 +33,7 @@ test.describe('Financial reporting accuracy', () => {
         await posPage.goto();
         await posPage.addItemToCartBySearch('Masala Tea 250g'); // MRP 45
         await posPage.completeSale();
+        await posPage.closeReceiptPreview();
 
         // 3. Verify Dashboard reflect the update
         await appShellPage.navigateTo('Dashboard');
@@ -51,6 +52,7 @@ test.describe('Financial reporting accuracy', () => {
         await posPage.goto();
         await posPage.addItemToCartBySearch('Masala Tea 250g');
         await posPage.completeSale();
+        await posPage.closeReceiptPreview();
 
         // 2. Check Reports
         await reportsPage.goto();

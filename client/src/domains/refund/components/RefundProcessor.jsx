@@ -92,7 +92,7 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
     setSubmitting(true);
     try {
       await posService.processRefund(sale.id, itemsToReturn);
-      showSuccess('Return processed successfully!');
+      await showSuccess('Return processed successfully!');
       setSelectedItems({});
       if (onRefundSuccess) onRefundSuccess();
     } catch (err) {

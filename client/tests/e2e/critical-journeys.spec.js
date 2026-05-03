@@ -39,6 +39,7 @@ test.describe('Critical business journeys', () => {
     expect(saleId).toBeTruthy();
 
     await posPage.expectSaleCompleted();
+    await posPage.closeReceiptPreview();
 
     await appShellPage.navigateTo('Returns');
     await refundPage.expectLoaded();

@@ -17,19 +17,44 @@ export const createInventoryPage = (page) => {
       await expect(addProductButton).toBeVisible();
     },
     expectProductVisible: async (productName) => {
-      await expect(page.getByText(productName)).toBeVisible();
+      await expect(page.getByRole('cell', { name: new RegExp(productName, 'i') })).toBeVisible();
+    },
+    expectProductStock: async (productName, stock) => {
+      const row = getProductRow(new RegExp(productName, 'i'));
+      await expect(row.getByRole('cell', { name: stock.toString(), exact: true })).toBeVisible();
     },
     openAddProductForm: async () => {
       await addProductButton.click();
       await expect(page.getByText('Add New Product')).toBeVisible();
     },
-    submitNewProduct: async ({ name, category, quantity, mrp, costPrice, sellingPrice }) => {
+    submitNewProduct: async ({ name, category, quantity, mrp, costPrice, sellingPrice, lowStockThreshold, expiryDate }) => {
       await page.getByLabel('Product Name').fill(name);
       await page.getByLabel('Category').fill(category);
-      await page.getByLabel('Quantity').fill(quantity);
-      await page.getByLabel('MRP').fill(mrp);
-      await page.getByLabel('Cost Price').fill(costPrice);
-      await page.getByLabel('Selling Price').fill(sellingPrice);
+      if (lowStockThreshold !== undefined) {
+        const lowStockSwitch = page.getByLabel('Enable low stock warning');
+        // Check if switch is already on (active in snapshot)
+        const isChecked = await lowStockSwitch.isChecked();
+        if (!isChecked) {
+          await lowStockSwitch.click();
+        }
+        // Use a more specific locator and wait for it
+        const thresholdInput = page.getByLabel('Low Stock Threshold');
+        await expect(thresholdInput).toBeVisible({ timeout: 5000 });
+        await thresholdInput.fill(lowStockThreshold.toString());
+      }
+      if (expiryDate !== undefined) {
+        const batchSwitch = page.getByLabel('Enable batch tracking');
+        if (!(await batchSwitch.isChecked())) {
+          await batchSwitch.click();
+        }
+        const expiryInput = page.getByLabel('Expiry Date');
+        await expect(expiryInput).toBeVisible({ timeout: 5000 });
+        await expiryInput.fill(expiryDate);
+      }
+      await page.getByLabel('Quantity').fill(quantity.toString());
+      await page.getByLabel('MRP').fill(mrp.toString());
+      await page.getByLabel('Cost Price').fill(costPrice.toString());
+      await page.getByLabel('Selling Price').fill(sellingPrice.toString());
       await page.getByRole('button', { name: 'Add Product' }).last().click();
     },
     acknowledgeSuccessDialog: async (message) => {
@@ -54,8 +79,8 @@ export const createInventoryPage = (page) => {
       await expect(editDialog).not.toBeVisible();
     },
     selectProduct: async (productName) => {
-      await getProductRow(productName).click();
-      await expect(detailPanel).toContainText(productName);
+      await getProductRow(new RegExp(productName, 'i')).click();
+      await expect(detailPanel).toContainText(new RegExp(productName, 'i'));
     },
     deleteProduct: async (productName) => {
       // Close detail panel if open to prevent interception
@@ -74,7 +99,7 @@ export const createInventoryPage = (page) => {
       ]);
     },
     openQuickInventoryForProduct: async (productName) => {
-      await expect(detailPanel).toContainText(productName);
+      await expect(detailPanel).toContainText(new RegExp(productName, 'i'));
       await detailPanel.locator('[data-testid^="inventory-quick-stock-"]').first().click();
       await expect(page.getByRole('dialog', { name: 'Quick Inventory' })).toBeVisible();
     },
@@ -89,7 +114,7 @@ export const createInventoryPage = (page) => {
       await expect(page.getByTestId('inventory-detail-total-stock')).toHaveText(String(quantity));
     },
     expectProductNotVisible: async (productName) => {
-      await expect(page.locator('tr', { hasText: productName })).toHaveCount(0);
+      await expect(page.locator('tr', { hasText: new RegExp(productName, 'i') })).toHaveCount(0);
     },
     addCategory: async (categoryName) => {
       await page.getByTitle('Add category').click();
@@ -105,7 +130,6 @@ export const createInventoryPage = (page) => {
       const categoryButton = page.getByRole('button', { name: new RegExp(categoryName, 'i') });
       await categoryButton.click({ button: 'right' });
       await page.getByRole('menuitem', { name: 'Delete category' }).click();
-      // Handle potential confirmation dialog if any (checking sidebar code, it calls onDeleteCategory)
     },
     expectCategoryVisible: async (categoryName) => {
       await expect(page.getByRole('button', { name: new RegExp(categoryName, 'i') })).toBeVisible();

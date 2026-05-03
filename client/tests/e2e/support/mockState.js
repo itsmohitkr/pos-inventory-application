@@ -109,6 +109,10 @@ export const createMockState = () => {
     dailyReport: clone(dailyReportFixture),
     sales: clone(salesFixture),
     customers: clone(customersFixture),
+    users: [
+      { id: 1, username: 'admin', role: 'admin', status: 'active', password: 'password123' },
+      { id: 2, username: 'salesman', role: 'salesman', status: 'active', password: 'password123' },
+    ],
     nextSaleId: Math.max(0, ...salesFixture.map((sale) => Number(sale.id) || 0)) + 1,
     nextCustomerId: Math.max(0, ...customersFixture.map((c) => Number(c.id) || 0)) + 1,
     nextSaleItemId:
@@ -180,6 +184,8 @@ export const createMockState = () => {
             expiryDate: payload.initialBatch?.expiryDate || null,
           },
         ],
+        lowStockThreshold: Number(payload.lowStockThreshold || 2),
+        lowStockWarningEnabled: payload.lowStockWarningEnabled ?? true,
         isDeleted: false,
       };
 
@@ -369,7 +375,11 @@ export const createMockState = () => {
     },
     getSettings: () => ({ data: state.settings }),
     updateSettings: (payload) => {
-      if (payload?.key) {
+      if (payload?.settings) {
+        Object.entries(payload.settings).forEach(([key, value]) => {
+          state.settings[key] = value;
+        });
+      } else if (payload?.key) {
         state.settings[payload.key] = payload.value;
       }
       return { success: true, data: state.settings };
@@ -448,6 +458,17 @@ export const createMockState = () => {
       return before !== state.purchases.length;
     },
     getLooseSales: () => state.looseSales,
+    createLooseSale: (payload) => {
+      const nextId = state.nextLooseSaleId++;
+      const sale = {
+        id: nextId,
+        itemName: payload.itemName,
+        price: payload.price,
+        createdAt: new Date().toISOString(),
+      };
+      state.looseSales.push(sale);
+      return sale;
+    },
     deleteLooseSale: (id) => {
       const before = state.looseSales.length;
       state.looseSales = state.looseSales.filter((sale) => String(sale.id) !== String(id));
@@ -460,6 +481,48 @@ export const createMockState = () => {
       expenses: state.expenses,
       purchases: state.purchases,
     }),
+    getUsers: () => state.users,
+    createUser: (user) => {
+      const newUser = { id: Date.now(), ...user, status: 'active' };
+      state.users.push(newUser);
+      return newUser;
+    },
+    updateUser: (id, userData) => {
+      const index = state.users.findIndex(u => String(u.id) === String(id));
+      if (index === -1) return null;
+      state.users[index] = { ...state.users[index], ...userData };
+      return state.users[index];
+    },
+    deleteUser: (id) => {
+      state.users = state.users.filter(u => String(u.id) !== String(id));
+      return true;
+    },
+    getLowStockReport: () => {
+      return state.products.filter(p => !p.isDeleted && p.totalQuantity <= (p.lowStockThreshold || 2));
+    },
+    getExpiryReport: ({ startDate, endDate }) => {
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      
+      const expiringBatches = [];
+      state.products.forEach(product => {
+        if (product.isDeleted) return;
+        product.batches.forEach(batch => {
+          if (!batch.expiryDate) return;
+          const expiry = new Date(batch.expiryDate);
+          if ((!start || expiry >= start) && (!end || expiry <= end)) {
+            expiringBatches.push({
+              ...batch,
+              productName: product.name,
+              category: product.category,
+              barcode: product.barcode
+            });
+          }
+        });
+      });
+      return expiringBatches;
+    },
+    getProductSummary: () => state.dailyReport,
     getMonthlyReport: () => state.monthlyReport,
     getDailyReport: () => state.dailyReport,
   };

@@ -68,7 +68,7 @@ const ReceiptPreviewDialog = ({
         }}
       >
         Bill Preview & Settings
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" aria-label="Close Dialog" data-testid="close-receipt-dialog">
           <CancelIcon />
         </IconButton>
       </DialogTitle>

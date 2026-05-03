@@ -32,6 +32,7 @@ test.describe('Inventory and stock integrity', () => {
         await posPage.addItemToCartBySearch('Masala Tea 250g');
         await posPage.completeSale();
         await posPage.expectSaleCompleted();
+        await posPage.closeReceiptPreview();
 
         // 3. Verify stock is decremented in Inventory
         await inventoryPage.goto();
@@ -65,6 +66,7 @@ test.describe('Inventory and stock integrity', () => {
 
         await posPage.completeSale();
         await posPage.expectSaleCompleted();
+        await posPage.closeReceiptPreview();
 
         await inventoryPage.goto();
         await inventoryPage.selectProduct('Milk 1L');
