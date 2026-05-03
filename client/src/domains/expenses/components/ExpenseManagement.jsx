@@ -81,6 +81,8 @@ const ExpenseManagement = () => {
               <TextField
                 size="small"
                 type="date"
+                label="Start"
+                InputLabelProps={{ shrink: true }}
                 value={em.customDates.start}
                 onChange={(e) => em.setCustomDates({ ...em.customDates, start: e.target.value })}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#f8fafc' } }}
@@ -88,6 +90,8 @@ const ExpenseManagement = () => {
               <TextField
                 size="small"
                 type="date"
+                label="End"
+                InputLabelProps={{ shrink: true }}
                 value={em.customDates.end}
                 onChange={(e) => em.setCustomDates({ ...em.customDates, end: e.target.value })}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#f8fafc' } }}

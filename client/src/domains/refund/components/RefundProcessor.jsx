@@ -303,7 +303,7 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
             '&:hover': { bgcolor: '#1e293b' }
           }}
         >
-          {submitting ? 'Processing...' : 'CONFIRM RETURN'}
+          {submitting ? 'Processing...' : 'Process Returns'}
         </Button>
       </Box>
 

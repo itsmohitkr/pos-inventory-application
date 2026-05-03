@@ -332,6 +332,13 @@ export const createMockState = () => {
         sales: state.sales.filter(s => String(s.customerId) === String(id))
       };
     },
+    updateCustomer: (id, payload) => {
+      const customer = state.customers.find(c => String(c.id) === String(id));
+      if (!customer) return null;
+      customer.name = payload.name ?? customer.name;
+      customer.phone = payload.phone ?? customer.phone;
+      return customer;
+    },
 
     getPromotions: () => state.promotions,
     updatePromotion: (id, payload) => {

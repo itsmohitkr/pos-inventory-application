@@ -167,14 +167,14 @@ const ExpenseListTab = ({
               <TableCell align="center">
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                   {(row.dueAmount || 0) > 0 && (
-                    <IconButton size="small" onClick={() => onOpenPaymentDialog(row)} sx={{ bgcolor: '#f0fdf4', color: '#16a34a', '&:hover': { bgcolor: '#dcfce7' } }}>
+                    <IconButton size="small" onClick={() => onOpenPaymentDialog(row)} aria-label="Record Payment" sx={{ bgcolor: '#f0fdf4', color: '#16a34a', '&:hover': { bgcolor: '#dcfce7' } }}>
                       <PaymentIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   )}
-                  <IconButton size="small" onClick={() => onEditExpense(row)} sx={{ bgcolor: '#eff6ff', color: '#2563eb', '&:hover': { bgcolor: '#dbeafe' } }}>
+                  <IconButton size="small" onClick={() => onEditExpense(row)} aria-label="Edit" sx={{ bgcolor: '#eff6ff', color: '#2563eb', '&:hover': { bgcolor: '#dbeafe' } }}>
                     <EditIcon sx={{ fontSize: 18 }} />
                   </IconButton>
-                  <IconButton size="small" onClick={() => onDeleteExpense(row.id)} sx={{ bgcolor: '#fef2f2', color: '#dc2626', '&:hover': { bgcolor: '#fee2e2' } }}>
+                  <IconButton size="small" onClick={() => onDeleteExpense(row.id)} aria-label="Delete" sx={{ bgcolor: '#fef2f2', color: '#dc2626', '&:hover': { bgcolor: '#fee2e2' } }}>
                     <DeleteIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                 </Box>

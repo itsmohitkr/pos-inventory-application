@@ -39,7 +39,7 @@ test.describe('SRP refactor regression for POS and Expenses', () => {
     await expensesPage.goto();
 
     await page.getByRole('combobox').first().click();
-    await page.getByRole('option', { name: 'Custom Date' }).click();
+    await page.getByRole('option', { name: 'Custom Range' }).click();
     await page.getByLabel('Start').fill('2026-01-01');
     await page.getByLabel('End').fill('2026-01-31');
     await page.getByRole('button', { name: 'Apply' }).click();

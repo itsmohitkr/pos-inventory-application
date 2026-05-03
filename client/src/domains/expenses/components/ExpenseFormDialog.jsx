@@ -111,7 +111,7 @@ const ExpenseFormDialog = ({ open, onClose, onSubmit, expenseForm, onFormChange,
             },
           }}
         >
-          Successful
+          Record
         </Button>
       </DialogActions>
     </form>

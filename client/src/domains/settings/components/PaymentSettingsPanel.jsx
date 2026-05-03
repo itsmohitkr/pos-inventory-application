@@ -162,8 +162,11 @@ const PaymentSettingsPanel = ({
                 placeholder="Enter payment method name"
                 value={customMethod}
                 onChange={(e) => setCustomMethod(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') handleAddCustomMethod();
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    handleAddCustomMethod();
+                  }
                 }}
                 autoFocus
                 sx={{ flex: 1 }}

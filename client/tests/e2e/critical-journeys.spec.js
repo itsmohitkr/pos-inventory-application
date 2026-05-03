@@ -57,7 +57,7 @@ test.describe('Critical business journeys', () => {
     await inventoryPage.goto();
     await inventoryPage.openAddProductForm();
     await inventoryPage.submitNewProduct({
-      name: 'critical stock test item',
+      name: 'Critical Stock Test Item',
       category: 'Snacks',
       quantity: '5',
       mrp: '30',

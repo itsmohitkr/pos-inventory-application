@@ -98,6 +98,7 @@ const ProductRow = React.memo(
               <IconButton
                 size="small"
                 onClick={() => onEdit(product)}
+                aria-label="Edit Product"
                 sx={{
                   bgcolor: 'rgba(31, 41, 55, 0.08)',
                   color: '#1f2937',
@@ -117,6 +118,7 @@ const ProductRow = React.memo(
               <IconButton
                 size="small"
                 onClick={() => onDelete(product.id)}
+                aria-label="Delete Product"
                 sx={{
                   bgcolor: 'rgba(239, 68, 68, 0.1)',
                   color: '#ef4444',

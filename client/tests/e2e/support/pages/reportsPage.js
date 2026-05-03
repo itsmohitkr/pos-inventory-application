@@ -1,19 +1,17 @@
 import { expect } from '@playwright/test';
 
 export const createReportsPage = (page) => {
-  const reportSelector = page.getByText('SELECT REPORT');
-  const cashFlowSection = page.getByText('CASH FLOW STATEMENT (CHRONOLOGICAL)');
-
   return {
     goto: async () => {
       await page.getByRole('link', { name: 'Reports' }).click();
       await expect(page).toHaveURL(/#\/reports/);
-      await expect(reportSelector).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Reports & Analytics' })).toBeVisible();
     },
     expectLoaded: async () => {
       await expect(page).toHaveURL(/#\/reports/);
-      await expect(reportSelector).toBeVisible();
-      await expect(cashFlowSection).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Reports & Analytics' })).toBeVisible();
+      // 'Cash Flow Report' is a button in the sidebar
+      await expect(page.getByRole('button', { name: 'Cash Flow Report' })).toBeVisible();
     },
     expectReportRow: async (text) => {
       await expect(page.locator('tr', { hasText: text }).first()).toBeVisible();

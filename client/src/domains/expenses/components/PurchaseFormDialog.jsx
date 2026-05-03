@@ -111,7 +111,7 @@ const PurchaseFormDialog = ({
             },
           }}
         >
-          Successful
+          Record
         </Button>
       </DialogActions>
     </form>

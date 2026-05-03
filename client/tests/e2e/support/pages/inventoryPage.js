@@ -38,8 +38,13 @@ export const createInventoryPage = (page) => {
       await successDialog.getByRole('button', { name: 'OK' }).click();
     },
     openEditProductForm: async (productName) => {
+      // Close detail panel if open to prevent interception
+      const closeBtn = detailPanel.getByRole('button', { name: 'Close' });
+      if (await closeBtn.isVisible()) {
+        await closeBtn.click();
+      }
       const row = getProductRow(productName);
-      await row.locator('button:has(svg[data-testid="EditIcon"])').click();
+      await row.getByRole('button', { name: 'Edit Product' }).click();
       await expect(page.getByRole('dialog', { name: 'Edit Product Information' })).toBeVisible();
     },
     saveEditedProductName: async (newName) => {
@@ -53,8 +58,13 @@ export const createInventoryPage = (page) => {
       await expect(detailPanel).toContainText(productName);
     },
     deleteProduct: async (productName) => {
+      // Close detail panel if open to prevent interception
+      const closeBtn = detailPanel.getByRole('button', { name: 'Close' });
+      if (await closeBtn.isVisible()) {
+        await closeBtn.click();
+      }
       const row = getProductRow(productName);
-      await row.locator('button:has(svg[data-testid="DeleteIcon"])').click();
+      await row.getByRole('button', { name: 'Delete Product' }).click();
       await Promise.all([
         page.waitForResponse(
           (response) =>
@@ -80,6 +90,25 @@ export const createInventoryPage = (page) => {
     },
     expectProductNotVisible: async (productName) => {
       await expect(page.locator('tr', { hasText: productName })).toHaveCount(0);
+    },
+    addCategory: async (categoryName) => {
+      await page.getByTitle('Add category').click();
+      const dialog = page.getByRole('dialog', { name: 'Add Category' });
+      await dialog.getByLabel('Category name').fill(categoryName);
+      await dialog.getByRole('button', { name: 'Add' }).click();
+      await expect(dialog).not.toBeVisible();
+    },
+    selectCategory: async (categoryName) => {
+      await page.getByRole('button', { name: new RegExp(categoryName, 'i') }).click();
+    },
+    deleteCategory: async (categoryName) => {
+      const categoryButton = page.getByRole('button', { name: new RegExp(categoryName, 'i') });
+      await categoryButton.click({ button: 'right' });
+      await page.getByRole('menuitem', { name: 'Delete category' }).click();
+      // Handle potential confirmation dialog if any (checking sidebar code, it calls onDeleteCategory)
+    },
+    expectCategoryVisible: async (categoryName) => {
+      await expect(page.getByRole('button', { name: new RegExp(categoryName, 'i') })).toBeVisible();
     },
   };
 };

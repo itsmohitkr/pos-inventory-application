@@ -177,6 +177,7 @@ const CustomerListTable = ({
                           <IconButton
                             size="small"
                             onClick={(e) => handlePreview(e, c)}
+                            aria-label="Preview Card"
                             sx={{ color: '#3b82f6' }}
                           >
                             <PreviewIcon fontSize="small" />
@@ -189,6 +190,7 @@ const CustomerListTable = ({
                               e.stopPropagation();
                               onEdit(c);
                             }}
+                            aria-label="Edit Details"
                             sx={{ color: '#64748b' }}
                           >
                             <EditIcon fontSize="small" />
@@ -217,7 +219,14 @@ const CustomerListTable = ({
             }}
           />
         </Box>
-      </Paper>    </Box>
+      </Paper>
+      <CustomerCardPreview
+        open={!!previewCustomer}
+        onClose={() => setPreviewCustomer(null)}
+        customer={previewCustomer}
+        shopName="My Shop"
+      />
+    </Box>
   );
 };
 

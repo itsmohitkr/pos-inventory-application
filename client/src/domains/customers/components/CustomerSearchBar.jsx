@@ -7,7 +7,7 @@ const CustomerSearchBar = ({ value, onChange }) => (
     <TextField
       fullWidth
       size="small"
-      placeholder="Search customers by name, phone number, or barcode barcode..."
+      placeholder="Search customers by name, phone number, or barcode..."
       value={value}
       onChange={(e) => onChange(e.target.value)}
       InputProps={{

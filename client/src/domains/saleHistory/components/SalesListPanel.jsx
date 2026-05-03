@@ -155,10 +155,11 @@ const SalesListPanel = ({
                         size="small"
                         onClick={() => onPrintReceipt(sale)}
                         color="success"
+                        aria-label="Print Receipt"
                       >
                         <PrintIcon fontSize="small" />
                       </IconButton>
-                      <IconButton size="small" onClick={() => onRefund(sale)} color="error">
+                      <IconButton size="small" onClick={() => onRefund(sale)} color="error" aria-label="Return/Refund">
                         <RefundIcon fontSize="small" />
                       </IconButton>
                     </Box>
@@ -197,7 +198,7 @@ const SalesListPanel = ({
                     ₹{sale.price.toFixed(2)}
                   </TableCell>
                   <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                    <IconButton size="small" color="error" onClick={() => onDeleteLoose(sale.id)}>
+                    <IconButton size="small" color="error" aria-label="Delete Loose Sale" onClick={() => onDeleteLoose(sale.id)}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </TableCell>

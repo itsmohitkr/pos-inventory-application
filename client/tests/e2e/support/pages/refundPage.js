@@ -1,8 +1,8 @@
 import { expect } from '@playwright/test';
 
 export const createRefundPage = (page) => {
-  const heading = page.getByRole('heading', { name: 'Process Return' });
-  const orderIdInput = page.getByLabel('Enter Order ID');
+  const heading = page.getByRole('heading', { name: 'Process Returns' });
+  const orderIdInput = page.getByPlaceholder('Enter Order ID (e.g. ORD-17)');
 
   return {
     expectLoaded: async () => {
@@ -11,7 +11,7 @@ export const createRefundPage = (page) => {
     },
     searchOrderById: async (saleId) => {
       await orderIdInput.fill(String(saleId));
-      await page.getByRole('button', { name: 'Search' }).click();
+      await page.getByRole('button', { name: 'SEARCH' }).click();
     },
     selectAllReturnableItems: async () => {
       await page.getByRole('checkbox').first().check();

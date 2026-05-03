@@ -41,7 +41,7 @@ const CustomerHistoryDrawer = ({ open, customer, historyData, isLoading, onClose
               </Typography>
             )}
           </Box>
-          <IconButton onClick={onClose} size="small" sx={{ color: 'white' }}>
+          <IconButton onClick={onClose} size="small" aria-label="Close" sx={{ color: 'white' }}>
             <CloseIcon />
           </IconButton>
         </Box>

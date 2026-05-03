@@ -33,6 +33,7 @@ const ProductDetailPanel = ({
   return (
     <Slide direction="left" in={!!displayProduct} mountOnEnter unmountOnExit timeout={{ enter: 100, exit: 150 }}>
       <Box
+        data-testid="inventory-detail-panel"
         sx={{
           position: 'absolute',
           top: 0,
@@ -153,6 +154,7 @@ const ProductDetailPanel = ({
                   <IconButton
                     onClick={onClose}
                     size="small"
+                    aria-label="Close"
                     sx={{
                       bgcolor: '#fef2f2',
                       color: '#ef4444',
@@ -204,8 +206,12 @@ const ProductDetailPanel = ({
                       <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.65rem' }}>
                         Current Stock
                       </Typography>
-                      <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 700, color: displayProduct.total_stock > 0 ? '#1f8a5b' : '#ef4444' }}>
-                        {displayProduct.total_stock} Units
+                      <Typography 
+                        variant="body2" 
+                        data-testid="inventory-detail-total-stock"
+                        sx={{ mt: 0.5, fontWeight: 700, color: displayProduct.total_stock > 0 ? '#1f8a5b' : '#ef4444' }}
+                      >
+                        {displayProduct.total_stock}
                       </Typography>
                     </Box>
                     <Box>

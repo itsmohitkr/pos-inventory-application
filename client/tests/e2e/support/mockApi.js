@@ -293,6 +293,17 @@ export const installMockApi = async (page) => {
       return;
     }
 
+    if (path.startsWith('/api/customers/') && method === 'PUT') {
+      const customerId = path.split('/').pop();
+      const updated = state.updateCustomer(customerId, request.postDataJSON());
+      if (!updated) {
+        await notFound(route, 'Customer not found');
+        return;
+      }
+      await jsonResponse(route, updated);
+      return;
+    }
+
     if (path.startsWith('/api/promotions/') && method === 'DELETE') {
       const promotionId = path.split('/').pop();
       const removed = state.deletePromotion(promotionId);

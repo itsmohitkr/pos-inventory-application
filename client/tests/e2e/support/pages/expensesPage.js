@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const createExpensesPage = (page) => {
-  const pageTitle = page.getByRole('heading', { name: 'Financial Tracking' });
+  const pageTitle = page.getByRole('heading', { name: 'Expenses & Purchases' });
 
   return {
     goto: async () => {
@@ -12,7 +12,7 @@ export const createExpensesPage = (page) => {
     expectLoaded: async () => {
       await expect(page).toHaveURL(/#\/expenses/);
       await expect(pageTitle).toBeVisible();
-      await expect(page.getByRole('tab', { name: 'Expenses' })).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'Operating Expenses' })).toBeVisible();
       await expect(page.getByRole('tab', { name: 'Inventory Purchases' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Add Expense' })).toBeVisible();
     },
@@ -23,7 +23,7 @@ export const createExpensesPage = (page) => {
       await dialog.getByRole('spinbutton', { name: /^Amount$/ }).fill(String(amount));
       await dialog.getByLabel('Expenses for?').fill(category);
       await dialog.getByLabel('Description').fill(description);
-      await dialog.getByRole('button', { name: 'Successful' }).click();
+      await dialog.getByRole('button', { name: 'Record' }).click();
       await expect(dialog).not.toBeVisible();
     },
     openPurchasesTab: async () => {
@@ -36,7 +36,7 @@ export const createExpensesPage = (page) => {
       await dialog.getByLabel('Vendor Name').fill(vendor);
       await dialog.getByRole('spinbutton', { name: 'Total Amount' }).fill(String(totalAmount));
       await dialog.getByLabel('Note').fill(note);
-      await dialog.getByRole('button', { name: 'Successful' }).click();
+      await dialog.getByRole('button', { name: 'Record' }).click();
       await expect(dialog).not.toBeVisible();
     },
     deleteExpense: async (description) => {
