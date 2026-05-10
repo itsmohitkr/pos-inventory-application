@@ -47,6 +47,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
 
   const fetchProducts = useCallback(async () => {
     const requestId = ++productsRequestId.current;
+    setBarcodeOverride(null);
     try {
       const data = await inventoryService.fetchProducts({
         category: 'all',
@@ -83,7 +84,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
         sidebarData = totalsData;
       } else {
         const [totalsRes, sidebarRes] = await Promise.all([
-          inventoryService.fetchSummary({ search: debouncedSearch, category: categoryFilter }),
+          inventoryService.fetchSummary({ search: debouncedSearch, category: 'all' }),
           inventoryService.fetchSummary({ search: '', category: 'all' }),
         ]);
         if (summaryRequestId.current !== requestId) return;
@@ -110,7 +111,8 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     if (barcodeOverride) return barcodeOverride;
     let baseProducts = products;
 
-    if (categoryFilter && categoryFilter !== 'all') {
+    // Search should be global, ignore category filter if searching
+    if (!debouncedSearch && categoryFilter && categoryFilter !== 'all') {
       if (categoryFilter === 'uncategorized') {
         baseProducts = baseProducts.filter((p) => !p.category || p.category.trim() === '');
       } else {
@@ -185,6 +187,16 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
   );
 
   // Lifecycle
+  useEffect(() => {
+    setBarcodeOverride(null);
+  }, [categoryFilter]);
+
+  useEffect(() => {
+    if (!debouncedSearch && barcodeOverride) {
+      setBarcodeOverride(null);
+    }
+  }, [debouncedSearch, barcodeOverride]);
+
   useEffect(() => {
     const focusTimer = window.setTimeout(() => {
       if (searchInputRef.current) searchInputRef.current.focus();
@@ -276,6 +288,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     if (searchInputRef.current) searchInputRef.current.value = '';
     setSearchTerm('');
     onSearchChange('');
+    setBarcodeOverride(null);
   }, [onSearchChange]);
 
   const handleReset = useCallback(() => {
@@ -285,6 +298,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     setSearchTerm('');
     if (searchInputRef.current) searchInputRef.current.value = '';
     onSearchChange('');
+    setBarcodeOverride(null);
     setSelectedProduct(null);
     setSelectedProductDetails(null);
     setSelectedProductRefresh(0);

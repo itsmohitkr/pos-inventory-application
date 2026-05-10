@@ -32,7 +32,10 @@ const ProductList = forwardRef(
 
     const handleBarcodeSearch = useCallback(async (val) => {
       pl.setSearchTerm(val);
-      if (!val) return;
+      if (!val) {
+        pl.setFilteredProducts(null);
+        return;
+      }
 
       let found = pl.products.find(
         (p) => p.barcode && p.barcode.split('|').some((b) => b.trim() === val)

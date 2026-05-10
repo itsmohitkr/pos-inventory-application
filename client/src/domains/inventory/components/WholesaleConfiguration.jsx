@@ -56,6 +56,7 @@ const WholesaleConfiguration = ({
             <TextField
               fullWidth
               type="number"
+              size="small"
               label="Wholesale Price"
               required
               InputLabelProps={{ shrink: true }}
@@ -78,6 +79,7 @@ const WholesaleConfiguration = ({
             <TextField
               fullWidth
               type="number"
+              size="small"
               label="Min. Quantity"
               required
               InputLabelProps={{ shrink: true }}

@@ -12,8 +12,8 @@ const ProductBarcodeSection = ({
       <Grid xs>
         <TextField
           fullWidth
-          label="Add Barcode"
           size="small"
+          label="Add Barcode"
           value={manualBarcodeInput}
           onChange={(e) => setManualBarcodeInput(e.target.value)}
           onKeyPress={(e) => { if (e.key === 'Enter') { e.preventDefault(); onAddBarcode(manualBarcodeInput); } }}
@@ -25,7 +25,7 @@ const ProductBarcodeSection = ({
         />
       </Grid>
       <Grid>
-        <Button variant="contained" startIcon={<RefreshIcon />} onClick={onGenerate} disabled={barcodeChecking} sx={{ height: 40 }}>
+        <Button type="button" variant="contained" size="medium" startIcon={<RefreshIcon />} onClick={onGenerate} disabled={barcodeChecking}>
           Generate
         </Button>
       </Grid>

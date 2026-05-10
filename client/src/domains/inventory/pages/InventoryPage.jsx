@@ -1,5 +1,5 @@
     import React, { useState, useRef, useTransition } from 'react';
-import { Box, Paper, Typography, Stack, Button, Container } from '@mui/material';
+import { Box, Paper, Typography, Stack, Button, Container, Drawer, IconButton } from '@mui/material';
 import {
   FileUpload as UploadIcon,
   FileDownload as DownloadIcon,
@@ -7,6 +7,7 @@ import {
   LocalPrintshop as LocalPrintshopIcon,
   Add as AddIcon,
   ArrowBack as ArrowBackIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import api from '@/shared/api/api';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
@@ -186,21 +187,6 @@ const InventoryPage = () => {
             onProductsAdded={handleProductAdded}
             onCancel={() => setShowBulkAdd(false)}
           />
-        ) : showAddProduct ? (
-          <Container maxWidth="md" sx={{ height: '100%', overflowY: 'auto' }}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: '12px', border: '1px solid #e2e8f0', bgcolor: '#ffffff', minHeight: '100%' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                <Button
-                  size="small"
-                  startIcon={<ArrowBackIcon />}
-                  onClick={() => setShowAddProduct(false)}
-                >
-                  Back to Inventory
-                </Button>
-              </Box>
-              <AddProductForm onProductAdded={handleProductAdded} />
-            </Paper>
-          </Container>
         ) : (
           <ProductList
             key={inventoryKey}
@@ -213,6 +199,44 @@ const InventoryPage = () => {
           />
         )}
       </Box>
+
+      <Drawer
+        anchor="right"
+        open={showAddProduct}
+        onClose={() => setShowAddProduct(false)}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: 600, md: 650 },
+            bgcolor: '#ffffff',
+          }
+        }}
+      >
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Box
+            sx={{
+              p: 2,
+              borderBottom: '1px solid #e2e8f0',
+              bgcolor: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#0b1d39' }}>
+              Add New Product
+            </Typography>
+            <IconButton onClick={() => setShowAddProduct(false)} size="small" sx={{ color: '#64748b' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <Box sx={{ p: { xs: 2, md: 3 }, flexGrow: 1, overflowY: 'auto' }}>
+            <AddProductForm onProductAdded={handleProductAdded} />
+          </Box>
+        </Box>
+      </Drawer>
 
       <BulkImportDialog
         open={showImport}
