@@ -57,7 +57,7 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale, setShowReceipt]);
 
   const handlePayAndPrint = useCallback(async (selectedPaymentMethod, customerOverride) => {
     if (isPaying) return;

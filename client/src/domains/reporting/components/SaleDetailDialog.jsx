@@ -18,7 +18,6 @@ import {
   IconButton,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { getRefundStatus, getStatusDisplay } from '@/shared/utils/refundStatus';
 
 const SaleDetailDialog = ({ selectedSale, onClose }) => {
   return (

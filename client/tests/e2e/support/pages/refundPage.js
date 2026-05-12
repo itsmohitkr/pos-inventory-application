@@ -59,7 +59,7 @@ export const createRefundPage = (page) => {
       await expect(successDialog).toBeVisible();
       await successDialog.getByRole('button', { name: 'OK' }).click();
     },
-    expectItemReturnedStatus: async (productName, returnedQty, totalQty) => {
+    expectItemReturnedStatus: async (productName, returnedQty) => {
       const row = page.getByRole('row', { name: new RegExp(productName, 'i') });
       await expect(row.getByText(returnedQty.toString())).toBeVisible();
     }

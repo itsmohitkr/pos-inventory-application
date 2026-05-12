@@ -522,7 +522,6 @@ export const createMockState = () => {
       });
       return expiringBatches;
     },
-    getProductSummary: () => state.dailyReport,
     getMonthlyReport: () => state.monthlyReport,
     getDailyReport: () => state.dailyReport,
   };

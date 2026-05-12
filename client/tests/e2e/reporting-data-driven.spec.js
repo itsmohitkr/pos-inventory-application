@@ -2,14 +2,12 @@ import { test, expect } from '@playwright/test';
 import { createPosPage } from './support/pages/posPage';
 import { createInventoryPage } from './support/pages/inventoryPage';
 import { createReportsPage } from './support/pages/reportsPage';
-import { createAppShellPage } from './support/pages/appShellPage';
 import { loginAsAdmin, clearBrowserStorage, installMockApi } from './support/testHelpers';
 
 test.describe('Reporting Data Integrity', () => {
   let posPage;
   let inventoryPage;
   let reportsPage;
-  let appShellPage;
 
   test.beforeEach(async ({ page }) => {
     await installMockApi(page);
@@ -18,7 +16,6 @@ test.describe('Reporting Data Integrity', () => {
     posPage = createPosPage(page);
     inventoryPage = createInventoryPage(page);
     reportsPage = createReportsPage(page);
-    appShellPage = createAppShellPage(page);
   });
 
   test('Low Stock report correctly reflects products below threshold', async ({ page }) => {
@@ -54,7 +51,7 @@ test.describe('Reporting Data Integrity', () => {
     await expect(page.locator('tr', { hasText: productName })).toHaveCount(0);
   });
 
-  test('Expiring Products report correctly reflects near-expiry batches', async ({ page }) => {
+  test('Expiring Products report correctly reflects near-expiry batches', async () => {
     const productName = `ExpiringItem-${Date.now()}`;
     const today = new Date();
     const expiryDate = new Date(today);
@@ -84,7 +81,7 @@ test.describe('Reporting Data Integrity', () => {
     await reportsPage.expectReportRow(productName);
   });
 
-  test('Loose Sales report reflects correctly', async ({ page }) => {
+  test('Loose Sales report reflects correctly', async () => {
     const looseItemName = `LooseItem-${Date.now()}`;
     const price = 45.50;
 

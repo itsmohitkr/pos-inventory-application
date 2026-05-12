@@ -28,20 +28,18 @@ export const createInventoryPage = (page) => {
       await expect(page.getByText('Add New Product')).toBeVisible();
     },
     submitNewProduct: async ({ name, category, quantity, mrp, costPrice, sellingPrice, lowStockThreshold, expiryDate }) => {
+      // Tab 0: Product Details
       await page.getByLabel('Product Name').fill(name);
       await page.getByLabel('Category').fill(category);
-      if (lowStockThreshold !== undefined) {
-        const lowStockSwitch = page.getByLabel('Enable low stock warning');
-        // Check if switch is already on (active in snapshot)
-        const isChecked = await lowStockSwitch.isChecked();
-        if (!isChecked) {
-          await lowStockSwitch.click();
-        }
-        // Use a more specific locator and wait for it
-        const thresholdInput = page.getByLabel('Low Stock Threshold');
-        await expect(thresholdInput).toBeVisible({ timeout: 5000 });
-        await thresholdInput.fill(lowStockThreshold.toString());
-      }
+      
+      // Navigate to Tab 1: Stock & Quantity
+      await page.getByRole('button', { name: 'Next' }).click();
+      
+      await page.getByLabel('Quantity').fill(quantity.toString());
+      await page.getByLabel('MRP').fill(mrp.toString());
+      await page.getByLabel('Cost Price').fill(costPrice.toString());
+      await page.getByLabel('Selling Price').fill(sellingPrice.toString());
+
       if (expiryDate !== undefined) {
         const batchSwitch = page.getByLabel('Enable batch tracking');
         if (!(await batchSwitch.isChecked())) {
@@ -51,10 +49,21 @@ export const createInventoryPage = (page) => {
         await expect(expiryInput).toBeVisible({ timeout: 5000 });
         await expiryInput.fill(expiryDate);
       }
-      await page.getByLabel('Quantity').fill(quantity.toString());
-      await page.getByLabel('MRP').fill(mrp.toString());
-      await page.getByLabel('Cost Price').fill(costPrice.toString());
-      await page.getByLabel('Selling Price').fill(sellingPrice.toString());
+
+      // Navigate to Tab 2: Settings
+      await page.getByRole('button', { name: 'Next' }).click();
+
+      if (lowStockThreshold !== undefined) {
+        const lowStockSwitch = page.getByLabel('Enable low stock warning');
+        const isChecked = await lowStockSwitch.isChecked();
+        if (!isChecked) {
+          await lowStockSwitch.click();
+        }
+        const thresholdInput = page.getByLabel('Low Stock Threshold');
+        await expect(thresholdInput).toBeVisible({ timeout: 5000 });
+        await thresholdInput.fill(lowStockThreshold.toString());
+      }
+
       await page.getByRole('button', { name: 'Add Product' }).last().click();
     },
     acknowledgeSuccessDialog: async (message) => {
