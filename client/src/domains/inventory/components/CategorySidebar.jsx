@@ -26,6 +26,7 @@ import {
   Add as AddIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 
 const CategorySidebar = ({
@@ -60,6 +61,7 @@ const CategorySidebar = ({
   onSaveCategory,
   onResizeStart,
   onDoubleClick,
+  onToggleCategories,
 }) => {
   const renderCategoryNode = (node, depth = 0) => {
     const hasChildren = node.children && node.children.length > 0;
@@ -117,7 +119,8 @@ const CategorySidebar = ({
         elevation={0}
         onDoubleClick={onDoubleClick}
         sx={{
-          p: 2,
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -126,16 +129,16 @@ const CategorySidebar = ({
       >
         <Box
           sx={{
+            p: 1.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            mb: 1.5,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
             Categories
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
             <IconButton
               size="small"
               onClick={onCategorySortToggle}
@@ -146,10 +149,13 @@ const CategorySidebar = ({
             <IconButton size="small" onClick={() => onAddCategoryDialog(null)} title="Add category">
               <AddIcon fontSize="small" />
             </IconButton>
+            <IconButton size="small" onClick={onToggleCategories} title="Hide categories">
+              <ChevronLeftIcon fontSize="small" />
+            </IconButton>
           </Box>
         </Box>
-        <Divider sx={{ mb: 1.5 }} />
-        <List disablePadding sx={{ overflow: 'auto', flex: 1 }}>
+        <Divider sx={{ borderColor: '#e2e8f0' }} />
+        <List disablePadding sx={{ overflow: 'auto', flex: 1, px: 1, pt: 1 }}>
           <ListItemButton
             selected={categoryFilter === 'all'}
             onClick={() => onCategorySelect('all')}

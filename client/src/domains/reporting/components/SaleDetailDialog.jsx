@@ -18,7 +18,6 @@ import {
   IconButton,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { getRefundStatus, getStatusDisplay } from '@/shared/utils/refundStatus';
 
 const SaleDetailDialog = ({ selectedSale, onClose }) => {
   return (
@@ -27,274 +26,217 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}
+      PaperProps={{
+        sx: {
+          overflow: 'hidden',
+          border: '1px solid #e2e8f0',
+        }
+      }}
       onKeyDown={(event) => {
-        if (event.defaultPrevented) return;
-        if (event.key !== 'Enter') return;
-        if (event.shiftKey) return;
-        if (event.target?.tagName === 'TEXTAREA') return;
-        event.preventDefault();
-        onClose();
+        if (event.key === 'Enter') onClose();
       }}
     >
       <DialogTitle
         sx={{
+          bgcolor: '#ffffff',
+          color: '#0f172a',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          p: 3,
+          p: 2.5,
+          borderBottom: '1px solid #e2e8f0',
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 800 }}>
-          Sale Details - ORD-{selectedSale?.id}
-        </Typography>
-        <IconButton onClick={onClose}>
+        <Box>
+          <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>
+            Financial Breakdown
+          </Typography>
+          <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a' }}>
+            Sale Details - ORD-{selectedSale?.id}
+          </Typography>
+        </Box>
+        <IconButton onClick={onClose} sx={{ color: '#64748b', '&:hover': { bgcolor: '#f1f5f9' } }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent dividers sx={{ p: 4 }}>
+
+      <DialogContent sx={{ p: 3, bgcolor: '#ffffff', mt: 1 }}>
         {selectedSale && (
-          <>
-            <Box
-              sx={{
-                mb: 4,
-                p: 3,
-                bgcolor: '#f8fafc',
-                borderRadius: 3,
-                border: '1px solid #edf2f7',
-              }}
-            >
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 3 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: '#64748b',
-                      fontWeight: 800,
-                      display: 'block',
-                      mb: 0.5,
-                    }}
-                  >
-                    DATE
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {new Date(selectedSale.createdAt).toLocaleString()}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 2 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: '#64748b',
-                      fontWeight: 800,
-                      display: 'block',
-                      mb: 0.5,
-                    }}
-                  >
-                    PAYMENT
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Summary Stat Cards */}
+            <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+              <Box
+                sx={{
+                  flex: 1,
+                  p: 2,
+                  borderRadius: '10px',
+                  bgcolor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', display: 'block', mb: 1 }}>
+                  TRANSACTION INFO
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b', mb: 0.5 }}>
+                  {new Date(selectedSale.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+                    {new Date(selectedSale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Typography>
                   <Chip
-                    label={selectedSale.paymentMethod || 'Cash'}
+                    label={selectedSale.paymentMethod || 'CASH'}
                     size="small"
-                    variant="outlined"
                     sx={{
-                      fontWeight: 700,
-                      fontSize: '0.75rem',
-                      height: 'auto',
-                      py: 0.5,
-                      borderColor: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : '#cbd5e1',
-                      color: selectedSale.paymentMethod === 'Cash' ? '#16a34a' : 'inherit',
+                      height: 18,
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      bgcolor: '#0f172a',
+                      color: '#ffffff',
                     }}
                   />
-                </Grid>
-                <Grid size={{ xs: 2 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: '#64748b',
-                      fontWeight: 800,
-                      display: 'block',
-                      mb: 0.5,
-                    }}
-                  >
-                    STATUS
-                  </Typography>
-                  {(() => {
-                    const refundStatus = getRefundStatus(selectedSale.items);
-                    const display = getStatusDisplay(refundStatus);
-                    return (
-                      <Chip
-                        label={display.label}
-                        sx={{
-                          bgcolor: display.bgcolor,
-                          color: display.color,
-                          fontWeight: 700,
-                          fontSize: '0.875rem',
-                          height: 'auto',
-                          py: 0.5,
-                        }}
-                      />
-                    );
-                  })()}
-                </Grid>
-                <Grid size={{ xs: 3 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: '#64748b',
-                      fontWeight: 800,
-                      display: 'block',
-                      mb: 0.5,
-                    }}
-                  >
-                    TOTAL
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    ₹
-                    {selectedSale.items
-                      .reduce((sum, item) => sum + item.mrp * item.quantity, 0)
-                      .toFixed(2)}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 3 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: '#64748b',
-                      fontWeight: 800,
-                      display: 'block',
-                      mb: 0.5,
-                    }}
-                  >
-                    SUBTOTAL
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    ₹{selectedSale.totalAmount.toFixed(2)}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 3 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: '#64748b',
-                      fontWeight: 800,
-                      display: 'block',
-                      mb: 0.5,
-                    }}
-                  >
-                    NET PROFIT
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#22c55e', fontWeight: 700 }}>
-                    ₹{selectedSale.profit.toFixed(2)}
-                  </Typography>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
+
+              <Box
+                sx={{
+                  flex: 1,
+                  p: 2,
+                  borderRadius: '10px',
+                  bgcolor: '#f0fdf4',
+                  border: '1px solid #dcfce7',
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#166534', display: 'block', mb: 1 }}>
+                  NET REVENUE
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 900, color: '#065f46' }}>
+                  ₹{selectedSale.netTotalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#16a34a', fontWeight: 700 }}>
+                  AFTER DISCOUNTS
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  flex: 1,
+                  p: 2,
+                  borderRadius: '10px',
+                  bgcolor: '#ecfdf5',
+                  border: '1px solid #d1fae5',
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#065f46', display: 'block', mb: 1 }}>
+                  TOTAL PROFIT
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 900, color: '#047857' }}>
+                  ₹{selectedSale.profit?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#059669', fontWeight: 700 }}>
+                  {((selectedSale.profit / selectedSale.netTotalAmount) * 100).toFixed(1)}% MARGIN
+                </Typography>
+              </Box>
             </Box>
 
-            <TableContainer sx={{ border: '1px solid #edf2f7', borderRadius: 2 }}>
-              <Table size="small">
-                <TableHead sx={{ bgcolor: '#f8fafc' }}>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>PRODUCT</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 800, color: '#64748b' }}>
-                      QTY
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
-                      MRP
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
-                      COST PRICE
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
-                      UNIT PRICE
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
-                      PROFIT
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800, color: '#64748b' }}>
-                      MARGIN
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {selectedSale.items.map((item) => {
-                    const returnedQty = item.returnedQuantity || 0;
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell sx={{ fontWeight: 600 }}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            {item.sellingPrice === 0 && (
-                              <Chip
-                                label="FREE"
-                                size="small"
-                                sx={{
-                                  bgcolor: '#e8f5e9',
-                                  color: '#2e7d32',
-                                  fontWeight: 800,
-                                  fontSize: '0.7rem',
-                                  height: 20,
-                                }}
-                              />
-                            )}
-                            <span>{item.productName}</span>
-                            {returnedQty > 0 && (
-                              <Chip
-                                label={returnedQty === item.quantity ? 'Refunded' : 'Returned'}
-                                size="small"
-                                sx={{
-                                  bgcolor: returnedQty === item.quantity ? '#ffebee' : '#e8f5e9',
-                                  color: returnedQty === item.quantity ? '#d32f2f' : '#2e7d32',
-                                  fontWeight: 700,
-                                  fontSize: '0.7rem',
-                                }}
-                              />
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell align="center">{item.quantity}</TableCell>
-                        <TableCell align="right">
-                          ₹{item.mrp ? item.mrp.toFixed(2) : 'N/A'}
-                        </TableCell>
-                        <TableCell align="right">
-                          ₹{item.costPrice ? item.costPrice.toFixed(2) : 'N/A'}
-                        </TableCell>
-                        <TableCell align="right">₹{item.sellingPrice.toFixed(2)}</TableCell>
-                        <TableCell align="right" sx={{ color: '#2e7d32', fontWeight: 700 }}>
-                          ₹{item.profit.toFixed(2)}
-                        </TableCell>
-                        <TableCell align="right">
-                          <Chip
-                            label={`${item.margin}%`}
-                            size="small"
-                            sx={{
-                              fontWeight: 700,
-                              bgcolor: parseFloat(item.margin) > 20 ? '#dcfce7' : '#f0f9ff',
-                              color: parseFloat(item.margin) > 20 ? '#15803d' : '#0369a1',
-                            }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </>
+            {/* Product Breakdown Table */}
+            <Box>
+              <Box sx={{ px: 1, mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1e293b' }}>
+                  ITEMIZED BREAKDOWN
+                </Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b' }}>
+                  {selectedSale.items.length} PRODUCTS
+                </Typography>
+              </Box>
+
+              <TableContainer sx={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#f1f5f9' }}>
+                      <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem' }}>PRODUCT</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem' }}>QTY</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem' }}>MRP</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem' }}>COST PRICE</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem' }}>UNIT PRICE</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem' }}>PROFIT</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem' }}>MARGIN</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedSale.items.map((item) => {
+                      const returnedQty = item.returnedQuantity || 0;
+                      const margin = parseFloat(item.margin);
+
+                      return (
+                        <TableRow key={item.id} hover>
+                          <TableCell sx={{ py: 1.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b' }}>
+                                {item.productName}
+                              </Typography>
+                              {returnedQty > 0 && (
+                                <Chip
+                                  label={returnedQty === item.quantity ? 'REFUNDED' : 'RETURNED'}
+                                  size="small"
+                                  sx={{
+                                    height: 18,
+                                    bgcolor: '#fef2f2',
+                                    color: '#dc2626',
+                                    fontWeight: 900,
+                                    fontSize: '0.6rem',
+                                    border: '1px solid #fee2e2'
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center" sx={{ fontWeight: 600 }}>{item.quantity}</TableCell>
+                          <TableCell align="right" sx={{ color: '#64748b' }}>₹{item.mrp?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell align="right" sx={{ color: '#64748b' }}>₹{item.costPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700, color: '#1e293b' }}>₹{item.sellingPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800, color: '#059669' }}>
+                            ₹{item.profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={`${margin.toFixed(1)}%`}
+                              size="small"
+                              sx={{
+                                height: 20,
+                                fontWeight: 800,
+                                fontSize: '0.65rem',
+                                bgcolor: margin > 20 ? '#ecfdf5' : '#f8fafc',
+                                color: margin > 20 ? '#059669' : '#64748b',
+                                border: `1px solid ${margin > 20 ? '#10b981' : '#e2e8f0'}`,
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          </Box>
         )}
       </DialogContent>
-      <DialogActions sx={{ p: 3 }}>
+
+      <DialogActions sx={{ p: 2.5, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
         <Button
           onClick={onClose}
-          variant="outlined"
-          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+          variant="contained"
+          sx={{
+            bgcolor: '#0f172a',
+            color: '#ffffff',
+            borderRadius: '8px',
+            px: 4,
+            fontWeight: 700,
+            '&:hover': { bgcolor: '#1e293b' }
+          }}
         >
-          Close Details
+          Close Report
         </Button>
       </DialogActions>
     </Dialog>

@@ -46,6 +46,28 @@ export const installMockApi = async (page) => {
       return;
     }
 
+    if (path === '/api/auth/users' && method === 'GET') {
+      await jsonResponse(route, state.getUsers());
+      return;
+    }
+
+    if (path === '/api/auth/users' && method === 'POST') {
+      await jsonResponse(route, state.createUser(request.postDataJSON()));
+      return;
+    }
+
+    if (path.startsWith('/api/auth/users/') && method === 'PUT') {
+      const userId = path.split('/').pop();
+      await jsonResponse(route, state.updateUser(userId, request.postDataJSON()));
+      return;
+    }
+
+    if (path.startsWith('/api/auth/users/') && method === 'DELETE') {
+      const userId = path.split('/').pop();
+      await jsonResponse(route, { success: state.deleteUser(userId) });
+      return;
+    }
+
     if (path === '/api/products' && method === 'GET') {
       await jsonResponse(route, { data: state.getProducts() });
       return;
@@ -163,12 +185,13 @@ export const installMockApi = async (page) => {
     }
 
     if (path === '/api/reports/expiry' && method === 'GET') {
-      await jsonResponse(route, []);
+      const { startDate, endDate } = Object.fromEntries(new URL(request.url()).searchParams);
+      await jsonResponse(route, state.getExpiryReport({ startDate, endDate }));
       return;
     }
 
     if (path === '/api/reports/low-stock' && method === 'GET') {
-      await jsonResponse(route, state.getProducts());
+      await jsonResponse(route, state.getLowStockReport());
       return;
     }
 
@@ -179,6 +202,11 @@ export const installMockApi = async (page) => {
 
     if (path === '/api/reports/loose-sales' && method === 'GET') {
       await jsonResponse(route, state.getLooseSales());
+      return;
+    }
+
+    if (path === '/api/loose-sales' && method === 'POST') {
+      await jsonResponse(route, state.createLooseSale(request.postDataJSON()));
       return;
     }
 
@@ -261,6 +289,43 @@ export const installMockApi = async (page) => {
       const updated = state.updatePromotion(promotionId, request.postDataJSON());
       if (!updated) {
         await notFound(route, 'Promotion not found');
+        return;
+      }
+      await jsonResponse(route, updated);
+      return;
+    }
+
+    if (path === '/api/customers' && method === 'GET') {
+      await jsonResponse(route, { customers: state.getCustomers(), total: state.getCustomers().length });
+      return;
+    }
+
+    if (path.startsWith('/api/customers/') && path.endsWith('/history') && method === 'GET') {
+      const customerId = path.split('/')[3];
+      const history = state.getCustomerHistory(customerId);
+      if (!history) {
+        await notFound(route, 'Customer not found');
+        return;
+      }
+      await jsonResponse(route, history);
+      return;
+    }
+
+    if (path.startsWith('/api/customers/') && method === 'GET') {
+      const customer = state.getCustomerById(path.split('/').pop());
+      if (!customer) {
+        await notFound(route, 'Customer not found');
+        return;
+      }
+      await jsonResponse(route, customer);
+      return;
+    }
+
+    if (path.startsWith('/api/customers/') && method === 'PUT') {
+      const customerId = path.split('/').pop();
+      const updated = state.updateCustomer(customerId, request.postDataJSON());
+      if (!updated) {
+        await notFound(route, 'Customer not found');
         return;
       }
       await jsonResponse(route, updated);

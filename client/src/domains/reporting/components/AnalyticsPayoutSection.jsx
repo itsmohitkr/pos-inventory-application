@@ -1,82 +1,227 @@
 import React from 'react';
 import { Box, Typography, Paper, Grid, TextField } from '@mui/material';
 
+import {
+  TrendingUp,
+  Settings as SettingsIcon,
+  AccountBalanceWallet as PayoutIcon,
+} from '@mui/icons-material';
+
 const AnalyticsPayoutSection = ({ totalProfit, netProfit, totalExpenses }) => {
   const [ownerSharePercent, setOwnerSharePercent] = React.useState(50);
   const ownerPayout = (netProfit * ownerSharePercent) / 100;
 
   return (
-    <Box>
-      <Typography
-        variant="overline"
-        sx={{ color: '#64748b', fontWeight: 800, letterSpacing: 1.5, mb: 2, display: 'block' }}
-      >
-        Profit & Takeout Calculation
-      </Typography>
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid #e2e8f0', borderRadius: 2, bgcolor: '#fafbfc' }}>
-        <Grid container spacing={3} alignItems="stretch">
-          {/* Profit Calculation */}
-          <Grid size={{ xs: 12, md: 5 }}>
-            <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 2, border: '2px solid #f0fdf4', height: '100%' }}>
-              <Typography variant="subtitle2" sx={{ color: '#475569', fontWeight: 700, mb: 2.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span style={{ color: '#16a34a' }}>📊</span> Profit Calculation
+    <Box sx={{ p: 1 }}>
+      <Grid container spacing={3} alignItems="stretch">
+        {/* Profit Calculation Card */}
+        <Grid item xs={12} md={5}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              height: '100%',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              bgcolor: '#ffffff',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+              <Box
+                sx={{
+                  p: 1,
+                  borderRadius: '8px',
+                  bgcolor: 'rgba(22, 163, 74, 0.1)',
+                  color: '#16a34a',
+                  display: 'flex',
+                }}
+              >
+                <TrendingUp fontSize="small" />
+              </Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#1e293b' }}>
+                Profit Summary
               </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, borderBottom: '1px solid #f1f5f9' }}>
-                <Typography sx={{ color: '#64748b', fontWeight: 500 }}>Gross Profit:</Typography>
-                <Typography sx={{ color: '#16a34a', fontWeight: 700, fontSize: '1rem' }}>
-                  ₹ {totalProfit.toLocaleString()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, borderBottom: '1px solid #f1f5f9' }}>
-                <Typography sx={{ color: '#64748b', fontWeight: 500 }}>Less: Expenses:</Typography>
-                <Typography sx={{ color: '#dc2626', fontWeight: 700, fontSize: '1rem' }}>
-                  - ₹ {totalExpenses.toLocaleString()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, px: 2, mt: 1.5, bgcolor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 1.5 }}>
-                <Typography sx={{ color: '#166534', fontWeight: 700 }}>Net Profit</Typography>
-                <Typography sx={{ color: '#166534', fontWeight: 800, fontSize: '1.1rem' }}>
-                  ₹ {netProfit.toLocaleString()}
-                </Typography>
-              </Box>
             </Box>
-          </Grid>
 
-          {/* Owner Payout */}
-          <Grid size={{ xs: 12, md: 7 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%' }}>
-              <Box sx={{ p: 3, bgcolor: '#fff', borderRadius: 2, border: '2px solid #e0e7ff' }}>
-                <Typography variant="subtitle2" sx={{ color: '#475569', fontWeight: 700, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span style={{ color: '#6366f1' }}>⚙️</span> Owner Takeout Percentage
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  pb: 2,
+                  borderBottom: '1px dashed #e2e8f0',
+                }}
+              >
+                <Typography sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.9rem' }}>
+                  Gross Profit
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <TextField
-                    type="number"
-                    variant="outlined"
-                    size="small"
-                    value={ownerSharePercent}
-                    onChange={(e) => setOwnerSharePercent(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                    inputProps={{ min: 0, max: 100 }}
-                    sx={{ width: 100, '& .MuiOutlinedInput-root': { fontWeight: 700, textAlign: 'center' } }}
-                  />
-                  <Typography sx={{ color: '#64748b', fontWeight: 600 }}>% of Net Profit</Typography>
-                </Box>
+                <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '1rem' }}>
+                  ₹ {totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </Typography>
               </Box>
-              <Box sx={{ p: 3, bgcolor: '#eff6ff', border: '2px solid #7dd3fc', borderRadius: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}>
-                <Typography sx={{ color: '#0c4a6e', fontWeight: 700, fontSize: '0.9rem', mb: 1 }}>
-                  💰 Your Payout
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  pb: 2,
+                  borderBottom: '1px dashed #e2e8f0',
+                }}
+              >
+                <Typography sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.9rem' }}>
+                  Total Expenses
                 </Typography>
-                <Typography sx={{ color: '#0c4a6e', fontWeight: 700, fontSize: '0.85rem', mb: 2 }}>
-                  ({ownerSharePercent}% of ₹ {netProfit.toLocaleString()})
+                <Typography sx={{ color: '#ef4444', fontWeight: 700, fontSize: '1rem' }}>
+                  - ₹ {totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </Typography>
-                <Typography sx={{ color: '#0c4a6e', fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.5px' }}>
-                  ₹ {ownerPayout.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 2,
+                  mt: 1,
+                  borderRadius: '10px',
+                  bgcolor: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                }}
+              >
+                <Typography sx={{ color: '#166534', fontWeight: 700 }}>Net Profit</Typography>
+                <Typography sx={{ color: '#166534', fontWeight: 900, fontSize: '1.25rem' }}>
+                  ₹ {netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
             </Box>
-          </Grid>
+          </Paper>
         </Grid>
-      </Paper>
+
+        {/* Configuration & Payout Result */}
+        <Grid item xs={12} md={7}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
+            {/* Setting Card */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                bgcolor: '#ffffff',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: '8px',
+                    bgcolor: 'rgba(99, 102, 241, 0.1)',
+                    color: '#6366f1',
+                    display: 'flex',
+                  }}
+                >
+                  <SettingsIcon fontSize="small" />
+                </Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#1e293b' }}>
+                  Takeout Configuration
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <TextField
+                  type="number"
+                  variant="outlined"
+                  size="small"
+                  value={ownerSharePercent}
+                  onChange={(e) =>
+                    setOwnerSharePercent(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))
+                  }
+                  inputProps={{ min: 0, max: 100 }}
+                  sx={{
+                    width: 100,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      bgcolor: '#f8fafc',
+                    },
+                  }}
+                />
+                <Typography sx={{ color: '#64748b', fontWeight: 600 }}>% of Net Profit</Typography>
+              </Box>
+            </Paper>
+
+            {/* Payout Result Card */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                flex: 1,
+                borderRadius: '12px',
+                bgcolor: '#0b1d39',
+                backgroundImage: 'linear-gradient(135deg, #0b1d39 0%, #1a365d 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                textAlign: 'center',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -20,
+                  right: -20,
+                  opacity: 0.1,
+                  transform: 'rotate(-15deg)',
+                }}
+              >
+                <PayoutIcon sx={{ fontSize: 160 }} />
+              </Box>
+
+              <Typography
+                sx={{
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                  mb: 1,
+                }}
+              >
+                Owner Payout Amount
+              </Typography>
+              <Typography
+                sx={{
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontWeight: 500,
+                  fontSize: '0.75rem',
+                  mb: 2,
+                }}
+              >
+                ({ownerSharePercent}% of ₹ {netProfit.toLocaleString()})
+              </Typography>
+              <Typography
+                sx={{
+                  fontWeight: 900,
+                  fontSize: '2.75rem',
+                  letterSpacing: '-1px',
+                  color: '#ffffff',
+                }}
+              >
+                ₹{' '}
+                {ownerPayout.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+              </Typography>
+            </Paper>
+          </Box>
+        </Grid>
+      </Grid>
     </Box>
   );
 };

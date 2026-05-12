@@ -107,7 +107,6 @@ const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'En
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 3,
           border: '1px solid #e2e8f0',
         },
       }}

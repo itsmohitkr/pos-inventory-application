@@ -27,9 +27,23 @@ export const createAppShellPage = (page) => {
     openSettingsDialog: async () => {
       await settingsButton.click();
       await page.getByRole('menuitem', { name: 'Settings' }).click();
-      const settingsDialog = page.getByRole('dialog');
+      const settingsDialog = page.getByRole('dialog', { name: 'Settings' });
       await expect(settingsDialog).toBeVisible();
       return settingsDialog;
+    },
+    openUserManagementDialog: async () => {
+      await settingsButton.click();
+      await page.getByRole('menuitem', { name: 'Manage Users' }).click();
+      const userDialog = page.getByRole('dialog', { name: 'User Management' });
+      await expect(userDialog).toBeVisible();
+      return userDialog;
+    },
+    openChangePasswordDialog: async () => {
+      await settingsButton.click();
+      await page.getByRole('menuitem', { name: 'Change Password' }).click();
+      const pwdDialog = page.getByRole('dialog', { name: 'Change Password' });
+      await expect(pwdDialog).toBeVisible();
+      return pwdDialog;
     },
     closeSettingsDialog: async () => {
       const settingsDialog = page.getByRole('dialog');

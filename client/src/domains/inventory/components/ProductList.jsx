@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
-import { Paper, Typography, Box, Chip } from '@mui/material';
+import { Paper, Typography, Box, Chip, IconButton, Tooltip } from '@mui/material';
+import { ChevronRight as ChevronRightIcon } from '@mui/icons-material';
 
 import EditProductDialog from '@/domains/inventory/components/EditProductDialog';
 import EditBatchDialog from '@/domains/inventory/components/EditBatchDialog';
@@ -32,7 +33,10 @@ const ProductList = forwardRef(
 
     const handleBarcodeSearch = useCallback(async (val) => {
       pl.setSearchTerm(val);
-      if (!val) return;
+      if (!val) {
+        pl.setFilteredProducts(null);
+        return;
+      }
 
       let found = pl.products.find(
         (p) => p.barcode && p.barcode.split('|').some((b) => b.trim() === val)
@@ -78,12 +82,8 @@ const ProductList = forwardRef(
           gridTemplateColumns: {
             xs: '1fr',
             lg: pl.showCategories
-              ? pl.displayProduct
-                ? `${pl.leftPanelWidth}px 1fr ${pl.rightPanelWidth}px`
-                : `${pl.leftPanelWidth}px 1fr`
-              : pl.displayProduct
-                ? `1fr ${pl.rightPanelWidth}px`
-                : '1fr',
+              ? `${pl.leftPanelWidth}px 1fr`
+              : '1fr',
           },
           gap: 1.5,
           height: '100%',
@@ -125,16 +125,25 @@ const ProductList = forwardRef(
             onSaveCategory={pl.handleSaveCategory}
             onResizeStart={pl.handleResizeStartLeft}
             onDoubleClick={pl.displayProduct ? pl.handleOpenHistory : undefined}
+            onToggleCategories={() => pl.setShowCategories(false)}
           />
         )}
 
         {/* Product List */}
         <Paper
           elevation={0}
-          sx={{ p: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}
+          sx={{
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+            minWidth: 0
+          }}
         >
           {/* Header */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+          <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5, borderBottom: '1px solid #e2e8f0' }}>
             <Box
               sx={{
                 display: 'flex',
@@ -145,6 +154,21 @@ const ProductList = forwardRef(
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                {!pl.showCategories && (
+                  <Tooltip title="Show Categories">
+                    <IconButton
+                      size="small"
+                      onClick={() => pl.setShowCategories(true)}
+                      sx={{
+                        mr: 0.5,
+                        bgcolor: 'rgba(31, 41, 55, 0.05)',
+                        '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.1)' }
+                      }}
+                    >
+                      <ChevronRightIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
                 <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
                   Products
                 </Typography>
@@ -170,8 +194,6 @@ const ProductList = forwardRef(
                   onClearSearch={pl.clearSearch}
                 />
                 <ProductListToolbar
-                  showCategories={pl.showCategories}
-                  onToggleCategories={() => pl.setShowCategories((prev) => !prev)}
                   stockFilter={pl.stockFilter}
                   onStockFilterChange={(value) => {
                     pl.setStockFilter(value);
@@ -202,22 +224,22 @@ const ProductList = forwardRef(
             onDelete={pl.handleDelete}
             onDoubleClick={pl.handleProductDoubleClick}
           />
-        </Paper>
 
-        {/* Product Detail Panel */}
-        {pl.displayProduct && (
+          {/* Product Detail Sidebar (Local Overlay) */}
           <ProductDetailPanel
             displayProduct={pl.displayProduct}
             isLoadingBatches={pl.isLoadingBatches}
-            isResizingRight={pl.isResizingRight}
+            width={pl.rightPanelWidth}
+            isResizing={pl.isResizingRight}
             onResizeStart={pl.handleResizeStartRight}
             onAddStock={pl.handleAddStock}
             onOpenHistory={pl.handleOpenHistory}
             onBatchEditClick={pl.handleBatchEditClick}
             onBatchDelete={pl.handleBatchDelete}
             onQuickInventoryOpen={pl.handleQuickInventoryOpen}
+            onClose={pl.handleProductDoubleClick}
           />
-        )}
+        </Paper>
 
         {/* Dialogs */}
         <ProductHistoryDialog

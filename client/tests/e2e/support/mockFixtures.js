@@ -157,6 +157,7 @@ export const salesFixture = [
     discount: 0,
     extraDiscount: 0,
     paymentMethod: 'Cash',
+    customerId: 501,
     items: [
       {
         id: 111,
@@ -175,6 +176,19 @@ export const salesFixture = [
     ],
   },
 ];
+
+export const customersFixture = [
+  {
+    id: 501,
+    name: 'Test Customer',
+    phone: '9998887776',
+    customerBarcode: 'CUST-TEST501',
+    totalSpend: 190,
+    lastVisit: '2026-04-10T10:15:00.000Z',
+    createdAt: '2026-04-01T10:00:00.000Z',
+  },
+];
+
 
 export const looseSalesFixture = [
   {

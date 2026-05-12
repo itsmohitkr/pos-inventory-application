@@ -133,7 +133,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
       maxWidth="xs"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 3, border: '1px solid #e2e8f0' },
+        sx: { border: '1px solid #e2e8f0' },
       }}
     >
       <DialogTitle
@@ -173,7 +173,6 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
                 bgcolor: 'rgba(0,0,0,0.06)',
                 fontWeight: '900',
                 fontSize: '2.5rem',
@@ -193,7 +192,6 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
             onBlur={() => setIsNameFocused(false)}
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
                 bgcolor: 'rgba(0,0,0,0.04)',
                 '& input': { textAlign: 'left' },
               },
@@ -216,7 +214,6 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
                   height: 70,
                   fontSize: val === 'Clear' ? '1.1rem' : '1.8rem',
                   fontWeight: 'bold',
-                  borderRadius: 2,
                   borderColor: 'divider',
                   color: val === 'Clear' ? 'error.main' : 'text.primary',
                   '&:hover': { bgcolor: 'action.hover', filter: 'brightness(0.95)' },
@@ -238,7 +235,6 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
                 height: 60,
                 fontSize: '1.1rem',
                 fontWeight: 'bold',
-                borderRadius: 2,
                 textTransform: 'none',
               }}
             >
@@ -254,7 +250,6 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
                 height: 60,
                 fontSize: '1.1rem',
                 fontWeight: 'bold',
-                borderRadius: 2,
                 textTransform: 'none',
               }}
             >

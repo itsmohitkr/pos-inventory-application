@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, IconButton, CircularProgress } from '@mui/material';
+import { Box, Paper, Typography, IconButton, CircularProgress, Tooltip } from '@mui/material';
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -23,13 +23,12 @@ const DailySalesChart = ({
       sx={{
         flex: 1,
         p: 2,
-        borderRadius: 2,
         border: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Box>
           <Typography
             variant="h5"
@@ -94,7 +93,7 @@ const DailySalesChart = ({
             >
               <Typography
                 variant="caption"
-                sx={{ fontSize: '0.6rem', color: '#9ca3af', width: 30 }}
+                sx={{ fontSize: '0.6rem', color: '#9ca3af', width: 40 }}
               >
                 {formatShortNum(maxVal * tier)}
               </Typography>
@@ -106,7 +105,7 @@ const DailySalesChart = ({
         <Box
           sx={{
             display: 'flex',
-            ml: '30px',
+            ml: '40px',
             flex: 1,
             zIndex: 1,
             height: '100%',
@@ -145,23 +144,27 @@ const DailySalesChart = ({
                     {formatShortNum(item.totalSales)}
                   </Typography>
                 )}
-                <Box
-                  sx={{
-                    width: '100%',
-                    height: `${hPct}%`,
-                    bgcolor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
-                    borderRight: '1px solid #fff',
-                    borderTopLeftRadius: 2,
-                    borderTopRightRadius: 2,
-                    transition: 'height 0.3s ease',
-                  }}
-                />
+                <Tooltip title={`₹${item.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} arrow>
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: `${hPct}%`,
+                      bgcolor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
+                      borderRight: '1px solid #fff',
+                      borderTopLeftRadius: 2,
+                      borderTopRightRadius: 2,
+                      transition: 'height 0.3s ease',
+                      cursor: 'pointer',
+                      '&:hover': { opacity: 0.8 },
+                    }}
+                  />
+                </Tooltip>
               </Box>
             );
           })}
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', ml: '30px', borderTop: '1px solid #d1d5db', mt: 0.5 }}>
+      <Box sx={{ display: 'flex', ml: '40px', borderTop: '1px solid #d1d5db', mt: 0.5 }}>
         {data.map((item, idx) => (
           <Typography
             key={`daily-label-${idx}`}

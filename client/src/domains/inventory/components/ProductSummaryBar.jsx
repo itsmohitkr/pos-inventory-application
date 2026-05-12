@@ -2,54 +2,12 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 
 const STAT_CONFIGS = [
-  {
-    label: 'Products',
-    getValue: (t) => t.productCount,
-    borderColor: '#3b82f6',
-    colorLabel: '#1e40af',
-    colorValue: '#1e3a8a',
-    bgColor: 'rgba(59, 130, 246, 0.08)',
-  },
-  {
-    label: 'Total Stock',
-    getValue: (t) => t.totalQty,
-    borderColor: '#8b5cf6',
-    colorLabel: '#6d28d9',
-    colorValue: '#5b21b6',
-    bgColor: 'rgba(139, 92, 246, 0.08)',
-  },
-  {
-    label: 'Cost Value',
-    getValue: (t) => `₹${t.totalCost.toFixed(2)}`,
-    borderColor: '#f59e0b',
-    colorLabel: '#d97706',
-    colorValue: '#b45309',
-    bgColor: 'rgba(245, 158, 11, 0.08)',
-  },
-  {
-    label: 'Selling Value',
-    getValue: (t) => `₹${t.totalSelling.toFixed(2)}`,
-    borderColor: '#10b981',
-    colorLabel: '#059669',
-    colorValue: '#047857',
-    bgColor: 'rgba(16, 185, 129, 0.08)',
-  },
-  {
-    label: 'Avg Margin',
-    getValue: (_, avg) => `${avg.margin}%`,
-    borderColor: '#ec4899',
-    colorLabel: '#db2777',
-    colorValue: '#be185d',
-    bgColor: 'rgba(236, 72, 153, 0.08)',
-  },
-  {
-    label: 'Avg Discount',
-    getValue: (_, avg) => `${avg.discount}%`,
-    borderColor: '#f43f5e',
-    colorLabel: '#e11d48',
-    colorValue: '#9f1239',
-    bgColor: 'rgba(244, 63, 94, 0.08)',
-  },
+  { label: 'Products', getValue: (t) => t.productCount, accentColor: '#3b82f6' },
+  { label: 'Total Stock', getValue: (t) => t.totalQty, accentColor: '#8b5cf6' },
+  { label: 'Cost Value', getValue: (t) => `₹${t.totalCost.toFixed(2)}`, accentColor: '#f59e0b' },
+  { label: 'Selling Value', getValue: (t) => `₹${t.totalSelling.toFixed(2)}`, accentColor: '#10b981' },
+  { label: 'Avg Margin', getValue: (_, avg) => `${avg.margin}%`, accentColor: '#06b6d4' },
+  { label: 'Avg Discount', getValue: (_, avg) => `${avg.discount}%`, accentColor: '#f43f5e' },
 ];
 
 const ProductSummaryBar = ({ summaryTotals, averageMargin, averageDiscount }) => {
@@ -59,40 +17,53 @@ const ProductSummaryBar = ({ summaryTotals, averageMargin, averageDiscount }) =>
     <Box
       sx={{
         display: 'flex',
-        gap: 2.5,
+        gap: 1.25,
         flexWrap: 'wrap',
         alignItems: 'center',
         pt: 1.5,
-        borderTop: '1px solid rgba(31, 41, 55, 0.2)',
+        borderTop: '1px solid #e2e8f0',
       }}
     >
-      {STAT_CONFIGS.map(({ label, getValue, borderColor, colorLabel, colorValue, bgColor }) => (
+      {STAT_CONFIGS.map(({ label, getValue, accentColor }) => (
         <Box
           key={label}
           sx={{
-            border: `2px dotted ${borderColor}`,
-            borderRadius: 1,
-            p: 1.5,
-            bgcolor: bgColor,
-            minWidth: label === 'Cost Value' || label === 'Selling Value' ? 110 : 100,
-            flex: `1 1 ${label === 'Cost Value' || label === 'Selling Value' ? 130 : 120}px`,
+            border: '1px solid',
+            borderColor: `${accentColor}33`, // 20% opacity
+            borderRadius: '8px',
+            p: 1.25,
+            bgcolor: `${accentColor}0A`, // 4% opacity
+            minWidth: label.includes('Value') ? 130 : 100,
+            flex: 1,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: `${accentColor}1A`, // 10% opacity
+              borderColor: `${accentColor}66`, // 40% opacity
+            }
           }}
         >
           <Typography
             variant="caption"
             sx={{
-              color: colorLabel,
+              color: accentColor,
               textTransform: 'uppercase',
-              fontSize: '0.65rem',
-              letterSpacing: '0.3px',
-              fontWeight: 600,
+              fontSize: '0.85rem',
+              letterSpacing: '0.5px',
+              fontWeight: 500,
+              display: 'block',
+              mb: 0.5,
             }}
           >
             {label}
           </Typography>
           <Typography
             variant="body1"
-            sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.3, color: colorValue }}
+            sx={{ 
+              fontWeight: 500, 
+              fontSize: '0.85rem', 
+              color: '#0b1d39',
+              lineHeight: 1
+            }}
           >
             {getValue(summaryTotals, avg)}
           </Typography>

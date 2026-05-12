@@ -29,11 +29,11 @@ const SaleHistoryHeader = ({
     elevation={0}
     className="no-print"
     sx={{
-      m: 3,
-      px: 4,
-      py: 2.5,
-      background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
-      borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
+      m: 1.5,
+      px: 2.5,
+      py: 1.75,
+      border: '1px solid #e2e8f0',
+      borderRadius: '10px',
     }}
   >
     <Box
@@ -53,7 +53,7 @@ const SaleHistoryHeader = ({
           View and manage past transactions and receipts.
         </Typography>
       </Box>
-      <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
+      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
         <ToggleButtonGroup
           value={saleType}
           exclusive

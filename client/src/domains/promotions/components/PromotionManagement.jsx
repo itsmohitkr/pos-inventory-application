@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Paper, Typography, Snackbar, Alert } from '@mui/material';
+import { Box, Container, Paper, Typography, Snackbar, Alert, Stack } from '@mui/material';
 import inventoryService from '@/shared/api/inventoryService';
 import posService from '@/shared/api/posService';
 import settingsService from '@/shared/api/settingsService';
@@ -343,92 +343,87 @@ const PromotionManagement = () => {
   return (
     <Box
       sx={{
-        bgcolor: 'background.default',
+        bgcolor: '#f8fafc',
         height: '100%',
-        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
+        overflow: 'hidden'
       }}
     >
+      {/* Header Bar */}
       <Paper
         elevation={0}
         sx={{
-          m: 3,
-          px: 4,
-          py: 2.5,
+          m: 1.5,
+          px: 2.5,
+          py: 1.75,
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           flexShrink: 0,
-          background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
-          borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box>
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}
-            >
-              Sales & Promotions
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
+            Promotions & Campaigns
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Schedule temporary price reductions and create automated sales events.
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box sx={{ textAlign: 'right', mr: 2 }}>
+            <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', display: 'block', letterSpacing: '0.5px' }}>
+              ACTIVE EVENTS
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Schedule temporary price reductions and create sales events.
+            <Typography variant="h6" sx={{ fontWeight: 900, color: '#0b1d39', lineHeight: 1 }}>
+              {promotions.filter(isPromotionActive).length}
             </Typography>
           </Box>
-        </Box>
+        </Stack>
       </Paper>
 
-      <Container
-        disableGutters
-        maxWidth={false}
-        sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, px: 3, pb: 3 }}
-      >
+      {/* Main Content */}
+      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 1.5, pb: 1.5, display: 'flex', gap: 1.5 }}>
+        <PromotionSidebar activeTab={activeTab} onChangeTab={setActiveTab} />
+
+        {/* Content Area */}
         <Box
           sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
             flex: 1,
-            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            overflow: 'auto',
           }}
         >
-          <PromotionSidebar activeTab={activeTab} onChangeTab={setActiveTab} />
+          {activeTab === 'threshold' && (
+            <ThresholdSettingsPanel
+              promoSettings={promoSettings}
+              setPromoSettings={setPromoSettings}
+              newThreshold={newThreshold}
+              setNewThreshold={setNewThreshold}
+              categories={categories}
+              onSave={handleSavePromoSettings}
+              onAddThreshold={handleAddThreshold}
+              onUpdateConfig={handleUpdateConfig}
+              onRemoveThreshold={handleRemoveThreshold}
+            />
+          )}
 
-          {/* Content Area */}
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              overflow: 'auto',
-            }}
-          >
-            {activeTab === 'threshold' && (
-              <ThresholdSettingsPanel
-                promoSettings={promoSettings}
-                setPromoSettings={setPromoSettings}
-                newThreshold={newThreshold}
-                setNewThreshold={setNewThreshold}
-                categories={categories}
-                onSave={handleSavePromoSettings}
-                onAddThreshold={handleAddThreshold}
-                onUpdateConfig={handleUpdateConfig}
-                onRemoveThreshold={handleRemoveThreshold}
-              />
-            )}
-
-            {activeTab === 'sales' && (
-              <ScheduledSalesPanel
-                promotions={promotions}
-                onCreate={handleOpenDialog}
-                onEdit={handleEditOpen}
-                onDelete={handleDeletePromotion}
-                isPromotionActive={isPromotionActive}
-              />
-            )}
-          </Box>
+          {activeTab === 'sales' && (
+            <ScheduledSalesPanel
+              promotions={promotions}
+              onCreate={handleOpenDialog}
+              onEdit={handleEditOpen}
+              onDelete={handleDeletePromotion}
+              isPromotionActive={isPromotionActive}
+            />
+          )}
         </Box>
-      </Container>
+      </Box>
 
       <PromotionFormDialog
         open={openDialog}

@@ -222,9 +222,8 @@ const SaleHistory = ({
   return (
     <Box
       sx={{
-        bgcolor: 'background.default',
+        bgcolor: '#f8fafc',
         height: '100%',
-        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -251,8 +250,8 @@ const SaleHistory = ({
           flexDirection: 'column',
           overflow: 'hidden',
           pt: 0,
-          px: 3,
-          pb: 3,
+          px: 1.5,
+          pb: 1.5,
         }}
       >
         {loading ? (
@@ -269,7 +268,7 @@ const SaleHistory = ({
         ) : (
           <Grid
             container
-            spacing={2}
+            spacing={1.5}
             wrap="nowrap"
             className="no-print"
             sx={{ flex: 1, minHeight: 0, overflow: 'hidden', flexWrap: 'nowrap' }}

@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 export const createPromotionsPage = (page) => {
-  const thresholdPanelTitle = page.getByText('Order Threshold Promotions (Buy X Get 1 Free)');
+  const thresholdPanelTitle = page.getByText('Order Threshold Promotions');
 
   return {
     goto: async () => {
@@ -14,15 +14,15 @@ export const createPromotionsPage = (page) => {
       await expect(thresholdPanelTitle).toBeVisible();
     },
     expectThresholdView: async () => {
-      await expect(page.getByText('Order Threshold Promotions (Buy X Get 1 Free)')).toBeVisible();
+      await expect(page.getByText('Order Threshold Promotions')).toBeVisible();
       await expect(page.getByText('PROMOTION MODULES')).toBeVisible();
     },
     openScheduledSales: async () => {
       await page.getByRole('button', { name: 'Scheduled Sales' }).click();
-      await expect(page.getByText('Scheduled Sales & Price Reductions')).toBeVisible();
+      await expect(page.getByText('Scheduled Sales & Campaigns')).toBeVisible();
     },
     openCreateSaleDialog: async () => {
-      await page.getByRole('button', { name: 'Create New Sale' }).click();
+      await page.getByRole('button', { name: 'Create New Event' }).click();
       const saleDialog = page.getByRole('dialog');
       await expect(saleDialog.getByText('Schedule New Sale Event')).toBeVisible();
       return saleDialog;
@@ -39,12 +39,12 @@ export const createPromotionsPage = (page) => {
       await expect(saleDialog).not.toBeVisible();
     },
     addThresholdRow: async (threshold) => {
-      await page.getByPlaceholder('Min Order Value (₹)').fill(String(threshold));
-      await page.getByRole('button', { name: 'Add Row' }).click();
+      await page.getByPlaceholder('Order Total (₹)').fill(String(threshold));
+      await page.getByRole('button', { name: 'Add Rule' }).click();
       await expect(page.getByText(`₹${threshold}`)).toBeVisible();
     },
     saveThresholdSettings: async () => {
-      await page.getByRole('button', { name: 'Save Settings' }).click();
+      await page.getByRole('button', { name: 'Save Configuration' }).click();
     },
     editSaleEventName: async (currentName, nextName) => {
       const row = page.locator('tr', { hasText: currentName }).first();

@@ -92,7 +92,7 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
     setSubmitting(true);
     try {
       await posService.processRefund(sale.id, itemsToReturn);
-      showSuccess('Return processed successfully!');
+      await showSuccess('Return processed successfully!');
       setSelectedItems({});
       if (onRefundSuccess) onRefundSuccess();
     } catch (err) {
@@ -115,112 +115,107 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
       {!hideHeaderFields && (
         <Box
           sx={{
-            p: 3,
-            bgcolor: 'background.default',
-            borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
+            px: 3,
+            py: 2.5,
+            bgcolor: '#f0f9ff',
+            borderBottom: '1px solid #e0f2fe',
           }}
         >
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 6 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5 }}>
-                ORDER DATE
+          <Grid container spacing={3} alignItems="flex-start">
+            <Grid item xs={12} md={4}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: '#475569',
+                  textTransform: 'uppercase',
+                  fontSize: '0.65rem',
+                  display: 'block',
+                  mb: 0.5
+                }}
+              >
+                Order Reference
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {new Date(sale.createdAt).toLocaleString()}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
+                  ORD-{sale.id}
+                </Typography>
+                <Chip
+                  label={sale.paymentStatus || 'PAID'}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    bgcolor: sale.paymentStatus === 'Due' ? '#fff7ed' : '#dcfce7',
+                    color: sale.paymentStatus === 'Due' ? '#9a3412' : '#15803d',
+                    border: `1px solid ${sale.paymentStatus === 'Due' ? '#fed7aa' : '#bbf7d0'}`,
+                  }}
+                />
+              </Box>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: '#475569',
+                  textTransform: 'uppercase',
+                  fontSize: '0.65rem',
+                  display: 'block',
+                  mb: 0.5
+                }}
+              >
+                Transaction Date
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#1e293b', fontWeight: 500 }}>
+                {new Date(sale.createdAt).toLocaleString(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short'
+                })}
               </Typography>
             </Grid>
-            <Grid size={{ xs: 6 }} textAlign="right">
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5 }}>
-                BILL TOTAL
+
+            <Grid item xs={12} md={4} textAlign={{ xs: 'left', md: 'right' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: '#475569',
+                  textTransform: 'uppercase',
+                  fontSize: '0.65rem',
+                  display: 'block',
+                  mb: 0.5
+                }}
+              >
+                Bill Total
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
-                ₹{(sale.totalAmount + sale.discount).toFixed(2)}
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#0b1d39' }}>
+                ₹{(sale.totalAmount + sale.discount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Typography>
             </Grid>
           </Grid>
         </Box>
       )}
 
-      <TableContainer sx={{ flexGrow: 1, maxHeight: 400, overflow: 'auto' }}>
-        <Table stickyHeader>
+      <TableContainer sx={{ flexGrow: 1, maxHeight: 500, overflow: 'auto' }}>
+        <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
-              <TableCell
-                align="center"
-                width={80}
-                sx={{
-                  fontWeight: 'bold',
-                  py: 0.5,
-                  bgcolor: '#f8fafc',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 2,
-                }}
-              >
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Checkbox
-                    size="small"
-                    checked={isAllChecked}
-                    indeterminate={isIndeterminate}
-                    onChange={handleSelectAll}
-                    disabled={allReturnableItems.length === 0}
-                  />
-                  <Typography
-                    variant="caption"
-                    sx={{ fontSize: '10px', mt: -0.5, color: 'text.secondary' }}
-                  >
-                    ALL
-                  </Typography>
-                </Box>
+              <TableCell align="center" width={80} sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                <Checkbox
+                  size="small"
+                  checked={isAllChecked}
+                  indeterminate={isIndeterminate}
+                  onChange={handleSelectAll}
+                  disabled={allReturnableItems.length === 0}
+                />
               </TableCell>
-              <TableCell
-                sx={{
-                  fontWeight: 'bold',
-                  bgcolor: '#f8fafc',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 2,
-                }}
-              >
-                Product
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  fontWeight: 'bold',
-                  bgcolor: '#f8fafc',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 2,
-                }}
-              >
-                Sold Qty
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  fontWeight: 'bold',
-                  bgcolor: '#f8fafc',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 2,
-                }}
-              >
-                Returned
-              </TableCell>
-              <TableCell
-                align="center"
-                width={120}
-                sx={{
-                  fontWeight: 'bold',
-                  bgcolor: '#f8fafc',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 2,
-                }}
-              >
-                Return Qty
-              </TableCell>
+              <TableCell sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>PRODUCT DETAILS</TableCell>
+              <TableCell align="right" sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>SOLD</TableCell>
+              <TableCell align="right" sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>RETURNED</TableCell>
+              <TableCell align="right" width={140} sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>RETURN QTY</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -229,69 +224,65 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
               const canReturn = item.quantity - alreadyReturned;
 
               return (
-                <TableRow key={item.id} hover>
+                <TableRow key={item.id} hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
                   <TableCell align="center">
                     <Checkbox
+                      size="small"
                       checked={selectedItems[item.id]?.checked || false}
                       onChange={() => handleCheckChange(item.id)}
                       disabled={canReturn === 0}
                     />
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {item.sellingPrice === 0 && (
-                            <Chip
-                              label="FREE"
-                              size="small"
-                              sx={{
-                                bgcolor: '#e8f5e9',
-                                color: '#2e7d32',
-                                fontWeight: 800,
-                                fontSize: '0.65rem',
-                                height: 18,
-                              }}
-                            />
-                          )}
-                          <Typography variant="body2" fontWeight="bold">
-                            {item.batch?.product?.name || item.productName}
-                          </Typography>
-                        </Box>
-                        {item.batch?.batchCode && (
-                          <Typography variant="caption" color="text.secondary">
-                            Batch: {item.batch.batchCode}
-                          </Typography>
+                    <Box sx={{ py: 0.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b' }}>
+                          {item.batch?.product?.name || item.productName}
+                        </Typography>
+                        {item.sellingPrice === 0 && (
+                          <Chip label="FREE" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#f0fdf4', color: '#166534' }} />
                         )}
                       </Box>
-                      {alreadyReturned > 0 && (
-                        <Chip
-                          label={
-                            alreadyReturned === item.quantity ? 'Returned' : 'Partially Returned'
-                          }
-                          size="small"
-                          sx={{
-                            bgcolor: alreadyReturned === item.quantity ? '#ffebee' : '#e8f5e9',
-                            color: alreadyReturned === item.quantity ? '#d32f2f' : '#2e7d32',
-                            fontWeight: 700,
-                            fontSize: '0.65rem',
-                          }}
-                        />
+                      {item.batch?.batchCode && (
+                        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+                          Batch: {item.batch.batchCode}
+                        </Typography>
                       )}
                     </Box>
                   </TableCell>
-                  <TableCell align="center">{item.quantity}</TableCell>
-                  <TableCell align="center" sx={{ color: 'error.main' }}>
-                    {alreadyReturned}
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>{item.quantity}</TableCell>
+                  <TableCell align="right">
+                    {alreadyReturned > 0 ? (
+                      <Chip
+                        label={alreadyReturned}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          bgcolor: alreadyReturned === item.quantity ? '#fef2f2' : '#fffbeb',
+                          color: alreadyReturned === item.quantity ? '#991b1b' : '#92400e',
+                          fontWeight: 800,
+                          fontSize: '0.7rem'
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ color: '#94a3b8' }}>0</Typography>
+                    )}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell align="right">
                     <TextField
                       type="number"
                       size="small"
                       value={selectedItems[item.id]?.quantity || 1}
                       onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                       disabled={!selectedItems[item.id]?.checked || canReturn === 0}
-                      InputProps={{ inputProps: { min: 1, max: canReturn } }}
+                      inputProps={{ min: 1, max: canReturn, style: { fontWeight: 800, textAlign: 'right' } }}
+                      sx={{
+                        width: 80,
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: '8px',
+                          bgcolor: !selectedItems[item.id]?.checked || canReturn === 0 ? '#f1f5f9' : '#ffffff'
+                        }
+                      }}
                     />
                   </TableCell>
                 </TableRow>
@@ -303,18 +294,27 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
 
       <Box
         sx={{
-          p: 3,
+          p: 2.5,
           display: 'flex',
           justifyContent: 'flex-end',
-          gap: 2,
-          borderTop: '1px solid #eee',
+          gap: 1.5,
+          borderTop: '1px solid #e2e8f0',
+          bgcolor: '#ffffff'
         }}
       >
         {onCancel && (
           <Button
             onClick={onCancel}
             variant="outlined"
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+            sx={{
+              borderRadius: '10px',
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 3,
+              borderColor: '#e2e8f0',
+              color: '#475569',
+              '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1' }
+            }}
           >
             Cancel
           </Button>
@@ -324,7 +324,14 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
           variant="contained"
           startIcon={<ReturnIcon />}
           disabled={submitting}
-          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: onCancel ? 2 : 6 }}
+          sx={{
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 800,
+            px: 4,
+            bgcolor: '#0f172a',
+            '&:hover': { bgcolor: '#1e293b' }
+          }}
         >
           {submitting ? 'Processing...' : 'Process Returns'}
         </Button>

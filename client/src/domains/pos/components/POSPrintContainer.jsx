@@ -4,6 +4,7 @@ import Receipt from '@/domains/pos/components/Receipt';
 
 const POSPrintContainer = ({ lastSale, receiptSettings, shopMetadata, customerFeatureEnabled = true }) => (
   <Box
+    aria-hidden="true"
     sx={{
       position: 'absolute',
       left: '-9999px',

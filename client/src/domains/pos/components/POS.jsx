@@ -409,10 +409,12 @@ const POS = ({
         sx={{
           display: 'flex',
           flexDirection: { xs: 'column', lg: 'row' },
-          gap: 0,
-          px: { xs: 2, md: 3 },
-          py: { xs: 2, md: 3 },
-          height: 'calc(100vh - 72px)',
+          gap: 1.5,
+          px: 1.5,
+          pt: 1.5,
+          pb: 1.5,
+          height: '100%',
+          flex: 1,
           overflow: 'hidden',
           position: 'relative',
         }}
@@ -433,7 +435,6 @@ const POS = ({
             flexDirection: 'column',
             overflow: 'hidden',
             height: '100%',
-            mr: { lg: 2 },
           }}
         >
           <POSTabs
@@ -509,16 +510,16 @@ const POS = ({
           onMouseDown={startResizing}
           sx={{
             display: { xs: 'none', lg: 'flex' },
-            width: '8px',
+            width: '12px',
+            mx: -1.5,
             cursor: 'col-resize',
             alignItems: 'center',
             justifyContent: 'center',
-            mr: 1,
+            zIndex: 10,
             '&:hover .handle': {
               bgcolor: 'primary.main',
               width: '4px',
             },
-            zIndex: 10,
           }}
         >
           <Box

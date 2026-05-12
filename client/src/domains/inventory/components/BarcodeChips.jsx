@@ -22,18 +22,24 @@ const BarcodeChips = ({ barcode, size = 'small' }) => {
     );
 
   return (
-    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+    <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
       {barcodes.map((bc, idx) => (
-        <Chip
-          key={idx}
-          label={bc}
-          size={size}
-          variant="outlined"
-          sx={{
-            fontFamily: 'monospace',
-            fontSize: size === 'small' ? '0.75rem' : '0.875rem',
-          }}
-        />
+        <React.Fragment key={idx}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontFamily: 'Inter, monospace',
+              fontSize: size === 'small' ? '0.8rem' : '0.9rem',
+              fontWeight: 500,
+              color: '#1f2937',
+            }}
+          >
+            {bc}
+          </Typography>
+          {idx < barcodes.length - 1 && (
+            <Typography sx={{ color: '#e2e8f0', fontWeight: 300 }}>|</Typography>
+          )}
+        </React.Fragment>
       ))}
     </Box>
   );

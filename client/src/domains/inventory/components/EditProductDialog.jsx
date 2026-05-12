@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,23 +12,13 @@ import {
   Box,
   Chip,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
   InputAdornment,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Close as CloseIcon,
-  Edit as EditIcon,
   QrCode as QrCodeIcon,
 } from '@mui/icons-material';
-import EditBatchDialog from '@/domains/inventory/components/EditBatchDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import { useEditProduct } from '@/domains/inventory/components/useEditProduct';
@@ -39,7 +29,6 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
   const {
     formData,
     setFormData,
-    batches,
     existingCategories,
     barcodes,
     manualBarcodeInput,
@@ -51,22 +40,7 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
     removeBarcode,
     generateBarcode,
     handleSave,
-    fetchProductDetails,
   } = useEditProduct({ product, open, onClose, onProductUpdated, showError });
-
-  const [editBatchOpen, setEditBatchOpen] = useState(false);
-  const [currentBatch, setCurrentBatch] = useState(null);
-
-  const handleEditBatch = (batch) => {
-    setCurrentBatch(batch);
-    setEditBatchOpen(true);
-  };
-
-  const handleBatchUpdated = () => {
-    fetchProductDetails();
-    setEditBatchOpen(false);
-    if (onProductUpdated) onProductUpdated();
-  };
 
   return (
     <>
@@ -202,47 +176,6 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
             />
           )}
 
-          {batches.length > 0 && (
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-                Batches
-              </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                      <TableCell>Code</TableCell>
-                      <TableCell align="right">Qty</TableCell>
-                      <TableCell align="right">MRP</TableCell>
-                      <TableCell align="right">SP</TableCell>
-                      <TableCell align="right">CP</TableCell>
-                      <TableCell>Expiry</TableCell>
-                      <TableCell align="center">Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {batches.map((batch) => (
-                      <TableRow key={batch.id}>
-                        <TableCell>{batch.batchCode || 'N/A'}</TableCell>
-                        <TableCell align="right">{batch.quantity}</TableCell>
-                        <TableCell align="right">{batch.mrp}</TableCell>
-                        <TableCell align="right">{batch.sellingPrice}</TableCell>
-                        <TableCell align="right">{batch.costPrice}</TableCell>
-                        <TableCell>
-                          {batch.expiryDate ? batch.expiryDate.split('T')[0] : '-'}
-                        </TableCell>
-                        <TableCell align="center">
-                          <IconButton size="small" onClick={() => handleEditBatch(batch)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
-          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={isSaving || barcodeChecking}>
@@ -257,14 +190,6 @@ const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
           </Button>
         </DialogActions>
 
-        {editBatchOpen && currentBatch && (
-          <EditBatchDialog
-            open={editBatchOpen}
-            onClose={() => setEditBatchOpen(false)}
-            batch={currentBatch}
-            onBatchUpdated={handleBatchUpdated}
-          />
-        )}
       </Dialog>
       <CustomDialog {...dialogState} onClose={closeDialog} />
     </>

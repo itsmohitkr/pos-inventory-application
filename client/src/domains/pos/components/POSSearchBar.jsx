@@ -134,7 +134,9 @@ const POSSearchBar = React.forwardRef(
       <Box
         className="pos-search-bar"
         sx={{
-          p: 2,
+          px: 2,
+          pt: 0.5,
+          pb: 2,
           borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
           bgcolor: 'rgba(255, 255, 255, 0.9)',
           display: 'flex',
@@ -144,7 +146,25 @@ const POSSearchBar = React.forwardRef(
       >
         <Autocomplete
           id="pos-search"
-          sx={{ flex: 1 }}
+          sx={{
+            flex: 1,
+            '& .MuiOutlinedInput-root': {
+              height: 56,
+              bgcolor: 'background.paper',
+              '& fieldset': {
+                borderWidth: '1px !important',
+                borderColor: 'rgba(0, 0, 0, 0.23) !important',
+                transition: 'all 0.2s ease',
+              },
+              '&:hover fieldset': {
+                borderColor: 'rgba(0, 0, 0, 0.45) !important',
+              },
+              '&.Mui-focused fieldset': {
+                borderWidth: '2px !important',
+                borderColor: '#0b1d39 !important',
+              }
+            }
+          }}
           options={products}
           getOptionLabel={(option) =>
             `${option.name}${option.barcode ? ` (${option.barcode})` : ''}`
@@ -180,7 +200,6 @@ const POSSearchBar = React.forwardRef(
               autoFocus
               inputRef={inputRef}
               onKeyDown={handleKeyDown}
-              sx={{ bgcolor: 'background.paper' }}
               InputProps={{
                 ...params.InputProps,
                 startAdornment: (
@@ -296,13 +315,13 @@ const POSSearchBar = React.forwardRef(
               height: 56,
               px: 3,
               fontWeight: 800,
-              borderRadius: 2,
-              border: '2px solid',
+              borderRadius: 1,
+              border: '1.5px solid',
               whiteSpace: 'nowrap',
               display: 'flex',
               alignItems: 'center',
               gap: 1,
-              '&:hover': { border: '2px solid', bgcolor: '#fff7ed' },
+              '&:hover': { border: '1.5px solid', bgcolor: '#fff7ed' },
             }}
           >
             + LOOSE SALE

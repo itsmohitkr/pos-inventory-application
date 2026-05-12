@@ -1,5 +1,5 @@
 import React, { useState, useRef, useTransition } from 'react';
-import { Box, Paper, Typography, Stack, Button, Container } from '@mui/material';
+import { Box, Paper, Typography, Stack, Button, Container, Drawer, IconButton } from '@mui/material';
 import {
   FileUpload as UploadIcon,
   FileDownload as DownloadIcon,
@@ -7,6 +7,7 @@ import {
   LocalPrintshop as LocalPrintshopIcon,
   Add as AddIcon,
   ArrowBack as ArrowBackIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import api from '@/shared/api/api';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
@@ -88,9 +89,8 @@ const InventoryPage = () => {
   return (
     <Box
       sx={{
-        bgcolor: 'background.default',
+        bgcolor: '#f8fafc',
         height: '100%',
-        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -99,11 +99,11 @@ const InventoryPage = () => {
       <Paper
         elevation={0}
         sx={{
-          m: 3,
-          px: 4,
-          py: 2.5,
-          background: 'linear-gradient(120deg, #ffffff 0%, #f6efe6 100%)',
-          borderBottom: '1px solid rgba(16, 24, 40, 0.08)',
+          m: 1.5,
+          px: 2.5,
+          py: 1.75,
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -111,7 +111,7 @@ const InventoryPage = () => {
         }}
       >
         <Box>
-          <Typography variant="h4" component="h1" gutterBottom color="primary">
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
             Inventory Management
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -181,27 +181,12 @@ const InventoryPage = () => {
         </Stack>
       </Paper>
 
-      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 3, pb: 3 }}>
+      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 1.5, pb: 1.5 }}>
         {showBulkAdd ? (
           <BulkAddGrid
             onProductsAdded={handleProductAdded}
             onCancel={() => setShowBulkAdd(false)}
           />
-        ) : showAddProduct ? (
-          <Container maxWidth="md" sx={{ height: '100%', overflowY: 'auto' }}>
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                <Button
-                  size="small"
-                  startIcon={<ArrowBackIcon />}
-                  onClick={() => setShowAddProduct(false)}
-                >
-                  Back to Inventory
-                </Button>
-              </Box>
-              <AddProductForm onProductAdded={handleProductAdded} />
-            </Paper>
-          </Container>
         ) : (
           <ProductList
             key={inventoryKey}
@@ -214,6 +199,44 @@ const InventoryPage = () => {
           />
         )}
       </Box>
+
+      <Drawer
+        anchor="right"
+        open={showAddProduct}
+        onClose={() => setShowAddProduct(false)}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: 600, md: 650 },
+            bgcolor: '#ffffff',
+          }
+        }}
+      >
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Box
+            sx={{
+              p: 2,
+              borderBottom: '1px solid #e2e8f0',
+              bgcolor: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#0b1d39' }}>
+              Add New Product
+            </Typography>
+            <IconButton onClick={() => setShowAddProduct(false)} size="small" sx={{ color: '#64748b' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <Box sx={{ p: { xs: 2, md: 3 }, flexGrow: 1, overflowY: 'auto' }}>
+            <AddProductForm onProductAdded={handleProductAdded} />
+          </Box>
+        </Box>
+      </Drawer>
 
       <BulkImportDialog
         open={showImport}

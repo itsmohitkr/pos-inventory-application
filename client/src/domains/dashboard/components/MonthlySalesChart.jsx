@@ -1,11 +1,11 @@
 import React from 'react';
-import { Box, Paper, Typography, IconButton, CircularProgress } from '@mui/material';
+import { Box, Paper, Typography, IconButton, CircularProgress, Tooltip } from '@mui/material';
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Sync as SyncIcon,
 } from '@mui/icons-material';
-import { MONTHS, CATEGORY_COLORS } from '@/utils/dateUtils';
+import { MONTHS, CATEGORY_COLORS, formatShortNum } from '@/utils/dateUtils';
 
 const MonthlySalesChart = ({ data, year, onPrevYear, onNextYear, onSync, loading, maxVal }) => {
   return (
@@ -14,13 +14,12 @@ const MonthlySalesChart = ({ data, year, onPrevYear, onNextYear, onSync, loading
       sx={{
         flex: 1,
         p: 2,
-        borderRadius: 2,
         border: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Box>
           <Typography
             variant="h5"
@@ -82,9 +81,9 @@ const MonthlySalesChart = ({ data, year, onPrevYear, onNextYear, onSync, loading
             <Box key={tier} sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
               <Typography
                 variant="caption"
-                sx={{ fontSize: '0.6rem', color: '#9ca3af', width: 30 }}
+                sx={{ fontSize: '0.6rem', color: '#9ca3af', width: 40 }}
               >
-                {Math.round(maxVal * tier)}
+                {formatShortNum(maxVal * tier)}
               </Typography>
               <Box sx={{ flex: 1, height: '1px', bgcolor: tier === 0 ? '#d1d5db' : '#f3f4f6' }} />
             </Box>
@@ -94,7 +93,7 @@ const MonthlySalesChart = ({ data, year, onPrevYear, onNextYear, onSync, loading
         <Box
           sx={{
             display: 'flex',
-            ml: '30px',
+            ml: '40px',
             flex: 1,
             zIndex: 1,
             height: '100%',
@@ -120,33 +119,37 @@ const MonthlySalesChart = ({ data, year, onPrevYear, onNextYear, onSync, loading
                     variant="caption"
                     sx={{ fontSize: '0.6rem', color: '#4b5563', mb: 0.5, zIndex: 2, mt: '-15px' }}
                   >
-                    {item.totalSales.toFixed(2)}
+                    {formatShortNum(item.totalSales)}
                   </Typography>
                 )}
-                <Box
-                  sx={{
-                    width: '100%',
-                    height: `${hPct}%`,
-                    bgcolor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
-                    borderRight: '1px solid #fff',
-                    borderTopLeftRadius: 4,
-                    borderTopRightRadius: 4,
-                    transition: 'height 0.3s ease',
-                  }}
-                />
+                <Tooltip title={`₹${item.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} arrow>
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: `${hPct}%`,
+                      bgcolor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
+                      borderRight: '1px solid #fff',
+                      borderTopLeftRadius: 2,
+                      borderTopRightRadius: 2,
+                      transition: 'height 0.3s ease',
+                      cursor: 'pointer',
+                      '&:hover': { opacity: 0.8 },
+                    }}
+                  />
+                </Tooltip>
               </Box>
             );
           })}
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', ml: '30px', borderTop: '1px solid #d1d5db' }}>
+      <Box sx={{ display: 'flex', ml: '40px', borderTop: '1px solid #d1d5db' }}>
         {MONTHS.map((m) => (
           <Typography
             key={m}
             variant="caption"
             sx={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', color: '#4b5563', mt: 0.5 }}
           >
-            {m.charAt(0)}
+            {m}
           </Typography>
         ))}
       </Box>

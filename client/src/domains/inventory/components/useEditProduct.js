@@ -10,7 +10,6 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
     lowStockWarningEnabled: false,
     lowStockThreshold: 2,
   });
-  const [batches, setBatches] = useState([]);
   const [existingCategories, setExistingCategories] = useState([]);
   const [barcodes, setBarcodes] = useState([]);
   const [manualBarcodeInput, setManualBarcodeInput] = useState('');
@@ -33,7 +32,6 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
           lowStockThreshold: fullProduct.lowStockThreshold || 2,
         });
         setBarcodes(fullProduct.barcode ? fullProduct.barcode.split('|').filter(Boolean) : []);
-        setBatches(fullProduct.batches || []);
       }
     } catch (error) {
       console.error('Failed to fetch product details:', error);
@@ -142,7 +140,6 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
   return {
     formData,
     setFormData,
-    batches,
     existingCategories,
     barcodes,
     manualBarcodeInput,

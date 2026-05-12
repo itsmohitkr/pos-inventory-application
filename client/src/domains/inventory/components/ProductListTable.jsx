@@ -37,56 +37,107 @@ const ProductListTable = ({
     >
       <Table size="small" stickyHeader>
         <TableHead>
-          <TableRow sx={{ bgcolor: 'background.default' }}>
-            <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5, width: '50px', fontWeight: 'bold' }}>
+          <TableRow sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0' }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '50px', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               S.No.
             </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell sx={{ px: 1.5, minWidth: '220px', maxWidth: '220px' }}>
               <TableSortLabel
                 active={sortBy === 'name'}
                 direction={sortBy === 'name' ? sortOrder : 'asc'}
                 onClick={() => onSort('name')}
+                sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.75rem', 
+                  textTransform: 'uppercase',
+                  '& .MuiTableSortLabel-icon': { opacity: 1 }
+                }}
               >
                 Name
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell sx={{ px: 1.5, minWidth: '200px', maxWidth: '200px' }}>
               <TableSortLabel
                 active={sortBy === 'barcode'}
                 direction={sortBy === 'barcode' ? sortOrder : 'asc'}
                 onClick={() => onSort('barcode')}
+                sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.75rem', 
+                  textTransform: 'uppercase',
+                  '& .MuiTableSortLabel-icon': { opacity: 1 }
+                }}
               >
                 Barcode
               </TableSortLabel>
             </TableCell>
-            <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
               <TableSortLabel
                 active={sortBy === 'batchTrackingEnabled'}
                 direction={sortBy === 'batchTrackingEnabled' ? sortOrder : 'asc'}
                 onClick={() => onSort('batchTrackingEnabled')}
+                sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.75rem', 
+                  textTransform: 'uppercase',
+                  '& .MuiTableSortLabel-icon': { opacity: 1 }
+                }}
               >
                 Batch Tracking
               </TableSortLabel>
             </TableCell>
-            <TableCell align="center" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
               <TableSortLabel
                 active={sortBy === 'lowStockWarningEnabled'}
                 direction={sortBy === 'lowStockWarningEnabled' ? sortOrder : 'asc'}
                 onClick={() => onSort('lowStockWarningEnabled')}
+                sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.75rem', 
+                  textTransform: 'uppercase',
+                  '& .MuiTableSortLabel-icon': { opacity: 1 }
+                }}
               >
                 Low Stock
               </TableSortLabel>
             </TableCell>
-            <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
               <TableSortLabel
                 active={sortBy === 'stock'}
                 direction={sortBy === 'stock' ? sortOrder : 'asc'}
                 onClick={() => onSort('stock')}
+                sx={{ 
+                  fontWeight: 700, 
+                  color: '#475569', 
+                  fontSize: '0.75rem', 
+                  textTransform: 'uppercase',
+                  '& .MuiTableSortLabel-icon': { opacity: 1 }
+                }}
               >
                 Stock
               </TableSortLabel>
             </TableCell>
-            <TableCell align="right" sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+              <TableSortLabel
+                active={sortBy === 'lastUpdatedAt'}
+                direction={sortBy === 'lastUpdatedAt' ? sortOrder : 'desc'}
+                onClick={() => onSort('lastUpdatedAt')}
+                sx={{
+                  fontWeight: 700,
+                  color: '#475569',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  '& .MuiTableSortLabel-icon': { opacity: 1 }
+                }}
+              >
+                Last Updated
+              </TableSortLabel>
+            </TableCell>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Actions
             </TableCell>
           </TableRow>
@@ -94,7 +145,7 @@ const ProductListTable = ({
         <TableBody>
           {paddingTop > 0 && (
             <TableRow>
-              <TableCell colSpan={7} sx={{ height: paddingTop, p: 0, border: 0 }} />
+              <TableCell colSpan={8} sx={{ height: paddingTop, p: 0, border: 0 }} />
             </TableRow>
           )}
           {virtualItems.map((virtualRow) => {
@@ -115,7 +166,7 @@ const ProductListTable = ({
           })}
           {paddingBottom > 0 && (
             <TableRow>
-              <TableCell colSpan={7} sx={{ height: paddingBottom, p: 0, border: 0 }} />
+              <TableCell colSpan={8} sx={{ height: paddingBottom, p: 0, border: 0 }} />
             </TableRow>
           )}
         </TableBody>

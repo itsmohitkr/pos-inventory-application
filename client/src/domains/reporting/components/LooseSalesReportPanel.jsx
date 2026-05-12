@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  TableFooter,
 } from '@mui/material';
 import { DeleteOutline } from '@mui/icons-material';
 import jsPDF from 'jspdf';
@@ -86,140 +87,151 @@ const LooseSalesReportPanel = ({ data, loading, timeframeLabel, onRefresh }) => 
     );
   }
 
-  if (!data || data.length === 0) {
-    return (
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: 2,
-            border: '1px solid rgba(0,0,0,0.06)',
-            overflow: 'hidden',
-            p: 4,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography variant="h6" color="text.secondary">
-            No loose sales found for this period.
-          </Typography>
-        </Paper>
-      </Box>
-    );
-  }
 
-  const totalRevenue = data.reduce((sum, item) => sum + item.price, 0);
+
+  const totalRevenue = (data || []).reduce((sum, item) => sum + item.price, 0);
 
   return (
     <Box
       className="report-print-area"
       sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
     >
-      {/* Summary Card */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            flex: 1,
-            borderRadius: 2,
-            border: '1px solid rgba(0,0,0,0.06)',
-            bgcolor: '#fffbeb',
-          }}
-        >
-          <Typography variant="caption" sx={{ color: '#b45309', fontWeight: 'bold' }}>
-            TOTAL LOOSE REVENUE
-          </Typography>
-          <Typography variant="h4" fontWeight="bold" sx={{ color: '#92400e' }}>
-            ₹{totalRevenue.toFixed(2)}
-          </Typography>
-        </Paper>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            flex: 1,
-            borderRadius: 2,
-            border: '1px solid rgba(0,0,0,0.06)',
-            bgcolor: '#f8fafc',
-          }}
-        >
-          <Typography variant="caption" color="text.secondary" fontWeight="bold">
-            TOTAL TRANSACTIONS
-          </Typography>
-          <Typography variant="h4" fontWeight="bold" color="text.primary">
-            {data.length}
-          </Typography>
-        </Paper>
-      </Box>
-
       <Paper
         elevation={0}
         sx={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 2,
-          border: '1px solid rgba(0,0,0,0.06)',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
         }}
       >
         <Box
           className="no-print"
           sx={{
-            p: 3,
+            p: 2,
             flexShrink: 0,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: 2,
             flexWrap: 'wrap',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
           }}
         >
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
               Loose Sales History
+              <Box
+                component="span"
+                sx={{
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  bgcolor: 'primary.lighter',
+                  px: 1,
+                  borderRadius: 1,
+                }}
+              >
+                ({sortedData.length})
+              </Box>
             </Typography>
             <Typography variant="body2" color="text.secondary">
               One-time sales bypassed from regular inventory
             </Typography>
           </Box>
-
-          <ExportOptions onExportPDF={handleExportPDF} onPrint={handlePrint} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <ExportOptions onExportPDF={handleExportPDF} onPrint={handlePrint} />
+          </Box>
         </Box>
 
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 600 }}>
+          <Table stickyHeader sx={{ minWidth: 1000 }}>
             <SortableTableHead
               columns={[
                 { id: 'createdAt', label: 'DATE & TIME' },
                 { id: 'itemName', label: 'ITEM NAME / NOTES' },
                 { id: 'price', label: 'PRICE (₹)', align: 'right' },
-                { id: 'actions', label: '', align: 'right' },
+                { id: 'actions', label: 'ACTIONS', align: 'right' },
               ]}
               sortConfig={sortConfig}
               requestSort={requestSort}
             />
             <TableBody>
-              {sortedData.map((item) => (
-                <TableRow key={item.id} hover>
-                  <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{item.itemName || 'Loose Item'}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>
-                    ₹{item.price.toFixed(2)}
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton size="small" color="error" onClick={() => setDeleteId(item.id)}>
-                      <DeleteOutline fontSize="small" />
-                    </IconButton>
+              {sortedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
+                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      No loose sales found for this period.
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                sortedData.map((item) => (
+                  <TableRow key={item.id} hover>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {item.createdAt
+                          ? new Date(item.createdAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : ''}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{item.itemName || 'Loose Item'}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                      ₹{item.price.toFixed(2)}
+                    </TableCell>
+                    <TableCell align="right">
+                      <IconButton size="small" color="error" onClick={() => setDeleteId(item.id)}>
+                        <DeleteOutline fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
+            <TableFooter
+              sx={{
+                position: 'sticky',
+                bottom: 0,
+                zIndex: 10,
+                bgcolor: '#f1f5f9', // Slate background to match Profit & Margin
+              }}
+            >
+              <TableRow sx={{ '&:hover': { bgcolor: '#f1f5f9' } }}>
+                <TableCell
+                  colSpan={2}
+                  sx={{
+                    fontWeight: 700,
+                    color: 'text.secondary',
+                    py: 1.5,
+                    borderTop: '1px solid #e2e8f0'
+                  }}
+                >
+                  Total Current Period
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#1e293b',
+                    py: 1.5,
+                    fontSize: '1rem',
+                    borderTop: '1px solid #e2e8f0'
+                  }}
+                >
+                  ₹ {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </TableCell>
+                <TableCell sx={{ borderTop: '1px solid #e2e8f0' }} />
+              </TableRow>
+            </TableFooter>
           </Table>
         </TableContainer>
       </Paper>

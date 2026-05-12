@@ -24,17 +24,17 @@ const SalesHistoryRow = ({ sale, onSelectSale }) => {
   const margin = sale.netTotalAmount > 0 ? (sale.profit / sale.netTotalAmount) * 100 : 0;
 
   return (
-    <TableRow hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
-      <TableCell sx={{ py: 2 }}>
+    <TableRow hover sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+      <TableCell>
         <Typography variant="body2" sx={{ fontWeight: 600 }}>
           {sale?.createdAt ? new Date(sale.createdAt).toLocaleDateString() : 'N/A'}
         </Typography>
         <Typography variant="caption" color="text.secondary">
           {sale?.createdAt
             ? new Date(sale.createdAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
+              hour: '2-digit',
+              minute: '2-digit',
+            })
             : ''}
         </Typography>
       </TableCell>
@@ -154,33 +154,47 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 2,
-          border: '1px solid rgba(0,0,0,0.06)',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
         }}
       >
         <Box
           className="no-print"
           sx={{
-            p: 3,
+            p: 2,
             flexShrink: 0,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: 2,
             flexWrap: 'wrap',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#333' }}>
-            Sales History - {timeframeLabel}
-          </Typography>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+              Profit & Margin Report
+              <Box
+                component="span"
+                sx={{
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  bgcolor: 'primary.lighter',
+                  px: 1,
+                  borderRadius: 1,
+                }}
+              >
+                ({sales?.length || 0})
+              </Box>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Complete transaction history with financial margin insights
+            </Typography>
+          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Chip
-              label={`${sales?.length || 0} Transactions`}
-              size="small"
-              sx={{ bgcolor: '#f0f4f8', color: '#1a73e8', fontWeight: 700 }}
-            />
             <ExportOptions onPrint={handlePrint} onExportPDF={handleExportPDF} />
           </Box>
         </Box>
@@ -238,28 +252,29 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                     position: 'sticky',
                     bottom: 0,
                     zIndex: 2,
-                    '&:hover': { bgcolor: 'transparent' },
+                    bgcolor: '#f1f5f9',
+                    '&:hover': { bgcolor: '#f1f5f9' },
                   }}
                 >
                   <TableCell
                     colSpan={3}
                     sx={{
-                      py: 2,
-                      fontWeight: 800,
-                      color: '#475569',
-                      bgcolor: '#f1f5f9',
-                      borderTop: '2px solid #e2e8f0',
+                      py: 1.25,
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
                     }}
                   >
-                    TOTAL SUMMARY
+                    Total Current Period
                   </TableCell>
                   <TableCell
                     align="right"
                     sx={{
-                      fontWeight: 800,
-                      color: '#64748b',
-                      bgcolor: '#f1f5f9',
-                      borderTop: '2px solid #e2e8f0',
+                      fontWeight: 700,
+                      color: 'text.primary',
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
                     }}
                   >
                     ₹{totals.cost.toFixed(2)}
@@ -267,11 +282,10 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   <TableCell
                     align="right"
                     sx={{
-                      fontWeight: 800,
-                      color: '#0f172a',
-                      fontSize: '0.9rem',
-                      bgcolor: '#f1f5f9',
-                      borderTop: '2px solid #e2e8f0',
+                      fontWeight: 700,
+                      color: 'text.primary',
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
                     }}
                   >
                     ₹{totals.amount.toFixed(2)}
@@ -279,29 +293,28 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }) => {
                   <TableCell
                     align="right"
                     sx={{
-                      fontWeight: 800,
-                      color: '#16a34a',
-                      fontSize: '0.9rem',
-                      bgcolor: '#f1f5f9',
-                      borderTop: '2px solid #e2e8f0',
+                      fontWeight: 700,
+                      color: 'error.main',
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
                     }}
                   >
                     ₹{totals.profit.toFixed(2)}
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ bgcolor: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}
+                    sx={{ borderTop: '1px solid', borderColor: 'divider' }}
                   >
                     <Chip
                       label={`${totals.amount > 0 ? ((totals.profit / totals.amount) * 100).toFixed(1) : 0}%`}
                       size="small"
                       color="primary"
-                      sx={{ fontWeight: 800 }}
+                      sx={{ fontWeight: 700 }}
                     />
                   </TableCell>
                   <TableCell
                     colSpan={2}
-                    sx={{ bgcolor: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}
+                    sx={{ borderTop: '1px solid', borderColor: 'divider' }}
                   ></TableCell>
                 </TableRow>
               )}

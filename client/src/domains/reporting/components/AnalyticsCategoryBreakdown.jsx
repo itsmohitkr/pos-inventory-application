@@ -40,7 +40,7 @@ const DonutChart = ({ segments, gradient, emptyLabel }) => (
 
 const AnalyticsCategoryBreakdown = ({ expenseSegments, expenseGradient, purchaseSegments, purchaseGradient }) => (
   <Box sx={{ display: 'flex', gap: 4, flexDirection: { xs: 'column', md: 'row' } }}>
-    <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+    <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <PieChartIcon sx={{ color: '#0b1d39' }} />
         <Typography variant="h6" sx={{ color: '#0b1d39', fontWeight: 700 }}>Expenses by Category</Typography>
@@ -49,7 +49,7 @@ const AnalyticsCategoryBreakdown = ({ expenseSegments, expenseGradient, purchase
       <DonutChart segments={expenseSegments} gradient={expenseGradient} emptyLabel="No expenses to display" />
     </Paper>
 
-    <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+    <Paper elevation={0} sx={{ flex: 1, p: 3, borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <PieChartIcon sx={{ color: '#0b1d39' }} />
         <Typography variant="h6" sx={{ color: '#0b1d39', fontWeight: 700 }}>Purchases by Vendor</Typography>

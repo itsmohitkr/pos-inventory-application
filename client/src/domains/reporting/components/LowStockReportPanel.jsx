@@ -15,7 +15,11 @@ import {
   Select,
   MenuItem,
   Checkbox,
+  Autocomplete,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
+import { FilterAlt } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from '@/domains/reporting/components/ExportOptions';
@@ -97,8 +101,6 @@ const LowStockReportPanel = ({ data, loading }) => {
 
   const handlePrint = () => {
     if (selectedItems.length > 0) {
-      // Note: Native window.print prints the whole screen. For a selected subset, exporting PDF is the ideal path.
-      // But we'll trigger PDF export for print layout consistency if they clicked "Print Selected"
       handleExportPDF();
     } else {
       window.print();
@@ -109,31 +111,6 @@ const LowStockReportPanel = ({ data, loading }) => {
     return (
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Typography color="text.secondary">Loading low stock data...</Typography>
-      </Box>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: 2,
-            border: '1px solid rgba(0,0,0,0.06)',
-            overflow: 'hidden',
-            p: 4,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography variant="h6" color="text.secondary">
-            No products are currently low on stock.
-          </Typography>
-        </Paper>
       </Box>
     );
   }
@@ -149,52 +126,88 @@ const LowStockReportPanel = ({ data, loading }) => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 2,
-          border: '1px solid rgba(0,0,0,0.06)',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
         }}
       >
         <Box
           className="no-print"
           sx={{
-            p: 3,
+            p: 2,
             flexShrink: 0,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: 2,
             flexWrap: 'wrap',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Low Stock Report
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Products below threshold
-              </Typography>
-            </Box>
-
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Filter Category</InputLabel>
-              <Select
-                value={selectedCategory}
-                label="Filter Category"
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                sx={{ borderRadius: 2, fontWeight: 600 }}
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+              Low Stock Report
+              <Box
+                component="span"
+                sx={{
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  bgcolor: 'primary.lighter',
+                  px: 1,
+                  borderRadius: 1,
+                }}
               >
-                {categories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    {cat}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                ({filteredData.length})
+              </Box>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Products currently below their minimum inventory threshold
+            </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Autocomplete
+              size="small"
+              options={categories}
+              value={selectedCategory}
+              onChange={(event, newValue) => setSelectedCategory(newValue || 'All Categories')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search Category"
+                  placeholder="Type to filter..."
+                  sx={{
+                    minWidth: 240,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                      bgcolor: '#f8fafc',
+                      fontWeight: 600,
+                      '& fieldset': { borderColor: '#e2e8f0' },
+                      '&:hover fieldset': { borderColor: '#cbd5e1' },
+                      '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '2px' },
+                    },
+                    '& .MuiInputLabel-root': { fontWeight: 500, color: '#64748b' },
+                  }}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FilterAlt sx={{ fontSize: 18, color: '#94a3b8' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+              sx={{
+                '& .MuiAutocomplete-option': {
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  py: 1,
+                },
+              }}
+            />
             <ExportOptions
               onExportPDF={handleExportPDF}
               onPrint={handlePrint}
@@ -204,11 +217,19 @@ const LowStockReportPanel = ({ data, loading }) => {
         </Box>
 
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 800 }}>
+          <Table stickyHeader sx={{ minWidth: 1000, tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
-                <TableCell padding="checkbox" sx={{ bgcolor: '#f8fafc' }}>
+                <TableCell
+                  padding="checkbox"
+                  sx={{
+                    bgcolor: '#f1f5f9',
+                    borderBottom: '2px solid #e2e8f0',
+                    zIndex: 3,
+                  }}
+                >
                   <Checkbox
+                    size="small"
                     indeterminate={
                       selectedItems.length > 0 && selectedItems.length < filteredData.length
                     }
@@ -218,29 +239,95 @@ const LowStockReportPanel = ({ data, loading }) => {
                     onChange={handleSelectAll}
                   />
                 </TableCell>
-                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>
+                <TableCell
+                  sx={{
+                    fontWeight: 800,
+                    color: '#334155',
+                    bgcolor: '#f1f5f9',
+                    py: 1.5,
+                    borderBottom: '2px solid #e2e8f0',
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap',
+                    width: '35px',
+                  }}
+                >
                   S.NO
                 </TableCell>
-                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>
+                <TableCell
+                  sx={{
+                    fontWeight: 800,
+                    color: '#334155',
+                    bgcolor: '#f1f5f9',
+                    py: 1.5,
+                    borderBottom: '2px solid #e2e8f0',
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap',
+                    width: '45%',
+                  }}
+                >
                   PRODUCT
                 </TableCell>
-                <TableCell sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}>
+                <TableCell
+                  sx={{
+                    fontWeight: 800,
+                    color: '#334155',
+                    bgcolor: '#f1f5f9',
+                    py: 1.5,
+                    borderBottom: '2px solid #e2e8f0',
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap',
+                    width: '10%',
+                  }}
+                >
                   CATEGORY
                 </TableCell>
                 <TableCell
-                  sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}
+                  sx={{
+                    fontWeight: 800,
+                    color: '#334155',
+                    bgcolor: '#f1f5f9',
+                    py: 1.5,
+                    borderBottom: '2px solid #e2e8f0',
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap',
+                    width: '10%',
+                  }}
                   align="right"
                 >
                   MRP (₹)
                 </TableCell>
                 <TableCell
-                  sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}
+                  sx={{
+                    fontWeight: 800,
+                    color: '#334155',
+                    bgcolor: '#f1f5f9',
+                    py: 1.5,
+                    borderBottom: '2px solid #e2e8f0',
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap',
+                    width: '10%',
+                  }}
                   align="center"
                 >
                   STOCK
                 </TableCell>
                 <TableCell
-                  sx={{ fontWeight: 800, color: '#64748b', bgcolor: '#f8fafc' }}
+                  sx={{
+                    fontWeight: 800,
+                    color: '#334155',
+                    bgcolor: '#f1f5f9',
+                    py: 1.5,
+                    borderBottom: '2px solid #e2e8f0',
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap',
+                    width: '12%',
+                  }}
                   align="center"
                 >
                   STATUS
@@ -248,57 +335,64 @@ const LowStockReportPanel = ({ data, loading }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortedData.map((item, index) => {
-                const isItemSelected = selectedItems.includes(item.id);
-                return (
-                  <TableRow
-                    key={item.id}
-                    hover
-                    selected={isItemSelected}
-                    onClick={() => handleToggleSelect(item.id)}
-                    sx={{ cursor: 'pointer' }}
-                  >
-                    <TableCell padding="checkbox">
-                      <Checkbox checked={isItemSelected} />
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                      {index + 1}
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>{item.name}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={item.category || 'Uncategorized'}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
-                      ₹{item.mrp?.toFixed(2) || '0.00'}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Typography
-                        sx={{
-                          fontWeight: 700,
-                          color: item.totalQuantity === 0 ? '#d32f2f' : '#ed6c02',
-                        }}
-                      >
-                        {item.totalQuantity}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={item.totalQuantity === 0 ? 'Out of Stock' : 'Low Stock'}
-                        size="small"
-                        sx={{
-                          fontWeight: 700,
-                          bgcolor: item.totalQuantity === 0 ? '#ffebee' : '#fff3e0',
-                          color: item.totalQuantity === 0 ? '#d32f2f' : '#e65100',
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {sortedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      No products are currently low on stock.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedData.map((item, index) => {
+                  const isItemSelected = selectedItems.includes(item.id);
+                  return (
+                    <TableRow
+                      key={item.id}
+                      hover
+                      selected={isItemSelected}
+                      onClick={() => handleToggleSelect(item.id)}
+                      sx={{ cursor: 'pointer' }}
+                    >
+                      <TableCell padding="checkbox">
+                        <Checkbox size="small" checked={isItemSelected} />
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                        {index + 1}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{item.name}</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        {item.category || 'Uncategorized'}
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>
+                        ₹{item.mrp?.toFixed(2) || '0.00'}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography
+                          sx={{
+                            fontWeight: 700,
+                            color: item.totalQuantity === 0 ? '#d32f2f' : '#ed6c02',
+                          }}
+                        >
+                          {item.totalQuantity}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={item.totalQuantity === 0 ? 'Out of Stock' : 'Low Stock'}
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            bgcolor: item.totalQuantity === 0 ? '#fef2f2' : '#fff7ed',
+                            color: item.totalQuantity === 0 ? '#991b1b' : '#9a3412',
+                            border: `1px solid ${item.totalQuantity === 0 ? '#fee2e2' : '#ffedd5'}`,
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </TableContainer>

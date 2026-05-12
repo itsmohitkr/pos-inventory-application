@@ -7,7 +7,14 @@ import {
 import { Close as CloseIcon, Person as PersonIcon } from '@mui/icons-material';
 
 const CustomerHistoryDrawer = ({ open, customer, historyData, isLoading, onClose }) => {
-  const totalSpent = historyData?.sales?.reduce((sum, s) => sum + s.totalAmount, 0) ?? 0;
+  const calculateSaleNet = (sale) => {
+    return sale.items.reduce((sum, item) => {
+      const netQty = item.quantity - item.returnedQuantity;
+      return sum + (netQty * item.sellingPrice);
+    }, 0);
+  };
+
+  const totalSpent = historyData?.sales?.reduce((sum, s) => sum + calculateSaleNet(s), 0) ?? 0;
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 480 } } }}>
@@ -34,7 +41,7 @@ const CustomerHistoryDrawer = ({ open, customer, historyData, isLoading, onClose
               </Typography>
             )}
           </Box>
-          <IconButton onClick={onClose} size="small" sx={{ color: 'white' }}>
+          <IconButton onClick={onClose} size="small" aria-label="Close" sx={{ color: 'white' }}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -48,7 +55,7 @@ const CustomerHistoryDrawer = ({ open, customer, historyData, isLoading, onClose
             </Box>
             <Divider orientation="vertical" flexItem />
             <Box>
-              <Typography variant="caption" color="text.secondary">TOTAL SPENT</Typography>
+              <Typography variant="caption" color="text.secondary">NET SPENT</Typography>
               <Typography variant="h6" fontWeight="bold">₹{totalSpent.toFixed(0)}</Typography>
             </Box>
             <Divider orientation="vertical" flexItem />
@@ -73,52 +80,74 @@ const CustomerHistoryDrawer = ({ open, customer, historyData, isLoading, onClose
               No purchase history yet
             </Typography>
           ) : (
-            historyData.sales.map((sale) => (
-              <Paper key={sale.id} variant="outlined" sx={{ mb: 2, overflow: 'hidden' }}>
-                <Box sx={{ px: 2, py: 1, bgcolor: 'rgba(0,0,0,0.03)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(sale.createdAt).toLocaleString()}
-                    </Typography>
-                    <Typography variant="body2" fontWeight="bold">
-                      Sale #{sale.id}
-                    </Typography>
+            historyData.sales.map((sale) => {
+              const netAmount = calculateSaleNet(sale);
+              return (
+                <Paper key={sale.id} variant="outlined" sx={{ mb: 2, overflow: 'hidden' }}>
+                  <Box sx={{ px: 2, py: 1, bgcolor: 'rgba(0,0,0,0.03)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(sale.createdAt).toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" fontWeight="bold">
+                        Sale #{sale.id}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="subtitle2" fontWeight="bold" color="primary">
+                        ₹{netAmount.toFixed(2)}
+                      </Typography>
+                      <Chip label={sale.paymentMethod} size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
+                    </Box>
                   </Box>
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Typography variant="subtitle2" fontWeight="bold" color="primary">
-                      ₹{sale.totalAmount.toFixed(2)}
-                    </Typography>
-                    <Chip label={sale.paymentMethod} size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
-                  </Box>
-                </Box>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ py: 0.5, fontSize: '0.7rem', color: 'text.secondary' }}>Item</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5, fontSize: '0.7rem', color: 'text.secondary' }}>Qty</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5, fontSize: '0.7rem', color: 'text.secondary' }}>Price</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {sale.items.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell sx={{ py: 0.5, fontSize: '0.8rem' }}>
-                            {item.batch?.product?.name || 'Unknown'}
-                          </TableCell>
-                          <TableCell align="right" sx={{ py: 0.5, fontSize: '0.8rem' }}>{item.quantity}</TableCell>
-                          <TableCell align="right" sx={{ py: 0.5, fontSize: '0.8rem' }}>₹{item.sellingPrice}</TableCell>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Item</TableCell>
+                          <TableCell align="right" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Qty</TableCell>
+                          <TableCell align="right" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Price</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
-            ))
+                      </TableHead>
+                      <TableBody>
+                        {sale.items.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell sx={{ fontSize: '0.8rem' }}>
+                              {item.batch?.product?.name || 'Unknown'}
+                              {item.returnedQuantity > 0 && (
+                                <Chip
+                                  label={`-${item.returnedQuantity} returned`}
+                                  size="small"
+                                  color="error"
+                                  variant="outlined"
+                                  sx={{ height: 16, fontSize: '0.6rem', ml: 1 }}
+                                />
+                              )}
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontSize: '0.8rem' }}>
+                              {item.returnedQuantity > 0 ? (
+                                <Box component="span">
+                                  <Box component="span" sx={{ textDecoration: 'line-through', opacity: 0.5, mr: 0.5 }}>
+                                    {item.quantity}
+                                  </Box>
+                                  {item.quantity - item.returnedQuantity}
+                                </Box>
+                              ) : item.quantity}
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontSize: '0.8rem' }}>₹{item.sellingPrice}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
+              );
+            })
           )}
         </Box>
       </Box>
     </Drawer>
+
   );
 };
 

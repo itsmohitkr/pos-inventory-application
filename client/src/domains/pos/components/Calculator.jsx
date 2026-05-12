@@ -146,7 +146,6 @@ const Calculator = ({ open, onClose }) => {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 4,
           bgcolor: 'background.paper',
           overflow: 'hidden',
           border: '1px solid #e2e8f0',
@@ -255,7 +254,6 @@ const Calculator = ({ open, onClose }) => {
               onClick={btn.onClick}
               sx={{
                 height: 64,
-                borderRadius: 2,
                 fontSize:
                   typeof btn.label === 'string' && btn.label.length > 1 ? '1.25rem' : '1.5rem',
                 fontWeight: 'bold',

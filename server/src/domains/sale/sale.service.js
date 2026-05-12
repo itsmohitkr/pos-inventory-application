@@ -221,6 +221,14 @@ const getSaleById = async (id) => {
 
 const processReturn = async (saleId, returnItems) => {
   return await prisma.$transaction(async (tx) => {
+    let totalRefundAmount = 0;
+    
+    // Fetch the sale to get customerId
+    const sale = await tx.sale.findUnique({
+      where: { id: parseInt(saleId) },
+      select: { customerId: true }
+    });
+
     for (const item of returnItems) {
       const saleItem = await tx.saleItem.findUnique({
         where: { id: item.saleItemId },
@@ -232,6 +240,9 @@ const processReturn = async (saleId, returnItems) => {
       if (item.quantity > remainingQty) {
         throw new Error(`Cannot return more than sold quantity for item ${saleItem.id}`);
       }
+
+      // Calculate refund for this item (based on historical selling price)
+      totalRefundAmount += item.quantity * saleItem.sellingPrice;
 
       // Update SaleItem
       await tx.saleItem.update({
@@ -261,9 +272,21 @@ const processReturn = async (saleId, returnItems) => {
         });
       }
     }
-    return { message: 'Return processed successfully' };
+
+    // Update Customer Metrics if sale has a customer
+    if (sale?.customerId && totalRefundAmount > 0) {
+      await tx.customer.update({
+        where: { id: sale.customerId },
+        data: {
+          totalSpend: { decrement: totalRefundAmount },
+        }
+      });
+    }
+
+    return { message: 'Return processed successfully', totalRefunded: totalRefundAmount };
   });
 };
+
 
 module.exports = {
   processSale,
