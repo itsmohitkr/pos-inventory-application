@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
-import { Paper, Typography, Box, Chip } from '@mui/material';
+import { Paper, Typography, Box, Chip, IconButton, Tooltip } from '@mui/material';
+import { ChevronRight as ChevronRightIcon } from '@mui/icons-material';
 
 import EditProductDialog from '@/domains/inventory/components/EditProductDialog';
 import EditBatchDialog from '@/domains/inventory/components/EditBatchDialog';
@@ -124,6 +125,7 @@ const ProductList = forwardRef(
             onSaveCategory={pl.handleSaveCategory}
             onResizeStart={pl.handleResizeStartLeft}
             onDoubleClick={pl.displayProduct ? pl.handleOpenHistory : undefined}
+            onToggleCategories={() => pl.setShowCategories(false)}
           />
         )}
 
@@ -152,6 +154,21 @@ const ProductList = forwardRef(
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                {!pl.showCategories && (
+                  <Tooltip title="Show Categories">
+                    <IconButton
+                      size="small"
+                      onClick={() => pl.setShowCategories(true)}
+                      sx={{
+                        mr: 0.5,
+                        bgcolor: 'rgba(31, 41, 55, 0.05)',
+                        '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.1)' }
+                      }}
+                    >
+                      <ChevronRightIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
                 <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
                   Products
                 </Typography>
@@ -177,8 +194,6 @@ const ProductList = forwardRef(
                   onClearSearch={pl.clearSearch}
                 />
                 <ProductListToolbar
-                  showCategories={pl.showCategories}
-                  onToggleCategories={() => pl.setShowCategories((prev) => !prev)}
                   stockFilter={pl.stockFilter}
                   onStockFilterChange={(value) => {
                     pl.setStockFilter(value);

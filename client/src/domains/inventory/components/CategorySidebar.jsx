@@ -26,6 +26,7 @@ import {
   Add as AddIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 
 const CategorySidebar = ({
@@ -60,6 +61,7 @@ const CategorySidebar = ({
   onSaveCategory,
   onResizeStart,
   onDoubleClick,
+  onToggleCategories,
 }) => {
   const renderCategoryNode = (node, depth = 0) => {
     const hasChildren = node.children && node.children.length > 0;
@@ -136,7 +138,7 @@ const CategorySidebar = ({
           <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
             Categories
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
             <IconButton
               size="small"
               onClick={onCategorySortToggle}
@@ -146,6 +148,9 @@ const CategorySidebar = ({
             </IconButton>
             <IconButton size="small" onClick={() => onAddCategoryDialog(null)} title="Add category">
               <AddIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" onClick={onToggleCategories} title="Hide categories">
+              <ChevronLeftIcon fontSize="small" />
             </IconButton>
           </Box>
         </Box>

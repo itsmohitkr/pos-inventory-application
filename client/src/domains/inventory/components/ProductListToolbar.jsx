@@ -7,28 +7,12 @@ import {
 } from '@mui/icons-material';
 
 const ProductListToolbar = ({
-  showCategories, onToggleCategories,
   stockFilter, onStockFilterChange,
   onReset,
   displayedProductCount,
 }) => (
   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-    <Button
-      size="small"
-      variant="outlined"
-      startIcon={showCategories ? <VisibilityOffIcon /> : <VisibilityIcon />}
-      onClick={onToggleCategories}
-      sx={{
-        color: '#1f2937',
-        borderColor: '#e2e8f0',
-        fontSize: '0.8rem',
-        height: '36px',
-        textTransform: 'none',
-        '&:hover': { borderColor: '#cbd5e1', bgcolor: 'rgba(31, 41, 55, 0.05)' },
-      }}
-    >
-      {showCategories ? 'Hide Categories' : 'Show Categories'}
-    </Button>
+
     <Button
       size="small"
       variant="outlined"
