@@ -21,7 +21,6 @@ const DashboardCard = ({ to, title, description, icon, tone }) => (
       display: 'flex',
       flexDirection: 'column',
       gap: 1.2,
-      borderRadius: 3,
       transition: 'all 0.2s ease-in-out',
       background: 'linear-gradient(135deg, #ffffff 0%, #f9f3ea 100%)',
       '&:hover': {
@@ -56,7 +55,6 @@ const OverviewPage = ({ shopName, userRole }) => (
       sx={{
         p: { xs: 3, md: 4 },
         mb: 4,
-        borderRadius: 2,
         background:
           'linear-gradient(135deg, rgba(11, 29, 57, 0.95) 0%, rgba(27, 62, 111, 0.9) 100%)',
         color: '#f8f5f0',

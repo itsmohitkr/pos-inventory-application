@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, FormControl, Select, MenuItem } from '@mui/material';
+import { Box, Paper, Typography, FormControl, Select, MenuItem, Tooltip } from '@mui/material';
 import { CATEGORY_COLORS } from '@/utils/dateUtils';
 
 const HourlySalesChart = ({
@@ -16,7 +16,6 @@ const HourlySalesChart = ({
       sx={{
         flex: '1 1 40%',
         p: 2,
-        borderRadius: 2,
         border: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
@@ -105,15 +104,19 @@ const HourlySalesChart = ({
                   </Typography>
                 )}
                 {val > 0 && (
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: `${hPct}%`,
-                      bgcolor: barColor,
-                      borderTopLeftRadius: 2,
-                      borderTopRightRadius: 2,
-                    }}
-                  />
+                  <Tooltip title={`${metric === 'amount' ? '₹' : ''}${val.toLocaleString('en-IN', { minimumFractionDigits: metric === 'amount' ? 2 : 0 })}`} arrow>
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: `${hPct}%`,
+                        bgcolor: barColor,
+                        borderTopLeftRadius: 2,
+                        borderTopRightRadius: 2,
+                        cursor: 'pointer',
+                        '&:hover': { opacity: 0.8 },
+                      }}
+                    />
+                  </Tooltip>
                 )}
               </Box>
             );

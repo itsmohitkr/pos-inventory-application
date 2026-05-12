@@ -52,7 +52,7 @@ const QuantityDialog = ({ open, onClose, onConfirm, itemName, initialValue = 1 }
       maxWidth="xs"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 3, p: 1 },
+        sx: { p: 1 },
       }}
     >
       <DialogTitle

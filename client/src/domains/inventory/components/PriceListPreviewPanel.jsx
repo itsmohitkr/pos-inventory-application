@@ -58,7 +58,6 @@ const PriceListPreviewPanel = ({
         sx={{
           p: 2,
           border: '1px solid #e5e7eb',
-          borderRadius: 2,
           flex: 1,
           height: { xs: 'auto', sm: '100%' },
           display: 'flex',

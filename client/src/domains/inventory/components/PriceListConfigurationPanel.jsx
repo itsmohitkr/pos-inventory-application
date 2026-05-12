@@ -79,7 +79,7 @@ const PriceListConfigurationPanel = ({
           '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 10 },
         }}
       >
-        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.2 }}>
             Product Selection
           </Typography>
@@ -167,7 +167,7 @@ const PriceListConfigurationPanel = ({
           </Stack>
         </Paper>
 
-        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.2 }}>
             Printer and Paper
           </Typography>
@@ -222,7 +222,7 @@ const PriceListConfigurationPanel = ({
           </Stack>
         </Paper>
 
-        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb' }}>
           <Box
             sx={{
               display: 'flex',
@@ -461,7 +461,7 @@ const PriceListConfigurationPanel = ({
           </Collapse>
         </Paper>
 
-        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
             Label Content
           </Typography>

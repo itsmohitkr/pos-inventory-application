@@ -27,12 +27,11 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ 
-        sx: { 
-          borderRadius: '12px',
+      PaperProps={{
+        sx: {
           overflow: 'hidden',
           border: '1px solid #e2e8f0',
-        } 
+        }
       }}
       onKeyDown={(event) => {
         if (event.key === 'Enter') onClose();
@@ -151,7 +150,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
                   {selectedSale.items.length} PRODUCTS
                 </Typography>
               </Box>
-              
+
               <TableContainer sx={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
                 <Table size="small">
                   <TableHead>
@@ -169,7 +168,7 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
                     {selectedSale.items.map((item) => {
                       const returnedQty = item.returnedQuantity || 0;
                       const margin = parseFloat(item.margin);
-                      
+
                       return (
                         <TableRow key={item.id} hover>
                           <TableCell sx={{ py: 1.5 }}>
@@ -224,12 +223,12 @@ const SaleDetailDialog = ({ selectedSale, onClose }) => {
           </Box>
         )}
       </DialogContent>
-      
+
       <DialogActions sx={{ p: 2.5, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
         <Button
           onClick={onClose}
           variant="contained"
-          sx={{ 
+          sx={{
             bgcolor: '#0f172a',
             color: '#ffffff',
             borderRadius: '8px',

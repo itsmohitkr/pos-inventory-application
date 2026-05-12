@@ -14,7 +14,7 @@ const SaleHistoryDeleteDialog = ({ deleteLooseId, onClose, onConfirm }) => (
     open={Boolean(deleteLooseId)}
     onClose={onClose}
     PaperProps={{
-      sx: { borderRadius: 3, p: 1 },
+      sx: { p: 1 },
     }}
   >
     <DialogTitle
