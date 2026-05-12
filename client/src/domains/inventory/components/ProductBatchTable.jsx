@@ -16,12 +16,12 @@ import {
   Inventory2 as InventoryIcon,
 } from '@mui/icons-material';
 
-const ProductBatchTable = ({ 
-  batches, 
-  batchTrackingEnabled, 
-  onQuickInventoryOpen, 
-  onBatchEditClick, 
-  onBatchDelete 
+const ProductBatchTable = ({
+  batches,
+  batchTrackingEnabled,
+  onQuickInventoryOpen,
+  onBatchEditClick,
+  onBatchDelete
 }) => {
   return (
     <Box sx={{ flex: 1, overflow: 'auto' }}>
@@ -72,14 +72,14 @@ const ProductBatchTable = ({
               batch.mrp > 0
                 ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1)
                 : 0;
-            
+
             return (
               <TableRow key={batch.id} data-testid={`inventory-batch-row-${batch.id}`}>
                 {batchTrackingEnabled && (
                   <TableCell sx={{ px: 1.5 }}>
                     <Tooltip title={batch.batchCode || 'N/A'} arrow placement="top">
                       <Typography variant="body2" fontWeight={500} sx={{ cursor: 'help' }}>
-                        {batch.batchCode 
+                        {batch.batchCode
                           ? (batch.batchCode.length > 8 ? `${batch.batchCode.substring(0, 8)}...` : batch.batchCode)
                           : 'N/A'}
                       </Typography>

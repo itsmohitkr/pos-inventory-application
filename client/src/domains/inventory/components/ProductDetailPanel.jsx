@@ -176,11 +176,11 @@ const ProductDetailPanel = ({
 
               {/* Product Metadata Section */}
               <Box sx={{ p: 2.5 }}>
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    p: 2, 
-                    borderRadius: '10px', 
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderRadius: '10px',
                     border: '1px solid #e2e8f0',
                     bgcolor: '#ffffff'
                   }}
@@ -206,8 +206,8 @@ const ProductDetailPanel = ({
                       <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.65rem' }}>
                         Current Stock
                       </Typography>
-                      <Typography 
-                        variant="body2" 
+                      <Typography
+                        variant="body2"
                         data-testid="inventory-detail-total-stock"
                         sx={{ mt: 0.5, fontWeight: 700, color: displayProduct.total_stock > 0 ? '#1f8a5b' : '#ef4444' }}
                       >
@@ -219,12 +219,12 @@ const ProductDetailPanel = ({
                         Batch Tracking
                       </Typography>
                       <Box sx={{ mt: 0.5 }}>
-                        <Chip 
-                          label={displayProduct.batchTrackingEnabled ? 'ENABLED' : 'DISABLED'} 
+                        <Chip
+                          label={displayProduct.batchTrackingEnabled ? 'ENABLED' : 'DISABLED'}
                           size="small"
-                          sx={{ 
-                            height: 20, 
-                            fontSize: '0.65rem', 
+                          sx={{
+                            height: 20,
+                            fontSize: '0.65rem',
                             fontWeight: 700,
                             bgcolor: displayProduct.batchTrackingEnabled ? '#f0fdf4' : '#fef2f2',
                             color: displayProduct.batchTrackingEnabled ? '#15803d' : '#991b1b',
@@ -242,11 +242,11 @@ const ProductDetailPanel = ({
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: '#475569', px: 0.5 }}>
                   LOTS & BATCHES
                 </Typography>
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    borderRadius: '10px', 
-                    border: '1px solid #e2e8f0', 
+                <Paper
+                  elevation={0}
+                  sx={{
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
                     overflow: 'hidden',
                     bgcolor: '#ffffff'
                   }}

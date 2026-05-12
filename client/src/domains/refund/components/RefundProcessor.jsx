@@ -116,52 +116,82 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
         <Box
           sx={{
             px: 3,
-            py: 2,
-            bgcolor: '#f8fafc',
-            borderBottom: '1px solid #e2e8f0',
+            py: 2.5,
+            bgcolor: '#f0f9ff',
+            borderBottom: '1px solid #e0f2fe',
           }}
         >
-          <Grid container spacing={3} alignItems="center">
+          <Grid container spacing={3} alignItems="flex-start">
             <Grid item xs={12} md={4}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', letterSpacing: '1px', textTransform: 'uppercase', fontSize: '0.65rem' }}>
-                  ORDER REFERENCE
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: '#475569',
+                  textTransform: 'uppercase',
+                  fontSize: '0.65rem',
+                  display: 'block',
+                  mb: 0.5
+                }}
+              >
+                Order Reference
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
+                  ORD-{sale.id}
                 </Typography>
-                <Chip 
-                  label={sale.paymentStatus || 'PAID'} 
+                <Chip
+                  label={sale.paymentStatus || 'PAID'}
                   size="small"
-                  sx={{ 
-                    height: 18, 
-                    fontSize: '0.6rem', 
-                    fontWeight: 900,
-                    bgcolor: sale.paymentStatus === 'Due' ? '#fffbeb' : '#f0fdf4',
-                    color: sale.paymentStatus === 'Due' ? '#92400e' : '#166534',
-                    border: `1px solid ${sale.paymentStatus === 'Due' ? '#f59e0b33' : '#16a34a33'}`
+                  sx={{
+                    height: 20,
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    bgcolor: sale.paymentStatus === 'Due' ? '#fff7ed' : '#dcfce7',
+                    color: sale.paymentStatus === 'Due' ? '#9a3412' : '#15803d',
+                    border: `1px solid ${sale.paymentStatus === 'Due' ? '#fed7aa' : '#bbf7d0'}`,
                   }}
                 />
               </Box>
-              <Typography variant="h6" sx={{ fontWeight: 900, color: '#0b1d39', lineHeight: 1 }}>
-                ORD-{sale.id}
-              </Typography>
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', display: 'block', mb: 0.5, letterSpacing: '1px', textTransform: 'uppercase', fontSize: '0.65rem' }}>
-                TRANSACTION DATE
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: '#475569',
+                  textTransform: 'uppercase',
+                  fontSize: '0.65rem',
+                  display: 'block',
+                  mb: 0.5
+                }}
+              >
+                Transaction Date
               </Typography>
-              <Typography variant="body2" sx={{ color: '#1e293b', fontWeight: 700 }}>
-                {new Date(sale.createdAt).toLocaleString(undefined, { 
-                  dateStyle: 'medium', 
-                  timeStyle: 'short' 
+              <Typography variant="body2" sx={{ color: '#1e293b', fontWeight: 500 }}>
+                {new Date(sale.createdAt).toLocaleString(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short'
                 })}
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={4} textAlign={{ xs: 'left', md: 'right' }}>
-              <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', display: 'block', mb: 0.5, letterSpacing: '1px', textTransform: 'uppercase', fontSize: '0.65rem' }}>
-                BILL TOTAL
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: '#475569',
+                  textTransform: 'uppercase',
+                  fontSize: '0.65rem',
+                  display: 'block',
+                  mb: 0.5
+                }}
+              >
+                Bill Total
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 900, color: '#0b1d39', lineHeight: 1 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                 ₹{(sale.totalAmount + sale.discount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </Typography>
             </Grid>
@@ -223,16 +253,16 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
                   <TableCell align="right" sx={{ fontWeight: 700 }}>{item.quantity}</TableCell>
                   <TableCell align="right">
                     {alreadyReturned > 0 ? (
-                      <Chip 
-                        label={alreadyReturned} 
-                        size="small" 
-                        sx={{ 
-                          height: 20, 
+                      <Chip
+                        label={alreadyReturned}
+                        size="small"
+                        sx={{
+                          height: 20,
                           bgcolor: alreadyReturned === item.quantity ? '#fef2f2' : '#fffbeb',
                           color: alreadyReturned === item.quantity ? '#991b1b' : '#92400e',
                           fontWeight: 800,
                           fontSize: '0.7rem'
-                        }} 
+                        }}
                       />
                     ) : (
                       <Typography variant="body2" sx={{ color: '#94a3b8' }}>0</Typography>
@@ -246,7 +276,7 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
                       onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                       disabled={!selectedItems[item.id]?.checked || canReturn === 0}
                       inputProps={{ min: 1, max: canReturn, style: { fontWeight: 800, textAlign: 'right' } }}
-                      sx={{ 
+                      sx={{
                         width: 80,
                         '& .MuiOutlinedInput-root': {
                           borderRadius: '8px',
@@ -276,9 +306,9 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
           <Button
             onClick={onCancel}
             variant="outlined"
-            sx={{ 
-              borderRadius: '10px', 
-              textTransform: 'none', 
+            sx={{
+              borderRadius: '10px',
+              textTransform: 'none',
               fontWeight: 700,
               px: 3,
               borderColor: '#e2e8f0',
@@ -294,10 +324,10 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
           variant="contained"
           startIcon={<ReturnIcon />}
           disabled={submitting}
-          sx={{ 
-            borderRadius: '10px', 
-            textTransform: 'none', 
-            fontWeight: 800, 
+          sx={{
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 800,
             px: 4,
             bgcolor: '#0f172a',
             '&:hover': { bgcolor: '#1e293b' }

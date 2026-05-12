@@ -18,7 +18,7 @@ const RefundDialog = ({ open, onClose, sale, onRefundSuccess }) => {
       maxWidth="md"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 3, display: 'flex', flexDirection: 'column', maxHeight: '90vh' },
+        sx: { display: 'flex', flexDirection: 'column', maxHeight: '90vh' },
       }}
     >
       <DialogTitle
