@@ -10,11 +10,21 @@ const getStockStatus = (product) => {
   return 'sufficient';
 };
 
+const isUpdatedToday = (dateStr) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const today = new Date();
+  return d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
+};
+
 const ProductRow = React.memo(
   ({ product, index, isSelected, onSelect, onEdit, onDelete, onDoubleClick, onDragStart }) => {
     const stockStatus = getStockStatus(product);
     const statusColor =
       stockStatus === 'zero' ? '#ef4444' : stockStatus === 'low' ? '#7c3aed' : '#10b981';
+    const updatedToday = isUpdatedToday(product.lastUpdatedAt);
 
     return (
       <TableRow
@@ -88,6 +98,29 @@ const ProductRow = React.memo(
           <Typography variant="body2" sx={{ fontWeight: 700, color: statusColor }}>
             {product.total_stock}
           </Typography>
+        </TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+          {product.lastUpdatedAt ? (
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: updatedToday ? '#059669' : 'text.primary' }}>
+                  {new Date(product.lastUpdatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </Typography>
+                {updatedToday && (
+                  <Chip
+                    label="Today"
+                    size="small"
+                    sx={{ height: 16, fontSize: '0.6rem', fontWeight: 700, bgcolor: '#d1fae5', color: '#065f46', border: 'none' }}
+                  />
+                )}
+              </Box>
+              <Typography variant="caption" sx={{ color: updatedToday ? '#10b981' : 'text.secondary' }}>
+                {new Date(product.lastUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Typography>
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">—</Typography>
+          )}
         </TableCell>
         <TableCell
           onClick={(e) => e.stopPropagation()}

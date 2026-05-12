@@ -121,6 +121,22 @@ const ProductListTable = ({
                 Stock
               </TableSortLabel>
             </TableCell>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+              <TableSortLabel
+                active={sortBy === 'lastUpdatedAt'}
+                direction={sortBy === 'lastUpdatedAt' ? sortOrder : 'desc'}
+                onClick={() => onSort('lastUpdatedAt')}
+                sx={{
+                  fontWeight: 700,
+                  color: '#475569',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  '& .MuiTableSortLabel-icon': { opacity: 1 }
+                }}
+              >
+                Last Updated
+              </TableSortLabel>
+            </TableCell>
             <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Actions
             </TableCell>
@@ -129,7 +145,7 @@ const ProductListTable = ({
         <TableBody>
           {paddingTop > 0 && (
             <TableRow>
-              <TableCell colSpan={7} sx={{ height: paddingTop, p: 0, border: 0 }} />
+              <TableCell colSpan={8} sx={{ height: paddingTop, p: 0, border: 0 }} />
             </TableRow>
           )}
           {virtualItems.map((virtualRow) => {
@@ -150,7 +166,7 @@ const ProductListTable = ({
           })}
           {paddingBottom > 0 && (
             <TableRow>
-              <TableCell colSpan={7} sx={{ height: paddingBottom, p: 0, border: 0 }} />
+              <TableCell colSpan={8} sx={{ height: paddingBottom, p: 0, border: 0 }} />
             </TableRow>
           )}
         </TableBody>

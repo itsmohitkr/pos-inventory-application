@@ -192,6 +192,7 @@ const getAllProducts = async ({
       stock: 'total_stock',
       lowStockWarningEnabled: 'p.lowStockWarningEnabled',
       batchTrackingEnabled: 'p.batchTrackingEnabled',
+      lastUpdatedAt: 'lastUpdatedAt',
     }[sortBy] || 'p.name';
   const safeOrder = sortOrder === 'desc' ? 'DESC' : 'ASC';
   const whereSql = buildWhereSql({ search, category });
@@ -215,6 +216,7 @@ const getAllProducts = async ({
             p.lowStockWarningEnabled,
             p.lowStockThreshold,
             p.createdAt,
+            MAX(CASE WHEN b.updatedAt IS NULL THEN p.updatedAt WHEN b.updatedAt > p.updatedAt THEN b.updatedAt ELSE p.updatedAt END) as lastUpdatedAt,
             CAST(COALESCE(SUM(b.quantity), 0) AS INTEGER) as total_stock,
             CAST(COALESCE(SUM(b.quantity * b.costPrice), 0) AS REAL) as total_cost,
             CAST(COALESCE(SUM(b.quantity * b.sellingPrice), 0) AS REAL) as total_selling
@@ -229,6 +231,7 @@ const getAllProducts = async ({
   return {
     items: rows.map((row) => ({
       ...row,
+      lastUpdatedAt: row.lastUpdatedAt != null ? new Date(Number(row.lastUpdatedAt)).toISOString() : null,
       total_stock: Number(row.total_stock || 0),
       total_cost: Number(row.total_cost || 0),
       total_selling: Number(row.total_selling || 0),
