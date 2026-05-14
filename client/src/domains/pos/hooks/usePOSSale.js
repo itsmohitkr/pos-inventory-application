@@ -48,7 +48,9 @@ export const usePOSSale = ({
       clearCustomerOnSale?.();
       fetchProducts();
       showNotification('Sale Completed Successfully!');
-      setShowReceipt(true);
+      if (!receiptSettings?.directPrint) {
+        setShowReceipt(true);
+      }
       refocus();
     } catch (error) {
       console.error(error);
@@ -57,7 +59,7 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale, setShowReceipt]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale, setShowReceipt, receiptSettings]);
 
   const handlePayAndPrint = useCallback(async (selectedPaymentMethod, customerOverride) => {
     if (isPaying) return;
