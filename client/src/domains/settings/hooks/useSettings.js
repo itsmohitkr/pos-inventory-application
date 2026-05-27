@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import settingsService from '@/shared/api/settingsService';
 import {
   STORAGE_KEYS as RECEIPT_STORAGE_KEYS,
@@ -87,6 +88,7 @@ export const useSettings = (showError) => {
       setOnboardingVersion(data.onboardingVersion != null ? Number(data.onboardingVersion) : null);
       setSettingsLoaded(true);
     } catch (error) {
+      if (retries === 0) Sentry.captureException(error, { tags: { feature: 'settings-fetch' } });
       console.error(`Failed to fetch settings (remaining retries: ${retries}):`, error);
       if (retries > 0) {
         setTimeout(() => runFetch(retries - 1), 1000);
@@ -133,6 +135,7 @@ export const useSettings = (showError) => {
       const defaultP = list.find((p) => p.isDefault);
       if (defaultP) setDefaultPrinter(defaultP.name);
     } catch (err) {
+      if (retries === 0) Sentry.captureException(err, { tags: { feature: 'printers-fetch' } });
       console.error('Failed to get printers:', err);
       if (retries > 0) {
         setTimeout(() => runFetch(retries - 1), 2000);
@@ -179,6 +182,7 @@ export const useSettings = (showError) => {
         await settingsService.updateSettings({ settings: settingsToUpdate });
       }
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'settings-save-shop-metadata' } });
       console.error('Failed to save shop metadata:', error);
       if (showError) showError('Failed to save some settings');
     }
@@ -199,6 +203,7 @@ export const useSettings = (showError) => {
       }
       return true;
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'settings-save-bill' } });
       console.error('Failed to save bill settings:', error);
       if (showError) showError('Failed to save bill settings');
       return false;

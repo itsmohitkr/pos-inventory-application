@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import { flushSync } from 'react-dom';
 import posService from '@/shared/api/posService';
 import dashboardService from '@/shared/api/dashboardService';
@@ -83,6 +84,7 @@ const SaleHistory = ({
       }
     } catch (error) {
       if (isRequestCanceled(error)) return;
+      Sentry.captureException(error, { tags: { feature: 'sale-history-fetch' } });
       console.error('Error fetching sales:', error);
     } finally {
       if (!controller.signal.aborted) {
@@ -201,6 +203,7 @@ const SaleHistory = ({
         handleApplyCustomRange();
       }
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'sale-history-delete-loose' } });
       console.error('Failed to delete loose sale:', error);
     }
   };

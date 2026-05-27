@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import { Dialog, Slide, Container } from '@mui/material';
 import inventoryService from '@/shared/api/inventoryService';
 import InventoryExcelHeaderBar from '@/domains/inventory/components/InventoryExcelHeaderBar';
@@ -69,6 +70,7 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
       });
       setProducts(getResponseArray(data));
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-excel-fetch' } });
       console.error('Error fetching inventory:', error);
     } finally {
       // Fetch complete

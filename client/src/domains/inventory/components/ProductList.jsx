@@ -1,4 +1,5 @@
 import { forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
+import * as Sentry from '@sentry/react';
 import { Paper, Typography, Box, Chip, IconButton, Tooltip } from '@mui/material';
 import { ChevronRight as ChevronRightIcon } from '@mui/icons-material';
 
@@ -52,6 +53,7 @@ const ProductList = forwardRef(
             }
           }
         } catch (error) {
+          Sentry.captureException(error, { tags: { feature: 'inventory-barcode-fetch' } });
           console.error('Barcode fetch error:', error);
         }
       }

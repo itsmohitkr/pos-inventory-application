@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 
 const INITIAL_BATCH = {
@@ -82,7 +83,8 @@ export default function useAddProductForm({ showError, showSuccess, onProductAdd
       setManualBarcodeInput('');
       setBarcodeError('');
       return true;
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'inventory-barcode-verify' } });
       setBarcodeError('Unable to verify barcode');
       return false;
     } finally {
@@ -126,6 +128,7 @@ export default function useAddProductForm({ showError, showSuccess, onProductAdd
       setDiscountInput('0');
       if (onProductAdded) onProductAdded();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-create-product' } });
       console.error(error);
       if (error.response?.status === 409) {
         const msg = error.response?.data?.error || 'Barcode already exists';

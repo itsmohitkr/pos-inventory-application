@@ -1,4 +1,5 @@
 import React, { useState, useRef, useTransition } from 'react';
+import * as Sentry from '@sentry/react';
 import { Box, Paper, Typography, Stack, Button, Container, Drawer, IconButton } from '@mui/material';
 import {
   FileUpload as UploadIcon,
@@ -79,6 +80,7 @@ const InventoryPage = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-export' } });
       console.error('Export failed:', error);
       showError('Failed to export products');
     } finally {

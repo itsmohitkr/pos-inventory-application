@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import settingsService from '@/shared/api/settingsService';
 import { getAdminAutoLogoutTime } from '@/shared/utils/paymentSettings';
 
@@ -121,6 +122,7 @@ export const useAuth = () => {
       }
       return { success: false, error: 'Invalid admin password' };
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'admin-elevation' } });
       return { success: false, error: error.response?.data?.error || 'Invalid admin password' };
     }
   };

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 
 export const useProductActions = (fetchProducts, fetchSummary, fetchCategories, setSelectedProduct, setSelectedProductDetails, setSelectedProductRefresh, showConfirm, showError) => {
@@ -24,6 +25,7 @@ export const useProductActions = (fetchProducts, fetchSummary, fetchCategories, 
           fetchProducts();
           fetchSummary();
         } catch (error) {
+          Sentry.captureException(error, { tags: { feature: 'inventory-delete-product' } });
           showError('Failed to delete product: ' + (error.response?.data?.error || error.message));
         }
       }
@@ -70,6 +72,7 @@ export const useProductActions = (fetchProducts, fetchSummary, fetchCategories, 
       fetchSummary();
       setSelectedProductRefresh((value) => value + 1);
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-delete-batch' } });
       showError('Failed to delete batch: ' + (error.response?.data?.error || error.message));
     }
   };

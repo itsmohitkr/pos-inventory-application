@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { flushSync } from 'react-dom';
+import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
 import { IPC } from '@/shared/ipcChannels';
 
@@ -53,6 +54,7 @@ export const usePOSSale = ({
       }
       refocus();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'pos-pay' } });
       console.error(error);
       const msg = error.response?.data?.error || error.message || 'Payment failed';
       showError(`Payment failed: ${msg}`);
@@ -111,6 +113,7 @@ export const usePOSSale = ({
       fetchProducts();
       refocus();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'pos-pay-and-print' } });
       console.error(error);
       const msg = error.response?.data?.error || error.message || 'Payment failed';
       showError(`Payment failed: ${msg}`);

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 
 export const useBulkImport = (onImportComplete, showError) => {
@@ -92,6 +93,7 @@ export const useBulkImport = (onImportComplete, showError) => {
         }
       }
     } catch (_error) {
+      Sentry.captureException(_error, { tags: { feature: 'bulk-import-validate-barcodes' } });
       console.error('Failed to validate barcodes against database:', _error);
     }
 
@@ -162,7 +164,8 @@ export const useBulkImport = (onImportComplete, showError) => {
           onImportComplete();
         }, 2000);
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'bulk-import-products' } });
       setResult({
         success: false,
         imported: 0,

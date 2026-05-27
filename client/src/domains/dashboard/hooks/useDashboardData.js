@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import * as Sentry from '@sentry/react';
 import dashboardService from '@/shared/api/dashboardService';
 import { getDateRange, CATEGORY_COLORS } from '@/utils/dateUtils';
 
@@ -26,6 +27,7 @@ export const useDashboardData = () => {
       const data = await dashboardService.fetchPeriodicData({ startDate: start, endDate: end });
       setReport(data);
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'dashboard-periodic' } });
       console.error('Failed to load periodic report data:', error);
     } finally {
       setLoading(false);
@@ -38,6 +40,7 @@ export const useDashboardData = () => {
       const data = await dashboardService.fetchMonthlyData(year);
       setMonthlyData(data || []);
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'dashboard-monthly' } });
       console.error('Failed to load monthly sales data:', error);
     } finally {
       setIsSyncingMonthly(false);
@@ -50,6 +53,7 @@ export const useDashboardData = () => {
       const data = await dashboardService.fetchDailyData(year, month);
       setDailyData(data || []);
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'dashboard-daily' } });
       console.error('Failed to load daily sales data:', error);
     } finally {
       setIsSyncingDaily(false);

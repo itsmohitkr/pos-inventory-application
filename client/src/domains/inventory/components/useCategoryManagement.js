@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { getResponseArray } from '@/shared/utils/responseGuards';
 
@@ -19,6 +20,7 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
       const data = await inventoryService.fetchCategories();
       setCategories(getResponseArray(data));
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-fetch-categories' } });
       console.error(error);
     }
   }, []);
@@ -90,6 +92,7 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
       if (fetchProducts) fetchProducts();
       if (fetchSummary) fetchSummary();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-save-category' } });
       showError('Failed to save category: ' + (error.response?.data?.error || error.message));
     }
   };
@@ -115,6 +118,7 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
       if (fetchProducts) fetchProducts();
       if (fetchSummary) fetchSummary();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-delete-category' } });
       showError('Failed to delete category: ' + (error.response?.data?.error || error.message));
     }
   };

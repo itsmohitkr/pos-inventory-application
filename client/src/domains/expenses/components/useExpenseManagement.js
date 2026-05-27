@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
 import { getResponseArray } from '@/shared/utils/responseGuards';
 import {
@@ -65,7 +66,8 @@ export default function useExpenseManagement() {
       setExpenses(sortedExp);
       setPurchases(sortedPur);
       if (callback) callback(sortedPur, sortedExp);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'expenses-fetch' } });
       setError('Failed to fetch data');
     }
   }, [dateFilter, customDates]);
@@ -96,7 +98,8 @@ export default function useExpenseManagement() {
       }
       setExpenseDialogOpen(false);
       fetchData();
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'expense-save' } });
       setError('Failed to save expense');
     }
   };
@@ -111,7 +114,8 @@ export default function useExpenseManagement() {
           await posService.deleteExpense(id);
           fetchData();
           setDeleteConfig((prev) => ({ ...prev, open: false }));
-        } catch {
+        } catch (err) {
+          Sentry.captureException(err, { tags: { feature: 'expense-delete' } });
           setError('Failed to delete expense');
         }
       },
@@ -135,7 +139,8 @@ export default function useExpenseManagement() {
       await posService.createExpensePayment(selectedExpense.id, { amount: parseFloat(paymentForm.amount), paymentMethod: paymentForm.paymentMethod, date: paymentForm.date, note: paymentForm.note });
       setExpensePaymentDialogOpen(false);
       fetchData();
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'expense-payment-save' } });
       setError('Failed to save expense payment.');
     }
   };
@@ -164,6 +169,7 @@ export default function useExpenseManagement() {
       setPurchaseDialogOpen(false);
       fetchData();
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'purchase-save' } });
       console.error('Purchase saving error:', err);
       setError('Failed to save purchase. Please check your inputs.');
     }
@@ -180,6 +186,7 @@ export default function useExpenseManagement() {
           fetchData();
           setDeleteConfig((prev) => ({ ...prev, open: false }));
         } catch (err) {
+          Sentry.captureException(err, { tags: { feature: 'purchase-delete' } });
           console.error('Delete error:', err);
           setError('Failed to delete purchase');
         }
@@ -208,6 +215,7 @@ export default function useExpenseManagement() {
         if (refreshed) setSelectedPurchase(refreshed);
       });
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'purchase-payment-save' } });
       console.error('Payment saving error:', err);
       setError('Failed to save payment.');
     }
@@ -247,6 +255,7 @@ export default function useExpenseManagement() {
         }
       });
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'payment-edit' } });
       console.error('Payment edit error:', err);
       setError('Failed to update payment.');
     }
@@ -275,6 +284,7 @@ export default function useExpenseManagement() {
           });
           setDeleteConfig((prev) => ({ ...prev, open: false }));
         } catch (err) {
+          Sentry.captureException(err, { tags: { feature: 'payment-delete' } });
           console.error('Payment delete error:', err);
           setError('Failed to delete payment.');
         }

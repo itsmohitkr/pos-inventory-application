@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Dialog,
   DialogTitle,
@@ -43,6 +44,7 @@ const EditCustomerDialog = ({ open, customer, onClose, onSave }) => {
       });
       onClose();
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'customer-edit' } });
       setError(err.response?.data?.error || err.message || 'Failed to update customer');
     } finally {
       setIsSaving(false);

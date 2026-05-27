@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import { Box, Container, Paper, Typography, Snackbar, Alert, Stack } from '@mui/material';
 import inventoryService from '@/shared/api/inventoryService';
 import posService from '@/shared/api/posService';
@@ -51,6 +52,7 @@ const PromotionManagement = () => {
       };
       setCategories(flatten(getResponseArray(data)));
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-fetch-categories' } });
       console.error('Failed to fetch categories:', error);
     }
   }
@@ -84,6 +86,7 @@ const PromotionManagement = () => {
         }
       }
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-fetch-settings' } });
       console.error('Failed to fetch promotion settings:', error);
     }
   }
@@ -100,6 +103,7 @@ const PromotionManagement = () => {
         severity: 'success',
       });
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-save-settings' } });
       console.error('Failed to save promotion settings:', error);
       setSnackbar({ open: true, message: 'Failed to save promotion settings', severity: 'error' });
     }
@@ -150,6 +154,7 @@ const PromotionManagement = () => {
       const data = await posService.fetchPromotions();
       setPromotions(data);
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-fetch' } });
       console.error('Failed to fetch promotions:', error);
     }
   }
@@ -159,6 +164,7 @@ const PromotionManagement = () => {
       const data = await inventoryService.fetchProducts({ pageSize: 1000 });
       setProducts(getResponseArray(data));
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-fetch-products' } });
       console.error('Failed to fetch products:', error);
     }
   }
@@ -246,6 +252,7 @@ const PromotionManagement = () => {
         setProductPriceInfo(data);
         setPromoPrice(data.sellingPrice);
       } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'promotions-fetch-product-pricing' } });
         console.error('Failed to fetch product pricing:', error);
       }
     } else {
@@ -319,6 +326,7 @@ const PromotionManagement = () => {
       fetchPromotions();
       handleCloseDialog();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-save' } });
       console.error('Failed to save promotion:', error);
     }
   };
@@ -329,6 +337,7 @@ const PromotionManagement = () => {
       await posService.deletePromotion(id);
       fetchPromotions();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-delete' } });
       console.error('Failed to delete promotion:', error);
     }
   };

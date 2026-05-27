@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-
-/**
- * Hook to manage POS UI layout and state
- */
+import * as Sentry from '@sentry/react';
 export const usePOSLayout = () => {
   const [transactionPanelWidth, setTransactionPanelWidth] = useState(() => {
     return Number(localStorage.getItem('posTransactionPanelWidth')) || 450;
@@ -66,6 +63,7 @@ export const usePOSLayout = () => {
         await document.documentElement.requestFullscreen();
         setIsFullscreen(true);
       } catch (err) {
+        Sentry.captureException(err, { tags: { feature: 'pos-fullscreen-enter' } });
         console.error('Failed to enter fullscreen mode', err);
       }
     } else {
@@ -73,6 +71,7 @@ export const usePOSLayout = () => {
         await document.exitFullscreen();
         setIsFullscreen(false);
       } catch (err) {
+        Sentry.captureException(err, { tags: { feature: 'pos-fullscreen-exit' } });
         console.error('Failed to exit fullscreen mode', err);
       }
     }

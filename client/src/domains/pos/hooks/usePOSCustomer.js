@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import * as Sentry from '@sentry/react';
 import customerService from '@/shared/api/customerService';
 
 export const usePOSCustomer = ({ showNotification }) => {
@@ -37,6 +38,7 @@ export const usePOSCustomer = ({ showNotification }) => {
       showNotification(`Customer: ${customer.name || customer.phone}`);
       return customer;
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'pos-customer-lookup' } });
       showNotification(err.response?.data?.error || 'Customer lookup failed', 'error');
       return null;
     } finally {
@@ -92,6 +94,7 @@ export const usePOSCustomer = ({ showNotification }) => {
       showNotification(`Customer Saved: ${customer.name || customer.phone}`);
       return customer;
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'pos-customer-register' } });
       showNotification(err.response?.data?.error || 'Registration failed', 'error');
       return null;
     } finally {

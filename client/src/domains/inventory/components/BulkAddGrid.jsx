@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Box,
   Paper,
@@ -65,6 +66,7 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
       };
       setCategories(flatten(data.data || []));
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'bulk-add-fetch-categories' } });
       console.error('Failed to fetch categories:', error);
     }
   };
@@ -122,6 +124,7 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
         setTimeout(() => onProductsAdded(), 1500);
       }
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'bulk-add-products' } });
       console.error('Bulk add failed:', err);
       setError(err.response?.data?.error || err.message);
     } finally {

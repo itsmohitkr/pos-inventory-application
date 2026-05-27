@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Container,
   Paper,
@@ -27,6 +28,7 @@ const LoginPage = ({ onLogin }) => {
       const data = await settingsService.login({ username, password });
       onLogin(data);
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'login' } });
       setError(err.response?.data?.error || 'Login failed');
     } finally {
       setLoading(false);

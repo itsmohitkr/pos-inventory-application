@@ -7,6 +7,7 @@ import { useTheme } from '@mui/material/styles';
 import PriceListConfigurationPanel from '@/domains/inventory/components/PriceListConfigurationPanel';
 import PriceListPreviewPanel from '@/domains/inventory/components/PriceListPreviewPanel';
 import PriceListLabelCard from '@/domains/inventory/components/PriceListLabelCard';
+import * as Sentry from '@sentry/react';
 import { buildPriceListPrintableHtml } from '@/domains/inventory/components/priceListPrintUtils';
 import { PAPER_PRESETS } from '@/domains/inventory/components/paperSizePresets';
 import usePriceList from '@/domains/inventory/components/usePriceList';
@@ -67,6 +68,7 @@ const PriceListPanel = ({ open, onClose }) => {
           severity: 'success',
         });
       } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'price-list-print' } });
         console.error('Direct print failed:', error);
         const message = 'Direct printing failed. Please check printer connection.';
         pl.setPrintError(message);

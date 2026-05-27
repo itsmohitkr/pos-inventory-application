@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
 import {
   Typography,
@@ -30,6 +31,7 @@ const Refund = () => {
       const saleData = await posService.fetchSaleById(id);
       setSale(saleData);
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'refund-order-lookup' } });
       setError(err.response?.data?.error || 'Order not found or an error occurred');
     } finally {
       setLoading(false);

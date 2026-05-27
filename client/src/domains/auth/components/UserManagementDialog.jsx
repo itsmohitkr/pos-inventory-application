@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Dialog,
   DialogTitle,
@@ -71,6 +72,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
       const data = await settingsService.fetchUsers();
       setUsers(data);
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'user-management-fetch' } });
       setError('Failed to fetch users');
       console.error(err);
     } finally {
@@ -94,6 +96,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
       setFormData({ username: '', password: '', role: 'cashier' });
       fetchUsers();
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'user-management-create' } });
       setError(err.response?.data?.error || 'Failed to create user');
     }
   };
@@ -108,6 +111,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
       setSelectedUser(null);
       fetchUsers();
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'user-management-update' } });
       setError(err.response?.data?.error || 'Failed to update user');
     }
   };
@@ -124,6 +128,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
         await settingsService.deleteUser(userId);
         fetchUsers();
       } catch (err) {
+        Sentry.captureException(err, { tags: { feature: 'user-management-delete' } });
         setError(err.response?.data?.error || 'Failed to delete user');
       }
     }
