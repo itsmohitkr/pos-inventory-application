@@ -73,11 +73,12 @@ test.describe('Reporting Data Integrity', () => {
     await inventoryPage.acknowledgeSuccessDialog('Product added successfully');
 
     // 2. Verify it appears in Expiring Products report
+    const rangeStart = today.toISOString().split('T')[0];
+    const rangeEnd = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
     await reportsPage.goto();
     await reportsPage.selectReport('Expiring Products');
-    await reportsPage.setTimeframe('This Month');
-    
-    // Ensure the date range covers the expiry date
+    await reportsPage.selectDateRange(rangeStart, rangeEnd);
     await reportsPage.expectReportRow(productName);
   });
 
