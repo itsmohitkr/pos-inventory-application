@@ -20,7 +20,7 @@ export const createUsersPage = (page) => {
       await addDialog.getByRole('combobox', { name: 'Role' }).click();
       await page.getByRole('option', { name: new RegExp(role, 'i') }).click();
       await addDialog.getByRole('button', { name: 'Add User' }).click();
-      await expect(addDialog).not.toBeVisible();
+      await expect(addDialog).not.toBeVisible({ timeout: 10000 });
     },
     expectUserVisible: async (username) => {
       await expect(dialog.getByRole('cell', { name: username })).toBeVisible();

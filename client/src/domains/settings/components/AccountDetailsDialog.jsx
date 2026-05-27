@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import settingsService from '@/shared/api/settingsService';
 import {
   Dialog,
@@ -174,6 +175,7 @@ const AccountDetailsDialog = ({
           setPaymentSettings(settings.posPaymentSettings);
         }
       } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'settings-fetch-ui' } });
         console.error('Failed to fetch UI settings:', error);
       }
     };
@@ -236,6 +238,7 @@ const AccountDetailsDialog = ({
           value: paymentSettings,
         });
       } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'settings-save-server' } });
         console.error('Failed to save settings:', error);
       }
     };
@@ -272,6 +275,7 @@ const AccountDetailsDialog = ({
       showSuccess('Database wiped successfully! The application will reload.');
       window.location.reload();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'wipe-database' } });
       console.error('Wipe error:', error);
       showError(error.response?.data?.error || 'Failed to wipe database');
       setWipeLoading(false);

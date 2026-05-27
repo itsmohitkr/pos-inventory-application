@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Dialog,
   DialogTitle,
@@ -138,6 +139,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
       }
       onClose();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-edit-batch' } });
       console.error('Failed to update batch:', error);
       showError('Failed to update batch: ' + (error.response?.data?.error || error.message));
     } finally {

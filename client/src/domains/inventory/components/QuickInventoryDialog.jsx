@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as Sentry from '@sentry/react';
 import api from '@/shared/api/api';
 import {
   Dialog,
@@ -34,6 +35,7 @@ const QuickInventoryDialog = ({ open, onClose, batch, productName, onUpdated }) 
           setIsAveragingEnabled(false);
         }
       } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'quick-inventory-fetch-settings' } });
         console.error('Failed to fetch settings in QuickInventory:', error);
       }
     };
@@ -85,6 +87,7 @@ const QuickInventoryDialog = ({ open, onClose, batch, productName, onUpdated }) 
         handleClose();
       }, 1000);
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'quick-inventory-update-stock' } });
       console.error('Failed to update batch stock:', error);
       setNotification({
         open: true,

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import * as Sentry from '@sentry/react';
 import dashboardService from '@/shared/api/dashboardService';
 import { isRequestCanceled } from '@/shared/api/api';
 import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
@@ -59,6 +60,7 @@ export const useReportingData = (reportType) => {
         }
       } catch (error) {
         if (isRequestCanceled(error)) return;
+        Sentry.captureException(error, { tags: { feature: 'reports-fetch' } });
         console.error('Error fetching reports:', error);
       } finally {
         if (!config.signal?.aborted) {

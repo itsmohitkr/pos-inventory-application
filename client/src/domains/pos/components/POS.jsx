@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import * as Sentry from '@sentry/react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Chip } from '@mui/material';
 import { LocalOffer as PromoIcon } from '@mui/icons-material';
@@ -269,6 +270,7 @@ const POS = ({
         value: nextSettings,
       });
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'pos-persist-receipt-settings' } });
       console.error('Failed to persist receipt settings:', error);
     }
   };

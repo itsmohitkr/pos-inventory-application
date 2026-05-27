@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { isRequestCanceled } from '@/shared/api/api';
 import {
@@ -122,6 +123,7 @@ export default function usePriceList(open) {
       setProducts([...rows].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''))));
     } catch (error) {
       if (isRequestCanceled(error)) return;
+      Sentry.captureException(error, { tags: { feature: 'price-list-fetch-products' } });
       console.error('Failed to load products for price list:', error);
       setProducts([]);
     } finally {
@@ -138,6 +140,7 @@ export default function usePriceList(open) {
       const defaultPrinter = normalized.find((p) => p.isDefault);
       setSelectedPrinter((current) => current || defaultPrinter?.name || '');
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'price-list-fetch-printers' } });
       console.error('Failed to fetch printers:', error);
       setPrinters([]);
     }

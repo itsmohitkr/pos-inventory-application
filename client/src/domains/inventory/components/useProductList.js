@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { isRequestCanceled } from '@/shared/api/api';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
@@ -67,6 +68,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
       }
     } catch (error) {
       if (isRequestCanceled(error)) return;
+      Sentry.captureException(error, { tags: { feature: 'inventory-products-fetch' } });
       console.error(error);
     }
   }, [sortBy, sortOrder]);
@@ -100,6 +102,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
       setTotalCount(sidebarData.totalCount || 0);
     } catch (error) {
       if (isRequestCanceled(error)) return;
+      Sentry.captureException(error, { tags: { feature: 'inventory-summary-fetch' } });
       console.error(error);
     }
   }, [debouncedSearch, categoryFilter]);
@@ -230,6 +233,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
         setSelectedProductDetails(data.data || null);
       } catch (error) {
         if (isRequestCanceled(error)) return;
+        Sentry.captureException(error, { tags: { feature: 'inventory-product-details-fetch' } });
         console.error(error);
         setSelectedProductDetails(null);
       } finally {
@@ -254,6 +258,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
         setHistoryData(data.data || null);
       } catch (error) {
         if (isRequestCanceled(error)) return;
+        Sentry.captureException(error, { tags: { feature: 'inventory-product-history-fetch' } });
         console.error(error);
         setHistoryData(null);
       } finally {
@@ -358,6 +363,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
       fetchSummary();
       categoriesContext.fetchCategories();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-move-products' } });
       console.error(error);
       showError('Failed to move products: ' + (error.response?.data?.error || error.message));
       fetchProducts();

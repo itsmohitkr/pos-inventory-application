@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import settingsService from '@/shared/api/settingsService';
 import dashboardService from '@/shared/api/dashboardService';
@@ -147,6 +148,7 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
         }
       }
     } catch (error) {
+      if (retries === 0) Sentry.captureException(error, { tags: { feature: 'pos-settings-fetch' } });
       console.error(`Failed to refresh POS settings (remaining retries: ${retries}):`, error);
       if (retries > 0 && mountedRef.current) setTimeout(() => runRefreshSettings(retries - 1), 1000);
     }
@@ -163,6 +165,7 @@ export const usePOSData = (propReceiptSettings, propShopMetadata) => {
         console.warn('Failed to cache products:', e);
       }
     } catch (err) {
+      if (retries === 0) Sentry.captureException(err, { tags: { feature: 'pos-products-fetch' } });
       console.error(`Error fetching products (remaining retries: ${retries}):`, err);
       if (retries > 0 && mountedRef.current) setTimeout(() => runFetchProducts(retries - 1), 1000);
     }

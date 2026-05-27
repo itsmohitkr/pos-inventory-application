@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Box,
   Dialog,
@@ -38,6 +39,7 @@ const ChangePasswordDialog = ({ open, onClose, currentUser, showSuccess }) => {
       setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
       showSuccess('Password changed successfully');
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'change-password' } });
       setPasswordError(err.response?.data?.error || 'Failed to change password');
     }
   };

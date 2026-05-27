@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 
 export const useEditProduct = ({ product, open, onClose, onProductUpdated, showError }) => {
@@ -34,6 +35,7 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
         setBarcodes(fullProduct.barcode ? fullProduct.barcode.split('|').filter(Boolean) : []);
       }
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-edit-product-details-fetch' } });
       console.error('Failed to fetch product details:', error);
     }
   }, [product?.id]);
@@ -44,6 +46,7 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
         const data = await inventoryService.fetchCategories();
         setExistingCategories(data.map((c) => c.name).filter(Boolean).sort());
       } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'inventory-edit-product-categories-fetch' } });
         console.error('Failed to fetch categories:', error);
       }
     };
@@ -124,6 +127,7 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
       if (onProductUpdated) onProductUpdated();
       onClose();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-update-product' } });
       console.error('Error updating product:', error);
       const errorMessage = error.response?.data?.error || error.message;
       if (error.response?.status === 409) {

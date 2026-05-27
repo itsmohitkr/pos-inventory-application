@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 
 export const useAddStock = ({ product, open, onClose, onStockAdded, showError, showSuccess }) => {
@@ -143,6 +144,7 @@ export const useAddStock = ({ product, open, onClose, onStockAdded, showError, s
       if (onStockAdded) onStockAdded();
       onClose();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-add-stock' } });
       console.error(error);
       await showError('Failed to add stock: ' + (error.response?.data?.error || error.message));
     }

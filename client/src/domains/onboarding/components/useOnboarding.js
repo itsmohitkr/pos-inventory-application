@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import authService from '@/shared/api/authService';
 import settingsService from '@/shared/api/settingsService';
 
@@ -76,6 +77,7 @@ export function useOnboarding({ onComplete }) {
       });
       onComplete();
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'onboarding-setup' } });
       setError(err?.response?.data?.message || 'Setup failed. Please try again.');
     } finally {
       setSubmitting(false);

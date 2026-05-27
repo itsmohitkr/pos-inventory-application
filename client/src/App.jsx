@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react';
+import * as Sentry from '@sentry/react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Box, LinearProgress } from '@mui/material';
 
@@ -121,6 +122,7 @@ function App() {
       }
       handleCloseSettingsMenu();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'fullscreen-toggle' } });
       console.error('Fullscreen toggle failed:', error);
     }
   };

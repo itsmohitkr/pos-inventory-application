@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
 import {
   Typography,
@@ -96,6 +97,7 @@ const RefundProcessor = ({ sale, onCancel, onRefundSuccess, hideHeaderFields }) 
       setSelectedItems({});
       if (onRefundSuccess) onRefundSuccess();
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'refund-process' } });
       showError(err.response?.data?.error || 'Failed to process return');
     } finally {
       setSubmitting(false);

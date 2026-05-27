@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Box, Typography, Grid, Divider, IconButton, Chip, Paper,
@@ -33,6 +34,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
           const list = await window.electron.ipcRenderer.invoke('get-printers');
           if (list && Array.isArray(list)) setPrinters(list);
         } catch (e) {
+          Sentry.captureException(e, { tags: { feature: 'barcode-print-load-printers' } });
           console.error('Failed to load printers:', e);
         }
       }
@@ -92,6 +94,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
           setSnackbar({ open: true, message: `Print failed: ${result?.error || 'Unknown error'}`, severity: 'error' });
         }
       } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'barcode-print-direct' } });
         console.error('Direct print failed:', error);
         setSnackbar({ open: true, message: 'Direct printing failed. Check printer connection.', severity: 'error' });
       } finally {

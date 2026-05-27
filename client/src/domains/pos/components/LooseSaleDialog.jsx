@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Dialog,
   DialogTitle,
@@ -66,6 +67,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }) => {
         if (onComplete) onComplete();
         onClose();
       } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'pos-loose-sale' } });
         console.error('Failed to create loose sale:', error);
       } finally {
         setLoading(false);

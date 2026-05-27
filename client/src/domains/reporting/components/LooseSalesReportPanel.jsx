@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Box,
   Typography,
@@ -40,6 +41,7 @@ const LooseSalesReportPanel = ({ data, loading, timeframeLabel, onRefresh }) => 
       setDeleteId(null);
       if (onRefresh) onRefresh();
     } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'loose-sale-delete' } });
       console.error('Failed to delete loose sale:', error);
       alert('Failed to delete loose sale.');
     }

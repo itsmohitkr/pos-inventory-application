@@ -17,10 +17,16 @@ export const createReportsPage = (page) => {
       await expect(page.locator('tr', { hasText: text }).first()).toBeVisible();
     },
     selectDateRange: async (startDate, endDate) => {
+      // Date inputs only render when the "Custom" timeframe is selected.
+      // MUI Select doesn't use a standard label association, so use the
+      // same text-ancestor pattern as setTimeframe.
+      await page.getByText('Time Frame').locator('..').getByRole('combobox').click();
+      await page.getByRole('option', { name: 'Custom' }).click();
       const startInput = page.locator('input[type="date"]').first();
-      const endInput = page.locator('input[type="date"]').last();
+      await startInput.waitFor({ state: 'visible' });
       await startInput.fill(startDate);
-      await endInput.fill(endDate);
+      await page.locator('input[type="date"]').last().fill(endDate);
+      await page.getByRole('button', { name: 'Apply' }).click();
     },
     selectReport: async (label) => {
       await page.getByRole('button', { name: label }).click();

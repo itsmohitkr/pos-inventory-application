@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import customerService from '@/shared/api/customerService';
 
 export const useCustomers = () => {
@@ -30,6 +31,7 @@ export const useCustomers = () => {
       setCustomers(res?.customers || []);
       setTotal(res?.total || 0);
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'customers-fetch' } });
       console.error('Failed to fetch customers', err);
     } finally {
       setIsLoading(false);
@@ -53,6 +55,7 @@ export const useCustomers = () => {
       const res = await customerService.getPurchaseHistory(customer.id);
       setHistoryData(res);
     } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'customer-history-fetch' } });
       console.error('Failed to fetch purchase history', err);
     } finally {
       setIsLoadingHistory(false);
