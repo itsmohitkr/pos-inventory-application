@@ -10,7 +10,7 @@ export const buildPriceListPrintableHtml = ({
   marginBottomMm,
   marginLeftMm,
 }) => {
-  const labelElements = Array.from(previewRoot?.querySelectorAll('@/domains/inventory/components/.price-label-item') || []);
+  const labelElements = Array.from(previewRoot?.querySelectorAll('.price-label-item') || []);
   if (labelElements.length === 0) {
     return '';
   }
