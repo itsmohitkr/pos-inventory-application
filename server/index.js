@@ -232,6 +232,25 @@ async function ensureMigrationsApplied(prisma, logger) {
   tlog('Migrations applied');
 }
 
+// ── Barcode cleanup on soft-deleted products ──────────────────────────────────
+// One-time data fix: nulls out barcode on any product already soft-deleted
+// so the DB-level @unique constraint doesn't block reuse of those barcodes.
+// Safe because historical sales join by productId, never by barcode.
+
+async function clearBarcodesOnDeletedProducts(prisma, logger) {
+  try {
+    const updated = await prisma.product.updateMany({
+      where: { isDeleted: true, barcode: { not: null } },
+      data: { barcode: null },
+    });
+    if (updated.count > 0) {
+      logger.info(`[BOOT] Cleared barcodes on ${updated.count} soft-deleted product(s)`);
+    }
+  } catch (err) {
+    logger.warn({ err: err.message }, '[BOOT] clearBarcodesOnDeletedProducts failed (non-fatal)');
+  }
+}
+
 // ── Password migration ────────────────────────────────────────────────────────
 // Bcrypt-hashes any users still stored with plaintext passwords. Non-critical,
 // so it runs after the server is listening — it doesn't block the UI.
@@ -381,6 +400,7 @@ async function main() {
 
       sendSplashMsg('Syncing database defaults...');
       await seedDefaults(prisma, logger);
+      await clearBarcodesOnDeletedProducts(prisma, logger);
       tlog('Database bootstrap done');
 
       tlog('Loading core application...');

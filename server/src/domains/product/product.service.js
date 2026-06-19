@@ -737,6 +737,7 @@ const deleteProduct = async (id) => {
     data: {
       isDeleted: true,
       deletedAt: new Date(),
+      barcode: null,
     },
   });
 };
