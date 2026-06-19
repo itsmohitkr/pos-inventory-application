@@ -44,7 +44,7 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
     const fetchCategories = async () => {
       try {
         const data = await inventoryService.fetchCategories();
-        setExistingCategories(data.map((c) => c.name).filter(Boolean).sort());
+        setExistingCategories((data.data || []).map((c) => c.path || c.name).filter(Boolean).sort());
       } catch (error) {
         Sentry.captureException(error, { tags: { feature: 'inventory-edit-product-categories-fetch' } });
         console.error('Failed to fetch categories:', error);
