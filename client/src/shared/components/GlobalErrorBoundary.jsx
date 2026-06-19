@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 import { Box, Typography, Button, Paper } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 
@@ -14,6 +15,7 @@ class GlobalErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('CRITICAL APP ERROR:', error, errorInfo);
+    Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
   }
 
   handleReset = () => {
