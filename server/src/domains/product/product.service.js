@@ -31,6 +31,7 @@ const _validateBarcodesUniqueness = async (tx, barcodeStr, excludeProductId = nu
   for (const singleBarcode of barcodes) {
     const existing = await tx.product.findFirst({
       where: {
+        isDeleted: false,
         ...(excludeProductId ? { id: { not: excludeProductId } } : {}),
         OR: [
           { barcode: singleBarcode },

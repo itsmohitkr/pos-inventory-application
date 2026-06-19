@@ -69,7 +69,7 @@ export default function useAddProductForm({ showError, showSuccess, onProductAdd
     setBarcodeChecking(true);
     try {
       try {
-        const data = await inventoryService.fetchProductByBarcode(trimmed);
+        const data = await inventoryService.fetchProductByBarcode(encodeURIComponent(trimmed));
         const name = (data?.product || data)?.name || 'another product';
         setBarcodeError(`Barcode '${trimmed}' is already associated with product '${name}'`);
         return false;

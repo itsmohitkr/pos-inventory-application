@@ -221,7 +221,7 @@ const SalesListPanel = ({
           p: 1.5,
           borderTop: '1px solid',
           borderColor: 'divider',
-          bgcolor: '#ffffff',
+          bgcolor: '#e8f5e9',
           display: 'flex',
           justifyContent: 'center',
           flexShrink: 0,
