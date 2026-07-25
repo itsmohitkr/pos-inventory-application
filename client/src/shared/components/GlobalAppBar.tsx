@@ -1,0 +1,181 @@
+import React from 'react';
+import { AppBar, Toolbar, Box, Typography, Button, Stack, IconButton } from '@mui/material';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { Settings as SettingsIcon } from '@mui/icons-material';
+import type { ButtonProps } from '@mui/material';
+
+/**
+ * MUI's ButtonProps is generic over the root component. Parameterising it with
+ * RouterLink pulls in `to` and the correct ref type; `component` is omitted
+ * because this wrapper supplies it.
+ */
+type NavButtonProps = Omit<ButtonProps<typeof RouterLink>, 'component'>;
+
+/** Role flags resolved from the current user; each gates one nav entry. */
+export interface NavPermissions {
+  canAccessSaleHistory?: boolean;
+  canAccessInventory?: boolean;
+  canAccessReports?: boolean;
+  canAccessExpenses?: boolean;
+  canAccessRefund?: boolean;
+  canAccessPromotions?: boolean;
+  canAccessDashboard?: boolean;
+  canAccessCustomers?: boolean;
+  [key: string]: boolean | undefined;
+}
+
+export interface GlobalAppBarUser {
+  id?: number;
+  username?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
+interface GlobalAppBarProps {
+  shopName?: string;
+  currentUser?: GlobalAppBarUser | null;
+  onAdminLogout?: () => void;
+  /** Seconds remaining before auto-logout, or null when inactive. */
+  adminLogoutTimer?: number | null;
+  onOpenSettingsMenu?: (event: React.MouseEvent<HTMLElement>) => void;
+  permissions: NavPermissions;
+}
+
+const NavButton = ({ to, children, ...props }: NavButtonProps) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+  return (
+    <Button
+      component={RouterLink}
+      to={to}
+      color="inherit"
+      {...props}
+      sx={{
+        px: 2,
+        py: 1,
+        fontWeight: isActive ? 700 : 500,
+        bgcolor: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+        color: isActive ? '#ffffff' : 'rgba(248, 245, 240, 0.85)',
+        borderBottom: isActive ? '3px solid #f2b544' : '3px solid transparent',
+        borderRadius: '10px 10px 0 0',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          bgcolor: 'rgba(255, 255, 255, 0.2)',
+          color: '#ffffff',
+          borderRadius: '10px 10px 0 0',
+        },
+        ...props.sx,
+      }}
+    >
+      {children}
+    </Button>
+  );
+};
+
+const GlobalAppBar = ({
+  shopName,
+  currentUser,
+  onAdminLogout,
+  adminLogoutTimer,
+  onOpenSettingsMenu,
+  permissions,
+}: GlobalAppBarProps) => {
+  const formatTimer = (seconds: number | null | undefined): string => {
+    if (seconds === null) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return ` (${mins}:${secs.toString().padStart(2, '0')})`;
+  };
+
+  const {
+    canAccessSaleHistory,
+    canAccessInventory,
+    canAccessReports,
+    canAccessExpenses,
+    canAccessRefund,
+    canAccessPromotions,
+    canAccessDashboard,
+    canAccessCustomers,
+  } = permissions;
+
+  return (
+    <AppBar position="sticky" elevation={0} className="no-print">
+      <Toolbar sx={{ gap: 2 }}>
+        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
+              <RouterLink
+                to="/"
+                style={{
+                  color: 'inherit',
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                {shopName}
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    bgcolor: '#4caf50',
+                    borderRadius: '50%',
+                    display: 'inline-block',
+                  }}
+                />
+              </RouterLink>
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(248, 245, 240, 0.7)' }}>
+              {currentUser.username} • {currentUser.role} {currentUser.originalRole && '(Elevated)'}
+            </Typography>
+          </Box>
+          {currentUser.originalRole && (
+            <Button
+              onClick={onAdminLogout}
+              component={RouterLink}
+              to="/"
+              variant="contained"
+              size="small"
+              color="error"
+              sx={{ ml: 3, fontWeight: 'bold' }}
+            >
+              Log out Admin{formatTimer(adminLogoutTimer)}
+            </Button>
+          )}
+        </Box>
+        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+          <NavButton to="/pos">POS</NavButton>
+          {canAccessSaleHistory && <NavButton to="/sale-history">Sale History</NavButton>}
+          {canAccessInventory && <NavButton to="/inventory">Inventory</NavButton>}
+          {canAccessReports && <NavButton to="/reports">Reports</NavButton>}
+          {canAccessExpenses && <NavButton to="/expenses">Expenses</NavButton>}
+          {canAccessRefund && <NavButton to="/refund">Returns</NavButton>}
+          {canAccessPromotions && <NavButton to="/promotions">Promotions</NavButton>}
+          {canAccessCustomers && <NavButton to="/customers">Customers</NavButton>}
+          {canAccessDashboard && <NavButton to="/dashboard">Dashboard</NavButton>}
+          <IconButton
+            color="inherit"
+            onClick={onOpenSettingsMenu}
+            aria-label="Settings"
+            sx={{
+              ml: 1,
+              width: 40,
+              height: 40,
+              alignSelf: 'center',
+              bgcolor: 'rgba(255, 255, 255, 0.08)',
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.18)',
+              },
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <SettingsIcon />
+          </IconButton>
+        </Stack>
+      </Toolbar>
+    </AppBar>
+  );
+};
+
+export default GlobalAppBar;
