@@ -11,6 +11,12 @@ if (process.env.SENTRY_DSN) {
 
 const path = require('path');
 const fs = require('fs');
+const {
+  SERVER_ROOT,
+  SCHEMA_PATH,
+  MIGRATIONS_DIR,
+  getPrismaCliPath,
+} = require('./src/config/paths');
 
 const PORT = process.env.PORT || 5001;
 const BOOT_START = Date.now();
@@ -42,7 +48,7 @@ function getMigrationCachePath() {
 }
 
 function getLatestMigrationFolder() {
-  const dir = path.join(__dirname, 'prisma', 'migrations');
+  const dir = MIGRATIONS_DIR;
   if (!fs.existsSync(dir)) return null;
   const folders = fs
     .readdirSync(dir, { withFileTypes: true })
@@ -117,7 +123,7 @@ async function checkMigrationStatus(prisma, logger) {
 
   // Tier 2
   tlog('Migration cache miss — querying _prisma_migrations');
-  const migrationsDir = path.join(__dirname, 'prisma', 'migrations');
+  const migrationsDir = MIGRATIONS_DIR;
   const migrationFolders = fs
     .readdirSync(migrationsDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
@@ -152,15 +158,13 @@ async function runPrismaMigrationsSubprocess(logger) {
   const pEnv = { ...process.env };
   const nodeExecutable = process.execPath;
 
-  const isPackaged = process.env.NODE_ENV === 'production' || __dirname.includes('app.asar');
+  const isPackaged =
+    process.env.NODE_ENV === 'production' || SERVER_ROOT.includes('app.asar');
 
+  prismaCliPath = getPrismaCliPath(isPackaged);
+  schemaPath = SCHEMA_PATH;
   if (isPackaged) {
-    prismaCliPath = path.join(__dirname, '..', 'node_modules', 'prisma', 'build', 'index.js');
-    schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
     pEnv.ELECTRON_RUN_AS_NODE = '1';
-  } else {
-    prismaCliPath = path.join(__dirname, 'node_modules', 'prisma', 'build', 'index.js');
-    schemaPath = path.join(__dirname, 'prisma', 'schema.prisma');
   }
 
   try {
