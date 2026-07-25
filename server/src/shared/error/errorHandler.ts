@@ -1,9 +1,23 @@
-const { StatusCodes, ReasonPhrases } = require('http-status-codes');
-const { sendErrorResponse } = require('../utils/helper/responseHelpers');
-const toAppError = require('./toAppError');
-const logger = require('../utils/logger');
+import { StatusCodes, ReasonPhrases } from 'http-status-codes';
+import type { NextFunction, Request, Response } from 'express';
+import { sendErrorResponse } from '../utils/helper/responseHelpers';
+import toAppError = require('./toAppError');
+import logger = require('../utils/logger');
+import type { AppError } from './appError';
 
-const errorHandler = (err, req, res, next) => {
+/** Anything reaching the error pipeline: an AppError, a Prisma error, or a bare Error. */
+type HandledError = Partial<AppError> & {
+  status?: number;
+  stack?: string;
+  code?: string;
+};
+
+const errorHandler = (
+  err: HandledError,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (res.headersSent) {
     return next(err);
   }
@@ -12,7 +26,7 @@ const errorHandler = (err, req, res, next) => {
   // through untouched. Raw Prisma errors (P2002/P2003/P2025) have no status, so
   // toAppError maps them centrally — this is what lets services throw typed errors
   // and controllers stay free of per-domain error mapping.
-  const appError = err?.statusCode || err?.status ? err : toAppError(err);
+  const appError: HandledError = err?.statusCode || err?.status ? err : toAppError(err);
 
   const statusCode = Number(
     appError?.statusCode || appError?.status || StatusCodes.INTERNAL_SERVER_ERROR
@@ -37,4 +51,4 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
-module.exports = errorHandler;
+export = errorHandler;

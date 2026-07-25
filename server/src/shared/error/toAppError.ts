@@ -1,13 +1,32 @@
-const { StatusCodes, ReasonPhrases } = require('http-status-codes');
-const { createHttpError } = require('./appError');
+import { StatusCodes, ReasonPhrases } from 'http-status-codes';
+import { createHttpError, type AppError } from './appError';
 
-const includesAny = (message, patterns = []) => {
+/** Per-domain hints for mapping an untyped error onto an HTTP status. */
+interface ToAppErrorOptions {
+  defaultMessage?: string;
+  defaultStatus?: number;
+  conflictMessage?: string;
+  foreignKeyMessage?: string;
+  notFoundMessage?: string;
+  notFoundMessages?: string[];
+  badRequestMessages?: string[];
+}
+
+/** Shape of the errors this maps from: Prisma errors and plain Errors. */
+type UnknownError = {
+  message?: string;
+  code?: string;
+  statusCode?: number;
+  details?: unknown;
+};
+
+const includesAny = (message: string, patterns: string[] = []): boolean => {
   return patterns.some((pattern) => message.includes(pattern));
 };
 
-const toAppError = (error, options = {}) => {
+const toAppError = (error: UnknownError, options: ToAppErrorOptions = {}): AppError => {
   if (error?.statusCode) {
-    return error;
+    return error as AppError;
   }
 
   const message = error?.message || options.defaultMessage || ReasonPhrases.INTERNAL_SERVER_ERROR;
@@ -47,4 +66,4 @@ const toAppError = (error, options = {}) => {
   });
 };
 
-module.exports = toAppError;
+export = toAppError;

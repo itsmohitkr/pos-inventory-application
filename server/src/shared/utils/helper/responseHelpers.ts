@@ -1,12 +1,26 @@
-const { StatusCodes, ReasonPhrases } = require('http-status-codes');
-const ResponseBody = require('./responseBody');
+import { StatusCodes, ReasonPhrases } from 'http-status-codes';
+import type { Response } from 'express';
+import ResponseBody = require('./responseBody');
 
-const sendSuccessResponse = (
-  res,
-  status = StatusCodes.OK,
-  data,
-  message = ReasonPhrases.OK,
-  options = {}
+/** How the payload is shaped on the wire. */
+export type ResponseFormat = 'wrapped' | 'merge' | 'raw';
+
+export interface SuccessOptions {
+  format?: ResponseFormat;
+  meta?: Record<string, unknown>;
+}
+
+export interface ErrorOptions {
+  details?: unknown;
+  meta?: Record<string, unknown>;
+}
+
+export const sendSuccessResponse = (
+  res: Response,
+  status: number = StatusCodes.OK,
+  data?: unknown,
+  message: string = ReasonPhrases.OK,
+  options: SuccessOptions = {}
 ) => {
   const { format = 'wrapped', meta = {} } = options;
 
@@ -47,12 +61,12 @@ const sendSuccessResponse = (
   return res.status(status).json(ResponseBody.successResponse(message, data, meta));
 };
 
-const sendErrorResponse = (
-  res,
-  status = StatusCodes.INTERNAL_SERVER_ERROR,
-  message = ReasonPhrases.INTERNAL_SERVER_ERROR,
-  error,
-  options = {}
+export const sendErrorResponse = (
+  res: Response,
+  status: number = StatusCodes.INTERNAL_SERVER_ERROR,
+  message: string = ReasonPhrases.INTERNAL_SERVER_ERROR,
+  error?: unknown,
+  options: ErrorOptions = {}
 ) => {
   const { details, meta = {} } = options;
   const normalizedError =
@@ -64,7 +78,3 @@ const sendErrorResponse = (
     .json(ResponseBody.errorResponse(message, normalizedError, details, meta));
 };
 
-module.exports = {
-  sendSuccessResponse,
-  sendErrorResponse,
-};
