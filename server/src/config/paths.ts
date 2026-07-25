@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Single source of truth for filesystem locations the server needs at runtime.
@@ -30,7 +30,7 @@ const path = require('path');
 
 const MAX_LEVELS = 6;
 
-const findServerRoot = (startDir) => {
+const findServerRoot = (startDir: string): string => {
   let dir = startDir;
 
   for (let i = 0; i < MAX_LEVELS; i += 1) {
@@ -48,14 +48,14 @@ const findServerRoot = (startDir) => {
 };
 
 /** The `server/` directory — holds prisma/, package.json and node_modules. */
-const SERVER_ROOT = findServerRoot(__dirname);
+export const SERVER_ROOT = findServerRoot(__dirname);
 
 /** The application root, one level above server/. */
-const APP_ROOT = path.resolve(SERVER_ROOT, '..');
+export const APP_ROOT = path.resolve(SERVER_ROOT, '..');
 
-const PRISMA_DIR = path.join(SERVER_ROOT, 'prisma');
-const SCHEMA_PATH = path.join(PRISMA_DIR, 'schema.prisma');
-const MIGRATIONS_DIR = path.join(PRISMA_DIR, 'migrations');
+export const PRISMA_DIR = path.join(SERVER_ROOT, 'prisma');
+export const SCHEMA_PATH = path.join(PRISMA_DIR, 'schema.prisma');
+export const MIGRATIONS_DIR = path.join(PRISMA_DIR, 'migrations');
 
 /**
  * Location of the Prisma CLI entry point.
@@ -65,7 +65,7 @@ const MIGRATIONS_DIR = path.join(PRISMA_DIR, 'migrations');
  * runPrismaMigrationsSubprocess and is kept as a function so the caller
  * decides, exactly as before.
  */
-const getPrismaCliPath = (isPackaged) =>
+export const getPrismaCliPath = (isPackaged: boolean): string =>
   path.join(
     isPackaged ? APP_ROOT : SERVER_ROOT,
     'node_modules',
@@ -74,11 +74,3 @@ const getPrismaCliPath = (isPackaged) =>
     'index.js'
   );
 
-module.exports = {
-  SERVER_ROOT,
-  APP_ROOT,
-  PRISMA_DIR,
-  SCHEMA_PATH,
-  MIGRATIONS_DIR,
-  getPrismaCliPath,
-};

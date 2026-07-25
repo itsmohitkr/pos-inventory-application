@@ -90,4 +90,4 @@ const getDateRange = (type, customStart = null, customEnd = null) => {
   return { start: start.toISOString(), end: end.toISOString() };
 };
 
-module.exports = { getDateRange };
+export { getDateRange };

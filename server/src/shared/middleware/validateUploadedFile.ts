@@ -15,4 +15,4 @@ const validateUploadedFile = (fieldName = 'file') => {
   };
 };
 
-module.exports = validateUploadedFile;
+export = validateUploadedFile;

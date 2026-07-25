@@ -27,4 +27,4 @@ const handleUploadErrors = (uploadMiddleware) => {
   };
 };
 
-module.exports = handleUploadErrors;
+export = handleUploadErrors;

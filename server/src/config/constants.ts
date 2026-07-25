@@ -1,4 +1,4 @@
-const DEFAULT_RECEIPT_SETTINGS = {
+export const DEFAULT_RECEIPT_SETTINGS = {
   // Visibility toggles
   shopName: true,
   header: true,
@@ -40,13 +40,13 @@ const DEFAULT_RECEIPT_SETTINGS = {
   showBranding: false,
 };
 
-const DEFAULT_PAYMENT_SETTINGS = {
+export const DEFAULT_PAYMENT_SETTINGS = {
   enabledMethods: ['cash'],
   allowMultplePayment: false,
   customMethods: [],
 };
 
-const DEFAULT_SHOP_METADATA = {
+export const DEFAULT_SHOP_METADATA = {
   shopMobile: '+91 98765 43210',
   shopMobile2: '',
   shopAddress: '123 Business Street, City',
@@ -55,8 +55,3 @@ const DEFAULT_SHOP_METADATA = {
   shopLogo: '',
 };
 
-module.exports = {
-  DEFAULT_RECEIPT_SETTINGS,
-  DEFAULT_PAYMENT_SETTINGS,
-  DEFAULT_SHOP_METADATA,
-};
