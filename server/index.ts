@@ -9,14 +9,14 @@ if (process.env.SENTRY_DSN) {
   });
 }
 
-const path = require('path');
-const fs = require('fs');
-const {
+import path = require('path');
+import fs = require('fs');
+import {
   SERVER_ROOT,
   SCHEMA_PATH,
   MIGRATIONS_DIR,
   getPrismaCliPath,
-} = require('./src/config/paths');
+} from './src/config/paths';
 
 const PORT = process.env.PORT || 5001;
 const BOOT_START = Date.now();

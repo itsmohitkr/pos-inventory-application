@@ -28,6 +28,10 @@ jobs:
         working-directory: server
         run: npm ci
 
+      - name: Build server
+        working-directory: server
+        run: npm run build
+
       - name: Generate Prisma Client
         working-directory: server
         run: npx prisma generate
@@ -121,6 +125,10 @@ jobs:
         working-directory: client
         run: npx vite build
 
+      - name: Build server
+        working-directory: server
+        run: npm run build
+
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma
 
@@ -175,6 +183,10 @@ jobs:
       - name: Build client
         working-directory: client
         run: npx vite build
+
+      - name: Build server
+        working-directory: server
+        run: npm run build
 
       - name: Generate Prisma Client
         run: npx prisma generate --schema=server/prisma/schema.prisma

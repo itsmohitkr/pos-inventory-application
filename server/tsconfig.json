@@ -1,20 +1,22 @@
 {
   "extends": "../tsconfig.base.json",
   "//": [
-    "Server compiles to dist/ (CommonJS — it is require()d by Electron main).",
+    "The server compiles to dist/ because Electron require()s it and Node cannot",
+    "load TypeScript. rootDir is '.' so index.ts and seed.ts are included",
+    "alongside src/ — the emitted tree is dist/index.js and dist/src/**.",
     "",
-    "PACKAGING NOTE: emitting to dist/ moves __dirname down one level, which",
-    "breaks the 7 __dirname-relative Prisma paths in index.js. That switch is",
-    "Phase 4 and lands with config/paths.ts. Until then nothing consumes dist/;",
-    "server-wrapper.js still loads index.js from the source root."
+    "prisma/ deliberately stays at server/prisma and is NOT copied into dist.",
+    "src/config/paths.ts finds it by walking up to the directory containing",
+    "prisma/schema.prisma, so the same code resolves correctly whether it runs",
+    "from src/ or from dist/."
   ],
   "compilerOptions": {
     "module": "node16",
     "moduleResolution": "node16",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "types": ["node", "jest"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests", "prisma"]
+  "include": ["index.ts", "seed.ts", "src/**/*"],
+  "exclude": ["node_modules", "dist", "tests", "prisma", "coverage"]
 }

@@ -42,4 +42,6 @@ Module._resolveFilename = function (request, parent, isMain, options) {
 };
 
 // Now load and run the actual server
-require(path.join(process.cwd(), 'index.js'));
+// The server is TypeScript and ships compiled. process.cwd() is set to the
+// server directory by main.js, so this resolves to server/dist/index.js.
+require(path.join(process.cwd(), 'dist', 'index.js'));

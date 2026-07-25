@@ -1,12 +1,12 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const logger = require('./shared/utils/logger');
+import express = require('express');
+import cors = require('cors');
+import bodyParser = require('body-parser');
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import logger = require('./shared/utils/logger');
 
-const pathNotFound = require('./shared/error/pathNotFound');
-const errorHandler = require('./shared/error/errorHandler');
+import pathNotFound = require('./shared/error/pathNotFound');
+import errorHandler = require('./shared/error/errorHandler');
 
 const app = express();
 
@@ -84,4 +84,4 @@ app.use('/api', apiRouter);
 app.use(pathNotFound);
 app.use(errorHandler);
 
-module.exports = app;
+export = app;

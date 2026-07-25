@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcrypt');
+import { PrismaClient } from '@prisma/client';
+import bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 const baseProducts = [
@@ -1193,7 +1193,7 @@ async function main() {
   await seedSampleData();
 }
 
-module.exports = {
+export = {
   seed: main,
   seedEssential,
   seedSampleData,
