@@ -1,6 +1,7 @@
+const { StatusCodes } = require('http-status-codes');
 const prisma = require('../../config/prisma');
+const { createHttpError } = require('../../shared/error/appError');
 const { getDateRange } = require('../../shared/utils/dateUtils');
-const { Prisma } = require('@prisma/client');
 const categoryService = require('../category/category.service');
 const logger = require('../../shared/utils/logger');
 
@@ -43,9 +44,8 @@ const _validateBarcodesUniqueness = async (tx, barcodeStr, excludeProductId = nu
     });
 
     if (existing) {
-      throw new Error(
-        `BARCODE_CONFLICT: Barcode '${singleBarcode}' is already associated with product '${existing.name}'`
-      );
+      const conflictMessage = `BARCODE_CONFLICT: Barcode '${singleBarcode}' is already associated with product '${existing.name}'`;
+      throw createHttpError(StatusCodes.CONFLICT, conflictMessage, { error: conflictMessage });
     }
   }
 };
@@ -61,6 +61,72 @@ const generateBatchCode = () => {
   const seconds = String(now.getSeconds()).padStart(2, '0');
   const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
   return `B-${year}${month}${day}${hours}${minutes}${seconds}${milliseconds}`;
+};
+
+/**
+ * Creates a batch and its matching 'added' stock movement inside a transaction.
+ * Every stock-creating path funnels through here so the batch row and the
+ * ledger entry can never diverge.
+ *
+ * `skipMovementWhenZero` preserves a pre-existing behavioural difference: the
+ * CSV import and bulk-create paths omit the movement for zero-quantity rows,
+ * while the interactive paths always record one. Passing it explicitly keeps
+ * that difference deliberate rather than accidental.
+ */
+const createBatchWithMovement = async (
+  tx,
+  { productId, batchCode, quantity, mrp, costPrice, sellingPrice, wholesaleEnabled = false,
+    wholesalePrice = null, wholesaleMinQty = null, expiryDate = null, note,
+    skipMovementWhenZero = false }
+) => {
+  const createdBatch = await tx.batch.create({
+    data: {
+      productId,
+      batchCode,
+      quantity,
+      mrp,
+      costPrice,
+      sellingPrice,
+      wholesaleEnabled,
+      wholesalePrice,
+      wholesaleMinQty,
+      expiryDate,
+    },
+  });
+
+  if (!skipMovementWhenZero || quantity > 0) {
+    await tx.stockMovement.create({
+      data: { productId, batchId: createdBatch.id, type: 'added', quantity, note },
+    });
+  }
+
+  return createdBatch;
+};
+
+/**
+ * Accumulates quantity into an existing batch (the non-batch-tracked flow, where
+ * a product keeps a single logical batch) and records the movement.
+ */
+const addQuantityToBatch = async (tx, { batch, qtyToAdd, note }) => {
+  const newQty = batch.quantity + qtyToAdd;
+  validateQuantity(newQty);
+
+  const updatedBatch = await tx.batch.update({
+    where: { id: batch.id },
+    data: { quantity: newQty },
+  });
+
+  await tx.stockMovement.create({
+    data: {
+      productId: batch.productId,
+      batchId: batch.id,
+      type: 'added',
+      quantity: qtyToAdd,
+      note,
+    },
+  });
+
+  return updatedBatch;
 };
 
 // Proper RFC 4180 CSV parser that handles quoted values with commas and special characters
@@ -99,39 +165,55 @@ const parseCSVLine = (line) => {
 const validatePricing = ({ mrp, costPrice, sellingPrice, wholesalePrice, wholesaleEnabled }) => {
   if (mrp === undefined || costPrice === undefined || sellingPrice === undefined) return;
   if (Number.isNaN(mrp) || Number.isNaN(costPrice) || Number.isNaN(sellingPrice)) {
-    throw new Error('Invalid pricing values');
+    throw createHttpError(StatusCodes.BAD_REQUEST, 'Invalid pricing values', {
+      error: 'Invalid pricing values',
+    });
   }
   if (sellingPrice < costPrice || sellingPrice > mrp) {
-    throw new Error('Selling price must be between cost price and MRP');
+    throw createHttpError(StatusCodes.BAD_REQUEST, 'Selling price must be between cost price and MRP', {
+      error: 'Selling price must be between cost price and MRP',
+    });
   }
 
   if (wholesaleEnabled && wholesalePrice !== undefined) {
     if (Number.isNaN(wholesalePrice)) {
-      throw new Error('Invalid wholesale price');
+      throw createHttpError(StatusCodes.BAD_REQUEST, 'Invalid wholesale price', {
+        error: 'Invalid wholesale price',
+      });
     }
     if (wholesalePrice < costPrice || wholesalePrice > sellingPrice) {
-      throw new Error('Wholesale price must be between cost price and regular selling price');
+      throw createHttpError(StatusCodes.BAD_REQUEST, 'Wholesale price must be between cost price and regular selling price', {
+        error: 'Wholesale price must be between cost price and regular selling price',
+      });
     }
   }
 };
+
+// Escapes the `'` string delimiter. Required for every value interpolated into SQL.
+const escapeSqlString = (value) => value.replace(/'/g, "''");
+
+// Escapes LIKE metacharacters so they match literally. Only valid for values used
+// in a LIKE pattern — applying it to an `=` comparison corrupts the value.
+const escapeSqlLike = (value) => value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 
 const buildWhereSql = ({ search, category }) => {
   const clauses = ["p.isDeleted = 0"];
 
   const normalizedSearch = normalizeSearch(search);
   if (normalizedSearch) {
-    const escapedSearch = normalizedSearch.replace(/'/g, "''");
-    const like = `%${escapedSearch}%`;
-    clauses.push(`(p.name LIKE '${like}' OR p.barcode LIKE '${like}')`);
+    const like = `%${escapeSqlString(escapeSqlLike(normalizedSearch))}%`;
+    clauses.push(`(p.name LIKE '${like}' ESCAPE '\\' OR p.barcode LIKE '${like}' ESCAPE '\\')`);
   }
 
   if (category && category !== 'all') {
     if (category === 'uncategorized') {
       clauses.push(`(p.category IS NULL OR TRIM(p.category) = '')`);
     } else {
-      const escapedCategory = category.replace(/'/g, "''");
-      const like = `${escapedCategory}/%`;
-      clauses.push(`(p.category = '${escapedCategory}' OR p.category LIKE '${like}')`);
+      const exactCategory = escapeSqlString(category);
+      const likePrefix = `${escapeSqlString(escapeSqlLike(category))}/%`;
+      clauses.push(
+        `(p.category = '${exactCategory}' OR p.category LIKE '${likePrefix}' ESCAPE '\\')`
+      );
     }
   }
 
@@ -144,10 +226,12 @@ const validateQuantity = (quantity) => {
   const qty = parseInt(quantity);
   if (isNaN(qty)) return;
   if (qty > MAX_STOCK_QUANTITY) {
-    throw new Error(`Quantity exceeds maximum allowed limit (${MAX_STOCK_QUANTITY})`);
+    const message = `Quantity exceeds maximum allowed limit (${MAX_STOCK_QUANTITY})`;
+    throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
   }
   if (qty < -MAX_STOCK_QUANTITY) {
-    throw new Error(`Quantity is below minimum allowed limit (-${MAX_STOCK_QUANTITY})`);
+    const message = `Quantity is below minimum allowed limit (-${MAX_STOCK_QUANTITY})`;
+    throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
   }
 };
 
@@ -247,31 +331,26 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
     category === 'all' || category === 'uncategorized'
       ? baseWhere
       : buildWhereFilter({ search, category });
-  let products = [];
-  try {
-    products = await prisma.product.findMany({
-      where,
-      include: {
-        batches: {
-          orderBy: { createdAt: 'asc' },
+  const products = await prisma.product.findMany({
+    where,
+    include: {
+      batches: {
+        orderBy: { createdAt: 'asc' },
+      },
+      promotions: {
+        where: {
+          promotion: {
+            isActive: true,
+            startDate: { lte: new Date() },
+            endDate: { gte: new Date() },
+          },
         },
-        promotions: {
-          where: {
-            promotion: {
-              isActive: true,
-              startDate: { lte: new Date() },
-              endDate: { gte: new Date() },
-            },
-          },
-          include: {
-            promotion: true,
-          },
+        include: {
+          promotion: true,
         },
       },
-    });
-  } catch (err) {
-    throw err;
-  }
+    },
+  });
 
   const normalized = products.map((product) => {
     // Find the best active promo price
@@ -475,83 +554,26 @@ const createOrUpdateProduct = async ({
           ? generateBatchCode()
           : batch_code || null;
 
-      if (product.batchTrackingEnabled) {
-        const createdBatch = await tx.batch.create({
-          data: {
-            productId: product.id,
-            batchCode: finalBatchCode,
-            quantity: qtyToAdd,
-            mrp: mrpValue,
-            costPrice: costValue,
-            sellingPrice: sellingValue,
-            wholesaleEnabled: initialBatch.wholesaleEnabled === true,
-            wholesalePrice: initialBatch.wholesalePrice
-              ? parseFloat(initialBatch.wholesalePrice)
-              : null,
-            wholesaleMinQty: initialBatch.wholesaleMinQty
-              ? parseInt(initialBatch.wholesaleMinQty)
-              : null,
-            expiryDate: expiryDate ? new Date(expiryDate) : null,
-          },
-        });
-        await tx.stockMovement.create({
-          data: {
-            productId: product.id,
-            batchId: createdBatch.id,
-            type: 'added',
-            quantity: qtyToAdd,
-            note: 'Initial stock',
-          },
-        });
-      } else {
-        const existingBatch = (product.batches || [])[0];
-
-        if (existingBatch) {
-          const newQty = existingBatch.quantity + qtyToAdd;
-          validateQuantity(newQty);
-          await tx.batch.update({
-            where: { id: existingBatch.id },
-            data: { quantity: newQty },
-          });
-          await tx.stockMovement.create({
-            data: {
-              productId: product.id,
-              batchId: existingBatch.id,
-              type: 'added',
-              quantity: qtyToAdd,
-              note: 'Initial stock',
-            },
-          });
-        } else {
-          const createdBatch = await tx.batch.create({
-            data: {
-              productId: product.id,
-              batchCode: finalBatchCode,
-              quantity: qtyToAdd,
-              mrp: mrpValue,
-              costPrice: costValue,
-              sellingPrice: sellingValue,
-              wholesaleEnabled: initialBatch.wholesaleEnabled === true,
-              wholesalePrice: initialBatch.wholesalePrice
-                ? parseFloat(initialBatch.wholesalePrice)
-                : null,
-              wholesaleMinQty: initialBatch.wholesaleMinQty
-                ? parseInt(initialBatch.wholesaleMinQty)
-                : null,
-              expiryDate: expiryDate ? new Date(expiryDate) : null,
-            },
-          });
-          await tx.stockMovement.create({
-            data: {
-              productId: product.id,
-              batchId: createdBatch.id,
-              type: 'added',
-              quantity: qtyToAdd,
-              note: 'Initial stock',
-            },
-          });
-        }
-      }
+      // The product was just created above, so it has no batches yet — both the
+      // tracked and untracked flows create the product's first batch here, with
+      // identical data. Only `finalBatchCode` differs, resolved above.
+      await createBatchWithMovement(tx, {
+        productId: product.id,
+        batchCode: finalBatchCode,
+        quantity: qtyToAdd,
+        mrp: mrpValue,
+        costPrice: costValue,
+        sellingPrice: sellingValue,
+        wholesaleEnabled: initialBatch.wholesaleEnabled === true,
+        wholesalePrice: initialBatch.wholesalePrice
+          ? parseFloat(initialBatch.wholesalePrice)
+          : null,
+        wholesaleMinQty: initialBatch.wholesaleMinQty
+          ? parseInt(initialBatch.wholesaleMinQty)
+          : null,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        note: 'Initial stock',
+      });
     }
     // Background sync to ensure Category table reflects new strings
     categoryService
@@ -586,7 +608,9 @@ const addBatch = async (batchData) => {
     });
 
     if (!product) {
-      throw new Error('Product not found');
+      throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
+        error: 'Product not found',
+      });
     }
 
     // Auto-generate batch code if empty (only for batch tracking enabled products)
@@ -595,78 +619,33 @@ const addBatch = async (batchData) => {
         ? generateBatchCode()
         : batch_code || null;
 
+    const batchFields = {
+      productId: product.id,
+      batchCode: finalBatchCode,
+      quantity: qtyToAdd,
+      mrp: mrpValue,
+      costPrice: costValue,
+      sellingPrice: sellingValue,
+      wholesaleEnabled: batchData.wholesaleEnabled === true,
+      wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
+      wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
+      expiryDate: expiryDate ? new Date(expiryDate) : null,
+      note: 'Stock added',
+    };
+
+    // Batch tracking ON — every addition becomes its own batch record.
     if (product.batchTrackingEnabled) {
-      const createdBatch = await tx.batch.create({
-        data: {
-          product: { connect: { id: parseInt(product_id) } },
-          batchCode: finalBatchCode,
-          quantity: qtyToAdd,
-          mrp: mrpValue,
-          costPrice: costValue,
-          sellingPrice: sellingValue,
-          wholesaleEnabled: batchData.wholesaleEnabled === true,
-          wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
-          wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
-          expiryDate: expiryDate ? new Date(expiryDate) : null,
-        },
-      });
-      await tx.stockMovement.create({
-        data: {
-          productId: product.id,
-          batchId: createdBatch.id,
-          type: 'added',
-          quantity: qtyToAdd,
-          note: 'Stock added',
-        },
-      });
-      return createdBatch;
+      return createBatchWithMovement(tx, batchFields);
     }
 
+    // Batch tracking OFF — accumulate into the product's single logical batch.
     const existingBatch = product.batches[0];
     if (existingBatch) {
-      const newQty = existingBatch.quantity + qtyToAdd;
-      validateQuantity(newQty);
-      const updatedBatch = await tx.batch.update({
-        where: { id: existingBatch.id },
-        data: { quantity: newQty },
-      });
-      await tx.stockMovement.create({
-        data: {
-          productId: product.id,
-          batchId: existingBatch.id,
-          type: 'added',
-          quantity: qtyToAdd,
-          note: 'Stock added',
-        },
-      });
-      return updatedBatch;
+      return addQuantityToBatch(tx, { batch: existingBatch, qtyToAdd, note: 'Stock added' });
     }
 
-    // No existing batch — create first batch for non-tracked product
-    const createdBatch = await tx.batch.create({
-      data: {
-        product: { connect: { id: parseInt(product_id) } },
-        batchCode: finalBatchCode,
-        quantity: qtyToAdd,
-        mrp: mrpValue,
-        costPrice: costValue,
-        sellingPrice: sellingValue,
-        wholesaleEnabled: batchData.wholesaleEnabled === true,
-        wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
-        wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
-        expiryDate: expiryDate ? new Date(expiryDate) : null,
-      },
-    });
-    await tx.stockMovement.create({
-      data: {
-        productId: product.id,
-        batchId: createdBatch.id,
-        type: 'added',
-        quantity: qtyToAdd,
-        note: 'Stock added',
-      },
-    });
-    return createdBatch;
+    // No existing batch — create the first batch for this non-tracked product.
+    return createBatchWithMovement(tx, batchFields);
   });
 };
 
@@ -748,7 +727,9 @@ const updateBatch = async (id, batchData) => {
     where: { id: parseInt(id) },
   });
   if (!existing) {
-    throw new Error('Batch not found');
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Batch not found', {
+      error: 'Batch not found',
+    });
   }
   const nextMrp = mrp !== undefined ? parseFloat(mrp) : existing.mrp;
   const nextCost = costPrice !== undefined ? parseFloat(costPrice) : existing.costPrice;
@@ -769,36 +750,39 @@ const updateBatch = async (id, batchData) => {
 
   const nextQuantity = quantity !== undefined ? parseInt(quantity) : existing.quantity;
   validateQuantity(nextQuantity);
-  const updatedBatch = await prisma.batch.update({
-    where: { id: parseInt(id) },
-    data: {
-      batchCode,
-      quantity: quantity !== undefined ? parseInt(quantity) : undefined,
-      mrp: mrp !== undefined ? parseFloat(mrp) : undefined,
-      costPrice: costPrice !== undefined ? parseFloat(costPrice) : undefined,
-      sellingPrice: sellingPrice !== undefined ? parseFloat(sellingPrice) : undefined,
-      wholesaleEnabled:
-        batchData.wholesaleEnabled !== undefined ? batchData.wholesaleEnabled : undefined,
-      wholesalePrice:
-        batchData.wholesalePrice !== undefined ? parseFloat(batchData.wholesalePrice) : undefined,
-      wholesaleMinQty:
-        batchData.wholesaleMinQty !== undefined ? parseInt(batchData.wholesaleMinQty) : undefined,
-      expiryDate: expiryDate ? new Date(expiryDate) : null,
-    },
-  });
   const delta = nextQuantity - existing.quantity;
-  if (delta !== 0) {
-    await prisma.stockMovement.create({
+
+  return await prisma.$transaction(async (tx) => {
+    const updatedBatch = await tx.batch.update({
+      where: { id: parseInt(id) },
       data: {
-        productId: existing.productId,
-        batchId: existing.id,
-        type: delta > 0 ? 'adjustment_in' : 'adjustment_out',
-        quantity: Math.abs(delta),
-        note: 'Manual batch edit',
+        batchCode,
+        quantity: quantity !== undefined ? parseInt(quantity) : undefined,
+        mrp: mrp !== undefined ? parseFloat(mrp) : undefined,
+        costPrice: costPrice !== undefined ? parseFloat(costPrice) : undefined,
+        sellingPrice: sellingPrice !== undefined ? parseFloat(sellingPrice) : undefined,
+        wholesaleEnabled:
+          batchData.wholesaleEnabled !== undefined ? batchData.wholesaleEnabled : undefined,
+        wholesalePrice:
+          batchData.wholesalePrice !== undefined ? parseFloat(batchData.wholesalePrice) : undefined,
+        wholesaleMinQty:
+          batchData.wholesaleMinQty !== undefined ? parseInt(batchData.wholesaleMinQty) : undefined,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
       },
     });
-  }
-  return updatedBatch;
+    if (delta !== 0) {
+      await tx.stockMovement.create({
+        data: {
+          productId: existing.productId,
+          batchId: existing.id,
+          type: delta > 0 ? 'adjustment_in' : 'adjustment_out',
+          quantity: Math.abs(delta),
+          note: 'Manual batch edit',
+        },
+      });
+    }
+    return updatedBatch;
+  });
 };
 
 const deleteBatch = async (id) => {
@@ -807,12 +791,14 @@ const deleteBatch = async (id) => {
     include: { _count: { select: { saleItems: true } } },
   });
   if (!existing) {
-    throw new Error('Batch not found');
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Batch not found', {
+      error: 'Batch not found',
+    });
   }
   if (existing._count.saleItems > 0) {
-    throw new Error(
-      'This batch has sales history and cannot be deleted. Set its quantity to 0 to retire it instead.'
-    );
+    throw createHttpError(StatusCodes.BAD_REQUEST, 'This batch has sales history and cannot be deleted. Set its quantity to 0 to retire it instead.', {
+      error: 'This batch has sales history and cannot be deleted. Set its quantity to 0 to retire it instead.',
+    });
   }
   return await prisma.$transaction(async (tx) => {
     await tx.stockMovement.deleteMany({ where: { batchId: parseInt(id) } });
@@ -1057,28 +1043,17 @@ const importProducts = async (csvData) => {
           batchTrackingEnabled: prod.batchTrackingEnabled,
         },
       });
-      const createdBatch = await tx.batch.create({
-        data: {
-          productId: product.id,
-          batchCode: prod.batch_code || null,
-          quantity: prod.qty,
-          mrp: prod.mrpVal,
-          costPrice: prod.costVal,
-          sellingPrice: prod.sellingVal,
-          expiryDate: prod.expiry_date ? new Date(prod.expiry_date) : null,
-        },
+      await createBatchWithMovement(tx, {
+        productId: product.id,
+        batchCode: prod.batch_code || null,
+        quantity: prod.qty,
+        mrp: prod.mrpVal,
+        costPrice: prod.costVal,
+        sellingPrice: prod.sellingVal,
+        expiryDate: prod.expiry_date ? new Date(prod.expiry_date) : null,
+        note: 'Imported stock',
+        skipMovementWhenZero: true,
       });
-      if (prod.qty > 0) {
-        await tx.stockMovement.create({
-          data: {
-            productId: product.id,
-            batchId: createdBatch.id,
-            type: 'added',
-            quantity: prod.qty,
-            note: 'Imported stock',
-          },
-        });
-      }
     }
   });
 
@@ -1290,41 +1265,32 @@ const bulkCreateProducts = async (products) => {
               ? generateBatchCode()
               : batch_code || null;
 
-          const createdBatch = await tx.batch.create({
-            data: {
-              productId: product.id,
-              batchCode: finalBatchCode,
-              quantity: qtyToAdd,
-              mrp: mrpValue,
-              costPrice: costValue,
-              sellingPrice: sellingValue,
-              wholesaleEnabled: initialBatch.wholesaleEnabled === true,
-              wholesalePrice: initialBatch.wholesalePrice
-                ? parseFloat(initialBatch.wholesalePrice)
-                : null,
-              wholesaleMinQty: initialBatch.wholesaleMinQty
-                ? parseInt(initialBatch.wholesaleMinQty)
-                : null,
-              expiryDate: expiryDate ? new Date(expiryDate) : null,
-            },
+          await createBatchWithMovement(tx, {
+            productId: product.id,
+            batchCode: finalBatchCode,
+            quantity: qtyToAdd,
+            mrp: mrpValue,
+            costPrice: costValue,
+            sellingPrice: sellingValue,
+            wholesaleEnabled: initialBatch.wholesaleEnabled === true,
+            wholesalePrice: initialBatch.wholesalePrice
+              ? parseFloat(initialBatch.wholesalePrice)
+              : null,
+            wholesaleMinQty: initialBatch.wholesaleMinQty
+              ? parseInt(initialBatch.wholesaleMinQty)
+              : null,
+            expiryDate: expiryDate ? new Date(expiryDate) : null,
+            note: 'Bulk Initial stock',
+            skipMovementWhenZero: true,
           });
-
-          if (qtyToAdd > 0) {
-            await tx.stockMovement.create({
-              data: {
-                productId: product.id,
-                batchId: createdBatch.id,
-                type: 'added',
-                quantity: qtyToAdd,
-                note: 'Bulk Initial stock',
-              },
-            });
-          }
         }
         results.count++;
       } catch (error) {
         // If any product fails, we roll back the entire transaction by throwing
-        throw new Error(`Error at item ${i + 1} (${prodData.name || 'Unknown'}): ${error.message}`);
+        const message = `Error at item ${i + 1} (${prodData.name || 'Unknown'}): ${error.message}`;
+        throw createHttpError(error.statusCode || StatusCodes.BAD_REQUEST, message, {
+          error: message,
+        });
       }
     }
     return results;

@@ -1,3 +1,4 @@
+const { StatusCodes } = require('http-status-codes');
 const { randomBytes } = require('crypto');
 const prisma = require('../../config/prisma');
 const { createHttpError } = require('../../shared/error/appError');
@@ -16,7 +17,11 @@ const generateCustomerBarcode = async () => {
     const existing = await prisma.customer.findUnique({ where: { customerBarcode: barcode } });
     if (!existing) return barcode;
   }
-  throw new Error('Failed to generate unique customer barcode after 10 attempts');
+  throw createHttpError(
+    StatusCodes.INTERNAL_SERVER_ERROR,
+    'Failed to generate unique customer barcode after 10 attempts',
+    { error: 'Failed to generate unique customer barcode after 10 attempts' }
+  );
 };
 
 const findOrCreateCustomer = async ({ phone, name }) => {

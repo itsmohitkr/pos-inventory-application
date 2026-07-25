@@ -1,5 +1,6 @@
 const { StatusCodes } = require('http-status-codes');
 const authService = require('./auth.service');
+const asyncHandler = require('../../shared/error/asyncHandler');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
 
 const login = async (req, res) => {
@@ -81,14 +82,14 @@ const completeOnboarding = async (req, res) => {
 };
 
 module.exports = {
-  login,
-  getProfile,
-  getAllUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-  changePassword,
-  wipeDatabase,
-  verifyAdmin,
-  completeOnboarding,
+  login: asyncHandler(login),
+  getProfile: asyncHandler(getProfile),
+  getAllUsers: asyncHandler(getAllUsers),
+  createUser: asyncHandler(createUser),
+  updateUser: asyncHandler(updateUser),
+  deleteUser: asyncHandler(deleteUser),
+  changePassword: asyncHandler(changePassword),
+  wipeDatabase: asyncHandler(wipeDatabase),
+  verifyAdmin: asyncHandler(verifyAdmin),
+  completeOnboarding: asyncHandler(completeOnboarding),
 };

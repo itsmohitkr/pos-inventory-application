@@ -1,10 +1,10 @@
 const express = require('express');
 const multer = require('multer');
 const productController = require('./product.controller');
-const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
 const validateUploadedFile = require('../../shared/middleware/validateUploadedFile');
+const handleUploadErrors = require('../../shared/middleware/handleUploadErrors');
 const {
   productIdParamSchema,
   batchIdParamSchema,
@@ -21,17 +21,17 @@ const {
 } = require('./product.validation');
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 router
   .route('/products')
   .get(
     validateRequest({ query: productQuerySchema }),
-    asyncHandler(productController.getAllProducts)
+    productController.getAllProducts
   )
   .post(
     validateRequest({ body: createProductBodySchema }),
-    asyncHandler(productController.createProduct)
+    productController.createProduct
   )
   .all(methodNotAllowed);
 
@@ -39,21 +39,21 @@ router
   .route('/products/summary')
   .get(
     validateRequest({ query: productSummaryQuerySchema }),
-    asyncHandler(productController.getProductSummary)
+    productController.getProductSummary
   )
   .all(methodNotAllowed);
 
 router
   .route('/products/export')
-  .get(asyncHandler(productController.exportProducts))
+  .get(productController.exportProducts)
   .all(methodNotAllowed);
 
 router
   .route('/products/import')
   .post(
-    upload.single('file'),
+    handleUploadErrors(upload.single('file')),
     validateUploadedFile('file'),
-    asyncHandler(productController.importProducts)
+    productController.importProducts
   )
   .all(methodNotAllowed);
 
@@ -61,7 +61,7 @@ router
   .route('/products/bulk')
   .post(
     validateRequest({ body: bulkCreateProductsBodySchema }),
-    asyncHandler(productController.bulkCreateProducts)
+    productController.bulkCreateProducts
   )
   .all(methodNotAllowed);
 
@@ -69,7 +69,7 @@ router
   .route('/products/validate-barcodes')
   .post(
     validateRequest({ body: validateBarcodesBodySchema }),
-    asyncHandler(productController.validateBarcodes)
+    productController.validateBarcodes
   )
   .all(methodNotAllowed);
 
@@ -77,7 +77,7 @@ router
   .route('/products/id/:id')
   .get(
     validateRequest({ params: productIdParamSchema }),
-    asyncHandler(productController.getProductById)
+    productController.getProductById
   )
   .all(methodNotAllowed);
 
@@ -85,7 +85,7 @@ router
   .route('/products/:id/history')
   .get(
     validateRequest({ params: productIdParamSchema, query: productHistoryQuerySchema }),
-    asyncHandler(productController.getProductHistory)
+    productController.getProductHistory
   )
   .all(methodNotAllowed);
 
@@ -94,34 +94,34 @@ router
 router.get(
   '/products/:barcode',
   validateRequest({ params: barcodeParamSchema }),
-  asyncHandler(productController.getProductByBarcode)
+  productController.getProductByBarcode
 );
 
 router
   .route('/products/:id')
   .put(
     validateRequest({ params: productIdParamSchema, body: updateProductBodySchema }),
-    asyncHandler(productController.updateProduct)
+    productController.updateProduct
   )
   .delete(
     validateRequest({ params: productIdParamSchema }),
-    asyncHandler(productController.deleteProduct)
+    productController.deleteProduct
   );
 
 router
   .route('/batches')
-  .post(validateRequest({ body: addBatchBodySchema }), asyncHandler(productController.addBatch))
+  .post(validateRequest({ body: addBatchBodySchema }), productController.addBatch)
   .all(methodNotAllowed);
 
 router
   .route('/batches/:id')
   .put(
     validateRequest({ params: batchIdParamSchema, body: updateBatchBodySchema }),
-    asyncHandler(productController.updateBatch)
+    productController.updateBatch
   )
   .delete(
     validateRequest({ params: batchIdParamSchema }),
-    asyncHandler(productController.deleteBatch)
+    productController.deleteBatch
   )
   .all(methodNotAllowed);
 

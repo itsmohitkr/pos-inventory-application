@@ -8,7 +8,10 @@ const saleItemSchema = Joi.object({
   batch_id: Joi.alternatives()
     .try(Joi.number().integer().positive(), Joi.string().trim().min(1))
     .required(),
-  quantity: Joi.number().positive().required(),
+  // Batch.quantity and SaleItem.quantity are Int columns — a fractional value
+  // reaches Prisma and surfaces as a 500. Weighted goods use loose sales
+  // (/api/loose-sales), which are priced directly and carry no quantity.
+  quantity: Joi.number().integer().positive().required(),
   sellingPrice: Joi.number().min(0).required(),
   isFree: Joi.boolean().optional(),
 });
@@ -29,7 +32,7 @@ const processReturnBodySchema = Joi.object({
     .items(
       Joi.object({
         saleItemId: Joi.number().integer().positive().required(),
-        quantity: Joi.number().positive().required(),
+        quantity: Joi.number().integer().positive().required(),
       })
     )
     .min(1)

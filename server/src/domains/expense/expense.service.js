@@ -1,4 +1,6 @@
+const { StatusCodes } = require('http-status-codes');
 const prisma = require('../../config/prisma');
+const { createHttpError } = require('../../shared/error/appError');
 
 // Helper to append current time to a date string (YYYY-MM-DD)
 const getDateWithCurrentTime = (dateString) => {
@@ -170,7 +172,11 @@ const deletePayment = async (paymentId) => {
       where: { id: pid },
     });
 
-    if (!payment) throw new Error('Payment not found');
+    if (!payment) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Payment not found', {
+      error: 'Payment not found',
+    });
+  }
 
     await tx.expensePayment.delete({
       where: { id: pid },

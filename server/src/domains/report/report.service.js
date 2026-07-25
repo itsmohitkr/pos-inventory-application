@@ -1,5 +1,36 @@
 const prisma = require('../../config/prisma');
 
+/**
+ * Net quantity actually kept by the customer (sold minus returned).
+ */
+const getNetQuantity = (item) => item.quantity - item.returnedQuantity;
+
+/**
+ * Per-sale money maths, shared by every report so the summary, monthly, and
+ * daily views can never disagree about what profit means. Returns gross figures
+ * (before sale-level discounts) plus the discount-adjusted finals.
+ */
+const calculateSaleTotals = (sale) => {
+  let grossProfit = 0;
+  let grossNetTotal = 0;
+
+  sale.items.forEach((item) => {
+    const netQuantity = getNetQuantity(item);
+    grossProfit += (item.sellingPrice - item.costPrice) * netQuantity;
+    grossNetTotal += item.sellingPrice * netQuantity;
+  });
+
+  const extraDiscount = sale.extraDiscount || 0;
+  const totalDiscount = sale.discount + extraDiscount;
+
+  return {
+    grossProfit,
+    grossNetTotal,
+    netTotal: grossNetTotal - totalDiscount,
+    profit: grossProfit - totalDiscount,
+  };
+};
+
 const getReports = async ({ startDate, endDate }) => {
   const where = {};
   if (startDate || endDate) {
@@ -42,16 +73,9 @@ const getReports = async ({ startDate, endDate }) => {
   let totalOrders = sales.length;
 
   const detailedSales = sales.map((sale) => {
-    let saleProfit = 0;
-    let saleNetTotal = 0;
-
     const items = sale.items.map((item) => {
-      const netQuantity = item.quantity - item.returnedQuantity;
+      const netQuantity = getNetQuantity(item);
       const itemProfit = (item.sellingPrice - item.costPrice) * netQuantity;
-      const itemNetTotal = item.sellingPrice * netQuantity;
-
-      saleProfit += itemProfit;
-      saleNetTotal += itemNetTotal;
 
       const margin =
         item.sellingPrice > 0
@@ -68,19 +92,17 @@ const getReports = async ({ startDate, endDate }) => {
       };
     });
 
-    // Net sale amount considering discount and returns
-    // We assume the discount applies to the remaining items or the overall bill
-    const extraDiscount = sale.extraDiscount || 0;
-    const finalSaleNetTotal = saleNetTotal - sale.discount - extraDiscount;
-    const finalSaleProfit = saleProfit - sale.discount - extraDiscount;
+    // Net sale amount considering discount and returns.
+    // The discount applies to the overall bill, not per line item.
+    const { netTotal, profit } = calculateSaleTotals(sale);
 
-    totalSales += finalSaleNetTotal;
-    totalProfit += finalSaleProfit;
+    totalSales += netTotal;
+    totalProfit += profit;
 
     return {
       ...sale,
-      netTotalAmount: finalSaleNetTotal,
-      profit: finalSaleProfit,
+      netTotalAmount: netTotal,
+      profit,
       items,
     };
   });
@@ -226,21 +248,10 @@ const getMonthlySales = async ({ year }) => {
 
   sales.forEach((sale) => {
     const monthIndex = new Date(sale.createdAt).getMonth();
-    let saleProfit = 0;
-    let saleNetTotal = 0;
+    const { netTotal, profit } = calculateSaleTotals(sale);
 
-    sale.items.forEach((item) => {
-      const netQuantity = item.quantity - item.returnedQuantity;
-      saleProfit += (item.sellingPrice - item.costPrice) * netQuantity;
-      saleNetTotal += item.sellingPrice * netQuantity;
-    });
-
-    const extraDiscount = sale.extraDiscount || 0;
-    const finalSaleNetTotal = saleNetTotal - sale.discount - extraDiscount;
-    const finalSaleProfit = saleProfit - sale.discount - extraDiscount;
-
-    monthlyData[monthIndex].totalSales += finalSaleNetTotal;
-    monthlyData[monthIndex].totalProfit += finalSaleProfit;
+    monthlyData[monthIndex].totalSales += netTotal;
+    monthlyData[monthIndex].totalProfit += profit;
     monthlyData[monthIndex].orderCount += 1;
   });
 
@@ -294,21 +305,10 @@ const getDailySales = async ({ year, month }) => {
   sales.forEach((sale) => {
     // Date.getDate() returns 1-31. We subtract 1 to get the 0-based array index.
     const dayIndex = new Date(sale.createdAt).getDate() - 1;
-    let saleProfit = 0;
-    let saleNetTotal = 0;
+    const { netTotal, profit } = calculateSaleTotals(sale);
 
-    sale.items.forEach((item) => {
-      const netQuantity = item.quantity - item.returnedQuantity;
-      saleProfit += (item.sellingPrice - item.costPrice) * netQuantity;
-      saleNetTotal += item.sellingPrice * netQuantity;
-    });
-
-    const extraDiscount = sale.extraDiscount || 0;
-    const finalSaleNetTotal = saleNetTotal - sale.discount - extraDiscount;
-    const finalSaleProfit = saleProfit - sale.discount - extraDiscount;
-
-    dailyData[dayIndex].totalSales += finalSaleNetTotal;
-    dailyData[dayIndex].totalProfit += finalSaleProfit;
+    dailyData[dayIndex].totalSales += netTotal;
+    dailyData[dayIndex].totalProfit += profit;
     dailyData[dayIndex].orderCount += 1;
   });
 

@@ -1,4 +1,6 @@
+const { StatusCodes } = require('http-status-codes');
 const prisma = require('../../config/prisma');
+const { createHttpError } = require('../../shared/error/appError');
 
 const buildPathMap = (categories) => {
   const byId = new Map();
@@ -118,7 +120,9 @@ const getCategoryTree = async () => {
 const createCategory = async ({ name, parentId }) => {
   const trimmedName = name?.trim();
   if (!trimmedName || trimmedName.includes('/')) {
-    throw new Error('Invalid category name');
+    throw createHttpError(StatusCodes.BAD_REQUEST, 'Invalid category name', {
+      error: 'Invalid category name',
+    });
   }
   const exists = await prisma.category.findFirst({
     where: { name: trimmedName, parentId: parentId || null },
@@ -134,13 +138,17 @@ const createCategory = async ({ name, parentId }) => {
 const updateCategory = async (id, { name }) => {
   const trimmedName = name?.trim();
   if (!trimmedName || trimmedName.includes('/')) {
-    throw new Error('Invalid category name');
+    throw createHttpError(StatusCodes.BAD_REQUEST, 'Invalid category name', {
+      error: 'Invalid category name',
+    });
   }
   const categories = await prisma.category.findMany();
   const pathMap = buildPathMap(categories);
   const oldPath = pathMap.get(Number(id));
   if (!oldPath) {
-    throw new Error('Category not found');
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Category not found', {
+      error: 'Category not found',
+    });
   }
 
   const updated = await prisma.category.update({
@@ -185,7 +193,9 @@ const deleteCategory = async (id) => {
   const pathMap = buildPathMap(categories);
   const targetPath = pathMap.get(Number(id));
   if (!targetPath) {
-    throw new Error('Category not found');
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Category not found', {
+      error: 'Category not found',
+    });
   }
 
   const idsToDelete = categories

@@ -1,6 +1,5 @@
 const express = require('express');
 const purchaseController = require('./purchase.controller');
-const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
 const {
@@ -17,40 +16,40 @@ router
   .route('/')
   .post(
     validateRequest({ body: purchaseBodySchema }),
-    asyncHandler(purchaseController.createPurchase)
+    purchaseController.createPurchase
   )
   .get(
     validateRequest({ query: purchaseQuerySchema }),
-    asyncHandler(purchaseController.getPurchases)
+    purchaseController.getPurchases
   )
   .all(methodNotAllowed);
 router
   .route('/:id')
   .put(
     validateRequest({ params: purchaseIdParamSchema, body: purchaseUpdateBodySchema }),
-    asyncHandler(purchaseController.updatePurchase)
+    purchaseController.updatePurchase
   )
   .delete(
     validateRequest({ params: purchaseIdParamSchema }),
-    asyncHandler(purchaseController.deletePurchase)
+    purchaseController.deletePurchase
   )
   .all(methodNotAllowed);
 router
   .route('/:id/payments')
   .post(
     validateRequest({ params: purchaseIdParamSchema, body: paymentBodySchema }),
-    asyncHandler(purchaseController.addPayment)
+    purchaseController.addPayment
   )
   .all(methodNotAllowed);
 router
   .route('/payments/:id')
   .put(
     validateRequest({ params: purchaseIdParamSchema, body: paymentBodySchema }),
-    asyncHandler(purchaseController.updatePayment)
+    purchaseController.updatePayment
   )
   .delete(
     validateRequest({ params: purchaseIdParamSchema }),
-    asyncHandler(purchaseController.deletePayment)
+    purchaseController.deletePayment
   )
   .all(methodNotAllowed);
 

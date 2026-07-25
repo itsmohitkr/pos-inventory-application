@@ -1,6 +1,5 @@
 const express = require('express');
 const promotionController = require('./promotion.controller');
-const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
 const {
@@ -15,33 +14,33 @@ router
   .route('/promotions')
   .post(
     validateRequest({ body: promotionBodySchema }),
-    asyncHandler(promotionController.createPromotion)
+    promotionController.createPromotion
   )
-  .get(asyncHandler(promotionController.getAllPromotions))
+  .get(promotionController.getAllPromotions)
   .all(methodNotAllowed);
 router
   .route('/promotions/:id')
   .put(
     validateRequest({ params: promotionIdParamSchema, body: promotionBodySchema }),
-    asyncHandler(promotionController.updatePromotion)
+    promotionController.updatePromotion
   )
   .delete(
     validateRequest({ params: promotionIdParamSchema }),
-    asyncHandler(promotionController.deletePromotion)
+    promotionController.deletePromotion
   )
   .all(methodNotAllowed);
 router
   .route('/promotions/product-options/:productId')
   .get(
     validateRequest({ params: productIdParamSchema }),
-    asyncHandler(promotionController.getProductPricingOptions)
+    promotionController.getProductPricingOptions
   )
   .all(methodNotAllowed);
 router
   .route('/promotions/effective-price/:productId')
   .get(
     validateRequest({ params: productIdParamSchema }),
-    asyncHandler(promotionController.getEffectivePromoPrice)
+    promotionController.getEffectivePromoPrice
   )
   .all(methodNotAllowed);
 

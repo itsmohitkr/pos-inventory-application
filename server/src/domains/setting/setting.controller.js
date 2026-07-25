@@ -1,5 +1,6 @@
 const { StatusCodes } = require('http-status-codes');
 const settingService = require('./setting.service');
+const asyncHandler = require('../../shared/error/asyncHandler');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
 
 const getAllSettings = async (_req, res) => {
@@ -20,6 +21,6 @@ const updateSettings = async (req, res) => {
 };
 
 module.exports = {
-  getAllSettings,
-  updateSettings,
+  getAllSettings: asyncHandler(getAllSettings),
+  updateSettings: asyncHandler(updateSettings),
 };

@@ -1,131 +1,92 @@
 const { StatusCodes } = require('http-status-codes');
 const purchaseService = require('./purchase.service');
-const toAppError = require('../../shared/error/toAppError');
+const asyncHandler = require('../../shared/error/asyncHandler');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
 
-const mapPurchaseError = (error, defaultStatus = StatusCodes.INTERNAL_SERVER_ERROR) => {
-  throw toAppError(error, {
-    defaultStatus,
-    notFoundMessages: [
-      'Payment not found',
-      'Record to delete does not exist',
-      'Record to update not found',
-    ],
-  });
-};
-
 const createPurchase = async (req, res) => {
-  try {
-    const purchase = await purchaseService.createPurchase(req.body);
-    return sendSuccessResponse(
-      res,
-      StatusCodes.CREATED,
-      purchase,
-      'Purchase created successfully',
-      {
-        format: 'raw',
-      }
-    );
-  } catch (error) {
-    return mapPurchaseError(error);
-  }
+  const purchase = await purchaseService.createPurchase(req.body);
+  return sendSuccessResponse(
+    res,
+    StatusCodes.CREATED,
+    purchase,
+    'Purchase created successfully',
+    {
+      format: 'raw',
+    }
+  );
 };
 
 const getPurchases = async (req, res) => {
-  try {
-    const purchases = await purchaseService.getPurchases(req.query);
-    return sendSuccessResponse(res, StatusCodes.OK, purchases, 'Purchases fetched successfully', {
-      format: 'raw',
-    });
-  } catch (error) {
-    return mapPurchaseError(error);
-  }
+  const purchases = await purchaseService.getPurchases(req.query);
+  return sendSuccessResponse(res, StatusCodes.OK, purchases, 'Purchases fetched successfully', {
+    format: 'raw',
+  });
 };
 
 const deletePurchase = async (req, res) => {
-  try {
-    await purchaseService.deletePurchase(req.params.id);
-    return sendSuccessResponse(
-      res,
-      StatusCodes.OK,
-      { message: 'Purchase deleted successfully' },
-      'Purchase deleted successfully',
-      {
-        format: 'raw',
-      }
-    );
-  } catch (error) {
-    return mapPurchaseError(error);
-  }
+  await purchaseService.deletePurchase(req.params.id);
+  return sendSuccessResponse(
+    res,
+    StatusCodes.OK,
+    { message: 'Purchase deleted successfully' },
+    'Purchase deleted successfully',
+    {
+      format: 'raw',
+    }
+  );
 };
 
 const updatePurchase = async (req, res) => {
-  try {
-    const purchase = await purchaseService.updatePurchase(req.params.id, req.body);
-    return sendSuccessResponse(res, StatusCodes.OK, purchase, 'Purchase updated successfully', {
-      format: 'raw',
-    });
-  } catch (error) {
-    return mapPurchaseError(error);
-  }
+  const purchase = await purchaseService.updatePurchase(req.params.id, req.body);
+  return sendSuccessResponse(res, StatusCodes.OK, purchase, 'Purchase updated successfully', {
+    format: 'raw',
+  });
 };
 
 const addPayment = async (req, res) => {
-  try {
-    const payment = await purchaseService.addPayment(req.params.id, req.body);
-    return sendSuccessResponse(
-      res,
-      StatusCodes.CREATED,
-      payment,
-      'Purchase payment added successfully',
-      {
-        format: 'raw',
-      }
-    );
-  } catch (error) {
-    return mapPurchaseError(error);
-  }
+  const payment = await purchaseService.addPayment(req.params.id, req.body);
+  return sendSuccessResponse(
+    res,
+    StatusCodes.CREATED,
+    payment,
+    'Purchase payment added successfully',
+    {
+      format: 'raw',
+    }
+  );
 };
 
 const updatePayment = async (req, res) => {
-  try {
-    const payment = await purchaseService.updatePayment(req.params.id, req.body);
-    return sendSuccessResponse(
-      res,
-      StatusCodes.OK,
-      payment,
-      'Purchase payment updated successfully',
-      {
-        format: 'raw',
-      }
-    );
-  } catch (error) {
-    return mapPurchaseError(error);
-  }
+  const payment = await purchaseService.updatePayment(req.params.id, req.body);
+  return sendSuccessResponse(
+    res,
+    StatusCodes.OK,
+    payment,
+    'Purchase payment updated successfully',
+    {
+      format: 'raw',
+    }
+  );
 };
 
 const deletePayment = async (req, res) => {
-  try {
-    await purchaseService.deletePayment(req.params.id);
-    return sendSuccessResponse(
-      res,
-      StatusCodes.OK,
-      { message: 'Payment deleted successfully' },
-      'Payment deleted successfully',
-      {
-        format: 'raw',
-      }
-    );
-  } catch (error) {
-    return mapPurchaseError(error);
-  }
+  await purchaseService.deletePayment(req.params.id);
+  return sendSuccessResponse(
+    res,
+    StatusCodes.OK,
+    { message: 'Payment deleted successfully' },
+    'Payment deleted successfully',
+    {
+      format: 'raw',
+    }
+  );
 };
 module.exports = {
-  createPurchase,
-  getPurchases,
-  deletePurchase,
-  updatePurchase,
-  addPayment,
-  updatePayment,
-  deletePayment,
+  createPurchase: asyncHandler(createPurchase),
+  getPurchases: asyncHandler(getPurchases),
+  deletePurchase: asyncHandler(deletePurchase),
+  updatePurchase: asyncHandler(updatePurchase),
+  addPayment: asyncHandler(addPayment),
+  updatePayment: asyncHandler(updatePayment),
+  deletePayment: asyncHandler(deletePayment),
 };

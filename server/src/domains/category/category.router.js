@@ -1,6 +1,5 @@
 const express = require('express');
 const categoryController = require('./category.controller');
-const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
 const {
@@ -13,11 +12,8 @@ const router = express.Router();
 
 router
   .route('/categories')
-  .get(asyncHandler(categoryController.getCategories))
-  .post(
-    validateRequest({ body: createCategoryBodySchema }),
-    asyncHandler(categoryController.createCategory)
-  )
+  .get(categoryController.getCategories)
+  .post(validateRequest({ body: createCategoryBodySchema }), categoryController.createCategory)
   .all(methodNotAllowed);
 router
   .route('/categories/:id')
@@ -26,12 +22,9 @@ router
       params: categoryIdParamSchema,
       body: updateCategoryBodySchema,
     }),
-    asyncHandler(categoryController.updateCategory)
+    categoryController.updateCategory
   )
-  .delete(
-    validateRequest({ params: categoryIdParamSchema }),
-    asyncHandler(categoryController.deleteCategory)
-  )
+  .delete(validateRequest({ params: categoryIdParamSchema }), categoryController.deleteCategory)
   .all(methodNotAllowed);
 
 module.exports = router;

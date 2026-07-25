@@ -1,6 +1,5 @@
 const express = require('express');
 const looseSaleController = require('./loose-sale.controller');
-const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
 const {
@@ -15,21 +14,21 @@ router
   .route('/loose-sales')
   .post(
     validateRequest({ body: createLooseSaleBodySchema }),
-    asyncHandler(looseSaleController.createLooseSale)
+    looseSaleController.createLooseSale
   )
   .all(methodNotAllowed);
 router
   .route('/reports/loose-sales')
   .get(
     validateRequest({ query: looseSalesReportQuerySchema }),
-    asyncHandler(looseSaleController.getLooseSalesReport)
+    looseSaleController.getLooseSalesReport
   )
   .all(methodNotAllowed);
 router
   .route('/loose-sales/:id')
   .delete(
     validateRequest({ params: looseSaleIdParamSchema }),
-    asyncHandler(looseSaleController.deleteLooseSale)
+    looseSaleController.deleteLooseSale
   )
   .all(methodNotAllowed);
 

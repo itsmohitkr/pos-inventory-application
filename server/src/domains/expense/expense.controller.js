@@ -1,117 +1,78 @@
 const { StatusCodes } = require('http-status-codes');
 const expenseService = require('./expense.service');
-const toAppError = require('../../shared/error/toAppError');
+const asyncHandler = require('../../shared/error/asyncHandler');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
 
-const mapExpenseError = (error, defaultStatus = StatusCodes.INTERNAL_SERVER_ERROR) => {
-  throw toAppError(error, {
-    defaultStatus,
-    notFoundMessages: [
-      'Payment not found',
-      'Record to delete does not exist',
-      'Record to update not found',
-    ],
+const createExpense = async (req, res) => {
+  const expense = await expenseService.createExpense(req.body);
+  return sendSuccessResponse(res, StatusCodes.CREATED, expense, 'Expense created successfully', {
+    format: 'raw',
   });
 };
 
-const createExpense = async (req, res) => {
-  try {
-    const expense = await expenseService.createExpense(req.body);
-    return sendSuccessResponse(res, StatusCodes.CREATED, expense, 'Expense created successfully', {
-      format: 'raw',
-    });
-  } catch (error) {
-    return mapExpenseError(error);
-  }
-};
-
 const getExpenses = async (req, res) => {
-  try {
-    const expenses = await expenseService.getExpenses(req.query);
-    return sendSuccessResponse(res, StatusCodes.OK, expenses, 'Expenses fetched successfully', {
-      format: 'raw',
-    });
-  } catch (error) {
-    return mapExpenseError(error);
-  }
+  const expenses = await expenseService.getExpenses(req.query);
+  return sendSuccessResponse(res, StatusCodes.OK, expenses, 'Expenses fetched successfully', {
+    format: 'raw',
+  });
 };
 
 const deleteExpense = async (req, res) => {
-  try {
-    await expenseService.deleteExpense(req.params.id);
-    return sendSuccessResponse(res, StatusCodes.NO_CONTENT);
-  } catch (error) {
-    return mapExpenseError(error);
-  }
+  await expenseService.deleteExpense(req.params.id);
+  return sendSuccessResponse(res, StatusCodes.NO_CONTENT);
 };
 
 const updateExpense = async (req, res) => {
-  try {
-    const expense = await expenseService.updateExpense(req.params.id, req.body);
-    return sendSuccessResponse(res, StatusCodes.OK, expense, 'Expense updated successfully', {
-      format: 'raw',
-    });
-  } catch (error) {
-    return mapExpenseError(error);
-  }
+  const expense = await expenseService.updateExpense(req.params.id, req.body);
+  return sendSuccessResponse(res, StatusCodes.OK, expense, 'Expense updated successfully', {
+    format: 'raw',
+  });
 };
 
 const addPayment = async (req, res) => {
-  try {
-    const payment = await expenseService.addPayment(req.params.id, req.body);
-    return sendSuccessResponse(
-      res,
-      StatusCodes.CREATED,
-      payment,
-      'Expense payment added successfully',
-      {
-        format: 'raw',
-      }
-    );
-  } catch (error) {
-    return mapExpenseError(error);
-  }
+  const payment = await expenseService.addPayment(req.params.id, req.body);
+  return sendSuccessResponse(
+    res,
+    StatusCodes.CREATED,
+    payment,
+    'Expense payment added successfully',
+    {
+      format: 'raw',
+    }
+  );
 };
 
 const updatePayment = async (req, res) => {
-  try {
-    const payment = await expenseService.updatePayment(req.params.id, req.body);
-    return sendSuccessResponse(
-      res,
-      StatusCodes.OK,
-      payment,
-      'Expense payment updated successfully',
-      {
-        format: 'raw',
-      }
-    );
-  } catch (error) {
-    return mapExpenseError(error);
-  }
+  const payment = await expenseService.updatePayment(req.params.id, req.body);
+  return sendSuccessResponse(
+    res,
+    StatusCodes.OK,
+    payment,
+    'Expense payment updated successfully',
+    {
+      format: 'raw',
+    }
+  );
 };
 
 const deletePayment = async (req, res) => {
-  try {
-    await expenseService.deletePayment(req.params.id);
-    return sendSuccessResponse(
-      res,
-      StatusCodes.OK,
-      { message: 'Payment deleted successfully' },
-      'Payment deleted successfully',
-      {
-        format: 'raw',
-      }
-    );
-  } catch (error) {
-    return mapExpenseError(error);
-  }
+  await expenseService.deletePayment(req.params.id);
+  return sendSuccessResponse(
+    res,
+    StatusCodes.OK,
+    { message: 'Payment deleted successfully' },
+    'Payment deleted successfully',
+    {
+      format: 'raw',
+    }
+  );
 };
 module.exports = {
-  createExpense,
-  getExpenses,
-  deleteExpense,
-  updateExpense,
-  addPayment,
-  updatePayment,
-  deletePayment,
+  createExpense: asyncHandler(createExpense),
+  getExpenses: asyncHandler(getExpenses),
+  deleteExpense: asyncHandler(deleteExpense),
+  updateExpense: asyncHandler(updateExpense),
+  addPayment: asyncHandler(addPayment),
+  updatePayment: asyncHandler(updatePayment),
+  deletePayment: asyncHandler(deletePayment),
 };

@@ -1,5 +1,6 @@
 const { StatusCodes, ReasonPhrases } = require('http-status-codes');
 const { sendErrorResponse } = require('../utils/helper/responseHelpers');
+const toAppError = require('./toAppError');
 const logger = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
@@ -7,15 +8,23 @@ const errorHandler = (err, req, res, next) => {
     return next(err);
   }
 
-  const statusCode = Number(err?.statusCode || err?.status || StatusCodes.INTERNAL_SERVER_ERROR);
+  // Errors that already carry a status (AppError, or anything with `status`) pass
+  // through untouched. Raw Prisma errors (P2002/P2003/P2025) have no status, so
+  // toAppError maps them centrally — this is what lets services throw typed errors
+  // and controllers stay free of per-domain error mapping.
+  const appError = err?.statusCode || err?.status ? err : toAppError(err);
+
+  const statusCode = Number(
+    appError?.statusCode || appError?.status || StatusCodes.INTERNAL_SERVER_ERROR
+  );
   const message =
-    err?.message ||
+    appError?.message ||
     (statusCode >= StatusCodes.INTERNAL_SERVER_ERROR
       ? ReasonPhrases.INTERNAL_SERVER_ERROR
       : 'Request failed');
   const errorLabel =
-    err?.error ||
-    err?.name ||
+    appError?.error ||
+    appError?.name ||
     (statusCode >= StatusCodes.INTERNAL_SERVER_ERROR
       ? ReasonPhrases.INTERNAL_SERVER_ERROR
       : 'Request Failed');
@@ -23,7 +32,7 @@ const errorHandler = (err, req, res, next) => {
   logger.error({ err, path: req.path, method: req.method }, 'Request error occurred');
 
   return sendErrorResponse(res, statusCode, message, errorLabel, {
-    details: err?.details,
+    details: appError?.details ?? err?.details,
     meta: process.env.NODE_ENV === 'development' && err?.stack ? { stack: err.stack } : {},
   });
 };

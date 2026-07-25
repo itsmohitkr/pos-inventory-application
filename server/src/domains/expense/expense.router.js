@@ -1,6 +1,5 @@
 const express = require('express');
 const expenseController = require('./expense.controller');
-const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
 const {
@@ -15,18 +14,18 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validateRequest({ body: expenseBodySchema }), asyncHandler(expenseController.createExpense))
-  .get(validateRequest({ query: expenseQuerySchema }), asyncHandler(expenseController.getExpenses))
+  .post(validateRequest({ body: expenseBodySchema }), expenseController.createExpense)
+  .get(validateRequest({ query: expenseQuerySchema }), expenseController.getExpenses)
   .all(methodNotAllowed);
 router
   .route('/:id')
   .put(
     validateRequest({ params: expenseIdParamSchema, body: expenseUpdateBodySchema }),
-    asyncHandler(expenseController.updateExpense)
+    expenseController.updateExpense
   )
   .delete(
     validateRequest({ params: expenseIdParamSchema }),
-    asyncHandler(expenseController.deleteExpense)
+    expenseController.deleteExpense
   )
   .all(methodNotAllowed);
 
@@ -35,18 +34,18 @@ router
   .route('/:id/payments')
   .post(
     validateRequest({ params: expenseIdParamSchema, body: paymentBodySchema }),
-    asyncHandler(expenseController.addPayment)
+    expenseController.addPayment
   )
   .all(methodNotAllowed);
 router
   .route('/payments/:id')
   .put(
     validateRequest({ params: expenseIdParamSchema, body: paymentBodySchema }),
-    asyncHandler(expenseController.updatePayment)
+    expenseController.updatePayment
   )
   .delete(
     validateRequest({ params: expenseIdParamSchema }),
-    asyncHandler(expenseController.deletePayment)
+    expenseController.deletePayment
   )
   .all(methodNotAllowed);
 

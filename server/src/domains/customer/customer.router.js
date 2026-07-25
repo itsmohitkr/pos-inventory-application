@@ -1,6 +1,5 @@
 const express = require('express');
 const customerController = require('./customer.controller');
-const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
 const {
@@ -15,10 +14,10 @@ const router = express.Router();
 
 router
   .route('/')
-  .get(asyncHandler(customerController.getAllCustomers))
+  .get(customerController.getAllCustomers)
   .post(
     validateRequest({ body: findOrCreateBodySchema }),
-    asyncHandler(customerController.findOrCreate)
+    customerController.findOrCreate
   )
   .all(methodNotAllowed);
 
@@ -26,7 +25,7 @@ router
   .route('/barcode/:barcode')
   .get(
     validateRequest({ params: barcodeParamSchema }),
-    asyncHandler(customerController.getByBarcode)
+    customerController.getByBarcode
   )
   .all(methodNotAllowed);
 
@@ -34,7 +33,7 @@ router
   .route('/phone/:phone')
   .get(
     validateRequest({ params: phoneParamSchema }),
-    asyncHandler(customerController.getByPhone)
+    customerController.getByPhone
   )
   .all(methodNotAllowed);
 
@@ -42,11 +41,11 @@ router
   .route('/:id')
   .get(
     validateRequest({ params: customerIdParamSchema }),
-    asyncHandler(customerController.getCustomerById)
+    customerController.getCustomerById
   )
   .put(
     validateRequest({ params: customerIdParamSchema, body: updateCustomerBodySchema }),
-    asyncHandler(customerController.updateCustomer)
+    customerController.updateCustomer
   )
   .all(methodNotAllowed);
 
@@ -54,7 +53,7 @@ router
   .route('/:id/history')
   .get(
     validateRequest({ params: customerIdParamSchema }),
-    asyncHandler(customerController.getPurchaseHistory)
+    customerController.getPurchaseHistory
   )
   .all(methodNotAllowed);
 

@@ -346,12 +346,19 @@ function gatingMiddleware(req, res, next) {
 
   // If not ready, we could either return 503 or wait.
   // Waiting is better for UX as it avoids a 'retry' loop in the frontend.
+  // Both timers are cleared on every exit path — otherwise each request that
+  // arrives during boot leaves a 30s timer pinned to a closed response.
+  const cleanup = () => {
+    clearInterval(checkReady);
+    clearTimeout(bootTimeout);
+  };
+
   const checkReady = setInterval(() => {
     if (isSystemReady) {
-      clearInterval(checkReady);
+      cleanup();
       next();
     } else if (systemError) {
-      clearInterval(checkReady);
+      cleanup();
       res.status(503).json({
         error: 'System failed to initialize during boot',
         details: systemError.message,
@@ -360,12 +367,15 @@ function gatingMiddleware(req, res, next) {
   }, 500);
 
   // Safety timeout for the request itself (30s)
-  setTimeout(() => {
+  const bootTimeout = setTimeout(() => {
+    cleanup();
     if (!isSystemReady && !res.headersSent) {
-      clearInterval(checkReady);
       res.status(503).json({ error: 'System boot timeout' });
     }
   }, 30000);
+
+  // If the client disconnects while waiting, stop polling on its behalf.
+  res.on('close', cleanup);
 }
 
 async function main() {

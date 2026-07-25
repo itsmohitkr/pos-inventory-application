@@ -1,15 +1,7 @@
 const { StatusCodes } = require('http-status-codes');
 const categoryService = require('./category.service');
-const toAppError = require('../../shared/error/toAppError');
+const asyncHandler = require('../../shared/error/asyncHandler');
 const { sendSuccessResponse } = require('../../shared/utils/helper/responseHelpers');
-
-const mapCategoryError = (error) => {
-  throw toAppError(error, {
-    defaultStatus: StatusCodes.INTERNAL_SERVER_ERROR,
-    notFoundMessages: ['Category not found'],
-    badRequestMessages: ['Invalid category name'],
-  });
-};
 
 const getCategories = async (_req, res) => {
   const data = await categoryService.getCategoryTree();
@@ -17,35 +9,23 @@ const getCategories = async (_req, res) => {
 };
 
 const createCategory = async (req, res) => {
-  try {
-    const category = await categoryService.createCategory(req.body);
-    return sendSuccessResponse(res, StatusCodes.CREATED, category, 'Category saved successfully');
-  } catch (error) {
-    return mapCategoryError(error);
-  }
+  const category = await categoryService.createCategory(req.body);
+  return sendSuccessResponse(res, StatusCodes.CREATED, category, 'Category saved successfully');
 };
-
+ 
 const updateCategory = async (req, res) => {
-  try {
-    const category = await categoryService.updateCategory(req.params.id, req.body);
-    return sendSuccessResponse(res, StatusCodes.OK, category, 'Category updated successfully');
-  } catch (error) {
-    return mapCategoryError(error);
-  }
+  const category = await categoryService.updateCategory(req.params.id, req.body);
+  return sendSuccessResponse(res, StatusCodes.OK, category, 'Category updated successfully');
 };
 
 const deleteCategory = async (req, res) => {
-  try {
-    await categoryService.deleteCategory(req.params.id);
-    return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Category deleted');
-  } catch (error) {
-    return mapCategoryError(error);
-  }
+  await categoryService.deleteCategory(req.params.id);
+  return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Category deleted');
 };
 
 module.exports = {
-  getCategories,
-  createCategory,
-  updateCategory,
-  deleteCategory,
+  getCategories: asyncHandler(getCategories),
+  createCategory: asyncHandler(createCategory),
+  updateCategory: asyncHandler(updateCategory),
+  deleteCategory: asyncHandler(deleteCategory),
 };

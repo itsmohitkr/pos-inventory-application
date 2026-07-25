@@ -1,6 +1,5 @@
 const express = require('express');
 const reportController = require('./report.controller');
-const asyncHandler = require('../../shared/error/asyncHandler');
 const methodNotAllowed = require('../../shared/error/methodNotAllowed');
 const { validateRequest } = require('../../shared/middleware/validateRequest');
 const {
@@ -13,36 +12,27 @@ const router = express.Router();
 
 router
   .route('/reports')
-  .get(validateRequest({ query: dateRangeQuerySchema }), asyncHandler(reportController.getReports))
+  .get(validateRequest({ query: dateRangeQuerySchema }), reportController.getReports)
   .all(methodNotAllowed);
 router
   .route('/reports/expiry')
-  .get(
-    validateRequest({ query: dateRangeQuerySchema }),
-    asyncHandler(reportController.getExpiryReport)
-  )
+  .get(validateRequest({ query: dateRangeQuerySchema }), reportController.getExpiryReport)
   .all(methodNotAllowed);
 router
   .route('/reports/low-stock')
-  .get(asyncHandler(reportController.getLowStockReport))
+  .get(reportController.getLowStockReport)
   .all(methodNotAllowed);
 router
   .route('/reports/monthly')
-  .get(
-    validateRequest({ query: monthlySalesQuerySchema }),
-    asyncHandler(reportController.getMonthlySales)
-  )
+  .get(validateRequest({ query: monthlySalesQuerySchema }), reportController.getMonthlySales)
   .all(methodNotAllowed);
 router
   .route('/reports/daily')
-  .get(
-    validateRequest({ query: dailySalesQuerySchema }),
-    asyncHandler(reportController.getDailySales)
-  )
+  .get(validateRequest({ query: dailySalesQuerySchema }), reportController.getDailySales)
   .all(methodNotAllowed);
 router
   .route('/reports/top-selling')
-  .get(asyncHandler(reportController.getTopSellingProducts))
+  .get(reportController.getTopSellingProducts)
   .all(methodNotAllowed);
 
 module.exports = router;

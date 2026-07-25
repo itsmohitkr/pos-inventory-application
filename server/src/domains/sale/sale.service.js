@@ -1,4 +1,7 @@
-  const prisma = require('../../config/prisma');
+const { StatusCodes } = require('http-status-codes');
+const prisma = require('../../config/prisma');
+const { createHttpError } = require('../../shared/error/appError');
+const settingService = require('../setting/setting.service');
 
 /**
  * Fetches all effective promotion prices for a list of product IDs at a given date.
@@ -36,6 +39,8 @@ const getBulkEffectivePromoPrices = async (tx, productIds, date = new Date()) =>
 };
 
 const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMethod = 'Cash', customerId = null }) => {
+  const receiptSettings = (await settingService.getSettingByKey('posReceiptSettings')) || {};
+
   return await prisma.$transaction(async (tx) => {
     let totalAmount = 0;
     const saleItemsData = [];
@@ -58,22 +63,21 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
       const batch = batchMap.get(item.batch_id);
 
       if (!batch) {
-        throw new Error(`Batch ID ${item.batch_id} not found.`);
+        const message = `Batch ID ${item.batch_id} not found.`;
+        throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
       }
 
       if (batch.expiryDate && new Date(batch.expiryDate) < new Date()) {
         const productName = batch.product?.name || 'Unknown Product';
         const expiredOn = new Date(batch.expiryDate).toLocaleDateString();
-        throw new Error(
-          `Cannot sell "${productName}" — batch ${batch.batchCode || batch.id} expired on ${expiredOn}. Remove it from the cart.`
-        );
+        const message = `Cannot sell "${productName}" — batch ${batch.batchCode || batch.id} expired on ${expiredOn}. Remove it from the cart.`;
+        throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
       }
 
       if (batch.quantity < item.quantity) {
         const productName = batch.product?.name || 'Unknown Product';
-        throw new Error(
-          `Insufficient stock for ${productName} (Batch ID ${item.batch_id}). Available: ${batch.quantity}, Required: ${item.quantity}.`
-        );
+        const message = `Insufficient stock for ${productName} (Batch ID ${item.batch_id}). Available: ${batch.quantity}, Required: ${item.quantity}.`;
+        throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
       }
 
       // Update stock
@@ -130,8 +134,18 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
       });
     }
 
-    const settingService = require('../setting/setting.service');
-    const receiptSettings = (await settingService.getSettingByKey('posReceiptSettings')) || {};
+    // Guard against a discount larger than the cart. Without this the total is
+    // silently clamped to 0 below, recording a zero-value sale that still
+    // decrements stock — indistinguishable from a legitimate free sale.
+    // Epsilon tolerance keeps an exact 100% discount valid despite float drift
+    // in the accumulated totalAmount.
+    const totalDiscount = discount + extraDiscount;
+    if (totalDiscount > totalAmount + 0.001) {
+      const message =
+        `Discount (${totalDiscount.toFixed(2)}) cannot exceed the cart total ` +
+        `(${totalAmount.toFixed(2)}).`;
+      throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
+    }
 
     const finalAmountBeforeRounding = totalAmount - discount - extraDiscount;
     const finalAmount = receiptSettings.roundOff
@@ -223,22 +237,30 @@ const processReturn = async (saleId, returnItems) => {
   return await prisma.$transaction(async (tx) => {
     let totalRefundAmount = 0;
     
-    // Fetch the sale to get customerId
     const sale = await tx.sale.findUnique({
       where: { id: parseInt(saleId) },
       select: { customerId: true }
     });
+
+    if (!sale) {
+      const message = `Sale ${saleId} not found`;
+      throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
+    }
 
     for (const item of returnItems) {
       const saleItem = await tx.saleItem.findUnique({
         where: { id: item.saleItemId },
       });
 
-      if (!saleItem) throw new Error(`Sale item ${item.saleItemId} not found`);
+      if (!saleItem) {
+        const message = `Sale item ${item.saleItemId} not found`;
+        throw createHttpError(StatusCodes.NOT_FOUND, message, { error: message });
+      }
 
       const remainingQty = saleItem.quantity - saleItem.returnedQuantity;
       if (item.quantity > remainingQty) {
-        throw new Error(`Cannot return more than sold quantity for item ${saleItem.id}`);
+        const message = `Cannot return more than sold quantity for item ${saleItem.id}`;
+        throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
       }
 
       // Calculate refund for this item (based on historical selling price)

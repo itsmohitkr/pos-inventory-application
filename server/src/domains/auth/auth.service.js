@@ -255,6 +255,7 @@ const wipeDatabase = async ({ username, password }) => {
     await deleteTable('purchaseItem');
     await deleteTable('purchase');
     await deleteTable('expense');
+    await deleteTable('customer');
 
     try {
       await tx.category.deleteMany({ where: { parentId: { not: null } } });
@@ -323,6 +324,8 @@ const verifyAdmin = async ({ password }) => {
 const ONBOARDING_VERSION = 1;
 
 const completeOnboarding = async ({ shopName, address, phone, phone2, email, gst, logo, adminPassword }) => {
+  const hashed = await bcrypt.hash(adminPassword, SALT_ROUNDS);
+
   await prisma.$transaction(async (tx) => {
     const existing = await tx.shop.findFirst();
     if (existing) {
@@ -340,7 +343,6 @@ const completeOnboarding = async ({ shopName, address, phone, phone2, email, gst
     if (!admin) {
       throw createHttpError(StatusCodes.INTERNAL_SERVER_ERROR, 'No admin user found');
     }
-    const hashed = await bcrypt.hash(adminPassword, SALT_ROUNDS);
     await tx.user.update({ where: { id: admin.id }, data: { password: hashed } });
 
     await tx.setting.upsert({
