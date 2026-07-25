@@ -1,0 +1,27 @@
+{
+  "extends": "../tsconfig.base.json",
+  "//": [
+    "Vite transpiles TS itself, so tsc is used only as a type checker (noEmit).",
+    "`npm run typecheck` is the CI gate; `vite build` does not type-check."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+
+    // Mirrors the `@` alias in vite.config.js — keep both in sync.
+    // No baseUrl: it is deprecated in TS 6; `paths` resolves relative to this file.
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client", "vitest/globals"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests-e2e"]
+}

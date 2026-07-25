@@ -28,10 +28,21 @@ jobs:
       - name: Install Server Dependencies
         run: cd server && npm ci
 
+      # 0. TYPE CHECKING
+      # Gates the TypeScript migration. Passes trivially while the codebase is
+      # still JavaScript (allowJs + checkJs:false), and becomes a real gate as
+      # files are converted. A type regression must not reach a release.
+      - name: Typecheck Desktop
+        run: npm run typecheck
+      - name: Typecheck Server
+        run: cd server && npm run typecheck
+      - name: Typecheck Client
+        run: cd client && npm run typecheck
+
       # 1. LINTING
       - name: Lint Client
         run: cd client && npm run lint
-      
+
       # 2. PRISMA & DATABASE INTEGRITY
       - name: Validate Prisma Schema
         run: |

@@ -17,7 +17,9 @@
     "server": "cd server && npm run dev",
     "dev": "concurrently \"npm run client-dev\" \"npm run server\"",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "typecheck": "tsc -p desktop --noEmit",
+    "typecheck:all": "npm run typecheck && npm --prefix server run typecheck && npm --prefix client run typecheck"
   },
   "keywords": [],
   "devDependencies": {
@@ -28,6 +30,7 @@
     "electron-is-dev": "^3.0.1",
     "fs-extra": "^11.3.3",
     "prettier": "^3.8.2",
+    "typescript": "^6.0.3",
     "wait-on": "^7.0.1"
   },
   "type": "commonjs",

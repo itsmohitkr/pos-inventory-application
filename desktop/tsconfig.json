@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "//": [
+    "Electron main + preload. Type-check only for now (noEmit) — desktop/ is",
+    "Phase 7 and stays .js until then. main.js holds the Prisma engine path",
+    "resolution, the Windows `file:C:/path` DATABASE_URL format, and asar path",
+    "joins, none of which are covered by tests."
+  ],
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "noEmit": true,
+    "types": ["node", "electron"]
+  },
+  "include": ["**/*"],
+  "exclude": ["node_modules"]
+}

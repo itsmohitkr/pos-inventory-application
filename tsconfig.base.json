@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": [
+    "Shared TypeScript settings for client/, server/, and desktop/.",
+    "",
+    "MIGRATION STATE: loose on purpose. allowJs lets .js and .ts coexist so the",
+    "codebase is never in a half-converted broken state, and strict is off so",
+    "converted files do not have to satisfy strict null checks on day one.",
+    "",
+    "Strict flags are enabled one at a time in Phase 8, once conversion is done.",
+    "Do NOT flip strict:true here mid-migration — it turns every unconverted",
+    "boundary into an error at once."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    "allowJs": true,
+    "checkJs": false,
+
+    "strict": false,
+    "noImplicitAny": false,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    "declaration": false,
+    "sourceMap": true,
+    "pretty": true
+  }
+}

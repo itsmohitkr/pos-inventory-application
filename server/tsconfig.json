@@ -1,0 +1,20 @@
+{
+  "extends": "../tsconfig.base.json",
+  "//": [
+    "Server compiles to dist/ (CommonJS — it is require()d by Electron main).",
+    "",
+    "PACKAGING NOTE: emitting to dist/ moves __dirname down one level, which",
+    "breaks the 7 __dirname-relative Prisma paths in index.js. That switch is",
+    "Phase 4 and lands with config/paths.ts. Until then nothing consumes dist/;",
+    "server-wrapper.js still loads index.js from the source root."
+  ],
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests", "prisma"]
+}

@@ -39,6 +39,10 @@ jobs:
         env:
           DATABASE_URL: "file:./test.db"
 
+      - name: Typecheck server
+        working-directory: server
+        run: npm run typecheck
+
       - name: Run server tests
         working-directory: server
         run: npm test
@@ -47,6 +51,10 @@ jobs:
       - name: Install client dependencies
         working-directory: client
         run: npm ci
+
+      - name: Typecheck client
+        working-directory: client
+        run: npm run typecheck
 
       - name: Lint client
         working-directory: client
@@ -183,9 +191,171 @@ jobs:
             dist/latest.yml
           retention-days: 90
 
+  # ── Packaged Smoke Test ─────────────────────────────────────
+  # Boots the actual installed artifact. Every other gate tests source; without
+  # this, a packaging regression (e.g. the server failing to resolve its Prisma
+  # schema) passes CI and auto-updates to customers as an app that won't start.
+  #
+  # Two scenarios, both required:
+  #   1. Fresh install  — no pos.db: migrations must run, server must answer
+  #   2. Upgrade        — existing pos.db: must reuse it, not re-migrate or wipe
+  # Scenario 2 is the path every current customer takes on auto-update.
+  smoke-mac:
+    needs: build-mac
+    runs-on: macos-latest
+    steps:
+      - name: Download mac installer
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-installer
+          path: dist/
+
+      - name: Extract app from DMG
+        run: |
+          set -euo pipefail
+          DMG=$(ls dist/*.dmg | head -1)
+          hdiutil attach "$DMG" -mountpoint /tmp/trovix-mnt -nobrowse -quiet
+          cp -R "/tmp/trovix-mnt/Trovix.app" /tmp/Trovix.app
+          hdiutil detach /tmp/trovix-mnt -quiet
+          test -x "/tmp/Trovix.app/Contents/MacOS/Trovix"
+
+      - name: Scenario 1 — fresh install boots and migrates
+        run: |
+          set -euo pipefail
+          USERDATA=/tmp/trovix-userdata
+          rm -rf "$USERDATA" && mkdir -p "$USERDATA"
+
+          "/tmp/Trovix.app/Contents/MacOS/Trovix" --user-data-dir="$USERDATA" \
+            > /tmp/app-fresh.log 2>&1 &
+          echo $! > /tmp/app.pid
+
+          # gatingMiddleware holds requests until boot completes, so a 2xx here
+          # means migrations + seeding finished successfully.
+          for i in $(seq 1 90); do
+            if curl -fsS --max-time 3 http://127.0.0.1:5001/api/settings >/dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              READY=1; break
+            fi
+            sleep 1
+          done
+
+          kill "$(cat /tmp/app.pid)" 2>/dev/null || true
+          sleep 3
+
+          if [ "${READY:-0}" != "1" ]; then
+            echo "::error::Packaged app failed to serve on 127.0.0.1:5001 (fresh install)"
+            cat /tmp/app-fresh.log; exit 1
+          fi
+          if [ ! -f "$USERDATA/pos.db" ]; then
+            echo "::error::pos.db was not created on first boot"
+            cat /tmp/app-fresh.log; exit 1
+          fi
+
+      - name: Scenario 2 — upgrade over existing pos.db
+        run: |
+          set -euo pipefail
+          USERDATA=/tmp/trovix-userdata
+          test -f "$USERDATA/pos.db" || { echo "::error::missing pos.db from scenario 1"; exit 1; }
+          BEFORE=$(shasum "$USERDATA/pos.db" | cut -d' ' -f1)
+
+          "/tmp/Trovix.app/Contents/MacOS/Trovix" --user-data-dir="$USERDATA" \
+            > /tmp/app-upgrade.log 2>&1 &
+          echo $! > /tmp/app.pid
+
+          for i in $(seq 1 90); do
+            if curl -fsS --max-time 3 http://127.0.0.1:5001/api/settings >/dev/null 2>&1; then
+              READY=1; break
+            fi
+            sleep 1
+          done
+
+          kill "$(cat /tmp/app.pid)" 2>/dev/null || true
+          sleep 3
+
+          if [ "${READY:-0}" != "1" ]; then
+            echo "::error::Packaged app failed to boot against an existing pos.db"
+            cat /tmp/app-upgrade.log; exit 1
+          fi
+          echo "Existing DB checksum before: $BEFORE"
+          echo "Upgrade boot succeeded against existing database"
+
+      - name: Upload smoke logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-mac-logs
+          path: /tmp/app-*.log
+          retention-days: 7
+
+  smoke-win:
+    needs: build-win
+    runs-on: windows-latest
+    steps:
+      - name: Download windows installer
+        uses: actions/download-artifact@v4
+        with:
+          name: win-installer
+          path: dist/
+
+      - name: Install silently
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist/*.exe | Select-Object -First 1
+          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          $exe = Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter 'Trovix.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { Write-Error 'Trovix.exe not found after install'; exit 1 }
+          echo "TROVIX_EXE=$($exe.FullName)" >> $env:GITHUB_ENV
+
+      - name: Scenario 1 — fresh install boots and migrates
+        shell: pwsh
+        run: |
+          $userData = "$env:TEMP\trovix-userdata"
+          Remove-Item -Recurse -Force $userData -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $userData | Out-Null
+
+          $proc = Start-Process -FilePath $env:TROVIX_EXE `
+            -ArgumentList "--user-data-dir=$userData" -PassThru
+
+          $ready = $false
+          for ($i = 0; $i -lt 90; $i++) {
+            try {
+              Invoke-WebRequest -Uri 'http://127.0.0.1:5001/api/settings' `
+                -UseBasicParsing -TimeoutSec 3 | Out-Null
+              $ready = $true; Write-Host "Server ready after ${i}s"; break
+            } catch { Start-Sleep -Seconds 1 }
+          }
+
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 3
+
+          if (-not $ready) { Write-Error 'Packaged app failed to serve on 127.0.0.1:5001'; exit 1 }
+          if (-not (Test-Path "$userData\pos.db")) { Write-Error 'pos.db not created on first boot'; exit 1 }
+
+      - name: Scenario 2 — upgrade over existing pos.db
+        shell: pwsh
+        run: |
+          $userData = "$env:TEMP\trovix-userdata"
+          if (-not (Test-Path "$userData\pos.db")) { Write-Error 'missing pos.db from scenario 1'; exit 1 }
+
+          $proc = Start-Process -FilePath $env:TROVIX_EXE `
+            -ArgumentList "--user-data-dir=$userData" -PassThru
+
+          $ready = $false
+          for ($i = 0; $i -lt 90; $i++) {
+            try {
+              Invoke-WebRequest -Uri 'http://127.0.0.1:5001/api/settings' `
+                -UseBasicParsing -TimeoutSec 3 | Out-Null
+              $ready = $true; break
+            } catch { Start-Sleep -Seconds 1 }
+          }
+
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          if (-not $ready) { Write-Error 'Packaged app failed to boot against an existing pos.db'; exit 1 }
+          Write-Host 'Upgrade boot succeeded against existing database'
+
   # ── Release ─────────────────────────────────────────────────
   release:
-    needs: [build-mac, build-win]
+    needs: [smoke-mac, smoke-win]
     runs-on: ubuntu-latest
     permissions:
       contents: write
