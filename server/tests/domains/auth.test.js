@@ -185,6 +185,31 @@ describe('Auth Domain API', () => {
             );
         });
 
+        it('refuses to run a second time and leaves the admin password intact', async () => {
+            // This endpoint is unauthenticated by necessity — it must work before
+            // any admin exists. Without a completed-onboarding guard it stays
+            // callable forever, letting any local caller (e.g. a cashier using
+            // the app's devtools) reset the owner's admin password.
+            prisma.setting.findUnique.mockResolvedValue({
+                key: 'onboardingVersion',
+                value: '1',
+            });
+            prisma.$transaction.mockImplementation((cb) => cb(prisma));
+
+            const res = await request(app)
+                .post('/api/auth/complete-onboarding')
+                .send({ shopName: 'Attacker Shop', adminPassword: 'takeover123' });
+
+            expect(res.status).toBe(403);
+            expect(res.body.message).toMatch(/already been completed/i);
+
+            // The critical assertion: nothing was written.
+            expect(prisma.user.update).not.toHaveBeenCalled();
+            expect(prisma.shop.create).not.toHaveBeenCalled();
+            expect(prisma.shop.update).not.toHaveBeenCalled();
+            expect(prisma.setting.upsert).not.toHaveBeenCalled();
+        });
+
         it('rejects missing shopName with 400', async () => {
             const res = await request(app)
                 .post('/api/auth/complete-onboarding')
@@ -249,10 +274,22 @@ describe('Auth Domain API', () => {
             prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
             prisma.user.update.mockResolvedValue({ id: 1 });
             prisma.setting.upsert.mockResolvedValue({});
-            prisma.setting.findUnique.mockResolvedValue({
-                key: 'posReceiptSettings',
-                value: JSON.stringify({ customHeader: 'My Custom Tagline', customShopName: 'Old Name' }),
-            });
+            // Keyed rather than blanket: completeOnboarding now reads
+            // onboardingVersion as a guard, so it must resolve to null here
+            // while posReceiptSettings still returns the existing value.
+            prisma.setting.findUnique.mockImplementation(({ where }) =>
+                Promise.resolve(
+                    where.key === 'posReceiptSettings'
+                        ? {
+                              key: 'posReceiptSettings',
+                              value: JSON.stringify({
+                                  customHeader: 'My Custom Tagline',
+                                  customShopName: 'Old Name',
+                              }),
+                          }
+                        : null
+                )
+            );
             prisma.$transaction.mockImplementation((cb) => cb(prisma));
 
             const res = await request(app)

@@ -330,6 +330,27 @@ const completeOnboarding = async ({ shopName, address, phone, phone2, email, gst
   const hashed = await bcrypt.hash(adminPassword, SALT_ROUNDS);
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // This endpoint resets the admin password and is unauthenticated, because
+    // it must be callable before any admin exists to authenticate against.
+    //
+    // Without this guard it stays callable forever: any local caller — a
+    // cashier using the app's own devtools — could POST here and take over the
+    // owner's admin account, defeating the admin/cashier separation the rest
+    // of the app relies on (admin elevation, wipe-database, user management).
+    //
+    // The check runs inside the same transaction as the write, so two
+    // concurrent calls cannot both pass it.
+    const alreadyOnboarded = await tx.setting.findUnique({
+      where: { key: 'onboardingVersion' },
+    });
+    if (alreadyOnboarded) {
+      throw createHttpError(
+        StatusCodes.FORBIDDEN,
+        'Onboarding has already been completed',
+        { error: 'Onboarding has already been completed' }
+      );
+    }
+
     const existing = await tx.shop.findFirst();
     if (existing) {
       await tx.shop.update({
