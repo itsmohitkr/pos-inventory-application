@@ -39,6 +39,44 @@ const getBulkEffectivePromoPrices = async (tx, productIds, date = new Date()) =>
   return priceMap;
 };
 
+/**
+ * The batch/product projection attached to every returned sale item.
+ *
+ * Extracted because processSale and getSaleById used byte-identical copies.
+ * `satisfies` keeps it checked against the schema while preserving the literal
+ * type, so Prisma.SaleGetPayload below derives the exact runtime shape rather
+ * than a hand-written duplicate that could drift from the query.
+ */
+const saleItemsInclude = {
+  include: {
+    batch: {
+      select: {
+        id: true,
+        batchCode: true,
+        expiryDate: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+            barcode: true,
+            category: true,
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.SaleInclude['items'];
+
+/** Sale as returned by processSale — includes the linked customer. */
+export type SaleWithCustomer = Prisma.SaleGetPayload<{
+  include: { customer: true; items: typeof saleItemsInclude };
+}>;
+
+/** Sale as returned by getSaleById — no customer relation. */
+export type SaleWithItems = Prisma.SaleGetPayload<{
+  include: { items: typeof saleItemsInclude };
+}>;
+
 const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMethod = 'Cash', customerId = null }) => {
   const receiptSettings = (await settingService.getSettingByKey('posReceiptSettings')) || {};
 
@@ -166,25 +204,7 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
       },
       include: {
         customer: true,
-        items: {
-          include: {
-            batch: {
-              select: {
-                id: true,
-                batchCode: true,
-                expiryDate: true,
-                product: {
-                  select: {
-                    id: true,
-                    name: true,
-                    barcode: true,
-                    category: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        items: saleItemsInclude,
       },
     });
 
@@ -207,39 +227,34 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
   });
 };
 
-const getSaleById = async (id) => {
+const getSaleById = async (id: number | string): Promise<SaleWithItems | null> => {
   return await prisma.sale.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: parseInt(String(id)) },
     include: {
-      items: {
-        include: {
-          batch: {
-            select: {
-              id: true,
-              batchCode: true,
-              expiryDate: true,
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  barcode: true,
-                  category: true,
-                },
-              },
-            },
-          },
-        },
-      },
+      items: saleItemsInclude,
     },
   });
 };
 
-const processReturn = async (saleId, returnItems) => {
+interface ReturnItemInput {
+  saleItemId: number;
+  quantity: number;
+}
+
+interface ReturnResult {
+  message: string;
+  totalRefunded: number;
+}
+
+const processReturn = async (
+  saleId: number | string,
+  returnItems: ReturnItemInput[]
+): Promise<ReturnResult> => {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     let totalRefundAmount = 0;
     
     const sale = await tx.sale.findUnique({
-      where: { id: parseInt(saleId) },
+      where: { id: parseInt(String(saleId)) },
       select: { customerId: true }
     });
 

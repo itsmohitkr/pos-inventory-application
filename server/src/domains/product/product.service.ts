@@ -479,9 +479,9 @@ const getProductSummary = async ({ search = '', category = 'all' } = {}) => {
   };
 };
 
-const getProductById = async (id) => {
+const getProductById = async (id: number | string) => {
   const product = await prisma.product.findFirst({
-    where: { id: parseInt(id), isDeleted: false },
+    where: { id: parseInt(String(id)), isDeleted: false },
     include: {
       batches: {
         orderBy: { createdAt: 'asc' },
@@ -616,7 +616,7 @@ const createOrUpdateProduct = async ({
   });
 };
 
-const addBatch = async (batchData) => {
+const addBatch = async (batchData: Record<string, any>) => {
   const { product_id, batch_code, quantity, mrp, cost_price, selling_price, expiryDate } =
     batchData;
 
@@ -703,7 +703,7 @@ const updateProduct = async (id, productData) => {
   if (category !== undefined) {
     updateData.category = normalizeCategory(category);
   }
-  const productId = parseInt(id);
+  const productId = parseInt(String(id));
 
   // Check barcode uniqueness for update
   if (barcode && barcode.trim()) {
@@ -743,7 +743,7 @@ const updateProduct = async (id, productData) => {
 };
 
 const deleteProduct = async (id) => {
-  const productId = parseInt(id);
+  const productId = parseInt(String(id));
   return await prisma.product.update({
     where: { id: productId },
     data: {
@@ -754,10 +754,10 @@ const deleteProduct = async (id) => {
   });
 };
 
-const updateBatch = async (id, batchData) => {
+const updateBatch = async (id: number | string, batchData: Record<string, any>) => {
   const { batchCode, quantity, mrp, costPrice, sellingPrice, expiryDate } = batchData;
   const existing = await prisma.batch.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: parseInt(String(id)) },
   });
   if (!existing) {
     throw createHttpError(StatusCodes.NOT_FOUND, 'Batch not found', {
@@ -787,7 +787,7 @@ const updateBatch = async (id, batchData) => {
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const updatedBatch = await tx.batch.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(String(id)) },
       data: {
         batchCode,
         quantity: quantity !== undefined ? parseInt(quantity) : undefined,
@@ -818,9 +818,9 @@ const updateBatch = async (id, batchData) => {
   });
 };
 
-const deleteBatch = async (id) => {
+const deleteBatch = async (id: number | string): Promise<void> => {
   const existing = await prisma.batch.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: parseInt(String(id)) },
     include: { _count: { select: { saleItems: true } } },
   });
   if (!existing) {
@@ -834,8 +834,8 @@ const deleteBatch = async (id) => {
     });
   }
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    await tx.stockMovement.deleteMany({ where: { batchId: parseInt(id) } });
-    await tx.batch.delete({ where: { id: parseInt(id) } });
+    await tx.stockMovement.deleteMany({ where: { batchId: parseInt(String(id)) } });
+    await tx.batch.delete({ where: { id: parseInt(String(id)) } });
   });
 };
 
