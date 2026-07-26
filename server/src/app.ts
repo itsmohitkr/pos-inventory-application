@@ -1,4 +1,5 @@
 import express = require('express');
+import type { RequestHandler } from 'express';
 import cors = require('cors');
 import bodyParser = require('body-parser');
 import helmet from 'helmet';
@@ -58,11 +59,20 @@ app.use((req, res, next) => {
 // Main API Router
 const apiRouter = express.Router();
 
-// Helper for lazy loading routers
-const lazyLoad = (routerPath) => (req, res, next) => {
-  const router = require(routerPath);
-  return router(req, res, next);
-};
+// Helper for lazy loading routers.
+//
+// The require() is intentional and stays dynamic: routers are resolved on first
+// request rather than at module load, which is what lets index.ts open the port
+// before the whole domain layer is pulled in. Only the types are tightened here
+// — the router was previously `any`, so a non-router export would have failed
+// at request time rather than at compile time.
+const lazyLoad =
+  (routerPath: string): RequestHandler =>
+  (req, res, next) => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const router = require(routerPath) as RequestHandler;
+    return router(req, res, next);
+  };
 
 apiRouter.use('/auth', authLimiter, lazyLoad('./domains/auth/auth.router'));
 apiRouter.use(lazyLoad('./domains/product/product.router'));

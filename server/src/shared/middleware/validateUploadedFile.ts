@@ -1,5 +1,5 @@
-const { StatusCodes } = require('http-status-codes');
-const { createHttpError } = require('../error/appError');
+import { StatusCodes } from 'http-status-codes';
+import { createHttpError } from '../error/appError';
 
 const validateUploadedFile = (fieldName = 'file') => {
   return (req, _res, next) => {

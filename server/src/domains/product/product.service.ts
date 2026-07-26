@@ -734,7 +734,7 @@ const updateProduct = async (id, productData) => {
   });
 
   // Background sync to ensure Category table reflects potentially new strings
-  const categoryService = require('../category/category.service');
+  // (categoryService is imported at the top of this file)
   categoryService
     .ensureCategoriesFromProducts()
     .catch((err) => logger.error({ err: err.message }, 'Category sync error'));
