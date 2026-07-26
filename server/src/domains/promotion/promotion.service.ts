@@ -114,14 +114,17 @@ const getProductPricingOptions = async (productId) => {
 
   if (!product) return null;
 
-  const latestBatch = product.batches[0] || {};
+  // Optional chaining rather than a `|| {}` fallback: the empty object
+  // erased the Batch type. Runtime behaviour is identical — the `|| 0`
+  // defaults below already handled a missing batch.
+  const latestBatch = product.batches[0];
   return {
     id: product.id,
     name: product.name,
     category: product.category,
-    mrp: latestBatch.mrp || 0,
-    costPrice: latestBatch.costPrice || 0,
-    sellingPrice: latestBatch.sellingPrice || 0,
+    mrp: latestBatch?.mrp || 0,
+    costPrice: latestBatch?.costPrice || 0,
+    sellingPrice: latestBatch?.sellingPrice || 0,
   };
 };
 

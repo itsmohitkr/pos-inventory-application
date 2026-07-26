@@ -274,6 +274,26 @@ const buildWhereFilter = ({ search, category }) => {
   return { AND: andFilters };
 };
 
+/**
+ * Row shape of the raw product-list aggregate. $queryRawUnsafe returns unknown,
+ * so the columns SELECTed by getAllProducts are declared here. snake_case
+ * matches the SQL aliases rather than the Prisma model.
+ */
+interface ProductListRow {
+  id: number;
+  name: string;
+  barcode: string | null;
+  category: string | null;
+  batchTrackingEnabled: boolean;
+  lowStockWarningEnabled: boolean;
+  lowStockThreshold: number;
+  createdAt: string;
+  lastUpdatedAt: number | null;
+  total_stock: number;
+  total_cost: number;
+  total_selling: number;
+}
+
 const getAllProducts = async ({
   page = 1,
   pageSize = 25,
@@ -304,7 +324,7 @@ const getAllProducts = async ({
     `);
   const total = Number(totalRows?.[0]?.count || 0);
 
-  const rows = await prisma.$queryRawUnsafe(`
+  const rows = await prisma.$queryRawUnsafe<ProductListRow[]>(`
         SELECT
             p.id,
             p.name,
