@@ -1,4 +1,11 @@
 import prisma = require('../../config/prisma');
+import type { Prisma } from '@prisma/client';
+
+/** Optional ISO date bounds shared by every report query. */
+interface DateRangeFilter {
+  startDate?: string;
+  endDate?: string;
+}
 
 /**
  * Net quantity actually kept by the customer (sold minus returned).
@@ -31,8 +38,9 @@ const calculateSaleTotals = (sale) => {
   };
 };
 
-const getReports = async ({ startDate, endDate }) => {
-  const where: Record<string, any> = {};
+const getReports = async ({ startDate, endDate }: DateRangeFilter) => {
+  // Reused for both sales and loose sales — both filter on createdAt.
+  const where: Prisma.SaleWhereInput & Prisma.LooseSaleWhereInput = {};
   if (startDate || endDate) {
     where.createdAt = {};
     if (startDate) where.createdAt.gte = new Date(startDate);
@@ -112,7 +120,8 @@ const getReports = async ({ startDate, endDate }) => {
   totalProfit = detailedSales.reduce((sum, s) => sum + s.profit, 0);
 
   // Fetch Expenses and Purchases for the same period
-  const expenseWhere: Record<string, any> = {};
+  // Reused for both expenses and purchases — both filter on date.
+  const expenseWhere: Prisma.ExpenseWhereInput & Prisma.PurchaseWhereInput = {};
   if (startDate || endDate) {
     expenseWhere.date = {};
     if (startDate) expenseWhere.date.gte = new Date(startDate);
@@ -148,8 +157,8 @@ const getReports = async ({ startDate, endDate }) => {
   };
 };
 
-const getExpiryReport = async ({ startDate, endDate }) => {
-  const where: Record<string, any> = {};
+const getExpiryReport = async ({ startDate, endDate }: DateRangeFilter) => {
+  const where: Prisma.BatchWhereInput = {};
   if (startDate || endDate) {
     where.expiryDate = {};
     if (startDate) where.expiryDate.gte = new Date(startDate);

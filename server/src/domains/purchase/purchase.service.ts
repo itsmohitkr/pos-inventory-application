@@ -12,6 +12,36 @@ const getDateWithCurrentTime = (dateString) => {
   return dateObj;
 };
 
+
+/** Purchase with the relations every read in this service includes. */
+type PurchaseWithRelations = Prisma.PurchaseGetPayload<{
+  include: { items: true; payments: true };
+}>;
+
+/** Purchase read with payments only — used by the payment-status recalculation. */
+type PurchaseWithPayments = Prisma.PurchaseGetPayload<{ include: { payments: true } }>;
+
+/**
+ * Payments echoed back immediately after creating or updating a purchase.
+ *
+ * These are display-only projections, not full PurchasePayment rows — they
+ * carry no id, createdAt or purchaseId. The row itself is written separately
+ * via tx.purchasePayment.create; this is what the response shows without a
+ * re-query. Typed explicitly so the difference is visible rather than hidden
+ * behind `any`.
+ */
+type OptimisticPayment = Pick<
+  Prisma.PurchasePaymentCreateManyInput,
+  'amount' | 'paymentMethod' | 'date' | 'note'
+>;
+
+/** Query filters accepted by getPurchases; all optional. */
+interface PurchaseFilters {
+  startDate?: string;
+  endDate?: string;
+  vendor?: string;
+}
+
 const createPurchase = async (data) => {
   const { vendor, totalAmount, date, note, paidAmount, paymentMethod, items = [] } = data;
 
@@ -27,7 +57,9 @@ const createPurchase = async (data) => {
   if (parsedPaidAmount === 0 && parsedTotalAmount > 0) initialPaymentStatus = 'Unpaid';
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const purchaseData: Record<string, any> = {
+    // Assembled from form values, then cast to Prisma's input at the call
+    // site below — the shapes differ (strings vs numbers/dates).
+    const purchaseData: Record<string, unknown> = {
       vendor,
       totalAmount: parsedTotalAmount,
       date: date ? getDateWithCurrentTime(date) : new Date(),
@@ -47,7 +79,7 @@ const createPurchase = async (data) => {
       };
     }
 
-    const purchase: Record<string, any> = await tx.purchase.create({
+    const purchase: PurchaseWithRelations = await tx.purchase.create({
       data: purchaseData as Prisma.PurchaseCreateInput,
       include: { items: true, payments: true },
     });
@@ -63,14 +95,15 @@ const createPurchase = async (data) => {
           note: 'Initial payment upon logging purchase',
         },
       });
-      purchase.payments = [
+      // Display-only projection — see OptimisticPayment above.
+      purchase.payments = ([
         {
           amount: parsedPaidAmount,
           paymentMethod: paymentMethod || 'Cash',
           date: purchase.date,
           note: 'Initial payment upon logging purchase',
         },
-      ];
+      ] as unknown as PurchaseWithRelations['payments']);
     }
 
     // Optionally update batch cost price if batchId is provided
@@ -90,10 +123,10 @@ const createPurchase = async (data) => {
   });
 };
 
-const getPurchases = async (filters: Record<string, any> = {}) => {
+const getPurchases = async (filters: PurchaseFilters = {}) => {
   const { startDate, endDate, vendor } = filters;
 
-  let where: Record<string, any> = {};
+  let where: Prisma.PurchaseWhereInput = {};
   if (startDate || endDate) {
     where.date = {};
     if (startDate) where.date.gte = new Date(startDate);
@@ -141,7 +174,9 @@ const updatePurchase = async (id, data) => {
   const validItems = items.filter((item) => item.productId && !isNaN(parseInt(item.productId)));
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const purchaseData: Record<string, any> = {
+    // Assembled from form values, then cast to Prisma's input at the call
+    // site below — the shapes differ (strings vs numbers/dates).
+    const purchaseData: Record<string, unknown> = {
       vendor,
       totalAmount: parseFloat(totalAmount) || 0,
       date: date ? new Date(date) : new Date(),
@@ -166,7 +201,7 @@ const updatePurchase = async (id, data) => {
       };
     }
 
-    const purchase: Record<string, any> = await tx.purchase.update({
+    const purchase: PurchaseWithRelations = await tx.purchase.update({
       where: { id: parseInt(id) },
       data: purchaseData,
       include: { items: true, payments: { orderBy: { createdAt: 'asc' } } },
@@ -248,7 +283,7 @@ const deletePayment = async (paymentId) => {
 
 // Internal helper to sync purchase status after payment changes
 const syncPurchaseStatus = async (purchaseId, tx) => {
-  const purchase: Record<string, any> = await tx.purchase.findUnique({
+  const purchase: PurchaseWithRelations | null = await tx.purchase.findUnique({
     where: { id: parseInt(purchaseId) },
     include: { payments: true },
   });
@@ -282,7 +317,7 @@ const addPayment = async (purchaseId, paymentData) => {
     });
 
     // Check if fully paid to update the parent status
-    const purchase: Record<string, any> = await tx.purchase.findUnique({
+    const purchase: PurchaseWithPayments | null = await tx.purchase.findUnique({
       where: { id: parseInt(purchaseId) },
       include: { payments: true },
     });

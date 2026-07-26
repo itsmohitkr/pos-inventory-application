@@ -1,6 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
 import prisma = require('../../config/prisma');
-import type { Prisma } from '@prisma/client';
+import type { Batch, Prisma } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 import { getDateRange } from '../../shared/utils/dateUtils';
 import categoryService = require('../category/category.service');
@@ -74,11 +74,27 @@ const generateBatchCode = () => {
  * while the interactive paths always record one. Passing it explicitly keeps
  * that difference deliberate rather than accidental.
  */
+interface CreateBatchArgs {
+  productId: number;
+  batchCode?: string | null;
+  quantity: number;
+  mrp: number;
+  costPrice: number;
+  sellingPrice: number;
+  wholesaleEnabled?: boolean;
+  wholesalePrice?: number | null;
+  wholesaleMinQty?: number | null;
+  expiryDate?: Date | null;
+  note: string;
+  /** CSV import and bulk create omit the ledger entry for zero-quantity rows. */
+  skipMovementWhenZero?: boolean;
+}
+
 const createBatchWithMovement = async (
-  tx,
+  tx: Prisma.TransactionClient,
   { productId, batchCode, quantity, mrp, costPrice, sellingPrice, wholesaleEnabled = false,
     wholesalePrice = null, wholesaleMinQty = null, expiryDate = null, note,
-    skipMovementWhenZero = false }
+    skipMovementWhenZero = false }: CreateBatchArgs
 ) => {
   const createdBatch = await tx.batch.create({
     data: {
@@ -108,7 +124,10 @@ const createBatchWithMovement = async (
  * Accumulates quantity into an existing batch (the non-batch-tracked flow, where
  * a product keeps a single logical batch) and records the movement.
  */
-const addQuantityToBatch = async (tx, { batch, qtyToAdd, note }) => {
+const addQuantityToBatch = async (
+  tx: Prisma.TransactionClient,
+  { batch, qtyToAdd, note }: { batch: Batch; qtyToAdd: number; note: string }
+) => {
   const newQty = batch.quantity + qtyToAdd;
   validateQuantity(newQty);
 
@@ -236,7 +255,7 @@ const buildWhereSql = ({ search, category }) => {
 const MAX_STOCK_QUANTITY = 2147483647;
 
 const validateQuantity = (quantity) => {
-  const qty = parseInt(quantity);
+  const qty = parseInt(String(quantity));
   if (isNaN(qty)) return;
   if (qty > MAX_STOCK_QUANTITY) {
     const message = `Quantity exceeds maximum allowed limit (${MAX_STOCK_QUANTITY})`;
@@ -249,7 +268,7 @@ const validateQuantity = (quantity) => {
 };
 
 const buildWhereFilter = ({ search, category }) => {
-  const andFilters: Record<string, any>[] = [{ isDeleted: false }];
+  const andFilters: Prisma.ProductWhereInput[] = [{ isDeleted: false }];
 
   const normalizedSearch = normalizeSearch(search);
   if (normalizedSearch) {
@@ -561,7 +580,7 @@ const createOrUpdateProduct = async ({
         category: normalizeCategory(category),
         batchTrackingEnabled: enableBatchTracking === true,
         lowStockWarningEnabled: lowStockWarningEnabled === true,
-        lowStockThreshold: lowStockWarningEnabled ? parseInt(lowStockThreshold) || 0 : 0,
+        lowStockThreshold: lowStockWarningEnabled ? parseInt(String(lowStockThreshold)) || 0 : 0,
       },
       include: {
         batches: { orderBy: { createdAt: 'asc' } },
@@ -570,11 +589,11 @@ const createOrUpdateProduct = async ({
 
     if (initialBatch) {
       const { quantity, mrp, cost_price, selling_price, batch_code, expiryDate } = initialBatch;
-      const qtyToAdd = parseInt(quantity) || 0;
+      const qtyToAdd = parseInt(String(quantity)) || 0;
       validateQuantity(qtyToAdd);
-      const mrpValue = parseFloat(mrp) || 0;
-      const costValue = parseFloat(cost_price) || 0;
-      const sellingValue = parseFloat(selling_price) || 0;
+      const mrpValue = parseFloat(String(mrp)) || 0;
+      const costValue = parseFloat(String(cost_price)) || 0;
+      const sellingValue = parseFloat(String(selling_price)) || 0;
       validatePricing({
         mrp: mrpValue,
         costPrice: costValue,
@@ -599,10 +618,10 @@ const createOrUpdateProduct = async ({
         sellingPrice: sellingValue,
         wholesaleEnabled: initialBatch.wholesaleEnabled === true,
         wholesalePrice: initialBatch.wholesalePrice
-          ? parseFloat(initialBatch.wholesalePrice)
+          ? parseFloat(String(initialBatch.wholesalePrice))
           : null,
         wholesaleMinQty: initialBatch.wholesaleMinQty
-          ? parseInt(initialBatch.wholesaleMinQty)
+          ? parseInt(String(initialBatch.wholesaleMinQty))
           : null,
         expiryDate: expiryDate ? new Date(expiryDate) : null,
         note: 'Initial stock',
@@ -616,27 +635,46 @@ const createOrUpdateProduct = async ({
   });
 };
 
-const addBatch = async (batchData: Record<string, any>) => {
+/**
+ * Batch payload as the client sends it: snake_case form keys, values that may
+ * be strings straight from text inputs. Deliberately not a Prisma input type —
+ * the mapping to Batch happens inside these functions.
+ */
+export interface BatchInput {
+  product_id?: number | string;
+  batch_code?: string | null;
+  quantity?: number | string;
+  mrp?: number | string;
+  cost_price?: number | string;
+  selling_price?: number | string;
+  expiryDate?: string | Date | null;
+  wholesaleEnabled?: boolean;
+  wholesalePrice?: number | string | null;
+  wholesaleMinQty?: number | string | null;
+  [key: string]: unknown;
+}
+
+const addBatch = async (batchData: BatchInput) => {
   const { product_id, batch_code, quantity, mrp, cost_price, selling_price, expiryDate } =
     batchData;
 
   // Validate inputs before touching the DB
-  const qtyToAdd = parseInt(quantity) || 0;
+  const qtyToAdd = parseInt(String(quantity)) || 0;
   validateQuantity(qtyToAdd);
-  const mrpValue = parseFloat(mrp) || 0;
-  const costValue = parseFloat(cost_price) || 0;
-  const sellingValue = parseFloat(selling_price) || 0;
+  const mrpValue = parseFloat(String(mrp)) || 0;
+  const costValue = parseFloat(String(cost_price)) || 0;
+  const sellingValue = parseFloat(String(selling_price)) || 0;
   validatePricing({
     mrp: mrpValue,
     costPrice: costValue,
     sellingPrice: sellingValue,
     wholesaleEnabled: batchData.wholesaleEnabled,
-    wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : undefined,
+    wholesalePrice: batchData.wholesalePrice ? parseFloat(String(batchData.wholesalePrice)) : undefined,
   });
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const product = await tx.product.findUnique({
-      where: { id: parseInt(product_id) },
+      where: { id: parseInt(String(product_id)) },
       include: { batches: { orderBy: { createdAt: 'asc' } } },
     });
 
@@ -660,8 +698,8 @@ const addBatch = async (batchData: Record<string, any>) => {
       costPrice: costValue,
       sellingPrice: sellingValue,
       wholesaleEnabled: batchData.wholesaleEnabled === true,
-      wholesalePrice: batchData.wholesalePrice ? parseFloat(batchData.wholesalePrice) : null,
-      wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(batchData.wholesaleMinQty) : null,
+      wholesalePrice: batchData.wholesalePrice ? parseFloat(String(batchData.wholesalePrice)) : null,
+      wholesaleMinQty: batchData.wholesaleMinQty ? parseInt(String(batchData.wholesaleMinQty)) : null,
       expiryDate: expiryDate ? new Date(expiryDate) : null,
       note: 'Stock added',
     };
@@ -691,13 +729,13 @@ const updateProduct = async (id, productData) => {
     lowStockWarningEnabled,
     lowStockThreshold,
   } = productData;
-  const updateData: Record<string, any> = {
+  const updateData: Prisma.ProductUpdateInput = {
     name,
     barcode,
     ...(batchTrackingEnabled !== undefined ? { batchTrackingEnabled } : {}),
     ...(lowStockWarningEnabled !== undefined ? { lowStockWarningEnabled } : {}),
     ...(lowStockThreshold !== undefined
-      ? { lowStockThreshold: parseInt(lowStockThreshold) || 0 }
+      ? { lowStockThreshold: parseInt(String(lowStockThreshold)) || 0 }
       : {}),
   };
   if (category !== undefined) {
@@ -754,7 +792,20 @@ const deleteProduct = async (id) => {
   });
 };
 
-const updateBatch = async (id: number | string, batchData: Record<string, any>) => {
+/** Batch edit payload — camelCase here, unlike the snake_case create path. */
+export interface BatchUpdateInput {
+  batchCode?: string | null;
+  quantity?: number | string;
+  mrp?: number | string;
+  costPrice?: number | string;
+  sellingPrice?: number | string;
+  expiryDate?: string | Date | null;
+  wholesaleEnabled?: boolean;
+  wholesalePrice?: number | string | null;
+  wholesaleMinQty?: number | string | null;
+}
+
+const updateBatch = async (id: number | string, batchData: BatchUpdateInput) => {
   const { batchCode, quantity, mrp, costPrice, sellingPrice, expiryDate } = batchData;
   const existing = await prisma.batch.findUnique({
     where: { id: parseInt(String(id)) },
@@ -764,14 +815,14 @@ const updateBatch = async (id: number | string, batchData: Record<string, any>) 
       error: 'Batch not found',
     });
   }
-  const nextMrp = mrp !== undefined ? parseFloat(mrp) : existing.mrp;
-  const nextCost = costPrice !== undefined ? parseFloat(costPrice) : existing.costPrice;
-  const nextSelling = sellingPrice !== undefined ? parseFloat(sellingPrice) : existing.sellingPrice;
+  const nextMrp = mrp !== undefined ? parseFloat(String(mrp)) : existing.mrp;
+  const nextCost = costPrice !== undefined ? parseFloat(String(costPrice)) : existing.costPrice;
+  const nextSelling = sellingPrice !== undefined ? parseFloat(String(sellingPrice)) : existing.sellingPrice;
   const nextWholesaleEnabled =
     batchData.wholesaleEnabled !== undefined ? batchData.wholesaleEnabled : existing.wholesaleEnabled;
   const nextWholesalePrice =
     batchData.wholesalePrice !== undefined
-      ? parseFloat(batchData.wholesalePrice)
+      ? parseFloat(String(batchData.wholesalePrice))
       : existing.wholesalePrice;
   validatePricing({
     mrp: nextMrp,
@@ -781,7 +832,7 @@ const updateBatch = async (id: number | string, batchData: Record<string, any>) 
     wholesalePrice: nextWholesalePrice,
   });
 
-  const nextQuantity = quantity !== undefined ? parseInt(quantity) : existing.quantity;
+  const nextQuantity = quantity !== undefined ? parseInt(String(quantity)) : existing.quantity;
   validateQuantity(nextQuantity);
   const delta = nextQuantity - existing.quantity;
 
@@ -790,16 +841,16 @@ const updateBatch = async (id: number | string, batchData: Record<string, any>) 
       where: { id: parseInt(String(id)) },
       data: {
         batchCode,
-        quantity: quantity !== undefined ? parseInt(quantity) : undefined,
-        mrp: mrp !== undefined ? parseFloat(mrp) : undefined,
-        costPrice: costPrice !== undefined ? parseFloat(costPrice) : undefined,
-        sellingPrice: sellingPrice !== undefined ? parseFloat(sellingPrice) : undefined,
+        quantity: quantity !== undefined ? parseInt(String(quantity)) : undefined,
+        mrp: mrp !== undefined ? parseFloat(String(mrp)) : undefined,
+        costPrice: costPrice !== undefined ? parseFloat(String(costPrice)) : undefined,
+        sellingPrice: sellingPrice !== undefined ? parseFloat(String(sellingPrice)) : undefined,
         wholesaleEnabled:
           batchData.wholesaleEnabled !== undefined ? batchData.wholesaleEnabled : undefined,
         wholesalePrice:
-          batchData.wholesalePrice !== undefined ? parseFloat(batchData.wholesalePrice) : undefined,
+          batchData.wholesalePrice !== undefined ? parseFloat(String(batchData.wholesalePrice)) : undefined,
         wholesaleMinQty:
-          batchData.wholesaleMinQty !== undefined ? parseInt(batchData.wholesaleMinQty) : undefined,
+          batchData.wholesaleMinQty !== undefined ? parseInt(String(batchData.wholesaleMinQty)) : undefined,
         expiryDate: expiryDate ? new Date(expiryDate) : null,
       },
     });
@@ -988,11 +1039,11 @@ const importProducts = async (csvData) => {
         continue;
       }
 
-      const qty = parseInt(quantity) || 0;
+      const qty = parseInt(String(quantity)) || 0;
       validateQuantity(qty);
-      const mrpVal = parseFloat(mrp) || 0;
-      const costVal = parseFloat(cost_price) || 0;
-      const sellingVal = parseFloat(selling_price) || 0;
+      const mrpVal = parseFloat(String(mrp)) || 0;
+      const costVal = parseFloat(String(cost_price)) || 0;
+      const sellingVal = parseFloat(String(selling_price)) || 0;
       const enableBatchTracking = !!(batch_code && batch_code.trim());
 
       if (barcode && barcode.trim()) {
@@ -1036,8 +1087,8 @@ const importProducts = async (csvData) => {
         costVal,
         sellingVal,
         wholesaleEnabled: !!(wholesale_enabled && wholesale_enabled.toUpperCase() === 'TRUE'),
-        wholesalePrice: parseFloat(wholesale_price) || null,
-        wholesaleMinQty: parseInt(wholesale_min_qty) || null,
+        wholesalePrice: parseFloat(String(wholesale_price)) || null,
+        wholesaleMinQty: parseInt(String(wholesale_min_qty)) || null,
         batch_code,
         expiry_date,
       });
@@ -1099,7 +1150,7 @@ const importProducts = async (csvData) => {
   return results;
 };
 
-const validateBarcodes = async (barcodes) => {
+const validateBarcodes = async (barcodes: string[]): Promise<string[]> => {
   const existingBarcodes = [];
 
   // Get all products with barcodes
@@ -1165,7 +1216,7 @@ const getProductHistory = async (
 ) => {
   const id = parseInt(String(productId));
   const { from, to } = buildHistoryRange({ range, startDate, endDate });
-  const where: Record<string, any> = { productId: id };
+  const where: Prisma.StockMovementWhereInput = { productId: id };
   if (from || to) {
     where.createdAt = {};
     if (from) where.createdAt.gte = from;
@@ -1285,16 +1336,16 @@ const bulkCreateProducts = async (products) => {
             category: normalizeCategory(category),
             batchTrackingEnabled: enableBatchTracking === true,
             lowStockWarningEnabled: lowStockWarningEnabled === true,
-            lowStockThreshold: lowStockWarningEnabled ? parseInt(lowStockThreshold) || 0 : 0,
+            lowStockThreshold: lowStockWarningEnabled ? parseInt(String(lowStockThreshold)) || 0 : 0,
           },
         });
 
         if (initialBatch) {
           const { quantity, mrp, cost_price, selling_price, batch_code, expiryDate } = initialBatch;
-          const qtyToAdd = parseInt(quantity) || 0;
-          const mrpValue = parseFloat(mrp) || 0;
-          const costValue = parseFloat(cost_price) || 0;
-          const sellingValue = parseFloat(selling_price) || 0;
+          const qtyToAdd = parseInt(String(quantity)) || 0;
+          const mrpValue = parseFloat(String(mrp)) || 0;
+          const costValue = parseFloat(String(cost_price)) || 0;
+          const sellingValue = parseFloat(String(selling_price)) || 0;
 
           validatePricing({
             mrp: mrpValue,
@@ -1316,10 +1367,10 @@ const bulkCreateProducts = async (products) => {
             sellingPrice: sellingValue,
             wholesaleEnabled: initialBatch.wholesaleEnabled === true,
             wholesalePrice: initialBatch.wholesalePrice
-              ? parseFloat(initialBatch.wholesalePrice)
+              ? parseFloat(String(initialBatch.wholesalePrice))
               : null,
             wholesaleMinQty: initialBatch.wholesaleMinQty
-              ? parseInt(initialBatch.wholesaleMinQty)
+              ? parseInt(String(initialBatch.wholesaleMinQty))
               : null,
             expiryDate: expiryDate ? new Date(expiryDate) : null,
             note: 'Bulk Initial stock',

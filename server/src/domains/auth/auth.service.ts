@@ -1,19 +1,22 @@
 import bcrypt = require('bcryptjs');
 import { StatusCodes } from 'http-status-codes';
 import prisma = require('../../config/prisma');
-import type { Prisma } from '@prisma/client';
+import type { Prisma, User } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 import logger = require('../../shared/utils/logger');
 import { DEFAULT_RECEIPT_SETTINGS } from '../../config/constants';
 
 const SALT_ROUNDS = 10;
 
-const sanitizeUser = (user) => {
+/** A user with the password stripped — what every auth endpoint returns. */
+export type SafeUser = Omit<User, 'password'>;
+
+const sanitizeUser = (user: User): SafeUser => {
   const { password, ...userWithoutPassword } = user;
   return userWithoutPassword;
 };
 
-const isHashed = (password) => {
+const isHashed = (password: string | null | undefined): boolean => {
   // Bcrypt hashes usually start with $2a$ or $2b$
   return typeof password === 'string' && password.startsWith('$2');
 };
@@ -147,7 +150,7 @@ const updateUser = async (userId, payload) => {
   }
 
   const { role, status, password } = payload;
-  const updateData: Record<string, any> = {};
+  const updateData: Prisma.UserUpdateInput = {};
 
   if (role) updateData.role = role;
   if (status) updateData.status = status;

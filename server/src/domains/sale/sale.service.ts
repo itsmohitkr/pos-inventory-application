@@ -78,7 +78,11 @@ export type SaleWithItems = Prisma.SaleGetPayload<{
 }>;
 
 const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMethod = 'Cash', customerId = null }) => {
-  const receiptSettings = (await settingService.getSettingByKey('posReceiptSettings')) || {};
+  // Only roundOff is read here. The full shape lives in
+  // server/src/config/constants.ts -> DEFAULT_RECEIPT_SETTINGS; declaring just
+  // what this function uses avoids a third copy of those ~34 fields.
+  const receiptSettings =
+    (await settingService.getSettingByKey<{ roundOff?: boolean }>('posReceiptSettings')) ?? {};
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     let totalAmount = 0;

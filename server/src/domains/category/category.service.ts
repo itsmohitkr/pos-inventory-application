@@ -1,8 +1,18 @@
 import { StatusCodes } from 'http-status-codes';
 import prisma = require('../../config/prisma');
+import type { Category } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 
-const buildPathMap = (categories) => {
+/** A category with its full slash-joined path and nested children. */
+export interface CategoryNode {
+  id: number;
+  name: string;
+  parentId: number | null;
+  path: string;
+  children: CategoryNode[];
+}
+
+const buildPathMap = (categories: Category[]): Map<number, string> => {
   const byId = new Map();
   categories.forEach((category) => byId.set(category.id, category));
 
@@ -21,8 +31,8 @@ const buildPathMap = (categories) => {
   return cache;
 };
 
-const buildTree = (categories, pathMap) => {
-  const nodes = new Map();
+const buildTree = (categories: Category[], pathMap: Map<number, string>): CategoryNode[] => {
+  const nodes = new Map<number, CategoryNode>();
   categories.forEach((category) => {
     nodes.set(category.id, {
       id: category.id,
@@ -33,10 +43,10 @@ const buildTree = (categories, pathMap) => {
     });
   });
 
-  const roots = [];
+  const roots: CategoryNode[] = [];
   nodes.forEach((node) => {
     if (node.parentId && nodes.has(node.parentId)) {
-      nodes.get(node.parentId).children.push(node);
+      nodes.get(node.parentId)!.children.push(node);
     } else {
       roots.push(node);
     }

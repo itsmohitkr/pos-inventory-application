@@ -52,10 +52,17 @@ const createExpense = async (data) => {
   });
 };
 
-const getExpenses = async (filters: Record<string, any> = {}) => {
+/** Query filters accepted by getExpenses; all optional. */
+interface ExpenseFilters {
+  startDate?: string;
+  endDate?: string;
+  category?: string;
+}
+
+const getExpenses = async (filters: ExpenseFilters = {}) => {
   const { startDate, endDate, category } = filters;
 
-  let where: Record<string, any> = {};
+  let where: Prisma.ExpenseWhereInput = {};
   if (startDate || endDate) {
     where.date = {};
     if (startDate) where.date.gte = new Date(startDate);
