@@ -1,23 +1,17 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
 
-const looseSaleIdParamSchema = Joi.object({
-  id: Joi.alternatives()
-    .try(Joi.number().integer().positive(), Joi.string().trim().pattern(/^\d+$/))
-    .required(),
+const looseSaleIdParamSchema = z.object({
+  id: z.union([id(), str().regex(/^\d+$/)]),
 });
 
-const createLooseSaleBodySchema = Joi.object({
-  itemName: Joi.string().trim().allow('', null).optional(),
-  price: Joi.number().positive().required(),
+const createLooseSaleBodySchema = z.object({
+  itemName: str().nullable().optional(),
+  price: num().positive(),
 });
 
-const looseSalesReportQuerySchema = Joi.object({
-  startDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
-  endDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
+const looseSalesReportQuerySchema = z.object({
+  startDate: z.union([z.coerce.date(), str()]).optional(),
+  endDate: z.union([z.coerce.date(), str()]).optional(),
 });
 
-export {
-  looseSaleIdParamSchema,
-  createLooseSaleBodySchema,
-  looseSalesReportQuerySchema,
-};
+export { looseSaleIdParamSchema, createLooseSaleBodySchema, looseSalesReportQuerySchema };

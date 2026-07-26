@@ -1,22 +1,16 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
 
-const categoryIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required(),
+const categoryIdParamSchema = z.object({
+  id: id(),
 });
 
-const createCategoryBodySchema = Joi.object({
-  name: Joi.string().trim().min(1).max(120).required(),
-  parentId: Joi.alternatives()
-    .try(Joi.number().integer().positive(), Joi.valid(null), Joi.string().allow('', null))
-    .optional(),
+const createCategoryBodySchema = z.object({
+  name: str().min(1).max(120),
+  parentId: z.union([id(), z.null(), z.string()]).optional(),
 });
 
-const updateCategoryBodySchema = Joi.object({
-  name: Joi.string().trim().min(1).max(120).required(),
+const updateCategoryBodySchema = z.object({
+  name: str().min(1).max(120),
 });
 
-export {
-  categoryIdParamSchema,
-  createCategoryBodySchema,
-  updateCategoryBodySchema,
-};
+export { categoryIdParamSchema, createCategoryBodySchema, updateCategoryBodySchema };

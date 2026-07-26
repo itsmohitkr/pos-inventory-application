@@ -1,18 +1,12 @@
-import Joi from 'joi';
-export { Joi };
+import { z } from 'zod';
 import { StatusCodes } from 'http-status-codes';
 import type { NextFunction, Request, Response } from 'express';
 import { createHttpError } from '../error/appError';
 
-/** Which parts of the request to validate, and with which schema. */
-type RequestSchemas = Partial<Record<'body' | 'query' | 'params', Joi.Schema>>;
+export { z };
 
-const DEFAULT_OPTIONS = {
-  abortEarly: false,
-  allowUnknown: true,
-  stripUnknown: true,
-  convert: true,
-};
+/** Which parts of the request to validate, and with which schema. */
+type RequestSchemas = Partial<Record<'body' | 'query' | 'params', z.ZodType>>;
 
 /**
  * Whether `key` can be assigned on `obj`.
@@ -32,55 +26,56 @@ const isWritableProperty = (obj: object, key: string): boolean => {
     current = Object.getPrototypeOf(current);
   }
 
-  // Not defined anywhere: a plain assignment creates it.
   return true;
 };
 
-const formatValidationDetails = (details: Joi.ValidationErrorItem[] = []) => {
-  return details.map((detail) => ({
-    message: detail.message.replace(/\"/g, ''),
-    path: detail.path.join('.'),
-    type: detail.type,
+/**
+ * Shapes Zod issues into the `details` array the API has always returned.
+ *
+ * The envelope is unchanged from the Joi implementation: `{ message, path,
+ * type }` per issue. Joi stripped double quotes from its messages, so the same
+ * is done here for consistency. `type` carries Zod's issue code in place of
+ * Joi's — nothing in the client reads it.
+ */
+const formatValidationDetails = (issues: z.core.$ZodIssue[] = []) => {
+  return issues.map((issue) => ({
+    message: issue.message.replace(/"/g, ''),
+    path: issue.path.join('.'),
+    type: issue.code,
   }));
 };
 
-export const validateRequest = (schemas: RequestSchemas = {}, options: Joi.ValidationOptions = {}) => {
+const validateRequest = (schemas: RequestSchemas = {}) => {
   return (req: Request, _res: Response, next: NextFunction) => {
-    for (const [target, schema] of Object.entries(schemas) as [keyof RequestSchemas, Joi.Schema][]) {
+    for (const [target, schema] of Object.entries(schemas) as [
+      keyof RequestSchemas,
+      z.ZodType,
+    ][]) {
       if (!schema) continue;
 
-      const { error, value } = schema.validate(req[target], {
-        ...DEFAULT_OPTIONS,
-        ...options,
-      });
+      // safeParse rather than parse: every issue is collected and reported at
+      // once, matching Joi's abortEarly: false.
+      const result = schema.safeParse(req[target]);
 
-      if (error) {
+      if (!result.success) {
         return next(
           createHttpError(StatusCodes.BAD_REQUEST, 'Validation failed', {
             name: 'ValidationError',
             error: 'Validation failed',
-            details: formatValidationDetails(error.details),
+            details: formatValidationDetails(result.error.issues),
           })
         );
       }
 
-      if (value !== undefined) {
-        // Express 5 defines req.query as a getter with no setter, so this
-        // assignment has always been a silent no-op for `query` — CommonJS
-        // modules run in sloppy mode, where writing to a getter fails quietly.
-        // TypeScript emits strict-mode modules, where the same write throws.
-        //
-        // Behaviour is preserved as-is: `body` and `params` are plain writable
-        // properties and still receive Joi's coerced value; `query` is skipped,
-        // exactly as before.
-        //
-        // NOTE: this means Joi's `convert: true` has never applied to query
-        // parameters — controllers read raw strings and coerce themselves
-        // (e.g. `Number(page)`). Making it apply would change what every
-        // query-param handler receives, so it is left alone deliberately.
-        if (isWritableProperty(req, target)) {
-          req[target] = value;
-        }
+      // Express 5 defines req.query as a getter with no setter, so the parsed
+      // value cannot be written back for `query` — controllers read the raw
+      // strings and coerce themselves. This matched Joi's behaviour too: the
+      // assignment silently failed there because CommonJS ran in sloppy mode.
+      //
+      // `body` and `params` are plain writable properties and do receive the
+      // parsed (and coerced) value.
+      if (result.data !== undefined && isWritableProperty(req, target)) {
+        req[target] = result.data;
       }
     }
 
@@ -88,3 +83,4 @@ export const validateRequest = (schemas: RequestSchemas = {}, options: Joi.Valid
   };
 };
 
+export { validateRequest };

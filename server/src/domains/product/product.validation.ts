@@ -1,117 +1,99 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, int, num, str, bool } from '../../shared/middleware/zodHelpers';
 
-const numericId = Joi.alternatives().try(
-  Joi.number().integer().positive(),
-  Joi.string().trim().pattern(/^\d+$/)
-);
+const numericId = z.union([id(), str().regex(/^\d+$/)]);
 
-const productIdParamSchema = Joi.object({
-  id: numericId.required(),
+/**
+ * Form-style values: a number, or a string (including empty) because the client
+ * sends raw text-input values. Mirrors Joi's
+ * `alternatives().try(number, string.allow('', null))`.
+ */
+const numericValue = z.union([num().min(0), z.string().trim(), z.null()]);
+const integerValue = z.union([int().min(0), z.string().trim(), z.null()]);
+const dateValue = z.union([z.coerce.date(), z.string().trim(), z.null()]);
+
+const productIdParamSchema = z.object({ id: numericId });
+const batchIdParamSchema = z.object({ id: numericId });
+const barcodeParamSchema = z.object({ barcode: str().min(1) });
+
+const productQuerySchema = z.object({
+  page: int().min(1).optional(),
+  pageSize: int().min(1).max(10000).optional(),
+  search: z.string().optional(),
+  category: z.string().optional(),
+  sortBy: str().optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+  includeBatches: z.enum(['true', 'false']).optional(),
 });
 
-const batchIdParamSchema = Joi.object({
-  id: numericId.required(),
+const productSummaryQuerySchema = z.looseObject({
+  search: z.string().optional(),
+  category: z.string().optional(),
 });
 
-const barcodeParamSchema = Joi.object({
-  barcode: Joi.string().trim().min(1).required(),
+const productHistoryQuerySchema = z.looseObject({
+  range: str().optional(),
+  startDate: dateValue.optional(),
+  endDate: dateValue.optional(),
 });
 
-const productQuerySchema = Joi.object({
-  page: Joi.number().integer().min(1).optional(),
-  pageSize: Joi.number().integer().min(1).max(10000).optional(),
-  search: Joi.string().allow('').optional(),
-  category: Joi.string().allow('').optional(),
-  sortBy: Joi.string().trim().optional(),
-  sortOrder: Joi.string().trim().valid('asc', 'desc').optional(),
-  includeBatches: Joi.string().trim().valid('true', 'false').optional(),
-});
-
-const productSummaryQuerySchema = Joi.object({
-  search: Joi.string().allow('').optional(),
-  category: Joi.string().allow('').optional(),
-}).unknown(true);
-
-const productHistoryQuerySchema = Joi.object({
-  range: Joi.string().trim().optional(),
-  startDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
-  endDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
-}).unknown(true);
-
-const numericValue = Joi.alternatives().try(
-  Joi.number().min(0),
-  Joi.string().trim().allow('', null)
-);
-
-const integerValue = Joi.alternatives().try(
-  Joi.number().integer().min(0),
-  Joi.string().trim().allow('', null)
-);
-
-const dateValue = Joi.alternatives().try(Joi.date().iso(), Joi.string().trim().allow('', null));
-
-const initialBatchSchema = Joi.object({
-  quantity: integerValue.optional(),
+const batchFields = {
   mrp: numericValue.optional(),
-  cost_price: numericValue.optional(),
-  selling_price: numericValue.optional(),
-  batch_code: Joi.string().trim().allow('', null).optional(),
   expiryDate: dateValue.optional(),
-  wholesaleEnabled: Joi.boolean().optional(),
+  wholesaleEnabled: bool().optional(),
   wholesalePrice: numericValue.optional(),
   wholesaleMinQty: integerValue.optional(),
-}).unknown(true);
+};
 
-const createProductBodySchema = Joi.object({
-  name: Joi.string().trim().min(1).max(255).required(),
-  barcode: Joi.string().trim().allow('', null).optional(),
-  category: Joi.string().trim().allow('', null).optional(),
-  enableBatchTracking: Joi.boolean().optional(),
-  lowStockWarningEnabled: Joi.boolean().optional(),
+const initialBatchSchema = z.looseObject({
+  ...batchFields,
+  quantity: integerValue.optional(),
+  cost_price: numericValue.optional(),
+  selling_price: numericValue.optional(),
+  batch_code: str().nullable().optional(),
+});
+
+const createProductBodySchema = z.looseObject({
+  name: str().min(1).max(255),
+  barcode: str().nullable().optional(),
+  category: str().nullable().optional(),
+  enableBatchTracking: bool().optional(),
+  lowStockWarningEnabled: bool().optional(),
   lowStockThreshold: integerValue.optional(),
   initialBatch: initialBatchSchema.optional(),
-}).unknown(true);
-
-const addBatchBodySchema = Joi.object({
-  product_id: numericId.required(),
-  batch_code: Joi.string().trim().allow('', null).optional(),
-  quantity: integerValue.required(),
-  mrp: numericValue.optional(),
-  cost_price: numericValue.optional(),
-  selling_price: numericValue.optional(),
-  expiryDate: dateValue.optional(),
-  wholesaleEnabled: Joi.boolean().optional(),
-  wholesalePrice: numericValue.optional(),
-  wholesaleMinQty: integerValue.optional(),
-}).unknown(true);
-
-const updateProductBodySchema = Joi.object({
-  name: Joi.string().trim().min(1).max(255).optional(),
-  barcode: Joi.string().trim().allow('', null).optional(),
-  category: Joi.string().trim().allow('', null).optional(),
-  batchTrackingEnabled: Joi.boolean().optional(),
-  lowStockWarningEnabled: Joi.boolean().optional(),
-  lowStockThreshold: integerValue.optional(),
-}).unknown(true);
-
-const updateBatchBodySchema = Joi.object({
-  batchCode: Joi.string().trim().allow('', null).optional(),
-  quantity: integerValue.optional(),
-  mrp: numericValue.optional(),
-  costPrice: numericValue.optional(),
-  sellingPrice: numericValue.optional(),
-  expiryDate: dateValue.optional(),
-  wholesaleEnabled: Joi.boolean().optional(),
-  wholesalePrice: numericValue.optional(),
-  wholesaleMinQty: integerValue.optional(),
-}).unknown(true);
-
-const validateBarcodesBodySchema = Joi.object({
-  barcodes: Joi.array().items(Joi.string().trim().min(1)).min(1).required(),
 });
 
-const bulkCreateProductsBodySchema = Joi.object({
-  products: Joi.array().items(Joi.object().unknown(true)).min(1).required(),
+const addBatchBodySchema = z.looseObject({
+  ...batchFields,
+  product_id: numericId,
+  batch_code: str().nullable().optional(),
+  quantity: integerValue,
+  cost_price: numericValue.optional(),
+  selling_price: numericValue.optional(),
+});
+
+const updateProductBodySchema = z.looseObject({
+  name: str().min(1).max(255).optional(),
+  barcode: str().nullable().optional(),
+  category: str().nullable().optional(),
+  batchTrackingEnabled: bool().optional(),
+  lowStockWarningEnabled: bool().optional(),
+  lowStockThreshold: integerValue.optional(),
+});
+
+const updateBatchBodySchema = z.looseObject({
+  ...batchFields,
+  batchCode: str().nullable().optional(),
+  quantity: integerValue.optional(),
+  costPrice: numericValue.optional(),
+  sellingPrice: numericValue.optional(),
+});
+
+const validateBarcodesBodySchema = z.object({
+  barcodes: z.array(str().min(1)).min(1),
+});
+
+const bulkCreateProductsBodySchema = z.object({
+  products: z.array(z.looseObject({})).min(1),
 });
 
 export {

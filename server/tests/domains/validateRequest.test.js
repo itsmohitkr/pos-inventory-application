@@ -1,6 +1,7 @@
 const express = require('express');
 const request = require('supertest');
-const { validateRequest, Joi } = require('../../src/shared/middleware/validateRequest');
+const { validateRequest } = require('../../src/shared/middleware/validateRequest');
+const { z, num, int } = require('../../src/shared/middleware/zodHelpers');
 const errorHandler = require('../../src/shared/error/errorHandler');
 
 /**
@@ -26,7 +27,7 @@ const buildApp = (schemas, handler) => {
 describe('validateRequest', () => {
   it('does not throw when validating query on Express 5', async () => {
     const app = buildApp(
-      { query: Joi.object({ page: Joi.number().integer().min(1).optional() }) },
+      { query: z.object({ page: int().min(1).optional() }) },
       (req, res) => res.json({ page: req.query.page })
     );
 
@@ -37,7 +38,7 @@ describe('validateRequest', () => {
 
   it('leaves req.query uncoerced — it stays the raw string', async () => {
     const app = buildApp(
-      { query: Joi.object({ page: Joi.number().integer().optional() }) },
+      { query: z.object({ page: int().optional() }) },
       (req, res) => res.json({ page: req.query.page, type: typeof req.query.page })
     );
 
@@ -51,7 +52,7 @@ describe('validateRequest', () => {
 
   it('writes the coerced value back to req.body, which is writable', async () => {
     const app = buildApp(
-      { body: Joi.object({ amount: Joi.number().required() }) },
+      { body: z.object({ amount: num() }) },
       (req, res) => res.json({ amount: req.body.amount, type: typeof req.body.amount })
     );
 
@@ -62,9 +63,65 @@ describe('validateRequest', () => {
     expect(res.body.amount).toBe(42);
   });
 
+  it('pins the error response contract', async () => {
+    // Locked before the Joi -> Zod migration so the replacement can be proven
+    // to emit an identical envelope. The client reads `message`; `details` is
+    // unused by the UI but kept stable for API consumers.
+    const app = buildApp(
+      { body: z.object({ amount: num() }) },
+      (_req, res) => res.json({ ok: true })
+    );
+
+    const res = await request(app).post('/b').send({ amount: 'abc' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe('Validation failed');
+    expect(res.body.error).toBe('Validation failed');
+    expect(Array.isArray(res.body.details)).toBe(true);
+    expect(res.body.details[0]).toEqual(
+      expect.objectContaining({
+        message: expect.any(String),
+        path: 'amount',
+        type: expect.any(String),
+      })
+    );
+    // Quote-stripping is preserved from the Joi implementation.
+    expect(res.body.details[0].message).not.toContain('"');
+  });
+
+  it('reports every failure, not just the first', async () => {
+    const app = buildApp(
+      {
+        body: z.object({
+          a: num(),
+          b: num(),
+        }),
+      },
+      (_req, res) => res.json({ ok: true })
+    );
+
+    const res = await request(app).post('/b').send({ a: 'x', b: 'y' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.details).toHaveLength(2);
+  });
+
+  it('strips unknown keys rather than rejecting them', async () => {
+    const app = buildApp(
+      { body: z.object({ keep: z.string() }) },
+      (req, res) => res.json({ body: req.body })
+    );
+
+    const res = await request(app).post('/b').send({ keep: 'yes', drop: 'no' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.body).toEqual({ keep: 'yes' });
+  });
+
   it('still rejects invalid input with 400 and validation details', async () => {
     const app = buildApp(
-      { query: Joi.object({ page: Joi.number().integer().min(1).optional() }) },
+      { query: z.object({ page: int().min(1).optional() }) },
       (_req, res) => res.json({ ok: true })
     );
 

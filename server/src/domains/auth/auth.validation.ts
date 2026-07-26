@@ -1,56 +1,61 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, str } from '../../shared/middleware/zodHelpers';
 
-const userIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required(),
+const ROLES = ['admin', 'cashier', 'salesman'] as const;
+const STATUSES = ['active', 'inactive'] as const;
+
+const userIdParamSchema = z.object({ id: id() });
+
+const profileQuerySchema = z.object({ userId: id() });
+
+const loginBodySchema = z.object({
+  username: str().min(1).max(100),
+  password: z.string().min(1).max(255),
 });
 
-const profileQuerySchema = Joi.object({
-  userId: Joi.number().integer().positive().required(),
+const createUserBodySchema = z.object({
+  username: str().min(1).max(100),
+  password: z.string().min(8).max(255),
+  role: z.enum(ROLES).optional(),
 });
 
-const loginBodySchema = Joi.object({
-  username: Joi.string().trim().min(1).max(100).required(),
-  password: Joi.string().min(1).max(255).required(),
+// Joi's .min(1) on an all-optional object — at least one field must be present.
+const updateUserBodySchema = z
+  .object({
+    role: z.enum(ROLES).optional(),
+    status: z.enum(STATUSES).optional(),
+    password: z.string().min(1).max(255).optional(),
+  })
+  .refine((v) => Object.keys(v).length >= 1, {
+    message: 'at least one field is required',
+  });
+
+const changePasswordBodySchema = z.object({
+  oldPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(255),
 });
 
-const createUserBodySchema = Joi.object({
-  username: Joi.string().trim().min(1).max(100).required(),
-  password: Joi.string().min(8).max(255).required(),
-  role: Joi.string().trim().valid('admin', 'cashier', 'salesman').optional(),
+const completeOnboardingBodySchema = z.object({
+  shopName: z.string().min(1).max(100),
+  address: z.string().max(255).optional(),
+  phone: z.string().max(20).optional(),
+  phone2: z.string().max(20).optional(),
+  // Joi.string().email().allow('') — an empty string must still pass.
+  email: z.union([z.email(), z.literal('')]).optional(),
+  gst: z.string().max(20).optional(),
+  logo: z.string().optional(),
+  adminPassword: z.string().min(8).max(255),
 });
 
-const updateUserBodySchema = Joi.object({
-  role: Joi.string().trim().valid('admin', 'cashier', 'salesman').optional(),
-  status: Joi.string().trim().valid('active', 'inactive').optional(),
-  password: Joi.string().min(1).max(255).optional(),
-}).min(1);
-
-const changePasswordBodySchema = Joi.object({
-  oldPassword: Joi.string().min(1).required(),
-  newPassword: Joi.string().min(8).max(255).required(),
+const verifyAdminBodySchema = z.object({
+  password: z.string().min(1),
 });
 
-const completeOnboardingBodySchema = Joi.object({
-  shopName: Joi.string().min(1).max(100).required(),
-  address: Joi.string().max(255).optional().allow(''),
-  phone: Joi.string().max(20).optional().allow(''),
-  phone2: Joi.string().max(20).optional().allow(''),
-  email: Joi.string().email().optional().allow(''),
-  gst: Joi.string().max(20).optional().allow(''),
-  logo: Joi.string().optional().allow(''),
-  adminPassword: Joi.string().min(8).max(255).required(),
-});
-
-const verifyAdminBodySchema = Joi.object({
-  password: Joi.string().min(1).required(),
-});
-
-const wipeDatabaseBodySchema = Joi.object({
-  username: Joi.string().trim().min(1).required(),
-  password: Joi.string().min(1).max(255).required(),
-  confirmPhrase: Joi.string().valid('WIPE ALL DATA').required().messages({
-    'any.only': 'Confirmation phrase must be exactly "WIPE ALL DATA"',
-    'any.required': 'Confirmation phrase is required',
+const wipeDatabaseBodySchema = z.object({
+  username: str().min(1),
+  password: z.string().min(1).max(255),
+  // The exact phrase is enforced server-side so the UI check cannot be bypassed.
+  confirmPhrase: z.literal('WIPE ALL DATA', {
+    message: 'Confirmation phrase must be exactly WIPE ALL DATA',
   }),
 });
 

@@ -1,25 +1,25 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
 
-const customerIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required(),
+const customerIdParamSchema = z.object({
+  id: id(),
 });
 
-const barcodeParamSchema = Joi.object({
-  barcode: Joi.string().pattern(/^CUST-[A-Z0-9]{8}$/).required(),
+const barcodeParamSchema = z.object({
+  barcode: z.string().regex(/^CUST-[A-Z0-9]{8}$/),
 });
 
-const phoneParamSchema = Joi.object({
-  phone: Joi.string().min(7).max(15).required(),
+const phoneParamSchema = z.object({
+  phone: z.string().min(7).max(15),
 });
 
-const findOrCreateBodySchema = Joi.object({
-  phone: Joi.string().min(7).max(15).required(),
-  name: Joi.string().trim().max(100).optional().allow('', null),
+const findOrCreateBodySchema = z.object({
+  phone: z.string().min(7).max(15),
+  name: str().max(100).nullable().optional(),
 });
 
-const updateCustomerBodySchema = Joi.object({
-  phone: Joi.string().min(7).max(15).optional(),
-  name: Joi.string().trim().max(100).optional().allow('', null),
+const updateCustomerBodySchema = z.object({
+  phone: z.string().min(7).max(15).optional(),
+  name: str().max(100).nullable().optional(),
 });
 
 export {

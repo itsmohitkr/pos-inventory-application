@@ -1,60 +1,48 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
 
-const purchaseIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required(),
+const moneyValue = () => num().min(0);
+
+const purchaseIdParamSchema = z.object({ id: id() });
+
+const purchaseQuerySchema = z.looseObject({
+  startDate: z.union([z.coerce.date(), str()]).optional(),
+  endDate: z.union([z.coerce.date(), str()]).optional(),
+  vendor: str().nullable().optional(),
 });
 
-const moneyValue = Joi.number().min(0);
-
-const purchaseQuerySchema = Joi.object({
-  startDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
-  endDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
-  vendor: Joi.string().trim().allow('', null).optional(),
-}).unknown(true);
-
-const purchaseItemSchema = Joi.object({
-  productId: Joi.alternatives()
-    .try(Joi.number().integer().positive(), Joi.string().trim().min(1))
-    .required(),
-  batchId: Joi.alternatives()
-    .try(
-      Joi.number().integer().positive(),
-      Joi.string().trim().min(1),
-      Joi.valid(null),
-      Joi.string().allow('')
-    )
-    .optional(),
-  quantity: Joi.number().integer().min(0).required(),
-  costPrice: moneyValue.optional(),
+const purchaseItemSchema = z.object({
+  productId: z.union([id(), str().min(1)]),
+  batchId: z.union([id(), str(), z.null()]).optional(),
+  quantity: int().min(0),
+  costPrice: moneyValue().optional(),
 });
 
-const purchaseBodySchema = Joi.object({
-  vendor: Joi.string().allow('', null).optional(),
-  totalAmount: moneyValue.required(),
-  date: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim().min(1)).optional(),
-  note: Joi.string().allow('', null).optional(),
-  paidAmount: moneyValue.optional(),
-  paymentMethod: Joi.string().trim().allow('', null).optional(),
-  paymentStatus: Joi.string().trim().allow('', null).optional(),
-  items: Joi.array().items(purchaseItemSchema).optional(),
+const purchaseFields = {
+  vendor: z.string().nullable().optional(),
+  date: z.union([z.coerce.date(), str().min(1)]).optional(),
+  note: z.string().nullable().optional(),
+  paidAmount: moneyValue().optional(),
+  paymentMethod: str().nullable().optional(),
+  paymentStatus: str().nullable().optional(),
+  items: z.array(purchaseItemSchema).optional(),
+};
+
+const purchaseBodySchema = z.object({
+  ...purchaseFields,
+  totalAmount: moneyValue(),
 });
 
-const purchaseUpdateBodySchema = Joi.object({
-  vendor: Joi.string().allow('', null).optional(),
-  totalAmount: moneyValue.optional(),
-  date: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim().min(1)).optional(),
-  note: Joi.string().allow('', null).optional(),
-  paidAmount: moneyValue.optional(),
-  paymentMethod: Joi.string().trim().allow('', null).optional(),
-  paymentStatus: Joi.string().trim().allow('', null).optional(),
-  items: Joi.array().items(purchaseItemSchema).optional(),
-}).min(1);
+const purchaseUpdateBodySchema = z
+  .object({ ...purchaseFields, totalAmount: moneyValue().optional() })
+  .refine((v) => Object.keys(v).length >= 1, {
+    message: 'at least one field is required',
+  });
 
-const paymentBodySchema = Joi.object({
-  amount: moneyValue.required(),
-  date: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim().min(1)).optional(),
-  note: Joi.string().allow('', null).optional(),
-  paymentMethod: Joi.string().trim().allow('', null).optional(),
+const paymentBodySchema = z.object({
+  amount: moneyValue(),
+  date: z.union([z.coerce.date(), str().min(1)]).optional(),
+  note: z.string().nullable().optional(),
+  paymentMethod: str().nullable().optional(),
 });
 
 export {

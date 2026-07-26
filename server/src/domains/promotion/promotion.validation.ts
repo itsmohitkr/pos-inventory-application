@@ -1,34 +1,28 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
 
-const numericId = Joi.alternatives().try(
-  Joi.number().integer().positive(),
-  Joi.string().trim().pattern(/^\d+$/)
-);
+const numericId = z.union([id(), str().regex(/^\d+$/)]);
 
-const promotionIdParamSchema = Joi.object({
-  id: numericId.required(),
+const promotionIdParamSchema = z.object({ id: numericId });
+
+const productIdParamSchema = z.object({ productId: numericId });
+
+const promotionItemSchema = z
+  .object({
+    productId: numericId,
+    promoPrice: num().min(0).nullable().optional(),
+    discountPercentage: num().min(0).max(100).nullable().optional(),
+  })
+  // Joi's .or('promoPrice', 'discountPercentage') — at least one required.
+  .refine((v) => v.promoPrice != null || v.discountPercentage != null, {
+    message: 'one of promoPrice or discountPercentage is required',
+  });
+
+const promotionBodySchema = z.object({
+  name: str().min(1).max(150),
+  startDate: z.union([z.coerce.date(), str().min(1)]),
+  endDate: z.union([z.coerce.date(), str().min(1)]),
+  items: z.array(promotionItemSchema).min(1),
+  isActive: bool().optional(),
 });
 
-const productIdParamSchema = Joi.object({
-  productId: numericId.required(),
-});
-
-const promotionItemSchema = Joi.object({
-  productId: numericId.required(),
-  promoPrice: Joi.number().min(0).allow(null).optional(),
-  discountPercentage: Joi.number().min(0).max(100).allow(null).optional(),
-}).or('promoPrice', 'discountPercentage');
-
-const promotionBodySchema = Joi.object({
-  name: Joi.string().trim().min(1).max(150).required(),
-  startDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim().min(1)).required(),
-  endDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim().min(1)).required(),
-  items: Joi.array().items(promotionItemSchema).min(1).required(),
-  isActive: Joi.boolean().optional(),
-});
-
-export {
-  promotionIdParamSchema,
-  productIdParamSchema,
-  promotionBodySchema,
-};
+export { promotionIdParamSchema, productIdParamSchema, promotionBodySchema };

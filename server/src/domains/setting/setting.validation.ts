@@ -1,16 +1,17 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
 
-const keyValueSettingsSchema = Joi.object({
-  key: Joi.string().trim().min(1).required(),
-  value: Joi.any().required(),
+const keyValueSettingsSchema = z.object({
+  key: str().min(1),
+  value: z.any(),
 });
 
-const bulkSettingsSchema = Joi.object({
-  settings: Joi.object().pattern(Joi.string().trim().min(1), Joi.any()).min(1).required(),
+const bulkSettingsSchema = z.object({
+  // Joi.object().pattern(string, any).min(1) — at least one entry.
+  settings: z.record(z.string(), z.any()).refine((v) => Object.keys(v).length >= 1, {
+    message: 'settings must contain at least 1 key',
+  }),
 });
 
-const updateSettingsBodySchema = Joi.alternatives().try(bulkSettingsSchema, keyValueSettingsSchema);
+const updateSettingsBodySchema = z.union([bulkSettingsSchema, keyValueSettingsSchema]);
 
-export {
-  updateSettingsBodySchema,
-};
+export { updateSettingsBodySchema };

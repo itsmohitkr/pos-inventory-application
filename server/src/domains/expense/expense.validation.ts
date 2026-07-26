@@ -1,42 +1,45 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
 
-const expenseIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required(),
+const moneyValue = () => num().min(0);
+
+const expenseIdParamSchema = z.object({ id: id() });
+
+const expenseQuerySchema = z.looseObject({
+  startDate: z.union([z.coerce.date(), str()]).optional(),
+  endDate: z.union([z.coerce.date(), str()]).optional(),
+  category: str().nullable().optional(),
 });
 
-const moneyValue = Joi.number().min(0);
-
-const expenseQuerySchema = Joi.object({
-  startDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
-  endDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
-  category: Joi.string().trim().allow('', null).optional(),
-}).unknown(true);
-
-const expenseBodySchema = Joi.object({
-  amount: moneyValue.required(),
-  category: Joi.string().trim().min(1).max(120).required(),
-  description: Joi.string().allow('', null).optional(),
-  date: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim().min(1)).optional(),
-  paidAmount: moneyValue.optional(),
-  paymentMethod: Joi.string().trim().allow('', null).optional(),
-  paymentStatus: Joi.string().trim().allow('', null).optional(),
+const expenseBodySchema = z.object({
+  amount: moneyValue(),
+  category: str().min(1).max(120),
+  description: z.string().nullable().optional(),
+  date: z.union([z.coerce.date(), str().min(1)]).optional(),
+  paidAmount: moneyValue().optional(),
+  paymentMethod: str().nullable().optional(),
+  paymentStatus: str().nullable().optional(),
 });
 
-const expenseUpdateBodySchema = Joi.object({
-  amount: moneyValue.optional(),
-  category: Joi.string().trim().min(1).max(120).optional(),
-  description: Joi.string().allow('', null).optional(),
-  date: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim().min(1)).optional(),
-  paidAmount: moneyValue.optional(),
-  paymentMethod: Joi.string().trim().allow('', null).optional(),
-  paymentStatus: Joi.string().trim().allow('', null).optional(),
-}).min(1);
+// Joi's .min(1) on an all-optional object — at least one field must be present.
+const expenseUpdateBodySchema = z
+  .object({
+    amount: moneyValue().optional(),
+    category: str().min(1).max(120).optional(),
+    description: z.string().nullable().optional(),
+    date: z.union([z.coerce.date(), str().min(1)]).optional(),
+    paidAmount: moneyValue().optional(),
+    paymentMethod: str().nullable().optional(),
+    paymentStatus: str().nullable().optional(),
+  })
+  .refine((v) => Object.keys(v).length >= 1, {
+    message: 'at least one field is required',
+  });
 
-const paymentBodySchema = Joi.object({
-  amount: moneyValue.required(),
-  date: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim().min(1)).optional(),
-  note: Joi.string().allow('', null).optional(),
-  paymentMethod: Joi.string().trim().allow('', null).optional(),
+const paymentBodySchema = z.object({
+  amount: moneyValue(),
+  date: z.union([z.coerce.date(), str().min(1)]).optional(),
+  note: z.string().nullable().optional(),
+  paymentMethod: str().nullable().optional(),
 });
 
 export {

@@ -1,21 +1,17 @@
-import { Joi } from '../../shared/middleware/validateRequest';
+import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
 
-const dateRangeQuerySchema = Joi.object({
-  startDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
-  endDate: Joi.alternatives().try(Joi.date().iso(), Joi.string().trim()).optional(),
+const dateRangeQuerySchema = z.object({
+  startDate: z.union([z.coerce.date(), str()]).optional(),
+  endDate: z.union([z.coerce.date(), str()]).optional(),
 });
 
-const monthlySalesQuerySchema = Joi.object({
-  year: Joi.number().integer().min(2000).max(2100).optional(),
+const monthlySalesQuerySchema = z.object({
+  year: int().min(2000).max(2100).optional(),
 });
 
-const dailySalesQuerySchema = Joi.object({
-  year: Joi.number().integer().min(2000).max(2100).optional(),
-  month: Joi.number().integer().min(0).max(11).optional(),
+const dailySalesQuerySchema = z.object({
+  year: int().min(2000).max(2100).optional(),
+  month: int().min(0).max(11).optional(),
 });
 
-export {
-  dateRangeQuerySchema,
-  monthlySalesQuerySchema,
-  dailySalesQuerySchema,
-};
+export { dateRangeQuerySchema, monthlySalesQuerySchema, dailySalesQuerySchema };
