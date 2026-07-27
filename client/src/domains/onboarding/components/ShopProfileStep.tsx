@@ -1,7 +1,14 @@
 import React from 'react';
 import { Stack, TextField, Typography } from '@mui/material';
+import type { ShopFields } from './useOnboarding';
 
-export default function ShopProfileStep({ fields, onChange }) {
+interface ShopProfileStepProps {
+  fields: ShopFields;
+  /** Curried by useOnboarding: onChange('phone') returns the field's handler. */
+  onChange: (field: keyof ShopFields) => (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+export default function ShopProfileStep({ fields, onChange }: ShopProfileStepProps) {
   return (
     <Stack spacing={2}>
       <Typography variant="body2" color="text.secondary">

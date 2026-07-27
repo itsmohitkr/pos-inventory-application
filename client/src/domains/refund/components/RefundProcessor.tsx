@@ -19,6 +19,7 @@ import {
 import { Undo as ReturnIcon } from '@mui/icons-material';
 import CustomDialog from '@/shared/components/CustomDialog';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
+import type { ReportSale } from '@/shared/types/models';
 
 /** Per-sale-item return selection, keyed by saleItem id. */
 interface RefundSelection {
@@ -28,7 +29,11 @@ interface RefundSelection {
 }
 
 interface RefundProcessorProps {
-  sale?: Record<string, any> | null; // eslint-disable-line @typescript-eslint/no-explicit-any
+  /**
+   * The sale to refund, as SaleHistory has it — that list comes from the
+   * reports endpoint, so items carry the server-computed productName.
+   */
+  sale?: ReportSale | null;
   /** Omitted when embedded in the standalone Refund page. */
   onCancel?: () => void;
   onRefundSuccess?: () => void;
@@ -48,7 +53,7 @@ const RefundProcessor = ({
 
   useEffect(() => {
     if (sale) {
-      const initial = {};
+      const initial: Record<string, RefundSelection> = {};
       sale.items.forEach((item) => {
         const maxReturn = item.quantity - (item.returnedQuantity || 0);
         initial[item.id] = {
@@ -61,14 +66,14 @@ const RefundProcessor = ({
     }
   }, [sale]);
 
-  const handleCheckChange = (id) => {
+  const handleCheckChange = (id: number) => {
     setSelectedItems((prev) => ({
       ...prev,
       [id]: { ...prev[id], checked: !prev[id].checked },
     }));
   };
 
-  const handleSelectAll = (event) => {
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
     const checked = event.target.checked;
     setSelectedItems((prev) => {
       const next = { ...prev };
@@ -81,7 +86,7 @@ const RefundProcessor = ({
     });
   };
 
-  const handleQuantityChange = (id, val) => {
+  const handleQuantityChange = (id: number, val: string) => {
     const qty = parseInt(val);
     const max = selectedItems[id].max;
     if (qty > max) return;
@@ -163,16 +168,22 @@ const RefundProcessor = ({
                 <Typography variant="body1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                   ORD-{sale.id}
                 </Typography>
+                {/*
+                  Sales are always paid at the till — paymentStatus exists on
+                  Expense and Purchase, not Sale, so `sale.paymentStatus` was
+                  always undefined and this chip always rendered the green
+                  'PAID' fallback. Rendered as the constant it actually was.
+                */}
                 <Chip
-                  label={sale.paymentStatus || 'PAID'}
+                  label="PAID"
                   size="small"
                   sx={{
                     height: 20,
                     fontSize: '0.65rem',
                     fontWeight: 700,
-                    bgcolor: sale.paymentStatus === 'Due' ? '#fff7ed' : '#dcfce7',
-                    color: sale.paymentStatus === 'Due' ? '#9a3412' : '#15803d',
-                    border: `1px solid ${sale.paymentStatus === 'Due' ? '#fed7aa' : '#bbf7d0'}`,
+                    bgcolor: '#dcfce7',
+                    color: '#15803d',
+                    border: '1px solid #bbf7d0',
                   }}
                 />
               </Box>

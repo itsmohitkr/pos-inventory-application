@@ -2,8 +2,16 @@ import React from 'react';
 import { Dialog, DialogTitle, DialogContent, Typography, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import RefundProcessor from '@/domains/refund/components/RefundProcessor';
+import type { ReportSale } from '@/shared/types/models';
 
-const RefundDialog = ({ open, onClose, sale, onRefundSuccess }) => {
+interface RefundDialogProps {
+  open: boolean;
+  onClose: () => void;
+  sale?: ReportSale | null;
+  onRefundSuccess?: () => void;
+}
+
+const RefundDialog = ({ open, onClose, sale, onRefundSuccess }: RefundDialogProps) => {
   if (!sale) return null;
 
   const handleSuccess = () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { LooseSale, ReportSale, ReportSaleItem } from '@/shared/types/models';
 import * as Sentry from '@sentry/react';
 import dashboardService from '@/shared/api/dashboardService';
 import { getDateRange, CATEGORY_COLORS } from '@/utils/dateUtils';
@@ -105,12 +106,12 @@ export const useDashboardData = () => {
     const hourlySalesAmt = Array.from({ length: 24 }, () => 0);
     const hourlySalesQty = Array.from({ length: 24 }, () => 0);
 
-    sales.forEach((sale) => {
+    sales.forEach((sale: ReportSale) => {
       const saleDate = new Date(sale.createdAt);
       const saleHour = saleDate.getHours();
       hourlySalesAmt[saleHour] += sale.netTotalAmount || 0;
 
-      sale.items.forEach((item) => {
+      sale.items.forEach((item: ReportSaleItem) => {
         const qty = item.netQuantity ?? item.quantity - item.returnedQuantity;
         hourlySalesQty[saleHour] += qty;
         const name = item.productName || item.batch?.product?.name || 'Unknown';
@@ -125,13 +126,13 @@ export const useDashboardData = () => {
     let firstHour = 24;
     let lastHour = -1;
 
-    sales.forEach((sale) => {
+    sales.forEach((sale: ReportSale) => {
       const h = new Date(sale.createdAt).getHours();
       if (h < firstHour) firstHour = h;
       if (h > lastHour) lastHour = h;
     });
 
-    looseSales.forEach((ls) => {
+    looseSales.forEach((ls: LooseSale) => {
       const lsHour = new Date(ls.createdAt).getHours();
       totalLooseSalesAmount += ls.price;
       hourlySalesAmt[lsHour] += ls.price;

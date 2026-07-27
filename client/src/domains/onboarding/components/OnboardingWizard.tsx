@@ -18,7 +18,7 @@ import trovixLogo from '@/assets/trovix.png';
 
 const STEPS = ['Shop Profile', 'Admin Password'];
 
-export default function OnboardingWizard({ onComplete }) {
+export default function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   const {
     activeStep,
     shopFields,

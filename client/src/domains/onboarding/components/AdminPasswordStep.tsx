@@ -1,7 +1,8 @@
 import React from 'react';
 import { Stack, TextField, Typography, LinearProgress, Box } from '@mui/material';
+import type { PasswordFields } from './useOnboarding';
 
-function PasswordStrength({ password }) {
+function PasswordStrength({ password }: { password: string }) {
   const len = password.length;
   const value = Math.min((len / 12) * 100, 100);
   const color = len === 0 ? 'inherit' : len < 8 ? 'error' : len < 12 ? 'warning' : 'success';
@@ -19,7 +20,13 @@ function PasswordStrength({ password }) {
   );
 }
 
-export default function AdminPasswordStep({ fields, onChange }) {
+interface AdminPasswordStepProps {
+  fields: PasswordFields;
+  /** Curried by useOnboarding: onChange('adminPassword') returns the handler. */
+  onChange: (field: keyof PasswordFields) => (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+export default function AdminPasswordStep({ fields, onChange }: AdminPasswordStepProps) {
   const mismatch = fields.confirmPassword.length > 0 && fields.adminPassword !== fields.confirmPassword;
 
   return (

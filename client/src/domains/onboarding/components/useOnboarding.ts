@@ -1,9 +1,25 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/react';
 import authService from '@/shared/api/authService';
 import settingsService from '@/shared/api/settingsService';
 
-export function useOnboarding({ onComplete }) {
+/** Shop details collected in step one; keys match the onboarding API body. */
+export interface ShopFields {
+  shopName: string;
+  address: string;
+  phone: string;
+  phone2: string;
+  email: string;
+  gst: string;
+}
+
+/** Password fields collected in step two. */
+export interface PasswordFields {
+  adminPassword: string;
+  confirmPassword: string;
+}
+
+export function useOnboarding({ onComplete }: { onComplete: () => void }) {
   const [activeStep, setActiveStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -37,11 +53,13 @@ export function useOnboarding({ onComplete }) {
     }).catch(() => { });
   }, []);
 
-  const handleShopChange = (field) => (e) => {
+  const handleShopChange =
+    (field: keyof ShopFields) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setShopFields((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  const handlePasswordChange = (field) => (e) => {
+  const handlePasswordChange =
+    (field: keyof PasswordFields) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setPasswordFields((prev) => ({ ...prev, [field]: e.target.value }));
   };
 

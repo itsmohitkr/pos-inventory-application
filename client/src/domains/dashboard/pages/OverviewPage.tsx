@@ -9,7 +9,17 @@ import {
   LocalOffer as PromoIcon,
 } from '@mui/icons-material';
 
-const DashboardCard = ({ to, title, description, icon, tone }) => (
+interface DashboardCardProps {
+  /** Router path the whole card links to. */
+  to: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  /** Colours for the icon chip; `color` accepts an MUI palette path. */
+  tone: { bg: string; color: string };
+}
+
+const DashboardCard = ({ to, title, description, icon, tone }: DashboardCardProps) => (
   <Paper
     component={RouterLink}
     to={to}

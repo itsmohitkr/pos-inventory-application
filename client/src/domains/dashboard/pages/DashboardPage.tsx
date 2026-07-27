@@ -86,7 +86,7 @@ const Dashboard = () => {
     fetchDailyData(newYear, newMonth);
   };
 
-  const handleTabChange = (newValue) => {
+  const handleTabChange = (newValue: number) => {
     const timeframe = timeframes[newValue];
     if (timeframe.type !== 'custom') {
       const { start, end } = getDateRange(timeframe.type);
