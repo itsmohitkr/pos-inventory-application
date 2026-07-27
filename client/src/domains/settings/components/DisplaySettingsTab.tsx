@@ -15,12 +15,20 @@ import {
   STORAGE_KEYS,
 } from '@/shared/utils/paymentSettings';
 
+interface DisplaySettingsTabProps {
+  /** Renderer zoom factor, 1 = 100%. */
+  uiZoom: number;
+  setUiZoom: (zoom: number) => void;
+  monochrome: boolean;
+  setMonochrome: (enabled: boolean) => void;
+}
+
 const DisplaySettingsTab = ({
   uiZoom,
   setUiZoom,
   monochrome,
   setMonochrome,
-}) => {
+}: DisplaySettingsTabProps) => {
   return (
     <Box>
       <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>

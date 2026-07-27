@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { PaymentSettings } from '@/shared/utils/paymentSettings';
 import {
   Paper,
   Typography,
@@ -28,16 +29,24 @@ const PAYMENT_METHOD_OPTIONS = [
   { id: 'cheque', label: 'Cheque', icon: '📄' },
 ];
 
+interface PaymentSettingsPanelProps {
+  paymentSettings: PaymentSettings;
+  setPaymentSettings: (settings: PaymentSettings) => void;
+  /** Reveals the encoded cost price on the POS product list. */
+  showDecodedPrices: boolean;
+  setShowDecodedPrices: (show: boolean) => void;
+}
+
 const PaymentSettingsPanel = ({
   paymentSettings,
   setPaymentSettings,
   showDecodedPrices,
   setShowDecodedPrices
-}) => {
+}: PaymentSettingsPanelProps) => {
   const [customMethod, setCustomMethod] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
 
-  const handlePaymentMethodToggle = (methodId) => {
+  const handlePaymentMethodToggle = (methodId: string) => {
     const isEnabling = !paymentSettings.enabledMethods.includes(methodId);
 
     setPaymentSettings({
@@ -62,7 +71,7 @@ const PaymentSettingsPanel = ({
     }
   };
 
-  const handleRemoveCustomMethod = (methodId) => {
+  const handleRemoveCustomMethod = (methodId: string) => {
     setPaymentSettings({
       ...paymentSettings,
       customMethods: paymentSettings.customMethods.filter((m) => m.id !== methodId),
@@ -76,7 +85,7 @@ const PaymentSettingsPanel = ({
     });
   };
 
-  const handleDecodedPricesToggle = (event) => {
+  const handleDecodedPricesToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     setShowDecodedPrices(event.target.checked);
   };
 

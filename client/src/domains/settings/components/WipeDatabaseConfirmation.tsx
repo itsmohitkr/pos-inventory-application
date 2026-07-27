@@ -1,14 +1,24 @@
 import React from 'react';
+import type { AuthUser } from '@/shared/types/auth';
 import { Alert, Box, TextField, Typography } from '@mui/material';
 import { Warning as WarningIcon } from '@mui/icons-material';
 
 const CONFIRM_PHRASE = 'WIPE ALL DATA';
 
+interface WipeDatabaseConfirmationProps {
+  wipePassword: string;
+  setWipePassword: (value: string) => void;
+  /** Must equal CONFIRM_PHRASE before the wipe is allowed. */
+  confirmPhrase: string;
+  setConfirmPhrase: (value: string) => void;
+  currentUser?: AuthUser | null;
+}
+
 const WipeDatabaseConfirmation = ({
   wipePassword, setWipePassword,
   confirmPhrase, setConfirmPhrase,
   currentUser,
-}) => {
+}: WipeDatabaseConfirmationProps) => {
   const phraseCorrect = confirmPhrase === CONFIRM_PHRASE;
 
   return (

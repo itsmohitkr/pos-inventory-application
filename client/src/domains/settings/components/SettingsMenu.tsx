@@ -1,4 +1,22 @@
 import React from 'react';
+import type { AuthUser } from '@/shared/types/auth';
+
+interface SettingsMenuProps {
+  /** Null closes the menu. */
+  anchorEl?: HTMLElement | null;
+  open: boolean;
+  onClose: () => void;
+  onFullscreenToggle: () => void;
+  isFullscreen?: boolean;
+  isAdmin?: boolean;
+  onOpenBillDialog: () => void;
+  onChangePassword: () => void;
+  onAdminLogin: () => void;
+  onManageUsers: () => void;
+  onOpenSettings: () => void;
+  onLogout: () => void;
+  currentUser?: AuthUser | null;
+}
 import {
   Menu,
   MenuItem,
@@ -30,7 +48,7 @@ const SettingsMenu = ({
   onOpenSettings,
   onLogout,
   currentUser,
-}) => {
+}: SettingsMenuProps) => {
   return (
     <Menu
       anchorEl={anchorEl}

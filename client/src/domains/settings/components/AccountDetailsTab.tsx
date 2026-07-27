@@ -1,4 +1,48 @@
 import React from 'react';
+import type { AuthUser } from '@/shared/types/auth';
+
+/** Version info shown in the About section. */
+export interface AppMetadata {
+  version: string;
+  lastUpdate: string;
+}
+
+/** Auto-update lifecycle state from the updater IPC events. */
+export type UpdateStatus =
+  | ''
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'not-available'
+  | 'error';
+
+interface AccountDetailsTabProps {
+  editedShopName: string;
+  shopMobile: string;
+  shopMobile2: string;
+  shopAddress: string;
+  shopEmail: string;
+  shopGST: string;
+  logoUrl: string;
+  setEditedShopName: (value: string) => void;
+  setShopMobile: (value: string) => void;
+  setShopMobile2: (value: string) => void;
+  setShopAddress: (value: string) => void;
+  setShopEmail: (value: string) => void;
+  setShopGST: (value: string) => void;
+  setLogoUrl: (value: string) => void;
+  updateStatus?: UpdateStatus | string;
+  updateMessage?: string;
+  /** 0-100 while an update downloads. */
+  downloadProgress?: number;
+  appMetadata: AppMetadata;
+  handleCheckForUpdates: () => void;
+  handleStartDownload: () => void;
+  handleRestartApp: () => void;
+  currentUser?: AuthUser | null;
+  setShowWipeConfirm: (show: boolean) => void;
+}
 import {
   Alert,
   Avatar,
@@ -42,7 +86,7 @@ const AccountDetailsTab = ({
   handleRestartApp,
   currentUser,
   setShowWipeConfirm,
-}) => {
+}: AccountDetailsTabProps) => {
   return (
     <Box>
       <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>

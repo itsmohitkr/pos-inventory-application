@@ -45,8 +45,13 @@ export const DEFAULT_RECEIPT_SETTINGS = {
  * Mirrors CustomPaymentMethod in client/src/shared/utils/paymentSettings.ts.
  */
 export interface CustomPaymentMethod {
-  id?: string;
-  name: string;
+  id: string;
+  /**
+   * The display text. NOT `name` — this was previously typed as `name`, but
+   * nothing ever wrote or read that field: PaymentSettingsPanel creates
+   * `{ id, label }` and both it and transactionPanelUtils render `label`.
+   */
+  label: string;
   [key: string]: unknown;
 }
 

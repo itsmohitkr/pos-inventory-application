@@ -1,4 +1,16 @@
 import { IPC } from '@/shared/ipcChannels';
+import type { AuthUser } from '@/shared/types/auth';
+import type { ShopMetadata, ShopMetadataPatch } from '@/domains/settings/hooks/useSettings';
+
+interface AccountDetailsDialogProps {
+  open: boolean;
+  onClose: () => void;
+  shopName: string;
+  shopMetadata: ShopMetadata;
+  /** Patch may carry `shopName`, which is stored outside ShopMetadata. */
+  onMetadataChange: (update: ShopMetadataPatch) => void | Promise<void>;
+  currentUser?: AuthUser | null;
+}
 import React, { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/react';
 import settingsService from '@/shared/api/settingsService';
@@ -55,7 +67,7 @@ const AccountDetailsDialog = ({
   shopMetadata,
   onMetadataChange,
   currentUser,
-}) => {
+}: AccountDetailsDialogProps) => {
   const { dialogState, showSuccess, showError, closeDialog } = useCustomDialog();
   const [editedShopName, setEditedShopName] = useState(shopName);
   const [shopMobile, setShopMobile] = useState(shopMetadata.shopMobile);
@@ -131,7 +143,7 @@ const AccountDetailsDialog = ({
         setUpdateStatus('downloaded');
         setUpdateMessage('Update downloaded!');
       };
-      const onError = (_event, msg) => {
+      const onError = (_event: unknown, msg: string) => {
         setUpdateStatus('error');
         setUpdateMessage('Update error: ' + msg);
       };
@@ -139,7 +151,7 @@ const AccountDetailsDialog = ({
         setUpdateStatus('latest');
         setUpdateMessage('You are on the latest version!');
       };
-      const onProgress = (_event, percent) => {
+      const onProgress = (_event: unknown, percent: number) => {
         setUpdateStatus('downloading');
         setDownloadProgress(Math.round(percent));
       };
@@ -296,7 +308,7 @@ const AccountDetailsDialog = ({
     }
   };
 
-  const handleDialogClose = (_event, reason) => {
+  const handleDialogClose = (_event: unknown, reason?: string) => {
     if (showWipeConfirm && (reason === 'backdropClick' || reason === 'escapeKeyDown')) {
       return;
     }

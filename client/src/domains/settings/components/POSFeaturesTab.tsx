@@ -1,4 +1,30 @@
 import React from 'react';
+
+/** Every POS feature toggle, each paired with its setter. */
+interface POSFeaturesTabProps {
+  looseSaleEnabled: boolean;
+  setLooseSaleEnabled: (enabled: boolean) => void;
+  fullscreenEnabled: boolean;
+  setFullscreenEnabled: (enabled: boolean) => void;
+  weightedAverageCostEnabled: boolean;
+  setWeightedAverageCostEnabled: (enabled: boolean) => void;
+  extraDiscountEnabled: boolean;
+  setExtraDiscountEnabledState: (enabled: boolean) => void;
+  /** Snackbar duration in milliseconds. */
+  notificationDuration: number;
+  setNotificationDurationState: (duration: number) => void;
+  /** Minutes before an elevated admin session drops back down. */
+  adminAutoLogoutTime: number;
+  setAdminAutoLogoutTimeState: (minutes: number) => void;
+  calculatorEnabled: boolean;
+  setCalculatorEnabledState: (enabled: boolean) => void;
+  changeCalculatorEnabled: boolean;
+  setChangeCalculatorEnabledState: (enabled: boolean) => void;
+  paymentMethodsEnabled: boolean;
+  setPaymentMethodsEnabledState: (enabled: boolean) => void;
+  customerFeatureEnabled: boolean;
+  setCustomerFeatureEnabledState: (enabled: boolean) => void;
+}
 import {
     Box,
     Divider,
@@ -32,7 +58,7 @@ const POSFeaturesTab = ({
     setPaymentMethodsEnabledState,
     customerFeatureEnabled,
     setCustomerFeatureEnabledState,
-}) => {
+}: POSFeaturesTabProps) => {
     return (
         <Box>
             <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>

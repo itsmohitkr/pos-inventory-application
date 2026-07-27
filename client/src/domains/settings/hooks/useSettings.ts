@@ -21,7 +21,7 @@ const getStoredShopName = () => {
   }
 };
 
-const getStoredReceiptSettings = (fallbackShopName) => {
+const getStoredReceiptSettings = (fallbackShopName: string): ReceiptSettings => {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.receipt));
     return {
@@ -67,6 +67,14 @@ export interface ShopMetadata {
   shopGST: string;
   shopLogo: string;
 }
+
+/**
+ * What handleShopMetadataChange accepts: any subset of the shop metadata,
+ * plus `shopName` — which is NOT part of ShopMetadata. The name is persisted
+ * separately (the `posShopName` setting and the receipt's customShopName),
+ * so it travels alongside the metadata rather than inside it.
+ */
+export type ShopMetadataPatch = Partial<ShopMetadata> & { shopName?: string };
 
 /** A printer entry from the get-printers IPC handler. */
 export interface PrinterInfo {
@@ -188,7 +196,7 @@ export const useSettings = (showError?: (message: string) => void) => {
     if (window.electron) refreshPrinters();
   }, [refreshPrinters]);
 
-  const handleShopMetadataChange = async (newData) => {
+  const handleShopMetadataChange = async (newData: ShopMetadataPatch) => {
     if (newData.shopName !== undefined) {
       setShopName(newData.shopName);
       setReceiptSettings((prev) => ({ ...prev, customShopName: newData.shopName }));
@@ -203,7 +211,9 @@ export const useSettings = (showError?: (message: string) => void) => {
         settingsToUpdate['posReceiptSettings.customShopName'] = newData.shopName;
       }
 
-      const metadataKeys = [
+      // Typed as keys of ShopMetadata so a renamed field breaks here rather
+      // than silently stopping being persisted.
+      const metadataKeys: (keyof ShopMetadata)[] = [
         'shopMobile',
         'shopMobile2',
         'shopAddress',
@@ -227,7 +237,7 @@ export const useSettings = (showError?: (message: string) => void) => {
     }
   };
 
-  const handleSaveBillSettings = async (newSettings) => {
+  const handleSaveBillSettings = async (newSettings: ReceiptSettings) => {
     setReceiptSettings(newSettings);
     try {
       await settingsService.updateSettings({
