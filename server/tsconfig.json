@@ -8,14 +8,20 @@
     "prisma/ deliberately stays at server/prisma and is NOT copied into dist.",
     "src/config/paths.ts finds it by walking up to the directory containing",
     "prisma/schema.prisma, so the same code resolves correctly whether it runs",
-    "from src/ or from dist/."
+    "from src/ or from dist/.",
+    "",
+    "noImplicitAny is enabled here rather than in tsconfig.base.json: the client",
+    "still has implicit-any errors to clear, so flipping it in the shared base",
+    "would break that package. A per-package override is how the flag advances",
+    "one package at a time — it cannot be scoped to a folder within a package."
   ],
   "compilerOptions": {
     "module": "node16",
     "moduleResolution": "node16",
     "outDir": "./dist",
     "rootDir": ".",
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "noImplicitAny": true
   },
   "include": ["index.ts", "seed.ts", "src/**/*"],
   "exclude": ["node_modules", "dist", "tests", "prisma", "coverage"]

@@ -977,7 +977,7 @@ const categories = [
   'Chips',
   'Oil',
   'Spices',
-];
+] as const;
 
 const productTemplates = {
   Staples: [
@@ -1060,15 +1060,19 @@ const priceBands = {
   Spices: [25, 120],
 };
 
-const getRandomItem = (items) => items[Math.floor(Math.random() * items.length)];
+const getRandomItem = <T>(items: readonly T[]): T =>
+  items[Math.floor(Math.random() * items.length)];
 
-const generateMrp = (category) => {
+/** A category name from the `categories` list above. */
+type SeedCategory = (typeof categories)[number];
+
+const generateMrp = (category: SeedCategory) => {
   const band = priceBands[category] || [30, 150];
   const value = Math.random() * (band[1] - band[0]) + band[0];
   return Math.round(value / 5) * 5;
 };
 
-const generateProducts = (count, startBarcode) => {
+const generateProducts = (count: number, startBarcode: number) => {
   const products = [];
   let barcodeCounter = startBarcode;
 

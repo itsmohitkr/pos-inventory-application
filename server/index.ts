@@ -11,6 +11,9 @@ if (process.env.SENTRY_DSN) {
 
 import path = require('path');
 import fs = require('fs');
+import type { NextFunction, Request, Response } from 'express';
+import type { PrismaClient } from '@prisma/client';
+import type { Logger } from 'pino';
 import {
   SERVER_ROOT,
   SCHEMA_PATH,
@@ -20,7 +23,7 @@ import {
 
 const PORT = process.env.PORT || 5001;
 const BOOT_START = Date.now();
-const tlog = (msg) => {
+const tlog = (msg: string) => {
   const elapsed = Date.now() - BOOT_START;
   console.log(`[BOOT +${elapsed}ms] ${msg}`);
 };
@@ -30,7 +33,7 @@ tlog('server/index.js loaded');
 // ── IPC Helper for splash screen ──────────────────────────────────────────────
 // process.send is monkey-patched in desktop/main.js to forward to the splash.
 
-const sendSplashMsg = (msg) => {
+const sendSplashMsg = (msg: string) => {
   if (process.send) process.send({ type: 'splash-status', message: msg });
 };
 
@@ -62,7 +65,7 @@ function getLatestMigrationFolder() {
 // Runs only when migrations actually need to apply. Uses async I/O so the event
 // loop stays free during the copy.
 
-async function backupDatabase(logger) {
+async function backupDatabase(logger: Logger) {
   try {
     const dbPath = getDbPath();
     if (!dbPath || !fs.existsSync(dbPath)) return;
@@ -90,9 +93,9 @@ async function backupDatabase(logger) {
 //           are genuinely pending migrations (fresh install or app update with
 //           new schema).
 
-async function getAppliedMigrationsFromDb(prisma) {
+async function getAppliedMigrationsFromDb(prisma: PrismaClient) {
   try {
-    const rows = await prisma.$queryRaw`
+    const rows = await prisma.$queryRaw<{ migration_name: string }[]>`
       SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL
     `;
     return new Set(rows.map((r) => r.migration_name));
@@ -103,7 +106,7 @@ async function getAppliedMigrationsFromDb(prisma) {
 
 // Returns { skipped: boolean, pending: string[] } — caller runs the subprocess
 // only when skipped === false.
-async function checkMigrationStatus(prisma, logger) {
+async function checkMigrationStatus(prisma: PrismaClient, logger: Logger) {
   const latest = getLatestMigrationFolder();
   if (!latest) return { skipped: true, pending: [] }; // no migrations folder
 
@@ -149,7 +152,7 @@ async function checkMigrationStatus(prisma, logger) {
   return { skipped: false, pending };
 }
 
-async function runPrismaMigrationsSubprocess(logger) {
+async function runPrismaMigrationsSubprocess(logger: Logger) {
   const util = require('util');
   const execAsync = util.promisify(require('child_process').exec);
 
@@ -207,7 +210,7 @@ async function runPrismaMigrationsSubprocess(logger) {
   }
 }
 
-async function ensureMigrationsApplied(prisma, logger) {
+async function ensureMigrationsApplied(prisma: PrismaClient, logger: Logger) {
   tlog('Checking migration status...');
   const { skipped, pending } = await checkMigrationStatus(prisma, logger);
 
@@ -239,7 +242,7 @@ async function ensureMigrationsApplied(prisma, logger) {
 // so the DB-level @unique constraint doesn't block reuse of those barcodes.
 // Safe because historical sales join by productId, never by barcode.
 
-async function clearBarcodesOnDeletedProducts(prisma, logger) {
+async function clearBarcodesOnDeletedProducts(prisma: PrismaClient, logger: Logger) {
   try {
     const updated = await prisma.product.updateMany({
       where: { isDeleted: true, barcode: { not: null } },
@@ -257,7 +260,7 @@ async function clearBarcodesOnDeletedProducts(prisma, logger) {
 // Bcrypt-hashes any users still stored with plaintext passwords. Non-critical,
 // so it runs after the server is listening — it doesn't block the UI.
 
-async function migratePasswordsToHash(prisma, logger) {
+async function migratePasswordsToHash(prisma: PrismaClient, logger: Logger) {
   try {
     const bcrypt = require('bcryptjs');
     const users = await prisma.user.findMany({ select: { id: true, password: true } });
@@ -278,7 +281,7 @@ async function migratePasswordsToHash(prisma, logger) {
 // ── Seeding ───────────────────────────────────────────────────────────────────
 // Migrations must already be applied before this runs.
 
-async function seedDefaults(prisma, logger) {
+async function seedDefaults(prisma: PrismaClient, logger: Logger) {
   const settingService = require('./src/domains/setting/setting.service');
   const { DEFAULT_RECEIPT_SETTINGS, DEFAULT_SHOP_METADATA } = require('./src/config/constants');
 
@@ -328,14 +331,14 @@ async function seedDefaults(prisma, logger) {
 // ever hits a half-initialised schema.
 
 let isSystemReady = false;
-let systemError = null;
+let systemError: Error | null = null;
 
 /**
  * Gating middleware that holds requests until the system is ready.
  * If the system is ready, it passes through to the next middleware (the real app).
  * If booting, it waits. If it failed, it returns 503.
  */
-function gatingMiddleware(req, res, next) {
+function gatingMiddleware(req: Request, res: Response, next: NextFunction) {
   if (isSystemReady) {
     return next();
   }
@@ -390,7 +393,7 @@ async function main() {
     sendSplashMsg('Server engine started...');
   });
 
-  server.on('error', (err) => {
+  server.on('error', (err: NodeJS.ErrnoException) => {
     console.error('[BOOT FATAL] Server failed to bind port:', err);
     process.exit(1);
   });
