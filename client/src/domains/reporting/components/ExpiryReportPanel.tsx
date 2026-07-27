@@ -66,6 +66,15 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
     sortConfig,
   } = useSortableTable(filteredData || [], { key: 'expiryDate', direction: 'asc' });
 
+  // Reference point for "days until expiry". Read once per data load rather
+  // than per row during render: reading the clock inside the row map made every
+  // row's countdown depend on when React happened to re-render it, so two rows
+  // in the same table could straddle the 7-day "critical" threshold.
+  const [nowMs, setNowMs] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    setNowMs(Date.now());
+  }, [data]);
+
   const handleExportPDF = () => {
     if (!filteredData || filteredData.length === 0) return;
 
@@ -233,7 +242,7 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
               ) : (
                 sortedData.map((batch) => {
                   const daysUntilExpiry = Math.ceil(
-                    (new Date(batch.expiryDate as string).getTime() - Date.now()) /
+                    (new Date(batch.expiryDate as string).getTime() - nowMs) /
                     (1000 * 60 * 60 * 24)
                   );
                   const isCritical = daysUntilExpiry <= 7;

@@ -1,4 +1,4 @@
-import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
+import { z, id, num, str, bool } from '../../shared/middleware/zodHelpers';
 
 const numericId = z.union([id(), str().regex(/^\d+$/)]);
 

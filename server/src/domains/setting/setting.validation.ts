@@ -1,4 +1,4 @@
-import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
+import { z, str } from '../../shared/middleware/zodHelpers';
 
 const keyValueSettingsSchema = z.object({
   key: str().min(1),

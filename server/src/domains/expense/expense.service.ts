@@ -62,7 +62,7 @@ interface ExpenseFilters {
 const getExpenses = async (filters: ExpenseFilters = {}) => {
   const { startDate, endDate, category } = filters;
 
-  let where: Prisma.ExpenseWhereInput = {};
+  const where: Prisma.ExpenseWhereInput = {};
   if (startDate || endDate) {
     where.date = {};
     if (startDate) where.date.gte = new Date(startDate);

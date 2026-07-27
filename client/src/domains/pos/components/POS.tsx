@@ -80,7 +80,7 @@ const POS = ({
     baseTotalAmount,
     totalProfit,
     alreadyHasFreeProduct,
-  } = usePOSTabs(products);
+  } = usePOSTabs();
 
   const {
     transactionPanelWidth,

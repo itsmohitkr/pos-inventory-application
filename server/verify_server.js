@@ -8,14 +8,17 @@ const options = {
 };
 
 const req = http.request(options, (res) => {
-  // ...existing code...
   res.setEncoding('utf8');
   let data = '';
   res.on('data', (chunk) => {
     data += chunk;
   });
   res.on('end', () => {
-    // ...existing code...
+    // The body was previously accumulated and then discarded, so a successful
+    // run printed nothing and a 500 looked identical to a 200.
+    console.log(`status: ${res.statusCode}`);
+    console.log(data);
+    process.exitCode = res.statusCode === 200 ? 0 : 1;
   });
 });
 

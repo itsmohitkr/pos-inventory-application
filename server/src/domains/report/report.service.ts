@@ -78,7 +78,6 @@ const getReports = async ({ startDate, endDate }: DateRangeFilter) => {
 
   let totalSales = 0;
   let totalProfit = 0;
-  let totalOrders = sales.length;
 
   const detailedSales = sales.map((sale) => {
     const items = sale.items.map((item) => {
@@ -330,7 +329,12 @@ const getDailySales = async ({ year, month }) => {
   return dailyData;
 };
 
-const getTopSellingProducts = async ({ limit = 100 } = {}) => {
+// Returns a productId -> total-quantity-sold map, unranked and unpaginated.
+// This previously took a `limit` option that was never applied to the result;
+// the only caller (GET /api/reports/top-selling, consumed by usePOSData to rank
+// search results) needs the full map, so the option is gone rather than
+// silently doing nothing.
+const getTopSellingProducts = async () => {
   const saleItems = await prisma.saleItem.groupBy({
     by: ['batchId'],
     _sum: {

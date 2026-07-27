@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box } from '@mui/material';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import ReceiptUntyped from '@/domains/pos/components/Receipt';
 
 // Receipt.jsx is part of the receipt-printing path and is converted later; it

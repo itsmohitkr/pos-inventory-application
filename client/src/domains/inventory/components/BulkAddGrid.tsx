@@ -57,7 +57,7 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
     try {
       const data = await inventoryService.fetchCategories();
       const flatten = (nodes) => {
-        let list = [];
+        const list = [];
         nodes.forEach((node) => {
           list.push(node.path);
           if (node.children) list.push(...flatten(node.children));

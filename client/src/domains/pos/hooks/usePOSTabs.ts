@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 /**
  * Hook to manage POS tabs and cart state
  */
-export const usePOSTabs = (products?: any[]) => {
+export const usePOSTabs = () => {
   // Multi-tab state
   const [tabs, setTabs] = useState(() => {
     try {

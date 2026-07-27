@@ -28,7 +28,6 @@ interface POSSearchBarProps {
   onLooseSale?: () => void;
   looseSaleEnabled?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onCustomerBarcode?: (query: any) => any;
 }
 

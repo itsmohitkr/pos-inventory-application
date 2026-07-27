@@ -995,8 +995,6 @@ const importProducts = async (csvData) => {
 
   // Prepare all product and batch data in memory first
   const productsToCreate = [];
-  const batchesToCreate = [];
-  const stockMovementsToCreate = [];
 
   for (let i = 1; i < lines.length; i++) {
     const lineNumber = i + 1;

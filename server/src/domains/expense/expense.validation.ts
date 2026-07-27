@@ -1,4 +1,4 @@
-import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
+import { z, id, num, str } from '../../shared/middleware/zodHelpers';
 
 const moneyValue = () => num().min(0);
 

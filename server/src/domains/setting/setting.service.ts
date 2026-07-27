@@ -11,7 +11,7 @@ const getAllSettings = async (): Promise<SettingsMap> => {
   return settings.reduce<SettingsMap>((acc, setting) => {
     try {
       acc[setting.key] = JSON.parse(setting.value);
-    } catch (e) {
+    } catch {
       acc[setting.key] = setting.value;
     }
     return acc;
@@ -29,7 +29,7 @@ const getSettingByKey = async <T = unknown>(key: string): Promise<T | null> => {
   if (!setting) return null;
   try {
     return JSON.parse(setting.value) as T;
-  } catch (e) {
+  } catch {
     return setting.value as T;
   }
 };

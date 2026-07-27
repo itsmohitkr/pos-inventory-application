@@ -21,20 +21,6 @@ type PurchaseWithRelations = Prisma.PurchaseGetPayload<{
 /** Purchase read with payments only — used by the payment-status recalculation. */
 type PurchaseWithPayments = Prisma.PurchaseGetPayload<{ include: { payments: true } }>;
 
-/**
- * Payments echoed back immediately after creating or updating a purchase.
- *
- * These are display-only projections, not full PurchasePayment rows — they
- * carry no id, createdAt or purchaseId. The row itself is written separately
- * via tx.purchasePayment.create; this is what the response shows without a
- * re-query. Typed explicitly so the difference is visible rather than hidden
- * behind `any`.
- */
-type OptimisticPayment = Pick<
-  Prisma.PurchasePaymentCreateManyInput,
-  'amount' | 'paymentMethod' | 'date' | 'note'
->;
-
 /** Query filters accepted by getPurchases; all optional. */
 interface PurchaseFilters {
   startDate?: string;
@@ -86,7 +72,10 @@ const createPurchase = async (data) => {
 
     // Record the initial payment if an amount was given
     if (parsedPaidAmount > 0) {
-      await tx.purchasePayment.create({
+      // `create` returns the persisted row, so the response carries the real
+      // id/createdAt instead of a hand-built stand-in that had to be cast
+      // through `unknown` to pass as a PurchasePayment.
+      const initialPayment = await tx.purchasePayment.create({
         data: {
           purchaseId: purchase.id,
           amount: parsedPaidAmount,
@@ -95,15 +84,7 @@ const createPurchase = async (data) => {
           note: 'Initial payment upon logging purchase',
         },
       });
-      // Display-only projection — see OptimisticPayment above.
-      purchase.payments = ([
-        {
-          amount: parsedPaidAmount,
-          paymentMethod: paymentMethod || 'Cash',
-          date: purchase.date,
-          note: 'Initial payment upon logging purchase',
-        },
-      ] as unknown as PurchaseWithRelations['payments']);
+      purchase.payments = [initialPayment];
     }
 
     // Optionally update batch cost price if batchId is provided
@@ -126,7 +107,7 @@ const createPurchase = async (data) => {
 const getPurchases = async (filters: PurchaseFilters = {}) => {
   const { startDate, endDate, vendor } = filters;
 
-  let where: Prisma.PurchaseWhereInput = {};
+  const where: Prisma.PurchaseWhereInput = {};
   if (startDate || endDate) {
     where.date = {};
     if (startDate) where.date.gte = new Date(startDate);

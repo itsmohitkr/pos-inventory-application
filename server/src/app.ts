@@ -69,7 +69,7 @@ const apiRouter = express.Router();
 const lazyLoad =
   (routerPath: string): RequestHandler =>
   (req, res, next) => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const router = require(routerPath) as RequestHandler;
     return router(req, res, next);
   };

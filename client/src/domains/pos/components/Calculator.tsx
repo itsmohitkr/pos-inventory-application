@@ -167,7 +167,7 @@ const Calculator = ({ open, onClose }) => {
           keyMap[e.key]();
         } else if (/[0-9+\-*/.%]/.test(e.key)) {
           e.preventDefault();
-          let val = e.key;
+          const val = e.key;
           if (val === '%') {
             handlePercentage();
           } else {

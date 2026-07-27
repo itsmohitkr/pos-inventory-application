@@ -153,16 +153,14 @@ async function runPrismaMigrationsSubprocess(logger) {
   const util = require('util');
   const execAsync = util.promisify(require('child_process').exec);
 
-  let prismaCliPath;
-  let schemaPath;
   const pEnv = { ...process.env };
   const nodeExecutable = process.execPath;
 
   const isPackaged =
     process.env.NODE_ENV === 'production' || SERVER_ROOT.includes('app.asar');
 
-  prismaCliPath = getPrismaCliPath(isPackaged);
-  schemaPath = SCHEMA_PATH;
+  const prismaCliPath = getPrismaCliPath(isPackaged);
+  const schemaPath = SCHEMA_PATH;
   if (isPackaged) {
     pEnv.ELECTRON_RUN_AS_NODE = '1';
   }

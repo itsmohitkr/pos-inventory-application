@@ -38,7 +38,7 @@ const login = async ({ username, password }) => {
     });
   }
 
-  let isValid = false;
+  let isValid: boolean;
   let needsMigration = false;
 
   if (isHashed(user.password)) {
@@ -194,12 +194,9 @@ const changePassword = async (userId, { oldPassword, newPassword }) => {
     });
   }
 
-  let isOldValid = false;
-  if (isHashed(user.password)) {
-    isOldValid = await bcrypt.compare(oldPassword, user.password);
-  } else {
-    isOldValid = user.password === oldPassword;
-  }
+  const isOldValid = isHashed(user.password)
+    ? await bcrypt.compare(oldPassword, user.password)
+    : user.password === oldPassword;
 
   if (!isOldValid) {
     throw createHttpError(StatusCodes.UNAUTHORIZED, 'Incorrect old password', {
@@ -226,12 +223,9 @@ const wipeDatabase = async ({ username, password }) => {
     });
   }
 
-  let isValid = false;
-  if (isHashed(user.password)) {
-    isValid = await bcrypt.compare(password, user.password);
-  } else {
-    isValid = user.password === password;
-  }
+  const isValid = isHashed(user.password)
+    ? await bcrypt.compare(password, user.password)
+    : user.password === password;
 
   if (!isValid || user.role !== 'admin') {
     throw createHttpError(StatusCodes.FORBIDDEN, 'Invalid admin credentials', {
@@ -294,12 +288,9 @@ const verifyAdmin = async ({ password }) => {
 
   let foundAdmin = null;
   for (const admin of adminUsers) {
-    let isValid = false;
-    if (isHashed(admin.password)) {
-      isValid = await bcrypt.compare(password, admin.password);
-    } else {
-      isValid = admin.password === password;
-    }
+    const isValid = isHashed(admin.password)
+      ? await bcrypt.compare(password, admin.password)
+      : admin.password === password;
 
     if (isValid) {
       foundAdmin = admin;

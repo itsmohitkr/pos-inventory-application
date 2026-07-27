@@ -40,8 +40,15 @@ jobs:
         run: cd client && npm run typecheck
 
       # 1. LINTING
+      # Both configs cover .ts/.tsx. The client config previously matched only
+      # js/jsx, so after the TypeScript migration it linted 50 files while 194
+      # TypeScript files went unchecked — this step passed without inspecting
+      # any converted code. The server had no ESLint setup at all.
       - name: Lint Client
         run: cd client && npm run lint
+
+      - name: Lint Server
+        run: cd server && npm run lint
 
       # 2. PRISMA & DATABASE INTEGRITY
       - name: Validate Prisma Schema
