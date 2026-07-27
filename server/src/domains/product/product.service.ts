@@ -5,8 +5,9 @@ import { createHttpError } from '../../shared/error/appError';
 import { getDateRange } from '../../shared/utils/dateUtils';
 import categoryService = require('../category/category.service');
 import logger = require('../../shared/utils/logger');
+import type { CreateProductInput, UpdateProductInput } from './product.validation';
 
-const normalizeCategory = (value) => {
+const normalizeCategory = (value: unknown): string | null => {
   if (value === null || value === undefined) return null;
   const trimmed = String(value).trim();
   if (!trimmed) return null;
@@ -18,12 +19,16 @@ const normalizeCategory = (value) => {
     .join('/');
 };
 
-const normalizeSearch = (value) => {
+const normalizeSearch = (value: unknown): string => {
   if (value === null || value === undefined) return '';
   return String(value).trim();
 };
 
-const _validateBarcodesUniqueness = async (tx, barcodeStr, excludeProductId = null) => {
+const _validateBarcodesUniqueness = async (
+  tx: Prisma.TransactionClient,
+  barcodeStr: string | null | undefined,
+  excludeProductId: number | null = null
+) => {
   if (!barcodeStr || !barcodeStr.trim()) return;
 
   const barcodes = barcodeStr
@@ -150,8 +155,8 @@ const addQuantityToBatch = async (
 };
 
 // Proper RFC 4180 CSV parser that handles quoted values with commas and special characters
-const parseCSVLine = (line) => {
-  const result = [];
+const parseCSVLine = (line: string): string[] => {
+  const result: string[] = [];
   let current = '';
   let inQuotes = false;
 
@@ -222,13 +227,26 @@ const validatePricing = ({
 };
 
 // Escapes the `'` string delimiter. Required for every value interpolated into SQL.
-const escapeSqlString = (value) => value.replace(/'/g, "''");
+const escapeSqlString = (value: string): string => value.replace(/'/g, "''");
 
 // Escapes LIKE metacharacters so they match literally. Only valid for values used
 // in a LIKE pattern — applying it to an `=` comparison corrupts the value.
-const escapeSqlLike = (value) => value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+const escapeSqlLike = (value: string): string =>
+  value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 
-const buildWhereSql = ({ search, category }) => {
+/**
+ * Search/category filters shared by the SQL and Prisma query builders.
+ *
+ * Declared as strings rather than `unknown` because `category` is
+ * interpolated into raw SQL below — the escaping helpers require a string,
+ * and the controller reads both through queryStrOr, so they always are one.
+ */
+interface ProductListFilters {
+  search?: string;
+  category?: string;
+}
+
+const buildWhereSql = ({ search, category }: ProductListFilters) => {
   const clauses = ["p.isDeleted = 0"];
 
   const normalizedSearch = normalizeSearch(search);
@@ -254,7 +272,7 @@ const buildWhereSql = ({ search, category }) => {
 
 const MAX_STOCK_QUANTITY = 2147483647;
 
-const validateQuantity = (quantity) => {
+const validateQuantity = (quantity: unknown): void => {
   const qty = parseInt(String(quantity));
   if (isNaN(qty)) return;
   if (qty > MAX_STOCK_QUANTITY) {
@@ -267,7 +285,7 @@ const validateQuantity = (quantity) => {
   }
 };
 
-const buildWhereFilter = ({ search, category }) => {
+const buildWhereFilter = ({ search, category }: ProductListFilters) => {
   const andFilters: Prisma.ProductWhereInput[] = [{ isDeleted: false }];
 
   const normalizedSearch = normalizeSearch(search);
@@ -336,7 +354,7 @@ const getAllProducts = async ({
   const offset = Math.max(0, (Number(page) - 1) * Number(pageSize));
   const limit = Math.max(1, Number(pageSize));
 
-  const totalRows = await prisma.$queryRawUnsafe(`
+  const totalRows = await prisma.$queryRawUnsafe<{ count: number | bigint }[]>(`
         SELECT COUNT(*) as count
         FROM Product p
         ${whereSql}
@@ -433,10 +451,19 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
   return normalized;
 };
 
-const getProductSummary = async ({ search = '', category = 'all' } = {}) => {
+/** Aggregate row returned by the summary query below. */
+interface ProductSummaryRow {
+  product_count: number | bigint;
+  total_qty: number;
+  total_cost: number;
+  total_selling: number;
+  total_mrp: number;
+}
+
+const getProductSummary = async ({ search = '', category = 'all' }: ProductListFilters = {}) => {
   const whereSql = buildWhereSql({ search, category });
   const whereFilter = buildWhereFilter({ search, category });
-  const rows = await prisma.$queryRawUnsafe(`
+  const rows = await prisma.$queryRawUnsafe<ProductSummaryRow[]>(`
         SELECT
             COUNT(DISTINCT p.id) as product_count,
             CAST(COALESCE(SUM(b.quantity), 0) AS INTEGER) as total_qty,
@@ -448,7 +475,7 @@ const getProductSummary = async ({ search = '', category = 'all' } = {}) => {
         ${whereSql}
     `);
 
-  const summaryRow = rows?.[0] || {};
+  const summaryRow: Partial<ProductSummaryRow> = rows?.[0] || {};
 
   const categorySourceFilter =
     category === 'uncategorized' ? buildWhereFilter({ search, category: 'all' }) : whereFilter;
@@ -462,7 +489,8 @@ const getProductSummary = async ({ search = '', category = 'all' } = {}) => {
     },
   });
 
-  const categoryCounts = {};
+  // Full category path -> product count, accumulated up each ancestor.
+  const categoryCounts: Record<string, number> = {};
   let uncategorizedCount = 0;
   let totalCount = 0;
 
@@ -522,7 +550,7 @@ const getProductById = async (id: number | string) => {
   };
 };
 
-const getProductByBarcode = async (barcode) => {
+const getProductByBarcode = async (barcode: string) => {
   const normalizedBarcode = normalizeSearch(barcode);
   if (!normalizedBarcode) return null;
   // Support multi-barcode search: find product where barcode matches exactly
@@ -566,7 +594,7 @@ const createOrUpdateProduct = async ({
   enableBatchTracking,
   lowStockWarningEnabled,
   lowStockThreshold,
-}) => {
+}: CreateProductInput) => {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Support multi-barcode: validate each barcode uniqueness
     if (barcode && barcode.trim()) {
@@ -720,7 +748,7 @@ const addBatch = async (batchData: BatchInput) => {
   });
 };
 
-const updateProduct = async (id, productData) => {
+const updateProduct = async (id: string | number, productData: UpdateProductInput) => {
   const {
     name,
     category,
@@ -780,7 +808,7 @@ const updateProduct = async (id, productData) => {
   return updated;
 };
 
-const deleteProduct = async (id) => {
+const deleteProduct = async (id: string | number) => {
   const productId = parseInt(String(id));
   return await prisma.product.update({
     where: { id: productId },
@@ -891,7 +919,7 @@ const deleteBatch = async (id: number | string): Promise<void> => {
 };
 
 // Helper function to escape CSV values according to RFC 4180
-const escapeCSVValue = (value) => {
+const escapeCSVValue = (value: unknown): string => {
   if (value === null || value === undefined) return '';
 
   const stringValue = String(value);
@@ -964,12 +992,17 @@ const exportProducts = async () => {
   return csvRows.join('\n');
 };
 
-const importProducts = async (csvData) => {
+const importProducts = async (csvData: string) => {
   const lines = csvData.split('\n').filter((line) => line.trim());
   const headerValues = parseCSVLine(lines[0]);
   const headers = headerValues.map((h) => h.trim().toLowerCase());
 
-  const results = {
+  const results: {
+    success: boolean;
+    imported: number;
+    failed: number;
+    errors: { line: number; message: string }[];
+  } = {
     success: false,
     imported: 0,
     failed: 0,
@@ -994,7 +1027,23 @@ const importProducts = async (csvData) => {
   const csvBarcodes = new Set();
 
   // Prepare all product and batch data in memory first
-  const productsToCreate = [];
+  /** One parsed CSV row, ready to be written in the transaction below. */
+  interface ParsedImportRow {
+    name: string;
+    barcode: string | null;
+    category: string | null;
+    batchTrackingEnabled: boolean;
+    qty: number;
+    mrpVal: number;
+    costVal: number;
+    sellingVal: number;
+    wholesaleEnabled: boolean;
+    wholesalePrice: number | null;
+    wholesaleMinQty: number | null;
+    batch_code?: string;
+    expiry_date?: string;
+  }
+  const productsToCreate: ParsedImportRow[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const lineNumber = i + 1;
@@ -1231,8 +1280,18 @@ const getProductHistory = async (
     },
   });
 
-  const summaryMap = new Map();
-  const totals = {
+  /** Running totals per movement type, used for both the per-batch map and the overall total. */
+  interface MovementTotals {
+    added: number;
+    sold: number;
+    returned: number;
+    adjustmentIn: number;
+    adjustmentOut: number;
+    net: number;
+  }
+
+  const summaryMap = new Map<string, MovementTotals & { date: string }>();
+  const totals: MovementTotals = {
     added: 0,
     sold: 0,
     returned: 0,
@@ -1241,7 +1300,7 @@ const getProductHistory = async (
     net: 0,
   };
 
-  const applyMovement = (target, movement) => {
+  const applyMovement = (target: MovementTotals, movement: { type: string; quantity?: number }) => {
     const qty = movement.quantity || 0;
     switch (movement.type) {
       case 'added':
@@ -1301,9 +1360,42 @@ const getProductHistory = async (
   };
 };
 
-const bulkCreateProducts = async (products) => {
+/**
+ * What bulkCreateProducts reads from each element.
+ *
+ * NOTE: bulkCreateProductsBodySchema is `z.array(z.looseObject({}))` — the
+ * request is validated as "an array of objects" and nothing more. These are
+ * the fields the service expects, not fields validation guarantees. A
+ * malformed entry still fails inside the transaction and rolls the whole
+ * batch back, which is the existing behaviour.
+ */
+interface BulkProductInput {
+  name: string;
+  barcode?: string | null;
+  category?: string | null;
+  enableBatchTracking?: boolean;
+  lowStockWarningEnabled?: boolean;
+  lowStockThreshold?: number | string | null;
+  initialBatch?: {
+    quantity?: number | string | null;
+    mrp?: number | string | null;
+    cost_price?: number | string | null;
+    selling_price?: number | string | null;
+    batch_code?: string | null;
+    expiryDate?: string | Date | null;
+    wholesaleEnabled?: boolean;
+    wholesalePrice?: number | string | null;
+    wholesaleMinQty?: number | string | null;
+  } | null;
+}
+
+const bulkCreateProducts = async (products: BulkProductInput[]) => {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const results = {
+    const results: {
+      success: boolean;
+      count: number;
+      errors: { row: number; message: string }[];
+    } = {
       success: true,
       count: 0,
       errors: [],

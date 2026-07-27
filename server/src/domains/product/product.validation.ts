@@ -96,6 +96,19 @@ const bulkCreateProductsBodySchema = z.object({
   products: z.array(z.looseObject({})).min(1),
 });
 
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ *
+ * These schemas are `looseObject` (Joi's `.unknown(true)`), so the inferred
+ * types carry an index signature for the passthrough keys.
+ */
+export type CreateProductInput = z.infer<typeof createProductBodySchema>;
+export type UpdateProductInput = z.infer<typeof updateProductBodySchema>;
+export type AddBatchInput = z.infer<typeof addBatchBodySchema>;
+export type UpdateBatchInput = z.infer<typeof updateBatchBodySchema>;
+export type BulkCreateProductsInput = z.infer<typeof bulkCreateProductsBodySchema>;
+
 export {
   productIdParamSchema,
   batchIdParamSchema,

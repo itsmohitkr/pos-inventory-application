@@ -4,7 +4,7 @@ import productService = require('./product.service');
 import { createHttpError } from '../../shared/error/appError';
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
-import { paramValue, queryStr, queryStrOr } from '../../shared/utils/requestParams';
+import { paramStr, paramValue, queryStr, queryStrOr } from '../../shared/utils/requestParams';
 
 const getAllProducts = async (req: Request, res: Response) => {
   const page = queryStrOr(req.query.page, '1');
@@ -83,7 +83,7 @@ const getProductById = async (req: Request, res: Response) => {
 };
 
 const getProductByBarcode = async (req: Request, res: Response) => {
-  const { barcode } = req.params;
+  const barcode = paramStr(req.params.barcode);
   const result = await productService.getProductByBarcode(barcode);
   if (!result) {
     throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
