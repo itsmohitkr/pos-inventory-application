@@ -6,20 +6,37 @@ import {
 import { Visibility as PreviewIcon, Edit as EditIcon } from '@mui/icons-material';
 import { TableSortLabel } from '@mui/material';
 import CustomerCardPreview from './CustomerCardPreview';
+import type { Customer } from '@/shared/api/customerService';
+
+interface CustomerListTableProps {
+  customers: Customer[];
+  /** Total matching rows on the server, not the length of `customers`. */
+  total: number;
+  page: number;
+  limit: number;
+  isLoading: boolean;
+  sortBy: string;
+  setSortBy: (property: string) => void;
+  order: 'asc' | 'desc';
+  setOrder: (order: 'asc' | 'desc') => void;
+  onPageChange: (page: number) => void;
+  onRowClick: (customer: Customer) => void;
+  onEdit: (customer: Customer) => void;
+}
 
 const CustomerListTable = ({
   customers, total, page, limit, isLoading,
   sortBy, setSortBy, order, setOrder,
   onPageChange, onRowClick, onEdit,
-}) => {
-  const [previewCustomer, setPreviewCustomer] = React.useState(null);
+}: CustomerListTableProps) => {
+  const [previewCustomer, setPreviewCustomer] = React.useState<Customer | null>(null);
 
-  const handlePreview = (e, customer) => {
+  const handlePreview = (e: React.MouseEvent, customer: Customer) => {
     e.stopPropagation();
     setPreviewCustomer(customer);
   };
 
-  const handleSort = (property) => {
+  const handleSort = (property: string) => {
     const isAsc = sortBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setSortBy(property);
@@ -43,7 +60,7 @@ const CustomerListTable = ({
     { id: 'createdAt', label: 'Joined' },
   ];
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString?: string | null) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, '0');

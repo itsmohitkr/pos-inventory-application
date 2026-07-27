@@ -1,18 +1,22 @@
 import { useState, useCallback, useEffect } from 'react';
 import * as Sentry from '@sentry/react';
 import customerService from '@/shared/api/customerService';
+import type {
+  Customer,
+  CustomerPurchaseHistory,
+} from '@/shared/api/customerService';
 
 export const useCustomers = () => {
-  const [customers, setCustomers] = useState([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [historyData, setHistoryData] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [historyData, setHistoryData] = useState<CustomerPurchaseHistory | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
-  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -48,12 +52,12 @@ export const useCustomers = () => {
     fetchCustomers(page, search, sortBy, order);
   }, [fetchCustomers, page, search, sortBy, order]);
 
-  const handleSearchChange = useCallback((value) => {
+  const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
     setPage(1);
   }, []);
 
-  const openHistory = useCallback(async (customer) => {
+  const openHistory = useCallback(async (customer: Customer) => {
     setSelectedCustomer(customer);
     setHistoryData(null);
     setIsLoadingHistory(true);
@@ -73,7 +77,7 @@ export const useCustomers = () => {
     setHistoryData(null);
   }, []);
 
-  const openEdit = useCallback((customer) => {
+  const openEdit = useCallback((customer: Customer) => {
     setEditingCustomer(customer);
   }, []);
 
@@ -81,7 +85,7 @@ export const useCustomers = () => {
     setEditingCustomer(null);
   }, []);
 
-  const handleSaveEdit = useCallback(async (id, data) => {
+  const handleSaveEdit = useCallback(async (id: number, data: Partial<Customer>) => {
     await customerService.update(id, data);
     fetchCustomers(page, search);
   }, [fetchCustomers, page, search]);

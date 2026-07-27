@@ -10,6 +10,16 @@ import {
 } from '@mui/material';
 import { Lock as LockIcon } from '@mui/icons-material';
 
+interface AdminElevationDialogProps {
+  open: boolean;
+  onClose: () => void;
+  adminPassword: string;
+  setAdminPassword: (password: string) => void;
+  /** Empty string when there is no error to show. */
+  adminLoginError: string;
+  onAdminLogin: () => void;
+}
+
 const AdminElevationDialog = ({
   open,
   onClose,
@@ -17,7 +27,7 @@ const AdminElevationDialog = ({
   setAdminPassword,
   adminLoginError,
   onAdminLogin,
-}) => {
+}: AdminElevationDialogProps) => {
   return (
     <Dialog
       open={open}

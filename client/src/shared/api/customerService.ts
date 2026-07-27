@@ -1,4 +1,5 @@
 import api from '@/shared/api/api';
+import type { Sale } from '@/shared/types/models';
 
 /** A customer record as returned by the API. */
 export interface Customer {
@@ -10,6 +11,12 @@ export interface Customer {
   lastVisit: string | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Sale count, present only on the list endpoint — getAll includes
+   * `_count: { select: { sales: true } }`. Absent on the single-customer
+   * reads, hence optional.
+   */
+  _count?: { sales: number };
 }
 
 /** findOrCreate reports whether it created the record. */
@@ -25,6 +32,15 @@ export interface CustomerListParams {
   search?: string;
   sortBy?: string;
   order?: 'asc' | 'desc';
+}
+
+/**
+ * GET /api/customers/:id/history — the customer plus their sales, each with
+ * items and the batch's product projection.
+ */
+export interface CustomerPurchaseHistory {
+  customer: Customer;
+  sales: Sale[];
 }
 
 export interface CustomerListResult {
@@ -80,7 +96,7 @@ const customerService = {
     return response.data;
   },
 
-  getPurchaseHistory: async (id: number): Promise<unknown> => {
+  getPurchaseHistory: async (id: number): Promise<CustomerPurchaseHistory> => {
     const response = await api.get(`/api/customers/${id}/history`);
     return response.data;
   },

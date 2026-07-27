@@ -12,8 +12,21 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Edit as EditIcon } from '@mui/icons-material';
+import type { Customer } from '@/shared/api/customerService';
 
-const EditCustomerDialog = ({ open, customer, onClose, onSave }) => {
+interface EditCustomerDialogProps {
+  open: boolean;
+  customer?: Customer | null;
+  onClose: () => void;
+  onSave: (id: number, data: Partial<Customer>) => Promise<void>;
+}
+
+const EditCustomerDialog = ({
+  open,
+  customer,
+  onClose,
+  onSave,
+}: EditCustomerDialogProps) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);

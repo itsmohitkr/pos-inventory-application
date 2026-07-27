@@ -5,16 +5,34 @@ import {
   Chip, Paper,
 } from '@mui/material';
 import { Close as CloseIcon, Person as PersonIcon } from '@mui/icons-material';
+import type { Customer, CustomerPurchaseHistory } from '@/shared/api/customerService';
+import type { Sale, SaleItem } from '@/shared/types/models';
 
-const CustomerHistoryDrawer = ({ open, customer, historyData, isLoading, onClose }) => {
-  const calculateSaleNet = (sale) => {
-    return sale.items.reduce((sum, item) => {
+interface CustomerHistoryDrawerProps {
+  open: boolean;
+  customer?: Customer | null;
+  /** Null while loading or before a customer has been opened. */
+  historyData?: CustomerPurchaseHistory | null;
+  isLoading: boolean;
+  onClose: () => void;
+}
+
+const CustomerHistoryDrawer = ({
+  open,
+  customer,
+  historyData,
+  isLoading,
+  onClose,
+}: CustomerHistoryDrawerProps) => {
+  const calculateSaleNet = (sale: Sale) => {
+    return sale.items.reduce((sum: number, item: SaleItem) => {
       const netQty = item.quantity - item.returnedQuantity;
       return sum + (netQty * item.sellingPrice);
     }, 0);
   };
 
-  const totalSpent = historyData?.sales?.reduce((sum, s) => sum + calculateSaleNet(s), 0) ?? 0;
+  const totalSpent =
+    historyData?.sales?.reduce((sum: number, s: Sale) => sum + calculateSaleNet(s), 0) ?? 0;
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 480 } } }}>

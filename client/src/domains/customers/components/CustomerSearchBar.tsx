@@ -2,7 +2,13 @@ import React from 'react';
 import { TextField, InputAdornment, IconButton, Box } from '@mui/material';
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 
-const CustomerSearchBar = ({ value, onChange }) => (
+const CustomerSearchBar = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => (
   <Box sx={{ maxWidth: 800, mx: 'auto', width: '100%' }}>
     <TextField
       fullWidth

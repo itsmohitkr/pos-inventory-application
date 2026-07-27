@@ -3,8 +3,21 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography,
 } from '@mui/material';
 import CustomerCard from './CustomerCard';
+import type { Customer } from '@/shared/api/customerService';
 
-const CustomerCardPreview = ({ open, onClose, customer, shopName }) => {
+interface CustomerCardPreviewProps {
+  open: boolean;
+  onClose: () => void;
+  customer?: Customer | null;
+  shopName?: string;
+}
+
+const CustomerCardPreview = ({
+  open,
+  onClose,
+  customer,
+  shopName,
+}: CustomerCardPreviewProps) => {
   if (!customer) return null;
 
   return (

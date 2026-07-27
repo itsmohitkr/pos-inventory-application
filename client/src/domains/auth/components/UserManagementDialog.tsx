@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import type { User } from '@/shared/api/settingsService';
 import settingsService from '@/shared/api/settingsService';
+import type { AuthUser } from '@/shared/types/auth';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 
@@ -48,14 +49,21 @@ interface UserFormState {
   status?: string;
 }
 
-const UserManagementDialog = ({ open, onClose, currentUser }) => {
+interface UserManagementDialogProps {
+  open: boolean;
+  onClose: () => void;
+  /** The signed-in user; guards against deleting your own account. */
+  currentUser?: AuthUser | null;
+}
+
+const UserManagementDialog = ({ open, onClose, currentUser }: UserManagementDialogProps) => {
   const { dialogState, showConfirm, showError, closeDialog } = useCustomDialog();
   const [users, setUsers] = useState<User[]>([]);
   const [, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserFormState>({
     username: '',
     password: '',
@@ -64,7 +72,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
   const [visiblePasswords, setVisiblePasswords] = useState<Record<number, boolean>>({});
   const [showNewPassword, setShowNewPassword] = useState(false);
 
-  const togglePasswordVisibility = (userId) => {
+  const togglePasswordVisibility = (userId: number) => {
     setVisiblePasswords((prev) => ({
       ...prev,
       [userId]: !prev[userId],
@@ -128,8 +136,8 @@ const UserManagementDialog = ({ open, onClose, currentUser }) => {
     }
   };
 
-  const handleDeleteUser = async (userId, username) => {
-    if (currentUser.id === userId) {
+  const handleDeleteUser = async (userId: number, username: string) => {
+    if (currentUser?.id === userId) {
       showError('Cannot delete your own account');
       return;
     }

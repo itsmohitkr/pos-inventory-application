@@ -12,14 +12,15 @@ import {
 } from '@mui/material';
 import trovixLogo from '@/assets/trovix.png';
 import settingsService from '@/shared/api/settingsService';
+import type { AuthUser } from '@/shared/types/auth';
 
-const LoginPage = ({ onLogin }) => {
+const LoginPage = ({ onLogin }: { onLogin: (user: AuthUser) => void }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);

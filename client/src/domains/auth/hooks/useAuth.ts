@@ -57,13 +57,15 @@ export const useAuth = () => {
   }, [handleAdminLogout]);
 
   useEffect(() => {
-    let interval;
-    let logoutTimer;
-    let syncTimer;
+    // Browser timer handles are numbers, not NodeJS.Timeout — this runs in the
+    // renderer, and the cleanup below calls the window.* clear functions.
+    let interval: number | undefined;
+    let logoutTimer: number | undefined;
+    let syncTimer: number | undefined;
 
     if (adminLogoutTimer !== null && adminLogoutTimer > 0) {
-      interval = setInterval(() => {
-        setAdminLogoutTimer((prev) => prev - 1);
+      interval = window.setInterval(() => {
+        setAdminLogoutTimer((prev) => (prev === null ? null : prev - 1));
       }, 1000);
     } else if (adminLogoutTimer === 0) {
       logoutTimer = window.setTimeout(() => {
@@ -84,7 +86,7 @@ export const useAuth = () => {
     }
 
     return () => {
-      clearInterval(interval);
+      window.clearInterval(interval);
       window.clearTimeout(logoutTimer);
       window.clearTimeout(syncTimer);
     };

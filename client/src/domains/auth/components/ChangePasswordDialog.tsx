@@ -11,8 +11,21 @@ import {
   Button,
 } from '@mui/material';
 import api from '@/shared/api/api';
+import type { AuthUser } from '@/shared/types/auth';
 
-const ChangePasswordDialog = ({ open, onClose, currentUser, showSuccess }) => {
+interface ChangePasswordDialogProps {
+  open: boolean;
+  onClose: () => void;
+  currentUser?: AuthUser | null;
+  showSuccess: (message: string, title?: string) => void;
+}
+
+const ChangePasswordDialog = ({
+  open,
+  onClose,
+  currentUser,
+  showSuccess,
+}: ChangePasswordDialogProps) => {
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
     newPassword: '',
