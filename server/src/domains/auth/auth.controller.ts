@@ -1,9 +1,10 @@
+import type { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import authService = require('./auth.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
 
-const login = async (req, res) => {
+const login = async (req: Request, res: Response) => {
   const user = await authService.login(req.body);
 
   return sendSuccessResponse(res, StatusCodes.OK, user, 'Login successful', {
@@ -11,7 +12,7 @@ const login = async (req, res) => {
   });
 };
 
-const getProfile = async (req, res) => {
+const getProfile = async (req: Request, res: Response) => {
   const user = await authService.getProfile(req.query.userId);
 
   return sendSuccessResponse(res, StatusCodes.OK, user, 'Profile fetched successfully', {
@@ -19,7 +20,7 @@ const getProfile = async (req, res) => {
   });
 };
 
-const getAllUsers = async (_req, res) => {
+const getAllUsers = async (_req: Request, res: Response) => {
   const users = await authService.getAllUsers();
 
   return sendSuccessResponse(res, StatusCodes.OK, users, 'Users fetched successfully', {
@@ -27,7 +28,7 @@ const getAllUsers = async (_req, res) => {
   });
 };
 
-const createUser = async (req, res) => {
+const createUser = async (req: Request, res: Response) => {
   const user = await authService.createUser(req.body);
 
   return sendSuccessResponse(res, StatusCodes.CREATED, user, 'User created successfully', {
@@ -35,7 +36,7 @@ const createUser = async (req, res) => {
   });
 };
 
-const updateUser = async (req, res) => {
+const updateUser = async (req: Request, res: Response) => {
   const user = await authService.updateUser(req.params.id, req.body);
 
   return sendSuccessResponse(res, StatusCodes.OK, user, 'User updated successfully', {
@@ -43,19 +44,19 @@ const updateUser = async (req, res) => {
   });
 };
 
-const deleteUser = async (req, res) => {
+const deleteUser = async (req: Request, res: Response) => {
   await authService.deleteUser(req.params.id);
 
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'User deleted successfully');
 };
 
-const changePassword = async (req, res) => {
+const changePassword = async (req: Request, res: Response) => {
   await authService.changePassword(req.params.id, req.body);
 
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Password changed successfully');
 };
 
-const wipeDatabase = async (req, res) => {
+const wipeDatabase = async (req: Request, res: Response) => {
   const result = await authService.wipeDatabase(req.body);
 
   return sendSuccessResponse(
@@ -67,13 +68,13 @@ const wipeDatabase = async (req, res) => {
   );
 };
 
-const verifyAdmin = async (req, res) => {
+const verifyAdmin = async (req: Request, res: Response) => {
   await authService.verifyAdmin(req.body);
 
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Admin verified');
 };
 
-const completeOnboarding = async (req, res) => {
+const completeOnboarding = async (req: Request, res: Response) => {
   await authService.completeOnboarding(req.body);
 
   return sendSuccessResponse(res, StatusCodes.OK, { success: true }, 'Onboarding completed', {

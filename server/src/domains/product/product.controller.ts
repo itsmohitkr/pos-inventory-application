@@ -1,19 +1,19 @@
+import type { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import productService = require('./product.service');
 import { createHttpError } from '../../shared/error/appError';
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
+import { paramValue, queryStr, queryStrOr } from '../../shared/utils/requestParams';
 
-const getAllProducts = async (req, res) => {
-  const {
-    page = '1',
-    pageSize = '25',
-    search = '',
-    category = 'all',
-    sortBy = 'name',
-    sortOrder = 'asc',
-    includeBatches = 'false',
-  } = req.query;
+const getAllProducts = async (req: Request, res: Response) => {
+  const page = queryStrOr(req.query.page, '1');
+  const pageSize = queryStrOr(req.query.pageSize, '25');
+  const search = queryStrOr(req.query.search, '');
+  const category = queryStrOr(req.query.category, 'all');
+  const sortBy = queryStrOr(req.query.sortBy, 'name');
+  const sortOrder = queryStrOr(req.query.sortOrder, 'asc');
+  const includeBatches = queryStrOr(req.query.includeBatches, 'false');
 
   if (includeBatches === 'true') {
     const data = await productService.getAllProductsWithBatches({ search, category });
@@ -47,8 +47,9 @@ const getAllProducts = async (req, res) => {
   );
 };
 
-const getProductSummary = async (req, res) => {
-  const { search = '', category = 'all' } = req.query;
+const getProductSummary = async (req: Request, res: Response) => {
+  const search = queryStrOr(req.query.search, '');
+  const category = queryStrOr(req.query.category, 'all');
   const data = await productService.getProductSummary({ search, category });
   return sendSuccessResponse(
     res,
@@ -61,8 +62,8 @@ const getProductSummary = async (req, res) => {
   );
 };
 
-const getProductById = async (req, res) => {
-  const { id } = req.params;
+const getProductById = async (req: Request, res: Response) => {
+  const id = paramValue(req.params.id);
   const result = await productService.getProductById(id);
   if (!result) {
     throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
@@ -81,7 +82,7 @@ const getProductById = async (req, res) => {
   );
 };
 
-const getProductByBarcode = async (req, res) => {
+const getProductByBarcode = async (req: Request, res: Response) => {
   const { barcode } = req.params;
   const result = await productService.getProductByBarcode(barcode);
   if (!result) {
@@ -95,9 +96,11 @@ const getProductByBarcode = async (req, res) => {
   });
 };
 
-const getProductHistory = async (req, res) => {
-  const { id } = req.params;
-  const { range = 'today', startDate, endDate } = req.query as Record<string, string>;
+const getProductHistory = async (req: Request, res: Response) => {
+  const id = paramValue(req.params.id);
+  const range = queryStrOr(req.query.range, 'today');
+  const startDate = queryStr(req.query.startDate);
+  const endDate = queryStr(req.query.endDate);
   const data = await productService.getProductHistory(id, { range, startDate, endDate });
   return sendSuccessResponse(
     res,
@@ -110,7 +113,7 @@ const getProductHistory = async (req, res) => {
   );
 };
 
-const createProduct = async (req, res) => {
+const createProduct = async (req: Request, res: Response) => {
   const result = await productService.createOrUpdateProduct(req.body);
   return sendSuccessResponse(
     res,
@@ -121,42 +124,42 @@ const createProduct = async (req, res) => {
   );
 };
 
-const addBatch = async (req, res) => {
+const addBatch = async (req: Request, res: Response) => {
   const batch = await productService.addBatch(req.body);
   return sendSuccessResponse(res, StatusCodes.CREATED, { id: batch.id }, 'Batch added', {
     format: 'merge',
   });
 };
 
-const updateProduct = async (req, res) => {
-  const { id } = req.params;
+const updateProduct = async (req: Request, res: Response) => {
+  const id = paramValue(req.params.id);
   const product = await productService.updateProduct(id, req.body);
   return sendSuccessResponse(res, StatusCodes.OK, product, 'Product updated successfully', {
     format: 'merge',
   });
 };
 
-const deleteProduct = async (req, res) => {
-  const { id } = req.params;
+const deleteProduct = async (req: Request, res: Response) => {
+  const id = paramValue(req.params.id);
   await productService.deleteProduct(id);
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Product deleted successfully');
 };
 
-const updateBatch = async (req, res) => {
-  const { id } = req.params;
+const updateBatch = async (req: Request, res: Response) => {
+  const id = paramValue(req.params.id);
   const batch = await productService.updateBatch(id, req.body);
   return sendSuccessResponse(res, StatusCodes.OK, batch, 'Batch updated successfully', {
     format: 'merge',
   });
 };
 
-const deleteBatch = async (req, res) => {
-  const { id } = req.params;
+const deleteBatch = async (req: Request, res: Response) => {
+  const id = paramValue(req.params.id);
   await productService.deleteBatch(id);
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Batch deleted successfully');
 };
 
-const exportProducts = async (req, res) => {
+const exportProducts = async (req: Request, res: Response) => {
   const csv = await productService.exportProducts();
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader(
@@ -166,7 +169,7 @@ const exportProducts = async (req, res) => {
   res.send(csv);
 };
 
-const importProducts = async (req, res) => {
+const importProducts = async (req: Request, res: Response) => {
   const csvData = req.file.buffer.toString('utf-8');
   const result = await productService.importProducts(csvData);
   return sendSuccessResponse(res, StatusCodes.OK, result, 'Products imported successfully', {
@@ -174,7 +177,7 @@ const importProducts = async (req, res) => {
   });
 };
 
-const validateBarcodes = async (req, res) => {
+const validateBarcodes = async (req: Request, res: Response) => {
   const { barcodes } = req.body;
   const existingBarcodes = await productService.validateBarcodes(barcodes);
   return sendSuccessResponse(
@@ -188,7 +191,7 @@ const validateBarcodes = async (req, res) => {
   );
 };
 
-const bulkCreateProducts = async (req, res) => {
+const bulkCreateProducts = async (req: Request, res: Response) => {
   const { products } = req.body;
   const result = await productService.bulkCreateProducts(products);
   return sendSuccessResponse(res, StatusCodes.OK, result, 'Products created successfully', {

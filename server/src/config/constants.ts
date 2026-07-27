@@ -40,7 +40,24 @@ export const DEFAULT_RECEIPT_SETTINGS = {
   showBranding: false,
 };
 
-export const DEFAULT_PAYMENT_SETTINGS = {
+/**
+ * A payment method the shop has defined beyond the built-ins.
+ * Mirrors CustomPaymentMethod in client/src/shared/utils/paymentSettings.ts.
+ */
+export interface CustomPaymentMethod {
+  id?: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+export interface PaymentSettings {
+  enabledMethods: string[];
+  /** NOTE: spelling matches the persisted setting key — do not "fix". */
+  allowMultplePayment: boolean;
+  customMethods: CustomPaymentMethod[];
+}
+
+export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
   enabledMethods: ['cash'],
   allowMultplePayment: false,
   customMethods: [],

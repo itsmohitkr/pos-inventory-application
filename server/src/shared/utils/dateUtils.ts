@@ -1,14 +1,41 @@
-const getDateRange = (type, customStart = null, customEnd = null) => {
+/** The named ranges `getDateRange` understands. Anything else yields nulls. */
+export type DateRangePreset =
+  | 'today'
+  | 'yesterday'
+  | 'thisWeek'
+  | 'lastWeek'
+  | 'thisMonth'
+  | 'lastMonth'
+  | 'thisYear'
+  | 'lastYear'
+  | 'custom';
+
+/** Both bounds are null when the range cannot be resolved. */
+export interface DateRange {
+  start: string | null;
+  end: string | null;
+}
+
+/**
+ * `type` is widened to string because it arrives from an unvalidated query
+ * parameter; unrecognised values fall through to the null range rather than
+ * throwing. See DateRangePreset for the values that resolve.
+ */
+const getDateRange = (
+  type?: DateRangePreset | string,
+  customStart: string | Date | null = null,
+  customEnd: string | Date | null = null
+): DateRange => {
   const now = new Date();
   let start = new Date(now);
   let end = new Date(now);
 
   // Helper to reset hours for start/end
-  const startOfDay = (d) => {
+  const startOfDay = (d: Date): Date => {
     d.setHours(0, 0, 0, 0);
     return d;
   };
-  const endOfDay = (d) => {
+  const endOfDay = (d: Date): Date => {
     d.setHours(23, 59, 59, 999);
     return d;
   };

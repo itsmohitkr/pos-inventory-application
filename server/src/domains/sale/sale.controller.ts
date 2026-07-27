@@ -1,10 +1,12 @@
+import type { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import saleService = require('./sale.service');
 import { createHttpError } from '../../shared/error/appError';
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
+import { paramValue } from '../../shared/utils/requestParams';
 
-const processSale = async (req, res) => {
+const processSale = async (req: Request, res: Response) => {
   const sale = await saleService.processSale(req.body);
   return sendSuccessResponse(
     res,
@@ -15,8 +17,8 @@ const processSale = async (req, res) => {
   );
 };
 
-const getSaleById = async (req, res) => {
-  const { id } = req.params;
+const getSaleById = async (req: Request, res: Response) => {
+  const id = paramValue(req.params.id);
   const sale = await saleService.getSaleById(id);
   if (!sale) {
     throw createHttpError(StatusCodes.NOT_FOUND, 'Sale not found', { error: 'Sale not found' });
@@ -27,8 +29,8 @@ const getSaleById = async (req, res) => {
   });
 };
 
-const processReturn = async (req, res) => {
-  const { id: saleId } = req.params;
+const processReturn = async (req: Request, res: Response) => {
+  const saleId = paramValue(req.params.id);
   const { items } = req.body;
 
   const result = await saleService.processReturn(saleId, items);

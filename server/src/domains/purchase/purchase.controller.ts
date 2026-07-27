@@ -1,9 +1,10 @@
+import type { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import purchaseService = require('./purchase.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
 
-const createPurchase = async (req, res) => {
+const createPurchase = async (req: Request, res: Response) => {
   const purchase = await purchaseService.createPurchase(req.body);
   return sendSuccessResponse(
     res,
@@ -16,14 +17,14 @@ const createPurchase = async (req, res) => {
   );
 };
 
-const getPurchases = async (req, res) => {
+const getPurchases = async (req: Request, res: Response) => {
   const purchases = await purchaseService.getPurchases(req.query);
   return sendSuccessResponse(res, StatusCodes.OK, purchases, 'Purchases fetched successfully', {
     format: 'raw',
   });
 };
 
-const deletePurchase = async (req, res) => {
+const deletePurchase = async (req: Request, res: Response) => {
   await purchaseService.deletePurchase(req.params.id);
   return sendSuccessResponse(
     res,
@@ -36,14 +37,14 @@ const deletePurchase = async (req, res) => {
   );
 };
 
-const updatePurchase = async (req, res) => {
+const updatePurchase = async (req: Request, res: Response) => {
   const purchase = await purchaseService.updatePurchase(req.params.id, req.body);
   return sendSuccessResponse(res, StatusCodes.OK, purchase, 'Purchase updated successfully', {
     format: 'raw',
   });
 };
 
-const addPayment = async (req, res) => {
+const addPayment = async (req: Request, res: Response) => {
   const payment = await purchaseService.addPayment(req.params.id, req.body);
   return sendSuccessResponse(
     res,
@@ -56,7 +57,7 @@ const addPayment = async (req, res) => {
   );
 };
 
-const updatePayment = async (req, res) => {
+const updatePayment = async (req: Request, res: Response) => {
   const payment = await purchaseService.updatePayment(req.params.id, req.body);
   return sendSuccessResponse(
     res,
@@ -69,7 +70,7 @@ const updatePayment = async (req, res) => {
   );
 };
 
-const deletePayment = async (req, res) => {
+const deletePayment = async (req: Request, res: Response) => {
   await purchaseService.deletePayment(req.params.id);
   return sendSuccessResponse(
     res,

@@ -1,24 +1,25 @@
+import type { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import categoryService = require('./category.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
 
-const getCategories = async (_req, res) => {
+const getCategories = async (_req: Request, res: Response) => {
   const data = await categoryService.getCategoryTree();
   return sendSuccessResponse(res, StatusCodes.OK, data, 'Categories fetched successfully');
 };
 
-const createCategory = async (req, res) => {
+const createCategory = async (req: Request, res: Response) => {
   const category = await categoryService.createCategory(req.body);
   return sendSuccessResponse(res, StatusCodes.CREATED, category, 'Category saved successfully');
 };
  
-const updateCategory = async (req, res) => {
+const updateCategory = async (req: Request, res: Response) => {
   const category = await categoryService.updateCategory(req.params.id, req.body);
   return sendSuccessResponse(res, StatusCodes.OK, category, 'Category updated successfully');
 };
 
-const deleteCategory = async (req, res) => {
+const deleteCategory = async (req: Request, res: Response) => {
   await categoryService.deleteCategory(req.params.id);
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Category deleted');
 };

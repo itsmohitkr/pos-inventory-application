@@ -1,18 +1,22 @@
+import type { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import reportService = require('./report.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
+import { queryInt, queryStr } from '../../shared/utils/requestParams';
 
-const getReports = async (req, res) => {
-  const { startDate, endDate } = req.query;
+const getReports = async (req: Request, res: Response) => {
+  const startDate = queryStr(req.query.startDate);
+  const endDate = queryStr(req.query.endDate);
   const stats = await reportService.getReports({ startDate, endDate });
   return sendSuccessResponse(res, StatusCodes.OK, stats, 'Reports fetched successfully', {
     format: 'raw',
   });
 };
 
-const getExpiryReport = async (req, res) => {
-  const { startDate, endDate } = req.query;
+const getExpiryReport = async (req: Request, res: Response) => {
+  const startDate = queryStr(req.query.startDate);
+  const endDate = queryStr(req.query.endDate);
   const expiringBatches = await reportService.getExpiryReport({ startDate, endDate });
   return sendSuccessResponse(
     res,
@@ -25,7 +29,7 @@ const getExpiryReport = async (req, res) => {
   );
 };
 
-const getLowStockReport = async (_req, res) => {
+const getLowStockReport = async (_req: Request, res: Response) => {
   const lowStockProducts = await reportService.getLowStockReport();
   return sendSuccessResponse(
     res,
@@ -38,27 +42,26 @@ const getLowStockReport = async (_req, res) => {
   );
 };
 
-const getMonthlySales = async (req, res) => {
-  const { year } = req.query;
+const getMonthlySales = async (req: Request, res: Response) => {
   const stats = await reportService.getMonthlySales({
-    year: year ? parseInt(year, 10) : new Date().getFullYear(),
+    year: queryInt(req.query.year, new Date().getFullYear()),
   });
   return sendSuccessResponse(res, StatusCodes.OK, stats, 'Monthly sales fetched successfully', {
     format: 'raw',
   });
 };
 
-const getDailySales = async (req, res) => {
-  const { year, month } = req.query;
-  const parsedYear = year ? parseInt(year, 10) : new Date().getFullYear();
-  const parsedMonth = month !== undefined ? parseInt(month, 10) : new Date().getMonth();
+const getDailySales = async (req: Request, res: Response) => {
+  // queryInt preserves 0 — month=0 is January, not "missing".
+  const parsedYear = queryInt(req.query.year, new Date().getFullYear());
+  const parsedMonth = queryInt(req.query.month, new Date().getMonth());
   const stats = await reportService.getDailySales({ year: parsedYear, month: parsedMonth });
   return sendSuccessResponse(res, StatusCodes.OK, stats, 'Daily sales fetched successfully', {
     format: 'raw',
   });
 };
 
-const getTopSellingProducts = async (_req, res) => {
+const getTopSellingProducts = async (_req: Request, res: Response) => {
   const stats = await reportService.getTopSellingProducts();
   return sendSuccessResponse(
     res,
