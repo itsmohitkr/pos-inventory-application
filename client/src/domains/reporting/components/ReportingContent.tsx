@@ -1,4 +1,9 @@
 import React from 'react';
+import type { ReportData, ReportSale } from '@/shared/types/models';
+import type { ExpiryRow } from '@/domains/reporting/components/ExpiryReportPanel';
+import type { LowStockRow } from '@/domains/reporting/components/LowStockReportPanel';
+import type { LooseSaleRow } from '@/domains/reporting/components/LooseSalesReportPanel';
+import type { ReportTimeframe } from '@/domains/reporting/components/useReportingData';
 import { Box } from '@mui/material';
 import AnalyticsPanel from '@/domains/reporting/components/AnalyticsPanel';
 import SalesHistory from '@/domains/reporting/components/SalesHistory';
@@ -7,6 +12,21 @@ import ExpiryReportPanel from '@/domains/reporting/components/ExpiryReportPanel'
 import ItemSalesReportPanel from '@/domains/reporting/components/ItemSalesReportPanel';
 import LowStockReportPanel from '@/domains/reporting/components/LowStockReportPanel';
 import LooseSalesReportPanel from '@/domains/reporting/components/LooseSalesReportPanel';
+
+interface ReportingContentProps {
+  /** Selects which panel below is rendered. */
+  reportType: string;
+  reportData?: ReportData | null;
+  expiryData?: ExpiryRow[] | null;
+  lowStockData?: LowStockRow[] | null;
+  looseSalesData?: LooseSaleRow[] | null;
+  loading?: boolean;
+  /** Index into `timeframes`; 8 is the custom range. */
+  tabValue: number;
+  timeframes: ReportTimeframe[];
+  onSelectSale: (sale: ReportSale) => void;
+  onRefreshLooseSales: () => void;
+}
 
 const ReportingContent = ({
   reportType,
@@ -19,7 +39,7 @@ const ReportingContent = ({
   timeframes,
   onSelectSale,
   onRefreshLooseSales,
-}) => {
+}: ReportingContentProps) => {
   const timeframeLabel = tabValue === 8 ? 'Custom' : timeframes[tabValue]?.label;
 
   return (

@@ -18,8 +18,15 @@ import {
   IconButton,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
+import type { ReportSale } from '@/shared/types/models';
 
-const SaleDetailDialog = ({ selectedSale, onClose }) => {
+interface SaleDetailDialogProps {
+  /** Null closes the dialog — `open` is derived from this. */
+  selectedSale?: ReportSale | null;
+  onClose: () => void;
+}
+
+const SaleDetailDialog = ({ selectedSale, onClose }: SaleDetailDialogProps) => {
   return (
     <Dialog
       open={Boolean(selectedSale)}

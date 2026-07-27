@@ -70,7 +70,7 @@ const Reporting = () => {
             timeframes={timeframes}
             dateRange={dateRange}
             onTabChange={handleTabChange}
-            onDateRangeChange={(key, value) =>
+            onDateRangeChange={(key: string, value: string) =>
               setDateRange((prev) => ({
                 ...prev,
                 [key]: value,

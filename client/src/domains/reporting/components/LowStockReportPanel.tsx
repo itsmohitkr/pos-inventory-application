@@ -59,13 +59,13 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
     return data.filter((p) => p.category === selectedCategory);
   }, [data, selectedCategory]);
 
-  const handleToggleSelect = (id) => {
+  const handleToggleSelect = (id: number) => {
     setSelectedItems((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
-  const handleSelectAll = (event) => {
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
       setSelectedItems(filteredData.map((item) => item.id));
     } else {

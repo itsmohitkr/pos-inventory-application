@@ -92,9 +92,9 @@ interface ReportSidebarProps {
 }
 
 const ReportSidebar = ({ reportType, onReportTypeChange }: ReportSidebarProps) => {
-  const [openGroup, setOpenGroup] = useState('financial_group');
+  const [openGroup, setOpenGroup] = useState<string | null>('financial_group');
 
-  const handleGroupClick = (groupType) => {
+  const handleGroupClick = (groupType: string) => {
     setOpenGroup(prev => prev === groupType ? null : groupType);
   };
 

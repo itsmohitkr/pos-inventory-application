@@ -2,7 +2,23 @@ import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
 import { PieChart as PieChartIcon } from '@mui/icons-material';
 
-const DonutChart = ({ segments, gradient, emptyLabel }) => (
+/** One slice of the donut, already reduced to a percentage. */
+interface DonutSegment {
+  name: string;
+  /** Absolute amount, rendered beside the percentage. */
+  value: number;
+  percent: number;
+  color: string;
+}
+
+interface DonutChartProps {
+  segments: DonutSegment[];
+  /** Pre-built conic-gradient stop list, e.g. "#3b82f6 0% 40%, ...". */
+  gradient: string;
+  emptyLabel: string;
+}
+
+const DonutChart = ({ segments, gradient, emptyLabel }: DonutChartProps) => (
   <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minHeight: 150 }}>
     <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
       <Box

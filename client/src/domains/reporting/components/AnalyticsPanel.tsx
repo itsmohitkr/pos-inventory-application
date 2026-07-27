@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ReportData } from '@/shared/types/models';
 import { Box, CircularProgress, Typography, Paper } from '@mui/material';
 import {
   buildCashFlowItems,
@@ -8,7 +9,14 @@ import AnalyticsCashFlowTable from '@/domains/reporting/components/AnalyticsCash
 import AnalyticsPayoutSection from '@/domains/reporting/components/AnalyticsPayoutSection';
 import AnalyticsCategoryBreakdown from '@/domains/reporting/components/AnalyticsCategoryBreakdown';
 
-const AnalyticsPanel = ({ reportData, loading, reportType }) => {
+interface AnalyticsPanelProps {
+  reportData?: ReportData | null;
+  loading?: boolean;
+  /** Which report is selected in the sidebar, e.g. 'sales' or 'low_stock'. */
+  reportType?: string;
+}
+
+const AnalyticsPanel = ({ reportData, loading, reportType }: AnalyticsPanelProps) => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 10 }}>

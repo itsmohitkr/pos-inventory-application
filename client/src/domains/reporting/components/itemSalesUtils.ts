@@ -1,4 +1,16 @@
 import jsPDF from 'jspdf';
+import type { ReportSaleItem } from '@/shared/types/models';
+
+/** One product's totals across every sale in the selected range. */
+export interface AggregatedItemSale {
+  id: number | string;
+  name: string;
+  category: string;
+  quantity: number;
+  revenue: number;
+  profit: number;
+  cost: number;
+}
 import autoTable from 'jspdf-autotable';
 import type { RowInput } from 'jspdf-autotable';
 
@@ -35,11 +47,13 @@ export const aggregateItemSales = (sales: SaleWithItems[] | null | undefined): I
   if (!sales)
     return { aggregatedData: [], totals: { quantity: 0, revenue: 0, profit: 0, cost: 0 } };
 
-  const itemsMap = {};
+  // Keyed by product id, or the literal 'unknown' when a sale item's batch
+  // relation was not included in the response.
+  const itemsMap: Record<string, AggregatedItemSale> = {};
   const sums = { quantity: 0, revenue: 0, profit: 0, cost: 0 };
 
   sales.forEach((sale) => {
-    sale.items.forEach((item) => {
+    sale.items.forEach((item: ReportSaleItem) => {
       const productId = item.batch?.product?.id || 'unknown';
       const productName = item.productName || 'Unknown Product';
       const category = item.batch?.product?.category || 'Uncategorized';

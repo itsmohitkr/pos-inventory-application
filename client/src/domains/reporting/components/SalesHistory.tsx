@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ReportSale } from '@/shared/types/models';
 import {
   Box,
   Typography,
@@ -19,7 +20,12 @@ import SortableTableHead from '@/domains/reporting/components/SortableTableHead'
 import type { SalesExportTotals } from './salesExportUtils';
 import { exportSalesToPDF } from '@/domains/reporting/components/salesExportUtils';
 
-const SalesHistoryRow = ({ sale, onSelectSale }) => {
+interface SalesHistoryRowProps {
+  sale: ReportSale;
+  onSelectSale: (sale: ReportSale) => void;
+}
+
+const SalesHistoryRow = ({ sale, onSelectSale }: SalesHistoryRowProps) => {
   const refundStatus = getRefundStatus(sale.items);
   const display = getStatusDisplay(refundStatus);
   const margin = sale.netTotalAmount > 0 ? (sale.profit / sale.netTotalAmount) * 100 : 0;
@@ -107,7 +113,8 @@ const SalesHistoryRow = ({ sale, onSelectSale }) => {
 };
 
 /** A sale row from /api/reports; shape firms up once the server is typed. */
-type SaleRow = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+/** The reports endpoint's enriched sale row. */
+type SaleRow = ReportSale;
 
 interface SalesHistoryProps {
   sales?: SaleRow[] | null;

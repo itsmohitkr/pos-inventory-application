@@ -18,8 +18,10 @@ import ExportOptions from '@/domains/reporting/components/ExportOptions';
 import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
 import { aggregateItemSales, exportItemSalesToPDF } from '@/domains/reporting/components/itemSalesUtils';
+import type { AggregatedItemSale } from '@/domains/reporting/components/itemSalesUtils';
+import type { ReportSale } from '@/shared/types/models';
 
-const ItemSalesRow = ({ item }) => {
+const ItemSalesRow = ({ item }: { item: AggregatedItemSale }) => {
   const margin = item.revenue > 0 ? (item.profit / item.revenue) * 100 : 0;
   return (
     <TableRow hover>
@@ -52,7 +54,18 @@ const ItemSalesRow = ({ item }) => {
   );
 };
 
-const ItemSalesReportPanel = ({ sales, loading, timeframeLabel }) => {
+interface ItemSalesReportPanelProps {
+  sales?: ReportSale[] | null;
+  loading?: boolean;
+  /** Human-readable range shown in the header and the PDF export. */
+  timeframeLabel?: string;
+}
+
+const ItemSalesReportPanel = ({
+  sales,
+  loading,
+  timeframeLabel,
+}: ItemSalesReportPanelProps) => {
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const { aggregatedData } = useMemo(() => aggregateItemSales(sales), [sales]);
 

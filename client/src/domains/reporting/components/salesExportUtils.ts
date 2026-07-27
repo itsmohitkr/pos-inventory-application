@@ -1,10 +1,12 @@
 import jsPDF from 'jspdf';
+import type { ReportSale } from '@/shared/types/models';
 import autoTable from 'jspdf-autotable';
 import type { RowInput } from 'jspdf-autotable';
 import { getRefundStatus, getStatusDisplay } from '@/shared/utils/refundStatus';
 
 /** Sale rows from /api/reports; shape firms up once the server is typed. */
-type SaleRow = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+/** The reports endpoint's enriched sale row. */
+type SaleRow = ReportSale;
 
 /** Period totals rendered in the PDF summary block. */
 export interface SalesExportTotals {

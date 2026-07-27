@@ -1,5 +1,21 @@
 import React from 'react';
+import type {
+  ReportDateRange,
+  ReportTimeframe,
+} from '@/domains/reporting/components/useReportingData';
 import { FormControl, InputLabel, Select, MenuItem, TextField, Stack, Button } from '@mui/material';
+
+interface ReportingTimeframeControlsProps {
+  /** Hidden entirely for 'low_stock', which has no time dimension. */
+  reportType: string;
+  /** Index into `timeframes`; 8 is the custom-range option. */
+  tabValue: number;
+  timeframes: ReportTimeframe[];
+  dateRange: ReportDateRange;
+  onTabChange: (event: { target: { value: number } }) => void;
+  onDateRangeChange: (key: string, value: string) => void;
+  onApplyCustomRange: () => void;
+}
 
 const ReportingTimeframeControls = ({
   reportType,
@@ -9,7 +25,7 @@ const ReportingTimeframeControls = ({
   onTabChange,
   onDateRangeChange,
   onApplyCustomRange,
-}) => {
+}: ReportingTimeframeControlsProps) => {
   if (reportType === 'low_stock') {
     return null;
   }
@@ -19,7 +35,7 @@ const ReportingTimeframeControls = ({
       <FormControl size="small" sx={{ minWidth: 150 }}>
         <InputLabel>Time Frame</InputLabel>
         <Select value={tabValue} label="Time Frame" onChange={onTabChange}>
-          {timeframes.map((tf, idx) => (
+          {timeframes.map((tf: ReportTimeframe, idx: number) => (
             <MenuItem key={idx} value={idx}>
               {tf.label}
             </MenuItem>

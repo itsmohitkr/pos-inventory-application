@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ReportSale } from '@/shared/types/models';
 import {
   Box,
   Paper,
@@ -22,7 +23,8 @@ import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
 
 /** Sale rows from /api/reports; shape firms up once the server is typed. */
-type SaleRow = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+/** The reports endpoint's enriched sale row. */
+type SaleRow = ReportSale;
 
 /** Per-category totals accumulated from every sale item. */
 interface CategoryTotals {
@@ -99,11 +101,12 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
   }, [selectedCategory]);
 
   React.useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
       if (
-        e.target.tagName === 'INPUT' ||
-        e.target.tagName === 'TEXTAREA' ||
-        e.target.role === 'combobox'
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.role === 'combobox'
       )
         return;
       if (categoryList.length === 0) return;

@@ -117,3 +117,46 @@ export interface Product {
   isDeleted?: boolean;
   batches?: Batch[];
 }
+
+export interface Expense {
+  id: number;
+  amount: number;
+  category: string;
+  description?: string | null;
+  date: string;
+  paymentStatus: string;
+  paymentMethod?: string | null;
+  createdAt?: string;
+}
+
+export interface Purchase {
+  id: number;
+  vendor: string;
+  totalAmount: number;
+  date: string;
+  note?: string | null;
+  paymentStatus: string;
+  paymentMethod?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * GET /api/reports — the summary figures plus the rows they were derived
+ * from. Mirrors report.service's getReports return; `sales` are the enriched
+ * ReportSale rows, not raw Sale rows.
+ */
+export interface ReportData {
+  totalSales: number;
+  totalProfit: number;
+  netProfit: number;
+  totalCashBalance: number;
+  totalExpenses: number;
+  totalPurchases: number;
+  expenses: Expense[];
+  purchases: Purchase[];
+  looseSales: LooseSale[];
+  totalOrders: number;
+  salesCount: number;
+  sales: ReportSale[];
+}

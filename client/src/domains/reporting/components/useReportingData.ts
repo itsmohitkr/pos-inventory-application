@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { ReportData } from '@/shared/types/models';
+import type { ExpiryRow } from '@/domains/reporting/components/ExpiryReportPanel';
+import type { LowStockRow } from '@/domains/reporting/components/LowStockReportPanel';
+import type { LooseSaleRow } from '@/domains/reporting/components/LooseSalesReportPanel';
 import * as Sentry from '@sentry/react';
 import dashboardService from '@/shared/api/dashboardService';
 import { isRequestCanceled } from '@/shared/api/api';
@@ -12,7 +16,11 @@ import { getReportRange, buildInclusiveRangeFromLocalDates } from '@/domains/rep
  * server/src/domains/report is converted.
  * TODO(ts-migration): replace with the server's return types.
  */
-type ReportPayload = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+/**
+ * These four endpoints return different shapes. They previously shared one
+ * `Record<string, any>` alias, which type-checked only because it accepted
+ * anything — including the array/object mismatch on looseSalesData below.
+ */
 
 /** One selectable period; `getValue` returns null for the Custom entry. */
 export interface ReportTimeframe {
@@ -26,10 +34,10 @@ export interface ReportDateRange {
 }
 
 export const useReportingData = (reportType?: string) => {
-  const [reportData, setReportData] = useState<ReportPayload | null>(null);
-  const [expiryData, setExpiryData] = useState<ReportPayload[] | null>(null);
-  const [lowStockData, setLowStockData] = useState<ReportPayload[] | null>(null);
-  const [looseSalesData, setLooseSalesData] = useState<ReportPayload | null>(null);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [expiryData, setExpiryData] = useState<ExpiryRow[] | null>(null);
+  const [lowStockData, setLowStockData] = useState<LowStockRow[] | null>(null);
+  const [looseSalesData, setLooseSalesData] = useState<LooseSaleRow[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [dateRange, setDateRange] = useState<ReportDateRange>({
@@ -119,7 +127,7 @@ export const useReportingData = (reportType?: string) => {
     return () => controller.abort();
   }, [reportType, tabValue, dateRange, fetchReports, timeframes]);
 
-  const handleTabChange = (event) => {
+  const handleTabChange = (event: { target: { value: number } }) => {
     const newValue = event.target.value;
     setTabValue(newValue);
     if (newValue < 8) {
