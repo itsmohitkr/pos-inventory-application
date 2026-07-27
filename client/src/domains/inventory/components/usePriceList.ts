@@ -7,18 +7,50 @@ import {
   MM_TO_PX, MIN_PREVIEW_SCALE, PREVIEW_FIT_PADDING_PX, PREVIEW_FIT_SAFETY,
   getStoredSettings, getPrimaryBarcode, getPreviewBatch, getBarcodeReadabilityWarning,
 } from '@/domains/inventory/components/paperSizePresets';
+import type {
+  PriceListDisplayOptions,
+  PriceListLayout,
+} from '@/domains/inventory/components/paperSizePresets';
+import type { Batch, Product } from '@/shared/types/models';
+import type { PrinterInfo } from '@/domains/settings/hooks/useSettings';
 
-export default function usePriceList(open) {
+/** The two paper families PAPER_PRESETS is keyed by. */
+type PaperType = keyof typeof PAPER_PRESETS;
+
+/** One product queued for printing, with how many copies. */
+export interface PriceListSelection {
+  productId: number;
+  quantity: number;
+}
+
+/** A selection resolved against the product list, ready to render. */
+export interface PriceListRow {
+  product: Product;
+  quantity: number;
+  batch: Batch | null;
+  barcodeValue: string;
+}
+
+/** One physical label in the preview — a row repeated per copy. */
+export interface PriceListLabel {
+  id: string;
+  product: Product;
+  batch: Batch | null;
+  barcodeValue: string;
+  copyNumber: number;
+}
+
+export default function usePriceList(open: boolean) {
   const initialSettings = useMemo(() => getStoredSettings(), []);
 
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [printers, setPrinters] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState<PriceListSelection[]>([]);
+  const [printers, setPrinters] = useState<PrinterInfo[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState(initialSettings?.selectedPrinter || '');
   const [paperType, setPaperType] = useState(initialSettings?.paperType || 'a4');
   const [paperPreset, setPaperPreset] = useState(initialSettings?.paperPreset || PAPER_PRESETS.a4[0].id);
-  const [layout, setLayout] = useState(() => {
+  const [layout, setLayout] = useState<PriceListLayout>(() => {
     if (initialSettings?.layout) return initialSettings.layout;
     return { ...PAPER_PRESETS.a4[0].layout, textAlign: 'left', barcodeLineSpacing: 1.25, barcodeFormat: 'CODE128' };
   });
@@ -29,8 +61,8 @@ export default function usePriceList(open) {
   const [previewScale, setPreviewScale] = useState(1);
   const [autoFit, setAutoFit] = useState(true);
 
-  const previewRef = useRef(null);
-  const previewContainerRef = useRef(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const previewContainerRef = useRef<HTMLDivElement | null>(null);
 
   const productById = useMemo(() => {
     const map = new Map();
@@ -61,7 +93,7 @@ export default function usePriceList(open) {
   );
 
   const previewLabels = useMemo(() => {
-    const labels = [];
+    const labels: PriceListLabel[] = [];
     selectedRows.forEach((row) => {
       for (let copy = 0; copy < row.quantity; copy += 1) {
         labels.push({
@@ -115,7 +147,7 @@ export default function usePriceList(open) {
   const previewPageWidthPx = useMemo(() => Math.max(1, previewPageWidthMm * MM_TO_PX), [previewPageWidthMm]);
   const activePreviewScale = paperType === 'a4' ? previewScale : 1;
 
-  const fetchProducts = useCallback(async (signal) => {
+  const fetchProducts = useCallback(async (signal?: AbortSignal) => {
     setLoadingProducts(true);
     try {
       const data = await inventoryService.fetchProducts({ includeBatches: true, category: 'all' }, { signal });
@@ -137,8 +169,8 @@ export default function usePriceList(open) {
       const printerList = await window.electron.ipcRenderer.invoke('get-printers');
       const normalized = Array.isArray(printerList) ? printerList : [];
       setPrinters(normalized);
-      const defaultPrinter = normalized.find((p) => p.isDefault);
-      setSelectedPrinter((current) => current || defaultPrinter?.name || '');
+      const defaultPrinter = normalized.find((p: PrinterInfo) => p.isDefault);
+      setSelectedPrinter((current: string) => current || defaultPrinter?.name || '');
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'price-list-fetch-printers' } });
       console.error('Failed to fetch printers:', error);
@@ -173,7 +205,7 @@ export default function usePriceList(open) {
     };
 
     updatePreviewScale();
-    let resizeObserver;
+    let resizeObserver: ResizeObserver | undefined;
     if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(updatePreviewScale);
       resizeObserver.observe(previewElement);
@@ -197,26 +229,27 @@ export default function usePriceList(open) {
     }
   };
 
-  const applyPreset = (nextType, nextPreset) => {
+  const applyPreset = (nextType: PaperType, nextPreset: string) => {
     const preset = PAPER_PRESETS[nextType].find((item) => item.id === nextPreset);
     if (!preset) return;
     setPaperType(nextType);
     setPaperPreset(nextPreset);
-    setLayout((current) => ({
+    setLayout((current: PriceListLayout) => ({
       ...preset.layout,
       textAlign: current.textAlign,
       barcodeLineSpacing: current.barcodeLineSpacing,
     }));
   };
 
-  const handlePaperTypeChange = (event) => {
-    const nextType = event.target.value;
+  const handlePaperTypeChange = (event: { target: { value: string } }) => {
+    const nextType = event.target.value as PaperType;
     applyPreset(nextType, PAPER_PRESETS[nextType][0].id);
   };
 
-  const handlePresetChange = (event) => applyPreset(paperType, event.target.value);
+  const handlePresetChange = (event: { target: { value: string } }) =>
+    applyPreset(paperType, event.target.value);
 
-  const handleProductSelectionChange = (_event, nextProducts) => {
+  const handleProductSelectionChange = (_event: unknown, nextProducts: Product[]) => {
     setSelectedProducts((current) =>
       nextProducts.map((product) => {
         const existing = current.find((item) => String(item.productId) === String(product.id));
@@ -225,7 +258,7 @@ export default function usePriceList(open) {
     );
   };
 
-  const handleQuantityChange = (productId, rawValue) => {
+  const handleQuantityChange = (productId: number, rawValue: string | number) => {
     const parsed = Math.max(1, Number(rawValue) || 1);
     setSelectedProducts((current) =>
       current.map((item) =>
@@ -234,7 +267,7 @@ export default function usePriceList(open) {
     );
   };
 
-  const handleIncreaseQuantity = (productId) => {
+  const handleIncreaseQuantity = (productId: number) => {
     setSelectedProducts((current) =>
       current.map((item) =>
         String(item.productId) !== String(productId)
@@ -244,7 +277,7 @@ export default function usePriceList(open) {
     );
   };
 
-  const handleDecreaseQuantity = (productId) => {
+  const handleDecreaseQuantity = (productId: number) => {
     setSelectedProducts((current) =>
       current.map((item) =>
         String(item.productId) !== String(productId)
@@ -254,14 +287,17 @@ export default function usePriceList(open) {
     );
   };
 
-  const handleRemoveSelectedProduct = (productId) => {
+  const handleRemoveSelectedProduct = (productId: number) => {
     setSelectedProducts((current) =>
       current.filter((item) => String(item.productId) !== String(productId))
     );
   };
 
-  const handleDisplayOptionChange = (field) => {
-    setDisplayOptions((current) => ({ ...current, [field]: !current[field] }));
+  const handleDisplayOptionChange = (field: keyof PriceListDisplayOptions) => {
+    setDisplayOptions((current: PriceListDisplayOptions) => ({
+      ...current,
+      [field]: !current[field],
+    }));
   };
 
   return {

@@ -1,3 +1,5 @@
+import type { Batch, Product } from '@/shared/types/models';
+
 export const PAPER_PRESETS = {
   a4: [
     {
@@ -55,7 +57,39 @@ export const PAPER_PRESETS = {
   ],
 };
 
-export const DEFAULT_DISPLAY_OPTIONS = {
+/**
+ * Geometry for one label sheet, in millimetres unless the name says otherwise.
+ * `textAlign` and `barcodeLineSpacing` are not in the presets below — they are
+ * added by usePriceList when it seeds its state, hence optional.
+ */
+export interface PriceListLayout {
+  columns: number;
+  labelWidth: number;
+  labelHeight: number;
+  marginTop: number;
+  marginRight: number;
+  marginBottom: number;
+  marginLeft: number;
+  gapHorizontal: number;
+  gapVertical: number;
+  barcodeLineWidth: number;
+  /** Pixels, not mm — passed straight to JsBarcode. */
+  barcodeHeight: number;
+  barcodeFormat: string;
+  barcodeLineSpacing?: number;
+  textAlign?: string;
+}
+
+/** Which fields each label renders. */
+export interface PriceListDisplayOptions {
+  mrp: boolean;
+  salePrice: boolean;
+  batchNumber: boolean;
+  productName: boolean;
+  barcode: boolean;
+}
+
+export const DEFAULT_DISPLAY_OPTIONS: PriceListDisplayOptions = {
   mrp: true, salePrice: true, batchNumber: true, productName: true, barcode: true,
 };
 
@@ -75,18 +109,18 @@ export const getStoredSettings = () => {
   }
 };
 
-export const getPrimaryBarcode = (product) => {
+export const getPrimaryBarcode = (product?: Product | null): string => {
   if (!product?.barcode) return '';
   return String(product.barcode).split('|').map((v) => v.trim()).filter(Boolean)[0] || '';
 };
 
-export const getPreviewBatch = (product) => {
+export const getPreviewBatch = (product?: Product | null): Batch | null => {
   if (!Array.isArray(product?.batches) || product.batches.length === 0) return null;
-  const inStockBatch = product.batches.find((batch) => Number(batch.quantity) > 0);
+  const inStockBatch = product.batches.find((batch: Batch) => Number(batch.quantity) > 0);
   return inStockBatch || product.batches[product.batches.length - 1] || null;
 };
 
-const estimateBarcodeModuleCount = (value, format) => {
+const estimateBarcodeModuleCount = (value: string | number, format: string): number => {
   const length = String(value || '').length;
   switch (format) {
     case 'EAN13': case 'UPC': return 95;
@@ -99,7 +133,17 @@ const estimateBarcodeModuleCount = (value, format) => {
   }
 };
 
-export const getBarcodeReadabilityWarning = ({ value, format, lineWidth, labelWidthMm }) => {
+export const getBarcodeReadabilityWarning = ({
+  value,
+  format,
+  lineWidth,
+  labelWidthMm,
+}: {
+  value?: string | number;
+  format: string;
+  lineWidth: number;
+  labelWidthMm: number;
+}): string | null => {
   if (!value) return null;
   const innerLabelWidthMm = Math.max(10, labelWidthMm - 4.5);
   const availableWidthPx = innerLabelWidthMm * MM_TO_PX;

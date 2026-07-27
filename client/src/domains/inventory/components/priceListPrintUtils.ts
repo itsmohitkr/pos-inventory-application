@@ -1,3 +1,21 @@
+import type { PriceListLayout } from '@/domains/inventory/components/paperSizePresets';
+
+interface BuildPriceListHtmlArgs {
+  /** The live preview node; its .price-label-item children are cloned. */
+  previewRoot?: HTMLElement | null;
+  /** 'thermal' switches to continuous-roll page rules. */
+  paperType: string;
+  layout: PriceListLayout;
+  /** CSS @page size value, e.g. 'A4' or '50mm 25mm'. */
+  printPageSize: string;
+  labelWidthMm: number;
+  labelHeightMm: number;
+  marginTopMm: number;
+  marginRightMm: number;
+  marginBottomMm: number;
+  marginLeftMm: number;
+}
+
 export const buildPriceListPrintableHtml = ({
   previewRoot,
   paperType,
@@ -9,7 +27,7 @@ export const buildPriceListPrintableHtml = ({
   marginRightMm,
   marginBottomMm,
   marginLeftMm,
-}) => {
+}: BuildPriceListHtmlArgs): string => {
   const labelElements = Array.from(previewRoot?.querySelectorAll('.price-label-item') || []);
   if (labelElements.length === 0) {
     return '';
