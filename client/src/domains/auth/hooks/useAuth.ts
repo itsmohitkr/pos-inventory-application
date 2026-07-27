@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import settingsService from '@/shared/api/settingsService';
 import { getAdminAutoLogoutTime } from '@/shared/utils/paymentSettings';
+import type { AuthActionResult, AuthUser } from '@/shared/types/auth';
 
 const STORAGE_KEYS = {
   user: 'posCurrentUser',
@@ -9,8 +10,8 @@ const STORAGE_KEYS = {
 };
 
 export const useAuth = () => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [adminLogoutTimer, setAdminLogoutTimer] = useState(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [adminLogoutTimer, setAdminLogoutTimer] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   const handleAdminLogout = useCallback(() => {
@@ -89,7 +90,7 @@ export const useAuth = () => {
     };
   }, [adminLogoutTimer, handleAdminLogout]);
 
-  const handleLogin = (user) => {
+  const handleLogin = (user: AuthUser) => {
     setCurrentUser(user);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
   };
@@ -100,7 +101,7 @@ export const useAuth = () => {
     localStorage.removeItem(STORAGE_KEYS.expiry);
   };
 
-  const handleAdminLogin = async (password) => {
+  const handleAdminLogin = async (password: string): Promise<AuthActionResult> => {
     try {
       const res = await settingsService.verifyAdmin(password);
       if (res.success) {

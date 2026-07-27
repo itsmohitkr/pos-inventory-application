@@ -1,3 +1,4 @@
+import type { AuthUser } from '@/shared/types/auth';
 import React, { useState, lazy, Suspense } from 'react';
 import * as Sentry from '@sentry/react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
@@ -101,13 +102,14 @@ function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState('');
 
-  const handleOpenSettingsMenu = (event) => setSettingsAnchorEl(event.currentTarget);
+  const handleOpenSettingsMenu = (event: React.MouseEvent<HTMLElement>) =>
+    setSettingsAnchorEl(event.currentTarget);
   const handleCloseSettingsMenu = () => {
     setSettingsAnchorEl(null);
     window.dispatchEvent(new Event('pos-refocus'));
   };
 
-  const handleLogin = (user) => {
+  const handleLogin = (user: AuthUser) => {
     authLogin(user);
     navigate('/pos');
   };
@@ -296,10 +298,10 @@ function App() {
         }}
         lastSale={SAMPLE_SALE}
         receiptSettings={draftReceiptSettings}
-        onSettingChange={(field) =>
+        onSettingChange={(field: string) =>
           setDraftReceiptSettings((prev) => ({ ...prev, [field]: !prev[field] }))
         }
-        onTextSettingChange={(field, value) =>
+        onTextSettingChange={(field: string, value: unknown) =>
           setDraftReceiptSettings((prev) => ({ ...prev, [field]: value }))
         }
         onSave={async () => {

@@ -75,11 +75,11 @@ const CustomDialog = ({
     onClose();
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented) return;
     if (event.key !== 'Enter') return;
     if (event.shiftKey) return;
-    if (event.target?.tagName === 'TEXTAREA') return;
+    if ((event.target as HTMLElement | null)?.tagName === 'TEXTAREA') return;
     event.preventDefault();
     handleConfirm();
   };

@@ -3,21 +3,25 @@
  * Helper functions for date range calculations and formatting.
  */
 
-export const getStartOfDay = (d) => {
+export const getStartOfDay = (d: Date | string | number): Date => {
   const date = new Date(d);
   date.setHours(0, 0, 0, 0);
   return date;
 };
 
-export const getEndOfDay = (d) => {
+export const getEndOfDay = (d: Date | string | number): Date => {
   const date = new Date(d);
   date.setHours(23, 59, 59, 999);
   return date;
 };
 
-export const getDateRange = (type) => {
+/** The named ranges getDateRange understands; anything else falls back to today. */
+export type DateRangePreset = 'today' | 'yesterday' | 'thisMonth' | 'lastMonth' | 'thisYear';
+
+export const getDateRange = (type?: DateRangePreset | string): { start: Date; end: Date } => {
   const now = new Date();
-  let start, end;
+  let start: Date;
+  let end: Date;
 
   switch (type) {
     case 'today':
@@ -51,13 +55,13 @@ export const getDateRange = (type) => {
   return { start, end };
 };
 
-export const formatShortNum = (num) => {
+export const formatShortNum = (num: number): string => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
   return num.toString();
 };
 
-export const formatDateDisplay = (dateString) => {
+export const formatDateDisplay = (dateString?: string | Date | null): string => {
   if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
@@ -67,7 +71,9 @@ export const formatDateDisplay = (dateString) => {
       year: 'numeric',
     });
   } catch {
-    return dateString;
+    // Stringified so the declared string return holds for the Date input case;
+    // for the string inputs this function actually receives it is a no-op.
+    return String(dateString);
   }
 };
 

@@ -1,3 +1,4 @@
+import type { AuthUser } from '@/shared/types/auth';
 import React from 'react';
 import { AppBar, Toolbar, Box, Typography, Button, Stack, IconButton } from '@mui/material';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
@@ -24,12 +25,9 @@ export interface NavPermissions {
   [key: string]: boolean | undefined;
 }
 
-export interface GlobalAppBarUser {
-  id?: number;
-  username?: string;
-  role?: string;
-  [key: string]: unknown;
-}
+// Re-exported under the old name so existing imports keep working; the app has
+// one user shape, defined in shared/types/auth.
+export type GlobalAppBarUser = AuthUser;
 
 interface GlobalAppBarProps {
   shopName?: string;
