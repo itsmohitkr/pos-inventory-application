@@ -29,8 +29,13 @@ import {
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import { useBulkImport } from '@/domains/inventory/components/useBulkImport';
+import type {
+  BulkImportResult,
+  BulkImportRow,
+  BulkImportValidationError,
+} from '@/domains/inventory/components/useBulkImport';
 
-const ImportInstructionAlert = ({ onDownloadTemplate }) => (
+const ImportInstructionAlert = ({ onDownloadTemplate }: { onDownloadTemplate: () => void }) => (
   <Alert severity="warning" sx={{ mb: 2 }}>
     <Typography variant="body2" gutterBottom fontWeight={600}>
       CSV Format: name, barcode, category, quantity, mrp, cost_price, selling_price,
@@ -58,7 +63,15 @@ const ImportInstructionAlert = ({ onDownloadTemplate }) => (
   </Alert>
 );
 
-const ImportPreviewTable = ({ preview, hasErrors, validationErrors }) => (
+const ImportPreviewTable = ({
+  preview,
+  hasErrors,
+  validationErrors,
+}: {
+  preview: BulkImportRow[];
+  hasErrors: boolean;
+  validationErrors: BulkImportValidationError[];
+}) => (
   <>
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
       <Typography variant="subtitle2">All Rows ({preview.length} total):</Typography>
@@ -82,7 +95,7 @@ const ImportPreviewTable = ({ preview, hasErrors, validationErrors }) => (
           </TableRow>
         </TableHead>
         <TableBody>
-          {preview.map((row) => (
+          {preview.map((row: BulkImportRow) => (
             <TableRow
               key={row.lineNumber}
               sx={{
@@ -97,7 +110,7 @@ const ImportPreviewTable = ({ preview, hasErrors, validationErrors }) => (
               <TableCell>
                 {row.barcode ? (
                   <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                    {row.barcode.split('|').map((bc, idx) => (
+                    {row.barcode.split('|').map((bc: string, idx: number) => (
                       <Chip
                         key={idx}
                         label={bc.trim()}
@@ -132,7 +145,7 @@ const ImportPreviewTable = ({ preview, hasErrors, validationErrors }) => (
           Validation Errors ({validationErrors.length}):
         </Typography>
         <Box component="ul" sx={{ m: 0, pl: 2 }}>
-          {validationErrors.map((error, idx) => (
+          {validationErrors.map((error: BulkImportValidationError, idx: number) => (
             <li key={idx}>
               <Typography variant="caption">
                 <strong>Line {error.line}:</strong> {error.messages.join(', ')}
@@ -145,7 +158,7 @@ const ImportPreviewTable = ({ preview, hasErrors, validationErrors }) => (
   </>
 );
 
-const ImportResultSection = ({ result }) => (
+const ImportResultSection = ({ result }: { result: BulkImportResult }) => (
   <Box>
     <Alert
       severity={result.success ? 'success' : 'error'}
@@ -175,7 +188,7 @@ const ImportResultSection = ({ result }) => (
               </TableRow>
             </TableHead>
             <TableBody>
-              {result.errors.slice(0, 20).map((error, index) => (
+              {result.errors.slice(0, 20).map((error: { line: number; message: string }, index: number) => (
                 <TableRow key={index}>
                   <TableCell>{error.line}</TableCell>
                   <TableCell>
@@ -196,7 +209,13 @@ const ImportResultSection = ({ result }) => (
   </Box>
 );
 
-const BulkImportDialog = ({ open, onClose, onImportComplete }) => {
+interface BulkImportDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onImportComplete: () => void;
+}
+
+const BulkImportDialog = ({ open, onClose, onImportComplete }: BulkImportDialogProps) => {
   const { dialogState, showError, closeDialog } = useCustomDialog();
   const {
     file,

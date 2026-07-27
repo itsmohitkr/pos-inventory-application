@@ -27,8 +27,25 @@ import {
 } from '@mui/icons-material';
 import { Autocomplete } from '@mui/material';
 import inventoryService from '@/shared/api/inventoryService';
+import type { CategoryNode } from '@/shared/types/models';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
+
+/**
+ * One row of the bulk-add grid. Numeric fields are held as strings because
+ * they are bound to text inputs and coerced on submit.
+ */
+interface BulkAddRow {
+  id: number;
+  name: string;
+  barcode: string;
+  category: string;
+  quantity: string;
+  mrp: string;
+  cost_price: string;
+  selling_price: string;
+  batchTracking: boolean;
+}
 
 const INITIAL_ROW = {
   name: '',
@@ -41,13 +58,18 @@ const INITIAL_ROW = {
   batchTracking: false,
 };
 
-const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
+interface BulkAddGridProps {
+  onProductsAdded: () => void;
+  onCancel: () => void;
+}
+
+const BulkAddGrid = ({ onProductsAdded, onCancel }: BulkAddGridProps) => {
   const { dialogState, showConfirm, closeDialog } = useCustomDialog();
-  const [rows, setRows] = useState([{ ...INITIAL_ROW, id: Date.now() }]);
-  const [categories, setCategories] = useState([]);
+  const [rows, setRows] = useState<BulkAddRow[]>([{ ...INITIAL_ROW, id: Date.now() }]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -56,9 +78,9 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
   const fetchCategories = async () => {
     try {
       const data = await inventoryService.fetchCategories();
-      const flatten = (nodes) => {
-        const list = [];
-        nodes.forEach((node) => {
+      const flatten = (nodes: CategoryNode[]): string[] => {
+        const list: string[] = [];
+        nodes.forEach((node: CategoryNode) => {
           list.push(node.path);
           if (node.children) list.push(...flatten(node.children));
         });
@@ -75,7 +97,7 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
     setRows([...rows, { ...INITIAL_ROW, id: Date.now() }]);
   };
 
-  const handleRemoveRow = (id) => {
+  const handleRemoveRow = (id: number) => {
     if (rows.length === 1) return;
     setRows(rows.filter((row) => row.id !== id));
   };
@@ -210,7 +232,7 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }) => {
                     value={row.name}
                     onChange={(e) => handleFieldChange(row.id, 'name', e.target.value)}
                     placeholder="Enter product name"
-                    error={!row.name.trim() && error}
+                    error={!row.name.trim() && Boolean(error)}
                   />
                 </TableCell>
                 <TableCell>

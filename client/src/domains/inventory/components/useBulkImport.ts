@@ -1,18 +1,47 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 
-export const useBulkImport = (onImportComplete, showError) => {
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState([]);
+/**
+ * One parsed CSV row: the two bookkeeping fields plus the file's own columns,
+ * written on by lowercased header name. An intersection rather than an
+ * interface with an index signature, so the column values type as the strings
+ * they are (parseCSVLine trims every cell) while lineNumber stays a number.
+ */
+export type BulkImportRow = {
+  lineNumber: number;
+  errors: string[];
+} & Record<string, string>;
+
+/** Validation problems for one CSV line, collected before import. */
+export interface BulkImportValidationError {
+  line: number;
+  messages: string[];
+}
+
+/** The server's response from POST /api/products/import. */
+export interface BulkImportResult {
+  success: boolean;
+  imported?: number;
+  failed?: number;
+  errors?: { line: number; message: string }[];
+  [key: string]: unknown;
+}
+
+export const useBulkImport = (
+  onImportComplete: () => void,
+  showError: (message: string) => void
+) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<BulkImportRow[]>([]);
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<BulkImportResult | null>(null);
   const [validating, setValidating] = useState(false);
-  const [validationErrors, setValidationErrors] = useState([]);
+  const [validationErrors, setValidationErrors] = useState<BulkImportValidationError[]>([]);
   const [hasErrors, setHasErrors] = useState(false);
 
-  const parseCSVLine = (line) => {
-    const result = [];
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
     let current = '';
     let inQuotes = false;
 
@@ -102,7 +131,7 @@ export const useBulkImport = (onImportComplete, showError) => {
     setValidating(false);
   };
 
-  const parseCSV = async (file) => {
+  const parseCSV = async (file: File) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       // readAsText always yields a string; narrow from FileReader's union.
@@ -119,7 +148,7 @@ export const useBulkImport = (onImportComplete, showError) => {
 
       const allData = lines.slice(1).map((line, index) => {
         const values = parseCSVLine(line);
-        const row = { lineNumber: index + 2, errors: [] };
+        const row = { lineNumber: index + 2, errors: [] as string[] } as BulkImportRow;
         headers.forEach((header, i) => {
           let value = values[i] ? values[i].trim() : '';
           if (header === 'barcode' && value && /^\d+\.00$/.test(value)) {
@@ -136,8 +165,8 @@ export const useBulkImport = (onImportComplete, showError) => {
     reader.readAsText(file);
   };
 
-  const handleFileChange = (event) => {
-    const selectedFile = event.target.files[0];
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
       setResult(null);
