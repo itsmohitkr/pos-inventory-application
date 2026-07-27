@@ -1,8 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
+import type { Product } from '@/shared/types/models';
 
-export const useAddStock = ({ product, open, onClose, onStockAdded, showError, showSuccess }) => {
+interface UseAddStockArgs {
+  product?: Product | null;
+  open: boolean;
+  onClose: () => void;
+  onStockAdded: () => void;
+  showError: (message: string) => void;
+  showSuccess: (message: string) => void;
+}
+
+export const useAddStock = ({
+  product,
+  open,
+  onClose,
+  onStockAdded,
+  showError,
+  showSuccess,
+}: UseAddStockArgs) => {
   const [stockData, setStockData] = useState<Record<string, any>>({
     batch_code: '',
     quantity: '',
@@ -17,7 +34,8 @@ export const useAddStock = ({ product, open, onClose, onStockAdded, showError, s
   const [discountInput, setDiscountInput] = useState('0');
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  const isFieldEmpty = (val) => val === undefined || val === null || val.toString().trim() === '';
+  const isFieldEmpty = (val: unknown): boolean =>
+    val === undefined || val === null || val.toString().trim() === '';
 
   useEffect(() => {
     if (!open) return;
@@ -62,9 +80,11 @@ export const useAddStock = ({ product, open, onClose, onStockAdded, showError, s
     return () => window.cancelAnimationFrame(frame);
   }, [open, product]);
 
-  const handleChange = useCallback((name, value) => {
+  // `value` is a string from the text fields, or a boolean for the wholesale
+  // switch.
+  const handleChange = useCallback((name: string, value: string | boolean) => {
     if (name === 'discount_percent') {
-      setDiscountInput(value);
+      setDiscountInput(String(value));
       const val = parseFloat(String(value));
       if (!isNaN(val)) {
         setStockData((prev) => {
@@ -95,7 +115,7 @@ export const useAddStock = ({ product, open, onClose, onStockAdded, showError, s
     });
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     setFormSubmitted(true);
 

@@ -2,7 +2,19 @@ import type { InventorySummaryTotals } from '@/domains/inventory/components/inve
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 
-const STAT_CONFIGS = [
+/** The two pre-formatted percentage strings the last two stats read. */
+interface SummaryAverages {
+  margin: string;
+  discount: string;
+}
+
+interface StatConfig {
+  label: string;
+  getValue: (totals: InventorySummaryTotals, avg: SummaryAverages) => string | number;
+  accentColor: string;
+}
+
+const STAT_CONFIGS: StatConfig[] = [
   { label: 'Products', getValue: (t) => t.productCount, accentColor: '#3b82f6' },
   { label: 'Total Stock', getValue: (t) => t.totalQty, accentColor: '#8b5cf6' },
   { label: 'Cost Value', getValue: (t) => `₹${t.totalCost.toFixed(2)}`, accentColor: '#f59e0b' },

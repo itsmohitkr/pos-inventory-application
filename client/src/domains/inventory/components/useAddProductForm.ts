@@ -45,7 +45,17 @@ const INITIAL_FORM: AddProductFormState = {
   initialBatch: { ...INITIAL_BATCH },
 };
 
-export default function useAddProductForm({ showError, showSuccess, onProductAdded }) {
+interface UseAddProductFormArgs {
+  showError: (message: string) => void;
+  showSuccess: (message: string) => void;
+  onProductAdded: () => void;
+}
+
+export default function useAddProductForm({
+  showError,
+  showSuccess,
+  onProductAdded,
+}: UseAddProductFormArgs) {
   const [formData, setFormData] = useState<AddProductFormState>(INITIAL_FORM);
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
   const [barcodeError, setBarcodeError] = useState('');
@@ -60,10 +70,10 @@ export default function useAddProductForm({ showError, showSuccess, onProductAdd
     }).catch(() => {});
   }, []);
 
-  const toTitleCase = (str) =>
+  const toTitleCase = (str?: string | null): string =>
     str.toLowerCase().split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === 'barcode') setBarcodeError('');
 
@@ -94,7 +104,7 @@ export default function useAddProductForm({ showError, showSuccess, onProductAdd
     }
   };
 
-  const addBarcode = async (barcode) => {
+  const addBarcode = async (barcode: string) => {
     const trimmed = barcode.trim();
     if (!trimmed) return true;
     if (formData.barcodes.some((b) => b.toLowerCase() === trimmed.toLowerCase())) {
@@ -127,7 +137,7 @@ export default function useAddProductForm({ showError, showSuccess, onProductAdd
     }
   };
 
-  const removeBarcode = (index) => {
+  const removeBarcode = (index: number) => {
     setFormData((prev) => ({ ...prev, barcodes: prev.barcodes.filter((_, i) => i !== index) }));
     setBarcodeError('');
   };
@@ -136,7 +146,7 @@ export default function useAddProductForm({ showError, showSuccess, onProductAdd
     addBarcode(Math.floor(1000000000000 + Math.random() * 9000000000000).toString());
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (manualBarcodeInput.trim()) {
       const ok = await addBarcode(manualBarcodeInput);

@@ -6,11 +6,19 @@ import {
   RestartAlt as RestartAltIcon,
 } from '@mui/icons-material';
 
+interface ProductListToolbarProps {
+  /** 'all' | 'inStock' | 'lowStock' | 'outOfStock'. */
+  stockFilter: string;
+  onStockFilterChange: (value: string) => void;
+  onReset: () => void;
+  displayedProductCount: number;
+}
+
 const ProductListToolbar = ({
   stockFilter, onStockFilterChange,
   onReset,
   displayedProductCount,
-}) => (
+}: ProductListToolbarProps) => (
   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
 
     <Button

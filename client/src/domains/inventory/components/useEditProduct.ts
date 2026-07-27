@@ -1,8 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
+import type { CategoryNode, Product } from '@/shared/types/models';
 
-export const useEditProduct = ({ product, open, onClose, onProductUpdated, showError }) => {
+interface UseEditProductArgs {
+  product?: Product | null;
+  open: boolean;
+  onClose: () => void;
+  onProductUpdated: () => void;
+  showError: (message: string) => void;
+}
+
+export const useEditProduct = ({
+  product,
+  open,
+  onClose,
+  onProductUpdated,
+  showError,
+}: UseEditProductArgs) => {
   const [formData, setFormData] = useState<Record<string, any>>({
     name: '',
     category: '',
@@ -12,7 +27,7 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
     lowStockThreshold: 2,
   });
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
-  const [barcodes, setBarcodes] = useState([]);
+  const [barcodes, setBarcodes] = useState<string[]>([]);
   const [manualBarcodeInput, setManualBarcodeInput] = useState('');
   const [barcodeError, setBarcodeError] = useState('');
   const [barcodeChecking, setBarcodeChecking] = useState(false);
@@ -44,7 +59,7 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
     const fetchCategories = async () => {
       try {
         const data = await inventoryService.fetchCategories();
-        setExistingCategories((data.data || []).map((c) => c.path || c.name).filter(Boolean).sort());
+        setExistingCategories((data.data || []).map((c: CategoryNode) => c.path || c.name).filter(Boolean).sort());
       } catch (error) {
         Sentry.captureException(error, { tags: { feature: 'inventory-edit-product-categories-fetch' } });
         console.error('Failed to fetch categories:', error);
@@ -59,7 +74,7 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
     }
   }, [open, fetchProductDetails]);
 
-  const addBarcode = async (barcode) => {
+  const addBarcode = async (barcode: string) => {
     const trimmed = barcode.trim();
     if (!trimmed) return true;
 
@@ -96,7 +111,7 @@ export const useEditProduct = ({ product, open, onClose, onProductUpdated, showE
     }
   };
 
-  const removeBarcode = (index) => {
+  const removeBarcode = (index: number) => {
     const updatedBarcodes = barcodes.filter((_, i) => i !== index);
     setBarcodes(updatedBarcodes);
     setBarcodeError('');

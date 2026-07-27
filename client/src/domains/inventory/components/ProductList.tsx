@@ -1,4 +1,5 @@
 import { forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
+import type { Batch } from '@/shared/types/models';
 import * as Sentry from '@sentry/react';
 import { Paper, Typography, Box, Chip, IconButton, Tooltip } from '@mui/material';
 import { ChevronRight as ChevronRightIcon } from '@mui/icons-material';
@@ -45,7 +46,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
       },
     }));
 
-    const handleBarcodeSearch = useCallback(async (val) => {
+    const handleBarcodeSearch = useCallback(async (val: string) => {
       pl.setSearchTerm(val);
       if (!val) {
         pl.setFilteredProducts(null);
@@ -62,7 +63,10 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
           if (data && data.product) {
             found = data.product;
             if (data.batches) {
-              found.total_stock = data.batches.reduce((sum, b) => sum + b.quantity, 0);
+              found.total_stock = data.batches.reduce(
+                (sum: number, b: Batch) => sum + b.quantity,
+                0
+              );
             }
           }
         } catch (error) {
@@ -83,7 +87,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
       }
     }, [pl]);
 
-    const handleSearchChange = useCallback((val) => {
+    const handleSearchChange = useCallback((val: string) => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
       searchTimerRef.current = setTimeout(() => {
         onSearchChange(val.trim());
@@ -210,7 +214,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                 />
                 <ProductListToolbar
                   stockFilter={pl.stockFilter}
-                  onStockFilterChange={(value) => {
+                  onStockFilterChange={(value: string) => {
                     pl.setStockFilter(value);
                     onCategoryChange('all');
                   }}
