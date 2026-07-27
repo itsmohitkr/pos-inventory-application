@@ -1,4 +1,10 @@
 import React from 'react';
+import type {
+  ExpenseFormState,
+  PaymentFormState,
+  PurchaseFormState,
+} from '@/domains/expenses/components/useExpenseManagement';
+import type { PaymentRecord } from '@/domains/expenses/components/expenseTypes';
 import {
   Box, Typography, Paper, Tabs, Tab, Button, TextField, Stack,
   FormControl, InputLabel, Select, MenuItem, Alert,
@@ -272,7 +278,9 @@ const ExpenseManagement = () => {
           onClose={() => em.setExpenseDialogOpen(false)}
           onSubmit={em.handleCreateExpense}
           expenseForm={em.expenseForm}
-          onFormChange={(u) => em.setExpenseForm((prev) => ({ ...prev, ...u }))}
+          onFormChange={(u: Partial<ExpenseFormState>) =>
+            em.setExpenseForm((prev) => ({ ...prev, ...u }))
+          }
           categories={['Electricity', 'Rent', 'Wages', 'WiFi', 'Maintenance', 'Misc']}
         />
         <PurchaseFormDialog
@@ -280,7 +288,9 @@ const ExpenseManagement = () => {
           onClose={() => em.setPurchaseDialogOpen(false)}
           onSubmit={em.handleCreatePurchase}
           purchaseForm={em.purchaseForm}
-          onFormChange={(u) => em.setPurchaseForm((prev) => ({ ...prev, ...u }))}
+          onFormChange={(u: Partial<PurchaseFormState>) =>
+            em.setPurchaseForm((prev) => ({ ...prev, ...u }))
+          }
           vendorOptions={em.vendorOptions}
         />
         <RecordPaymentDialog
@@ -322,7 +332,9 @@ const ExpenseManagement = () => {
           onCloseEditDialog={() => em.setPaymentEditDialogOpen(false)}
           onEditSubmit={em.handleEditPaymentSubmission}
           editPaymentForm={em.editPaymentForm}
-          onEditFormChange={(u) => em.setEditPaymentForm((prev) => ({ ...prev, ...u }))}
+          onEditFormChange={(u: Partial<PaymentFormState>) =>
+            em.setEditPaymentForm((prev) => ({ ...prev, ...u }))
+          }
           minDate={em.selectedPurchase?.date ? splitIsoDate(em.selectedPurchase.date) : ''}
         />
         <RecordPaymentDialog
@@ -342,7 +354,7 @@ const ExpenseManagement = () => {
           title="Expense Payment History"
           subject={em.selectedExpense}
           totalField="amount"
-          onOpenPaymentMenu={(e, payment) => {
+          onOpenPaymentMenu={(e: React.MouseEvent<HTMLElement>, payment: PaymentRecord) => {
             em.setSelectedPurchase(null);
             em.handleOpenPaymentMenu(e, payment);
           }}

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ExpenseFormState } from '@/domains/expenses/components/useExpenseManagement';
 import {
   Dialog,
   DialogTitle,
@@ -12,7 +13,24 @@ import {
 
 const PAYMENT_METHODS = ['Cash', 'Card', 'UPI', 'Bank Transfer'];
 
-const ExpenseFormDialog = ({ open, onClose, onSubmit, expenseForm, onFormChange, categories }) => (
+interface ExpenseFormDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  expenseForm: ExpenseFormState;
+  /** Receives a partial patch, merged into the form by the caller. */
+  onFormChange: (update: Partial<ExpenseFormState>) => void;
+  categories: string[];
+}
+
+const ExpenseFormDialog = ({
+  open,
+  onClose,
+  onSubmit,
+  expenseForm,
+  onFormChange,
+  categories,
+}: ExpenseFormDialogProps) => (
   <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
     <form onSubmit={onSubmit}>
       <DialogTitle>{expenseForm.id ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>

@@ -27,8 +27,19 @@ export interface Expense {
   payments?: PaymentRecord[];
   /** Derived server-side: amount minus the sum of payments. */
   dueAmount?: number;
+  /** Derived server-side: the sum of payments. */
+  totalPaid?: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/** A line item on a purchase, as returned with the purchase. */
+export interface PurchaseItem {
+  id?: number;
+  productId: number;
+  batchId?: number | null;
+  quantity: number;
+  costPrice: number;
 }
 
 export interface Purchase {
@@ -40,8 +51,11 @@ export interface Purchase {
   paymentStatus: PaymentStatus | string;
   paymentMethod?: string | null;
   payments?: PaymentRecord[];
+  items?: PurchaseItem[];
   /** Derived server-side: totalAmount minus the sum of payments. */
   dueAmount?: number;
+  /** Derived server-side: the sum of payments. */
+  totalPaid?: number;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { PurchaseFormState } from '@/domains/expenses/components/useExpenseManagement';
 import {
   Dialog,
   DialogTitle,
@@ -12,6 +13,16 @@ import {
 
 const PAYMENT_METHODS = ['Cash', 'Card', 'UPI', 'Bank Transfer'];
 
+interface PurchaseFormDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  purchaseForm: PurchaseFormState;
+  /** Receives a partial patch, merged into the form by the caller. */
+  onFormChange: (update: Partial<PurchaseFormState>) => void;
+  vendorOptions: string[];
+}
+
 const PurchaseFormDialog = ({
   open,
   onClose,
@@ -19,7 +30,7 @@ const PurchaseFormDialog = ({
   purchaseForm,
   onFormChange,
   vendorOptions,
-}) => (
+}: PurchaseFormDialogProps) => (
   <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
     <form onSubmit={onSubmit}>
       <DialogTitle>{purchaseForm.id ? 'Edit Purchase' : 'Log Inventory Purchase'}</DialogTitle>

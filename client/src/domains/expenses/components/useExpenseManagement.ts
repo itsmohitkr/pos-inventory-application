@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
 import { getResponseArray } from '@/shared/utils/responseGuards';
@@ -11,6 +11,7 @@ import {
   calculateExpenseTotals,
 } from '@/domains/expenses/components/expenseManagementUtils';
 import type {
+  PurchaseItem,
   CustomDateRange,
   Expense,
   PaymentRecord,
@@ -36,7 +37,7 @@ export type PurchaseFormState = {
   note: string;
   paidAmount: string;
   paymentMethod: string;
-  items: Record<string, unknown>[];
+  items: PurchaseItem[];
 };
 
 export type PaymentFormState = {
@@ -147,7 +148,7 @@ export default function useExpenseManagement() {
     setExpenseDialogOpen(true);
   };
 
-  const handleCreateExpense = async (e) => {
+  const handleCreateExpense = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     try {
       if (expenseForm.id) {
@@ -163,7 +164,7 @@ export default function useExpenseManagement() {
     }
   };
 
-  const handleDeleteExpense = (id) => {
+  const handleDeleteExpense = (id: number) => {
     setDeleteConfig({
       open: true,
       title: 'Confirm Delete Expense',
@@ -181,18 +182,18 @@ export default function useExpenseManagement() {
     });
   };
 
-  const handleOpenExpensePaymentDialog = (expense) => {
+  const handleOpenExpensePaymentDialog = (expense: Expense) => {
     setSelectedExpense(expense);
-    setPaymentForm({ amount: expense.dueAmount || 0, paymentMethod: expense.paymentMethod || 'Cash', date: getLocalTodayString(), note: '' });
+    setPaymentForm({ amount: String(expense.dueAmount || 0), paymentMethod: expense.paymentMethod || 'Cash', date: getLocalTodayString(), note: '' });
     setExpensePaymentDialogOpen(true);
   };
 
-  const handleOpenExpensePaymentHistoryDialog = (expense) => {
+  const handleOpenExpensePaymentHistoryDialog = (expense: Expense) => {
     setSelectedExpense(expense);
     setExpensePaymentHistoryDialogOpen(true);
   };
 
-  const handleCreateExpensePayment = async (e) => {
+  const handleCreateExpensePayment = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     try {
       await posService.createExpensePayment(selectedExpense.id, { amount: parseFloat(paymentForm.amount), paymentMethod: paymentForm.paymentMethod, date: paymentForm.date, note: paymentForm.note });
@@ -210,12 +211,12 @@ export default function useExpenseManagement() {
     setPurchaseDialogOpen(true);
   };
 
-  const handleEditPurchase = (purchase) => {
-    setPurchaseForm({ id: purchase.id, vendor: purchase.vendor || '', totalAmount: purchase.totalAmount, note: purchase.note || '', date: new Date(purchase.date).toISOString().split('T')[0], paidAmount: purchase.totalPaid || 0, paymentMethod: purchase.paymentMethod || 'Cash', items: purchase.items || [] });
+  const handleEditPurchase = (purchase: Purchase) => {
+    setPurchaseForm({ id: purchase.id, vendor: purchase.vendor || '', totalAmount: String(purchase.totalAmount), note: purchase.note || '', date: new Date(purchase.date).toISOString().split('T')[0], paidAmount: String(purchase.totalPaid || 0), paymentMethod: purchase.paymentMethod || 'Cash', items: purchase.items || [] });
     setPurchaseDialogOpen(true);
   };
 
-  const handleCreatePurchase = async (e) => {
+  const handleCreatePurchase = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     try {
       const submissionData = { ...purchaseForm, totalAmount: parseFloat(purchaseForm.totalAmount) || 0, paidAmount: purchaseForm.id ? undefined : parseFloat(purchaseForm.paidAmount) || 0, items: (purchaseForm.items || []).filter((item) => item.productId && item.quantity) };
@@ -234,7 +235,7 @@ export default function useExpenseManagement() {
     }
   };
 
-  const handleDeletePurchase = (id) => {
+  const handleDeletePurchase = (id: number) => {
     setDeleteConfig({
       open: true,
       title: 'Confirm Delete Purchase',
@@ -253,18 +254,18 @@ export default function useExpenseManagement() {
     });
   };
 
-  const handleOpenPaymentDialog = (purchase) => {
+  const handleOpenPaymentDialog = (purchase: Purchase) => {
     setSelectedPurchase(purchase);
-    setPaymentForm({ amount: purchase.dueAmount || 0, paymentMethod: purchase.paymentMethod || 'Cash', date: getLocalTodayString(), note: '' });
+    setPaymentForm({ amount: String(purchase.dueAmount || 0), paymentMethod: purchase.paymentMethod || 'Cash', date: getLocalTodayString(), note: '' });
     setPaymentDialogOpen(true);
   };
 
-  const handleOpenPaymentHistoryDialog = (purchase) => {
+  const handleOpenPaymentHistoryDialog = (purchase: Purchase) => {
     setSelectedPurchase(purchase);
     setPaymentHistoryDialogOpen(true);
   };
 
-  const handleCreatePayment = async (e) => {
+  const handleCreatePayment = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     try {
       await posService.createPurchasePayment(selectedPurchase.id, { amount: parseFloat(paymentForm.amount), paymentMethod: paymentForm.paymentMethod, date: paymentForm.date, note: paymentForm.note });
@@ -281,7 +282,7 @@ export default function useExpenseManagement() {
   };
 
   // --- Payment menu / edit / delete ---
-  const handleOpenPaymentMenu = (event, payment) => {
+  const handleOpenPaymentMenu = (event: React.MouseEvent<HTMLElement>, payment: PaymentRecord) => {
     setPaymentMenuAnchor(event.currentTarget);
     setSelectedPayment(payment);
   };
@@ -300,7 +301,7 @@ export default function useExpenseManagement() {
     handleClosePaymentMenu();
   };
 
-  const handleEditPaymentSubmission = async (e) => {
+  const handleEditPaymentSubmission = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     try {
       const payload = { amount: parseFloat(editPaymentForm.amount), paymentMethod: editPaymentForm.paymentMethod, date: editPaymentForm.date, note: editPaymentForm.note };
@@ -326,7 +327,7 @@ export default function useExpenseManagement() {
     }
   };
 
-  const handleDeletePaymentAction = (paymentId) => {
+  const handleDeletePaymentAction = (paymentId: number) => {
     setDeleteConfig({
       open: true,
       title: 'Confirm Delete Payment',

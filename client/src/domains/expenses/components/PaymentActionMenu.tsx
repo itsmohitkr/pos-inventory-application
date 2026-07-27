@@ -1,4 +1,5 @@
 import React from 'react';
+import type { PaymentFormState } from '@/domains/expenses/components/useExpenseManagement';
 import {
   Dialog,
   DialogTitle,
@@ -24,6 +25,23 @@ const PAYMENT_METHODS = ['Cash', 'Card', 'UPI', 'Bank Transfer'];
  *   editPaymentForm, onEditFormChange,
  *   minDate  (optional)
  */
+interface PaymentActionMenuProps {
+  /** Null closes the menu. */
+  menuAnchor?: HTMLElement | null;
+  onCloseMenu: () => void;
+  isEditDisabled?: boolean;
+  isDeleteDisabled?: boolean;
+  onOpenEditPayment: () => void;
+  onDeletePayment: () => void;
+  editDialogOpen: boolean;
+  onCloseEditDialog: () => void;
+  onEditSubmit: (e: React.FormEvent) => void;
+  editPaymentForm: PaymentFormState;
+  onEditFormChange: (update: Partial<PaymentFormState>) => void;
+  /** YYYY-MM-DD lower bound — a payment cannot predate its purchase. */
+  minDate?: string;
+}
+
 const PaymentActionMenu = ({
   menuAnchor,
   onCloseMenu,
@@ -37,7 +55,7 @@ const PaymentActionMenu = ({
   editPaymentForm,
   onEditFormChange,
   minDate,
-}) => (
+}: PaymentActionMenuProps) => (
   <>
     <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={onCloseMenu}>
       <MenuItem onClick={onOpenEditPayment} disabled={isEditDisabled}>

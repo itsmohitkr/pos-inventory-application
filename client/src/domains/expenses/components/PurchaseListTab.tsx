@@ -1,9 +1,30 @@
 import React from 'react';
+import type { Purchase } from '@/domains/expenses/components/expenseTypes';
 import {
   Box, Typography, Stack, Button, TextField, FormControl, InputLabel, Select, MenuItem,
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableFooter, Chip, Autocomplete, IconButton,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Payment as PaymentIcon } from '@mui/icons-material';
+
+interface PurchaseListTabProps {
+  filteredPurchases: Purchase[];
+  /** Distinct vendor names, for the filter dropdown. */
+  vendorOptions: string[];
+  /** 'All' | 'Paid' | 'Unpaid' | 'Due'. */
+  purchaseStatusFilter: string;
+  setPurchaseStatusFilter: (value: string) => void;
+  purchaseVendorFilter: string;
+  setPurchaseVendorFilter: (value: string) => void;
+  purchaseSearchFilter: string;
+  setPurchaseSearchFilter: (value: string) => void;
+  totalPurchasesAmount: number;
+  totalPurchasesDue: number;
+  onAddPurchase: () => void;
+  onEditPurchase: (purchase: Purchase) => void;
+  onDeletePurchase: (id: number) => void;
+  onOpenPaymentDialog: (purchase: Purchase) => void;
+  onOpenPaymentHistoryDialog: (purchase: Purchase) => void;
+}
 
 const PurchaseListTab = ({
   filteredPurchases,
@@ -17,7 +38,7 @@ const PurchaseListTab = ({
   onDeletePurchase,
   onOpenPaymentDialog,
   onOpenPaymentHistoryDialog,
-}) => (
+}: PurchaseListTabProps) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
     <Box
       sx={{

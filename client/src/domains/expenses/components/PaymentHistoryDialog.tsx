@@ -1,4 +1,9 @@
 import React from 'react';
+import type {
+  Expense,
+  PaymentRecord,
+  Purchase,
+} from '@/domains/expenses/components/expenseTypes';
 import {
   Dialog,
   DialogTitle,
@@ -27,7 +32,39 @@ import { History as HistoryIcon, MoreVert as MoreVertIcon } from '@mui/icons-mat
  *   totalField — 'totalAmount' (for purchases) | 'amount' (for expenses)
  *   onOpenPaymentMenu(event, payment)
  */
-const PaymentHistoryDialog = ({ open, onClose, title, subject, totalField, onOpenPaymentMenu }) => (
+interface PaymentHistoryDialogProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  /** The purchase or expense whose payments are listed; null closes the list. */
+  subject?: Purchase | Expense | null;
+  /** Which field on `subject` holds the amount owed. */
+  totalField: 'totalAmount' | 'amount';
+  onOpenPaymentMenu: (event: React.MouseEvent<HTMLElement>, payment: PaymentRecord) => void;
+}
+
+/**
+ * The owed amount lives under a different field on each shape — `amount` on an
+ * Expense, `totalAmount` on a Purchase — so the union cannot be indexed
+ * directly. Narrowed with `in` rather than cast.
+ */
+const readSubjectTotal = (
+  subject: Purchase | Expense | null | undefined,
+  totalField: 'totalAmount' | 'amount'
+): number => {
+  if (!subject) return 0;
+  if (totalField === 'amount') return 'amount' in subject ? subject.amount : 0;
+  return 'totalAmount' in subject ? subject.totalAmount : 0;
+};
+
+const PaymentHistoryDialog = ({
+  open,
+  onClose,
+  title,
+  subject,
+  totalField,
+  onOpenPaymentMenu,
+}: PaymentHistoryDialogProps) => (
   <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
     <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <HistoryIcon color="primary" /> {title}
@@ -45,7 +82,7 @@ const PaymentHistoryDialog = ({ open, onClose, title, subject, totalField, onOpe
                 Total Amount
               </Typography>
               <Typography variant="h6" fontWeight="bold">
-                ₹{Number(subject[totalField] ?? 0).toLocaleString()}
+                ₹{readSubjectTotal(subject, totalField).toLocaleString()}
               </Typography>
             </Box>
             <Box>

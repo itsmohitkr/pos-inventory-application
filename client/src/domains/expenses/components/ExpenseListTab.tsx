@@ -1,10 +1,27 @@
 import React from 'react';
+import type { Expense } from '@/domains/expenses/components/expenseTypes';
 import {
   Box, Typography, Stack, Button, TextField, FormControl, InputLabel, Select, MenuItem,
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableFooter, Chip, IconButton, Autocomplete
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Payment as PaymentIcon } from '@mui/icons-material';
 import { EXPENSE_CATEGORIES } from '@/domains/expenses/components/useExpenseManagement';
+
+interface ExpenseListTabProps {
+  filteredExpenses: Expense[];
+  /** 'All' or a category name. */
+  expenseCategoryFilter: string;
+  setExpenseCategoryFilter: (value: string) => void;
+  expenseSearchFilter: string;
+  setExpenseSearchFilter: (value: string) => void;
+  totalExpensesAmount: number;
+  totalExpensesDue: number;
+  onAddExpense: () => void;
+  onEditExpense: (expense: Expense) => void;
+  onDeleteExpense: (id: number) => void;
+  onOpenPaymentDialog: (expense: Expense) => void;
+  onOpenPaymentHistoryDialog: (expense: Expense) => void;
+}
 
 const ExpenseListTab = ({
   filteredExpenses,
@@ -16,7 +33,7 @@ const ExpenseListTab = ({
   onDeleteExpense,
   onOpenPaymentDialog,
   onOpenPaymentHistoryDialog,
-}) => (
+}: ExpenseListTabProps) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
     <Box
       sx={{
