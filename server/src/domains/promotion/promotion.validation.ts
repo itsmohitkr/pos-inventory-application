@@ -25,4 +25,10 @@ const promotionBodySchema = z.object({
   isActive: bool().optional(),
 });
 
+/**
+ * Service input type derived from the schema above, so the validated shape and
+ * the type the service declares cannot drift apart.
+ */
+export type PromotionInput = z.infer<typeof promotionBodySchema>;
+
 export { promotionIdParamSchema, productIdParamSchema, promotionBodySchema };

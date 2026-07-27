@@ -45,6 +45,14 @@ const paymentBodySchema = z.object({
   paymentMethod: str().nullable().optional(),
 });
 
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type CreatePurchaseInput = z.infer<typeof purchaseBodySchema>;
+export type UpdatePurchaseInput = z.infer<typeof purchaseUpdateBodySchema>;
+export type PurchasePaymentInput = z.infer<typeof paymentBodySchema>;
+
 export {
   purchaseIdParamSchema,
   purchaseQuerySchema,

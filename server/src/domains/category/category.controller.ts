@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { paramInt } from '../../shared/utils/requestParams';
 import { StatusCodes } from 'http-status-codes';
 import categoryService = require('./category.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
@@ -15,12 +16,12 @@ const createCategory = async (req: Request, res: Response) => {
 };
  
 const updateCategory = async (req: Request, res: Response) => {
-  const category = await categoryService.updateCategory(req.params.id, req.body);
+  const category = await categoryService.updateCategory(paramInt(req.params.id), req.body);
   return sendSuccessResponse(res, StatusCodes.OK, category, 'Category updated successfully');
 };
 
 const deleteCategory = async (req: Request, res: Response) => {
-  await categoryService.deleteCategory(req.params.id);
+  await categoryService.deleteCategory(paramInt(req.params.id));
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Category deleted');
 };
 

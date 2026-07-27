@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { paramInt } from '../../shared/utils/requestParams';
 import { StatusCodes } from 'http-status-codes';
 import purchaseService = require('./purchase.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
@@ -25,7 +26,7 @@ const getPurchases = async (req: Request, res: Response) => {
 };
 
 const deletePurchase = async (req: Request, res: Response) => {
-  await purchaseService.deletePurchase(req.params.id);
+  await purchaseService.deletePurchase(paramInt(req.params.id));
   return sendSuccessResponse(
     res,
     StatusCodes.OK,
@@ -38,14 +39,14 @@ const deletePurchase = async (req: Request, res: Response) => {
 };
 
 const updatePurchase = async (req: Request, res: Response) => {
-  const purchase = await purchaseService.updatePurchase(req.params.id, req.body);
+  const purchase = await purchaseService.updatePurchase(paramInt(req.params.id), req.body);
   return sendSuccessResponse(res, StatusCodes.OK, purchase, 'Purchase updated successfully', {
     format: 'raw',
   });
 };
 
 const addPayment = async (req: Request, res: Response) => {
-  const payment = await purchaseService.addPayment(req.params.id, req.body);
+  const payment = await purchaseService.addPayment(paramInt(req.params.id), req.body);
   return sendSuccessResponse(
     res,
     StatusCodes.CREATED,
@@ -58,7 +59,7 @@ const addPayment = async (req: Request, res: Response) => {
 };
 
 const updatePayment = async (req: Request, res: Response) => {
-  const payment = await purchaseService.updatePayment(req.params.id, req.body);
+  const payment = await purchaseService.updatePayment(paramInt(req.params.id), req.body);
   return sendSuccessResponse(
     res,
     StatusCodes.OK,
@@ -71,7 +72,7 @@ const updatePayment = async (req: Request, res: Response) => {
 };
 
 const deletePayment = async (req: Request, res: Response) => {
-  await purchaseService.deletePayment(req.params.id);
+  await purchaseService.deletePayment(paramInt(req.params.id));
   return sendSuccessResponse(
     res,
     StatusCodes.OK,

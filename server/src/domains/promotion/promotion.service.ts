@@ -1,10 +1,18 @@
 import prisma = require('../../config/prisma');
 import type { Prisma } from '@prisma/client';
+import type { PromotionInput } from './promotion.validation';
+
+/**
+ * Ids arrive as a coerced number or a digit string (the `numericId` schema);
+ * Prisma needs the number.
+ */
+const toId = (value: string | number): number =>
+  typeof value === 'number' ? value : parseInt(value, 10);
 
 /**
  * Create a new promotion with items
  */
-const createPromotion = async ({ name, startDate, endDate, items, isActive = true }) => {
+const createPromotion = async ({ name, startDate, endDate, items, isActive = true }: PromotionInput) => {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Create the promotion
     const promotion = await tx.promotion.create({
@@ -15,7 +23,7 @@ const createPromotion = async ({ name, startDate, endDate, items, isActive = tru
         isActive,
         items: {
           create: items.map((item) => ({
-            productId: item.productId,
+            productId: toId(item.productId),
             promoPrice: item.promoPrice,
             discountPercentage: item.discountPercentage,
           })),
@@ -54,7 +62,7 @@ const getAllPromotions = async () => {
 /**
  * Get active promotions for a product
  */
-const getActivePromotionsForProduct = async (productId, date = new Date()) => {
+const getActivePromotionsForProduct = async (productId: string | number, date = new Date()) => {
   return await prisma.promotion.findMany({
     where: {
       isActive: true,
@@ -62,14 +70,14 @@ const getActivePromotionsForProduct = async (productId, date = new Date()) => {
       endDate: { gte: date },
       items: {
         some: {
-          productId: parseInt(productId),
+          productId: toId(productId),
         },
       },
     },
     include: {
       items: {
         where: {
-          productId: parseInt(productId),
+          productId: toId(productId),
         },
       },
     },
@@ -79,7 +87,7 @@ const getActivePromotionsForProduct = async (productId, date = new Date()) => {
 /**
  * Find the best active promotional price for a product
  */
-const getEffectivePromoPrice = async (productId) => {
+const getEffectivePromoPrice = async (productId: string | number) => {
   const activePromos = await getActivePromotionsForProduct(productId);
 
   if (activePromos.length === 0) return null;
@@ -101,9 +109,9 @@ const getEffectivePromoPrice = async (productId) => {
  * Get product details and its current batch pricing
  * Used to help the UI show MRP/CP/SP while setting up a promotion
  */
-const getProductPricingOptions = async (productId) => {
+const getProductPricingOptions = async (productId: string | number) => {
   const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+    where: { id: toId(productId) },
     include: {
       batches: {
         orderBy: { createdAt: 'desc' },
@@ -131,25 +139,25 @@ const getProductPricingOptions = async (productId) => {
 /**
  * Delete a promotion
  */
-const deletePromotion = async (id) => {
+const deletePromotion = async (id: string | number) => {
   return await prisma.promotion.delete({
-    where: { id: parseInt(id) },
+    where: { id: toId(id) },
   });
 };
 
 /**
  * Update an existing promotion
  */
-const updatePromotion = async (id, { name, startDate, endDate, items, isActive = true }) => {
+const updatePromotion = async (id: string | number, { name, startDate, endDate, items, isActive = true }: PromotionInput) => {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Delete all existing items for this promotion
     await tx.promotionItem.deleteMany({
-      where: { promotionId: parseInt(id) },
+      where: { promotionId: toId(id) },
     });
 
     // Update the promotion and add the new items
     const promotion = await tx.promotion.update({
-      where: { id: parseInt(id) },
+      where: { id: toId(id) },
       data: {
         name,
         startDate: new Date(startDate),
@@ -157,7 +165,7 @@ const updatePromotion = async (id, { name, startDate, endDate, items, isActive =
         isActive,
         items: {
           create: items.map((item) => ({
-            productId: item.productId,
+            productId: toId(item.productId),
             promoPrice: item.promoPrice,
             discountPercentage: item.discountPercentage,
           })),

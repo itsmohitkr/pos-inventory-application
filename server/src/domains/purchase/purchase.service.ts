@@ -2,9 +2,21 @@ import { StatusCodes } from 'http-status-codes';
 import prisma = require('../../config/prisma');
 import type { Prisma } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
+import type {
+  CreatePurchaseInput,
+  PurchasePaymentInput,
+  UpdatePurchaseInput,
+} from './purchase.validation';
+
+/**
+ * Item ids arrive as a coerced number or a string (the schema accepts both);
+ * Prisma needs the number.
+ */
+const toId = (value: string | number): number =>
+  typeof value === 'number' ? value : parseInt(value, 10);
 
 // Helper to append current time to a date string (YYYY-MM-DD)
-const getDateWithCurrentTime = (dateString) => {
+const getDateWithCurrentTime = (dateString?: string | Date | null): Date => {
   if (!dateString) return new Date();
   const dateObj = new Date(dateString);
   const now = new Date();
@@ -28,14 +40,15 @@ interface PurchaseFilters {
   vendor?: string;
 }
 
-const createPurchase = async (data) => {
+const createPurchase = async (data: CreatePurchaseInput) => {
   const { vendor, totalAmount, date, note, paidAmount, paymentMethod, items = [] } = data;
 
   // Filter out invalid items (those without product IDs)
-  const validItems = items.filter((item) => item.productId && !isNaN(parseInt(item.productId)));
+  const validItems = items.filter((item) => item.productId && !isNaN(toId(item.productId)));
 
-  const parsedTotalAmount = parseFloat(totalAmount) || 0;
-  const parsedPaidAmount = parseFloat(paidAmount) || 0;
+  // Both are already numbers — the schema coerces them.
+  const parsedTotalAmount = totalAmount || 0;
+  const parsedPaidAmount = paidAmount || 0;
 
   // Derived status
   let initialPaymentStatus = 'Paid';
@@ -57,10 +70,10 @@ const createPurchase = async (data) => {
     if (validItems.length > 0) {
       purchaseData.items = {
         create: validItems.map((item) => ({
-          productId: parseInt(item.productId),
-          batchId: item.batchId ? parseInt(item.batchId) : null,
-          quantity: parseInt(item.quantity) || 0,
-          costPrice: parseFloat(item.costPrice) || 0,
+          productId: toId(item.productId),
+          batchId: item.batchId ? toId(item.batchId) : null,
+          quantity: item.quantity || 0,
+          costPrice: item.costPrice || 0,
         })),
       };
     }
@@ -91,8 +104,8 @@ const createPurchase = async (data) => {
     for (const item of validItems) {
       if (item.batchId) {
         await tx.batch.update({
-          where: { id: parseInt(item.batchId) },
-          data: { costPrice: parseFloat(item.costPrice) || 0 },
+          where: { id: toId(item.batchId) },
+          data: { costPrice: item.costPrice || 0 },
         });
       }
     }
@@ -142,24 +155,24 @@ const getPurchases = async (filters: PurchaseFilters = {}) => {
   });
 };
 
-const deletePurchase = async (id) => {
+const deletePurchase = async (id: number) => {
   return await prisma.purchase.delete({
-    where: { id: parseInt(id) },
+    where: { id },
   });
 };
 
-const updatePurchase = async (id, data) => {
+const updatePurchase = async (id: number, data: UpdatePurchaseInput) => {
   const { vendor, totalAmount, date, note, paymentStatus, items = [] } = data;
 
   // Filter out invalid items (those without product IDs)
-  const validItems = items.filter((item) => item.productId && !isNaN(parseInt(item.productId)));
+  const validItems = items.filter((item) => item.productId && !isNaN(toId(item.productId)));
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Assembled from form values, then cast to Prisma's input at the call
     // site below — the shapes differ (strings vs numbers/dates).
     const purchaseData: Record<string, unknown> = {
       vendor,
-      totalAmount: parseFloat(totalAmount) || 0,
+      totalAmount: totalAmount || 0,
       date: date ? new Date(date) : new Date(),
       note,
       paymentStatus: paymentStatus || 'Paid',
@@ -169,21 +182,21 @@ const updatePurchase = async (id, data) => {
     // If items are provided, delete old ones and create new ones
     if (validItems.length > 0) {
       await tx.purchaseItem.deleteMany({
-        where: { purchaseId: parseInt(id) },
+        where: { purchaseId: id },
       });
 
       purchaseData.items = {
         create: validItems.map((item) => ({
-          productId: parseInt(item.productId),
-          batchId: item.batchId ? parseInt(item.batchId) : null,
-          quantity: parseInt(item.quantity) || 0,
-          costPrice: parseFloat(item.costPrice) || 0,
+          productId: toId(item.productId),
+          batchId: item.batchId ? toId(item.batchId) : null,
+          quantity: item.quantity || 0,
+          costPrice: item.costPrice || 0,
         })),
       };
     }
 
     const purchase: PurchaseWithRelations = await tx.purchase.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: purchaseData,
       include: { items: true, payments: { orderBy: { createdAt: 'asc' } } },
     });
@@ -192,8 +205,8 @@ const updatePurchase = async (id, data) => {
     for (const item of validItems) {
       if (item.batchId) {
         await tx.batch.update({
-          where: { id: parseInt(item.batchId) },
-          data: { costPrice: parseFloat(item.costPrice) || 0 },
+          where: { id: toId(item.batchId) },
+          data: { costPrice: item.costPrice || 0 },
         });
       }
     }
@@ -205,9 +218,9 @@ const updatePurchase = async (id, data) => {
   });
 };
 
-const updatePayment = async (paymentId, paymentData) => {
+const updatePayment = async (paymentId: number, paymentData: PurchasePaymentInput) => {
   const { amount, date, note, paymentMethod } = paymentData;
-  const pid = parseInt(paymentId);
+  const pid = paymentId;
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const oldPayment = await tx.purchasePayment.findUnique({
@@ -223,7 +236,7 @@ const updatePayment = async (paymentId, paymentData) => {
     const payment = await tx.purchasePayment.update({
       where: { id: pid },
       data: {
-        amount: amount !== undefined ? parseFloat(amount) : undefined,
+        amount,
         paymentMethod,
         date: date ? getDateWithCurrentTime(date) : undefined,
         note,
@@ -237,8 +250,8 @@ const updatePayment = async (paymentId, paymentData) => {
   });
 };
 
-const deletePayment = async (paymentId) => {
-  const pid = parseInt(paymentId);
+const deletePayment = async (paymentId: number) => {
+  const pid = paymentId;
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const payment = await tx.purchasePayment.findUnique({
@@ -263,9 +276,9 @@ const deletePayment = async (paymentId) => {
 };
 
 // Internal helper to sync purchase status after payment changes
-const syncPurchaseStatus = async (purchaseId, tx) => {
-  const purchase: PurchaseWithRelations | null = await tx.purchase.findUnique({
-    where: { id: parseInt(purchaseId) },
+const syncPurchaseStatus = async (purchaseId: number, tx: Prisma.TransactionClient) => {
+  const purchase: PurchaseWithPayments | null = await tx.purchase.findUnique({
+    where: { id: purchaseId },
     include: { payments: true },
   });
 
@@ -283,14 +296,14 @@ const syncPurchaseStatus = async (purchaseId, tx) => {
   });
 };
 
-const addPayment = async (purchaseId, paymentData) => {
+const addPayment = async (purchaseId: number, paymentData: PurchasePaymentInput) => {
   const { amount, date, note, paymentMethod } = paymentData;
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const payment = await tx.purchasePayment.create({
       data: {
-        purchaseId: parseInt(purchaseId),
-        amount: parseFloat(amount) || 0,
+        purchaseId,
+        amount: amount || 0,
         paymentMethod: paymentMethod || 'Cash',
         date: date ? getDateWithCurrentTime(date) : new Date(),
         note,
@@ -299,19 +312,19 @@ const addPayment = async (purchaseId, paymentData) => {
 
     // Check if fully paid to update the parent status
     const purchase: PurchaseWithPayments | null = await tx.purchase.findUnique({
-      where: { id: parseInt(purchaseId) },
+      where: { id: purchaseId },
       include: { payments: true },
     });
 
     const totalPaid = purchase.payments.reduce((sum, p) => sum + p.amount, 0);
     if (totalPaid >= purchase.totalAmount) {
       await tx.purchase.update({
-        where: { id: parseInt(purchaseId) },
+        where: { id: purchaseId },
         data: { paymentStatus: 'Paid' },
       });
     } else {
       await tx.purchase.update({
-        where: { id: parseInt(purchaseId) },
+        where: { id: purchaseId },
         data: { paymentStatus: 'Due' },
       });
     }

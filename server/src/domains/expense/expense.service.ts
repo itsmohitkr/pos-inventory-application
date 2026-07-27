@@ -1,10 +1,15 @@
 import { StatusCodes } from 'http-status-codes';
+import type {
+  CreateExpenseInput,
+  ExpensePaymentInput,
+  UpdateExpenseInput,
+} from './expense.validation';
 import prisma = require('../../config/prisma');
 import type { Prisma } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 
 // Helper to append current time to a date string (YYYY-MM-DD)
-const getDateWithCurrentTime = (dateString) => {
+const getDateWithCurrentTime = (dateString?: string | Date | null): Date => {
   if (!dateString) return new Date();
   const dateObj = new Date(dateString);
   const now = new Date();
@@ -12,11 +17,13 @@ const getDateWithCurrentTime = (dateString) => {
   return dateObj;
 };
 
-const createExpense = async (data) => {
+const createExpense = async (data: CreateExpenseInput) => {
   const { amount, category, description, date, paidAmount, paymentMethod } = data;
 
-  const parsedAmount = parseFloat(amount) || 0;
-  const parsedPaidAmount = parseFloat(paidAmount) || 0;
+  // Both are already numbers — the schema coerces them — so the previous
+  // parseFloat() calls were re-parsing existing numbers.
+  const parsedAmount = amount || 0;
+  const parsedPaidAmount = paidAmount || 0;
 
   // Derived status
   let initialPaymentStatus = 'Paid';
@@ -91,18 +98,18 @@ const getExpenses = async (filters: ExpenseFilters = {}) => {
   });
 };
 
-const deleteExpense = async (id) => {
+const deleteExpense = async (id: number) => {
   return await prisma.expense.delete({
-    where: { id: parseInt(id) },
+    where: { id },
   });
 };
 
-const updateExpense = async (id, data) => {
+const updateExpense = async (id: number, data: UpdateExpenseInput) => {
   const { amount, category, description, date, paymentStatus, paymentMethod } = data;
   return await prisma.expense.update({
-    where: { id: parseInt(id) },
+    where: { id },
     data: {
-      amount: amount !== undefined ? parseFloat(amount) : undefined,
+      amount,
       category,
       description,
       date: date ? new Date(date) : undefined,
@@ -113,9 +120,9 @@ const updateExpense = async (id, data) => {
 };
 
 // Internal helper to sync expense status after payment changes
-const syncExpenseStatus = async (expenseId, tx) => {
+const syncExpenseStatus = async (expenseId: number, tx?: Prisma.TransactionClient) => {
   const expense = await (tx || prisma).expense.findUnique({
-    where: { id: parseInt(expenseId) },
+    where: { id: expenseId },
     include: { payments: true },
   });
 
@@ -133,14 +140,14 @@ const syncExpenseStatus = async (expenseId, tx) => {
   });
 };
 
-const addPayment = async (expenseId, paymentData) => {
+const addPayment = async (expenseId: number, paymentData: ExpensePaymentInput) => {
   const { amount, date, note, paymentMethod } = paymentData;
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const payment = await tx.expensePayment.create({
       data: {
-        expenseId: parseInt(expenseId),
-        amount: parseFloat(amount) || 0,
+        expenseId,
+        amount: amount || 0,
         paymentMethod: paymentMethod || 'Cash',
         date: date ? getDateWithCurrentTime(date) : new Date(),
         note,
@@ -152,15 +159,15 @@ const addPayment = async (expenseId, paymentData) => {
   });
 };
 
-const updatePayment = async (paymentId, paymentData) => {
+const updatePayment = async (paymentId: number, paymentData: ExpensePaymentInput) => {
   const { amount, date, note, paymentMethod } = paymentData;
-  const pid = parseInt(paymentId);
+  const pid = paymentId;
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const payment = await tx.expensePayment.update({
       where: { id: pid },
       data: {
-        amount: amount !== undefined ? parseFloat(amount) : undefined,
+        amount,
         paymentMethod,
         date: date ? getDateWithCurrentTime(date) : undefined,
         note,
@@ -172,8 +179,8 @@ const updatePayment = async (paymentId, paymentData) => {
   });
 };
 
-const deletePayment = async (paymentId) => {
-  const pid = parseInt(paymentId);
+const deletePayment = async (paymentId: number) => {
+  const pid = paymentId;
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const payment = await tx.expensePayment.findUnique({

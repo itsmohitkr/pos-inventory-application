@@ -1,4 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
+import type { CreateCategoryInput, UpdateCategoryInput } from './category.validation';
 import prisma = require('../../config/prisma');
 import type { Category } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
@@ -13,12 +14,13 @@ export interface CategoryNode {
 }
 
 const buildPathMap = (categories: Category[]): Map<number, string> => {
-  const byId = new Map();
+  const byId = new Map<number, Category>();
   categories.forEach((category) => byId.set(category.id, category));
 
-  const cache = new Map();
-  const buildPath = (id) => {
-    if (cache.has(id)) return cache.get(id);
+  const cache = new Map<number, string>();
+  const buildPath = (id: number): string => {
+    const cached = cache.get(id);
+    if (cached !== undefined) return cached;
     const category = byId.get(id);
     if (!category) return '';
     const parentPath = category.parentId ? buildPath(category.parentId) : '';
@@ -75,9 +77,10 @@ const ensureCategoriesFromProducts = async () => {
   existingCategories.forEach((c) => byId.set(c.id, c));
 
   // Helper to get full path for a category ID
-  const getPath = (catId, cache = new Map()) => {
+  const getPath = (catId: number | null, cache = new Map<number, string>()): string => {
     if (!catId) return '';
-    if (cache.has(catId)) return cache.get(catId);
+    const cached = cache.get(catId);
+    if (cached !== undefined) return cached;
     const cat = byId.get(catId);
     if (!cat) return '';
     const parentPath = getPath(cat.parentId, cache);
@@ -131,25 +134,30 @@ const getCategoryTree = async () => {
   return buildTree(categories, pathMap);
 };
 
-const createCategory = async ({ name, parentId }) => {
+const createCategory = async ({ name, parentId }: CreateCategoryInput) => {
   const trimmedName = name?.trim();
   if (!trimmedName || trimmedName.includes('/')) {
     throw createHttpError(StatusCodes.BAD_REQUEST, 'Invalid category name', {
       error: 'Invalid category name',
     });
   }
+  // The schema accepts parentId as a number, a string or null; Prisma needs a
+  // number or null. An empty string still means "root" (falsy -> null), as
+  // `parentId || null` did before.
+  const normalizedParentId = parentId ? Number(parentId) : null;
+
   const exists = await prisma.category.findFirst({
-    where: { name: trimmedName, parentId: parentId || null },
+    where: { name: trimmedName, parentId: normalizedParentId },
   });
   if (exists) {
     return exists;
   }
   return prisma.category.create({
-    data: { name: trimmedName, parentId: parentId || null },
+    data: { name: trimmedName, parentId: normalizedParentId },
   });
 };
 
-const updateCategory = async (id, { name }) => {
+const updateCategory = async (id: number, { name }: UpdateCategoryInput) => {
   const trimmedName = name?.trim();
   if (!trimmedName || trimmedName.includes('/')) {
     throw createHttpError(StatusCodes.BAD_REQUEST, 'Invalid category name', {
@@ -202,7 +210,7 @@ const updateCategory = async (id, { name }) => {
   return updated;
 };
 
-const deleteCategory = async (id) => {
+const deleteCategory = async (id: number) => {
   const categories = await prisma.category.findMany();
   const pathMap = buildPathMap(categories);
   const targetPath = pathMap.get(Number(id));

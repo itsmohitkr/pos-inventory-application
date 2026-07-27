@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { paramInt } from '../../shared/utils/requestParams';
 import { StatusCodes } from 'http-status-codes';
 import expenseService = require('./expense.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
@@ -19,19 +20,19 @@ const getExpenses = async (req: Request, res: Response) => {
 };
 
 const deleteExpense = async (req: Request, res: Response) => {
-  await expenseService.deleteExpense(req.params.id);
+  await expenseService.deleteExpense(paramInt(req.params.id));
   return sendSuccessResponse(res, StatusCodes.NO_CONTENT);
 };
 
 const updateExpense = async (req: Request, res: Response) => {
-  const expense = await expenseService.updateExpense(req.params.id, req.body);
+  const expense = await expenseService.updateExpense(paramInt(req.params.id), req.body);
   return sendSuccessResponse(res, StatusCodes.OK, expense, 'Expense updated successfully', {
     format: 'raw',
   });
 };
 
 const addPayment = async (req: Request, res: Response) => {
-  const payment = await expenseService.addPayment(req.params.id, req.body);
+  const payment = await expenseService.addPayment(paramInt(req.params.id), req.body);
   return sendSuccessResponse(
     res,
     StatusCodes.CREATED,
@@ -44,7 +45,7 @@ const addPayment = async (req: Request, res: Response) => {
 };
 
 const updatePayment = async (req: Request, res: Response) => {
-  const payment = await expenseService.updatePayment(req.params.id, req.body);
+  const payment = await expenseService.updatePayment(paramInt(req.params.id), req.body);
   return sendSuccessResponse(
     res,
     StatusCodes.OK,
@@ -57,7 +58,7 @@ const updatePayment = async (req: Request, res: Response) => {
 };
 
 const deletePayment = async (req: Request, res: Response) => {
-  await expenseService.deletePayment(req.params.id);
+  await expenseService.deletePayment(paramInt(req.params.id));
   return sendSuccessResponse(
     res,
     StatusCodes.OK,
