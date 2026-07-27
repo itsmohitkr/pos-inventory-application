@@ -31,6 +31,13 @@ export interface PriceListRow {
   barcodeValue: string;
 }
 
+/** A readability problem for one product's barcode at the current label size. */
+export interface BarcodeWarning {
+  id: number;
+  productName: string;
+  message: string;
+}
+
 /** One physical label in the preview — a row repeated per copy. */
 export interface PriceListLabel {
   id: string;
@@ -119,7 +126,7 @@ export default function usePriceList(open: boolean) {
   const isThermalPreview = paperType === 'thermal';
   const printPageSize = paperType === 'thermal' ? `${labelWidthMm}mm ${labelHeightMm}mm` : 'A4';
 
-  const barcodeWarnings = useMemo(() => {
+  const barcodeWarnings = useMemo<BarcodeWarning[]>(() => {
     if (!displayOptions.barcode) return [];
     return selectedRows
       .map((row) => {

@@ -1,7 +1,13 @@
 import React from 'react';
 import { Box, Typography, Chip } from '@mui/material';
 
-const BarcodeChips = ({ barcode, size = 'small' }) => {
+interface BarcodeChipsProps {
+  /** Pipe-separated barcodes, as stored on Product.barcode. */
+  barcode?: string | null;
+  size?: 'small' | 'medium';
+}
+
+const BarcodeChips = ({ barcode, size = 'small' }: BarcodeChipsProps) => {
   if (!barcode)
     return (
       <Typography variant="body2" color="text.secondary">
@@ -11,7 +17,7 @@ const BarcodeChips = ({ barcode, size = 'small' }) => {
 
   const barcodes = barcode
     .split('|')
-    .map((b) => b.trim())
+    .map((b: string) => b.trim())
     .filter(Boolean);
 
   if (barcodes.length === 0)
@@ -23,7 +29,7 @@ const BarcodeChips = ({ barcode, size = 'small' }) => {
 
   return (
     <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
-      {barcodes.map((bc, idx) => (
+      {barcodes.map((bc: string, idx: number) => (
         <React.Fragment key={idx}>
           <Typography
             variant="body2"

@@ -1,3 +1,10 @@
+import type {
+  BarcodeContentOptions,
+  BarcodeCustomDimensions,
+  BarcodeMargins,
+  BarcodeSpacing,
+} from '@/domains/inventory/components/barcodeSizePresets';
+import type { Product } from '@/shared/types/models';
 import React, { useState } from 'react';
 import * as Sentry from '@sentry/react';
 import {
@@ -10,7 +17,13 @@ import { DEFAULT_SIZES } from '@/domains/inventory/components/barcodeSizePresets
 import BarcodeSettingsPanel from '@/domains/inventory/components/BarcodeSettingsPanel';
 import BarcodePreviewGrid from '@/domains/inventory/components/BarcodePreviewGrid';
 
-const BarcodePrintDialog = ({ open, onClose, product }) => {
+interface BarcodePrintDialogProps {
+  open: boolean;
+  onClose: () => void;
+  product?: Product | null;
+}
+
+const BarcodePrintDialog = ({ open, onClose, product }: BarcodePrintDialogProps) => {
   const [quantity, setQuantity] = useState(1);
   const [printMethod, setPrintMethod] = useState('a4');
   const [paperSize, setPaperSize] = useState('50x25');
@@ -67,7 +80,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
     }));
   }, [printMethod, paperSize, selectedPrinter, margins, spacing, contentOptions, textAlign, shopName, customDimensions, open]);
 
-  const handlePaperSizeChange = (newSize) => {
+  const handlePaperSizeChange = (newSize: string) => {
     setPaperSize(newSize);
     if (newSize !== 'custom') {
       const p = DEFAULT_SIZES[newSize];
@@ -75,7 +88,7 @@ const BarcodePrintDialog = ({ open, onClose, product }) => {
     }
   };
 
-  const handleContentChange = (field) => {
+  const handleContentChange = (field: keyof BarcodeContentOptions) => {
     setContentOptions((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 

@@ -1,4 +1,43 @@
-export const DEFAULT_SIZES = {
+/** Label geometry for one barcode preset. `width` is the JsBarcode bar width. */
+export interface BarcodeSizePreset {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+  horizontal: number;
+  vertical: number;
+  cols: number;
+}
+
+/** Sheet dimensions when 'custom' is selected instead of a preset. */
+export interface BarcodeCustomDimensions {
+  width: number;
+  height: number;
+  cols: number;
+}
+
+export interface BarcodeMargins {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export interface BarcodeSpacing {
+  horizontal: number;
+  vertical: number;
+}
+
+/** Which lines each label prints besides the barcode itself. */
+export interface BarcodeContentOptions {
+  productName: boolean;
+  mrp: boolean;
+  sellingPrice: boolean;
+  discount: boolean;
+  shopName: boolean;
+}
+
+export const DEFAULT_SIZES: Record<string, BarcodeSizePreset> = {
   '50x25': {
     id: '50x25',
     label: '50mm x 25mm (2-inch)',

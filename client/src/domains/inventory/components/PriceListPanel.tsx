@@ -6,6 +6,7 @@ import { Close as CloseIcon, Print as PrintIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import PriceListConfigurationPanel from '@/domains/inventory/components/PriceListConfigurationPanel';
 import PriceListPreviewPanel from '@/domains/inventory/components/PriceListPreviewPanel';
+import type { PriceListLabel } from '@/domains/inventory/components/usePriceList';
 import PriceListLabelCard from '@/domains/inventory/components/PriceListLabelCard';
 import * as Sentry from '@sentry/react';
 import { buildPriceListPrintableHtml } from '@/domains/inventory/components/priceListPrintUtils';
@@ -85,7 +86,7 @@ const PriceListPanel = ({ open, onClose }) => {
     }, 50);
   };
 
-  const renderPreviewLabelCard = (label, options = {}) => (
+  const renderPreviewLabelCard = (label: PriceListLabel, options: Record<string, unknown> = {}) => (
     <PriceListLabelCard label={label} options={options} layout={pl.layout} displayOptions={pl.displayOptions} />
   );
 

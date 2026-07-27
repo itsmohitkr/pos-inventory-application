@@ -1,4 +1,48 @@
 import React from 'react';
+import type { Batch, Product } from '@/shared/types/models';
+import type { PrinterInfo } from '@/domains/settings/hooks/useSettings';
+import type {
+  PriceListDisplayOptions,
+  PriceListLayout,
+} from '@/domains/inventory/components/paperSizePresets';
+import type { PriceListRow } from '@/domains/inventory/components/usePriceList';
+
+/** One entry in PAPER_PRESETS for the selected paper type. */
+interface PaperPresetOption {
+  id: string;
+  name: string;
+  layout: PriceListLayout;
+}
+
+interface PriceListConfigurationPanelProps {
+  products: Product[];
+  loadingProducts: boolean;
+  /** The Autocomplete's current value — full product objects, not ids. */
+  selectedProductOptions: Product[];
+  handleProductSelectionChange: (event: unknown, products: Product[]) => void;
+  getPrimaryBarcode: (product?: Product | null) => string;
+  selectedRows: PriceListRow[];
+  handleDecreaseQuantity: (productId: number) => void;
+  handleQuantityChange: (productId: number, rawValue: string | number) => void;
+  handleIncreaseQuantity: (productId: number) => void;
+  handleRemoveSelectedProduct: (productId: number) => void;
+  selectedPrinter: string;
+  setSelectedPrinter: (name: string) => void;
+  printers: PrinterInfo[];
+  fetchPrinters: () => void;
+  /** 'a4' | 'thermal'. */
+  paperType: string;
+  handlePaperTypeChange: (event: { target: { value: string } }) => void;
+  paperPreset: string;
+  handlePresetChange: (event: { target: { value: string } }) => void;
+  paperPresets: PaperPresetOption[];
+  showAdvancedLayout: boolean;
+  setShowAdvancedLayout: React.Dispatch<React.SetStateAction<boolean>>;
+  layout: PriceListLayout;
+  setLayout: React.Dispatch<React.SetStateAction<PriceListLayout>>;
+  displayOptions: PriceListDisplayOptions;
+  handleDisplayOptionChange: (field: keyof PriceListDisplayOptions) => void;
+}
 import {
   Alert,
   Autocomplete,
@@ -55,7 +99,7 @@ const PriceListConfigurationPanel = ({
   setLayout,
   displayOptions,
   handleDisplayOptionChange,
-}) => {
+}: PriceListConfigurationPanelProps) => {
   return (
     <Box
       className="no-print"

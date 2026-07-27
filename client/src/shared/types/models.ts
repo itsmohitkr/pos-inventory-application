@@ -115,6 +115,8 @@ export interface Product {
   lowStockWarningEnabled?: boolean;
   lowStockThreshold?: number;
   isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   batches?: Batch[];
 }
 

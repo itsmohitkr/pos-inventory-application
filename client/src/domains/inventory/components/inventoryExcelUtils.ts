@@ -1,14 +1,57 @@
-export const flattenInventoryRows = (products, localCategoryFilter) => {
-  const rows = [];
+import type { Batch, Product } from '@/shared/types/models';
+
+/**
+ * One row of the spreadsheet-style inventory view: a product/batch pair
+ * flattened into a single record, with the derived money columns
+ * precomputed. A product with no batches yields one row with zeroed figures.
+ */
+export interface InventoryRow {
+  /** `${productId}-${batchId}`, or `${productId}-none` when there is no batch. */
+  id: string;
+  name: string;
+  stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock' | string;
+  batchCode: string;
+  category: string;
+  mrp: number;
+  sp: number;
+  cp: number;
+  profitRs: number;
+  /** Vendor-side discount: MRP minus cost. */
+  discRsVendor: number;
+  discPctVendor: number;
+  /** Customer-side discount: MRP minus selling price. */
+  discRsCust: number;
+  discPctCust: number;
+  marginPct: number;
+  barcode: string;
+  expiry?: string | null;
+  wsPrice?: number | null;
+  wsMinQty?: number | null;
+  lowStockEnabled?: boolean;
+  batchTrackingEnabled?: boolean;
+  stock: number;
+  totalValCp: number;
+  totalValSp: number;
+  createdAt: string;
+}
+
+/** The low-stock cutoff used by the spreadsheet view. See the note below. */
+const EXCEL_LOW_STOCK_THRESHOLD = 5;
+
+export const flattenInventoryRows = (
+  products: Product[],
+  localCategoryFilter: string
+): InventoryRow[] => {
+  const rows: InventoryRow[] = [];
 
   const filteredProducts =
     localCategoryFilter === 'all'
       ? products
-      : products.filter((product) => product.category === localCategoryFilter);
+      : products.filter((product: Product) => product.category === localCategoryFilter);
 
-  filteredProducts.forEach((product) => {
+  filteredProducts.forEach((product: Product) => {
     if (product.batches && product.batches.length > 0) {
-      product.batches.forEach((batch) => {
+      product.batches.forEach((batch: Batch) => {
         const discRsVendor = Math.max(0, batch.mrp - batch.costPrice);
         const discPctVendor = batch.mrp > 0 ? (discRsVendor / batch.mrp) * 100 : 0;
 
@@ -17,7 +60,14 @@ export const flattenInventoryRows = (products, localCategoryFilter) => {
 
         let stockStatus = 'In Stock';
         if (batch.quantity <= 0) stockStatus = 'Out of Stock';
-        else if (batch.quantity <= (product.minStockLevel || 5)) stockStatus = 'Low Stock';
+        // NOTE: this read `product.minStockLevel || 5`, but Product has no
+        // `minStockLevel` field — the column is `lowStockThreshold`, and
+        // `minStockLevel` appears nowhere else in the codebase. The expression
+        // was therefore always 5. Kept as the constant it actually was rather
+        // than silently switching this view to per-product thresholds, which
+        // would reclassify rows in existing inventory. See the note in the
+        // commit message.
+        else if (batch.quantity <= EXCEL_LOW_STOCK_THRESHOLD) stockStatus = 'Low Stock';
 
         const marginPct =
           batch.sellingPrice > 0
@@ -84,16 +134,16 @@ export const flattenInventoryRows = (products, localCategoryFilter) => {
   return rows;
 };
 
-export const applyInventorySearch = (rows, searchTerm) => {
+export const applyInventorySearch = (rows: InventoryRow[], searchTerm: string): InventoryRow[] => {
   if (!searchTerm || !searchTerm.trim()) {
     return rows;
   }
 
   const query = searchTerm.toLowerCase().trim();
-  const namePrefix = [];
-  const barcodePrefix = [];
-  const nameContains = [];
-  const barcodeContains = [];
+  const namePrefix: InventoryRow[] = [];
+  const barcodePrefix: InventoryRow[] = [];
+  const nameContains: InventoryRow[] = [];
+  const barcodeContains: InventoryRow[] = [];
 
   for (const row of rows) {
     const name = (row.name || '').toLowerCase();
@@ -102,16 +152,16 @@ export const applyInventorySearch = (rows, searchTerm) => {
         ? row.barcode
           .toLowerCase()
           .split('|')
-          .map((barcode) => barcode.trim())
+          .map((barcode: string) => barcode.trim())
         : [];
 
     if (name.startsWith(query)) {
       namePrefix.push(row);
-    } else if (barcodes.some((barcode) => barcode.startsWith(query))) {
+    } else if (barcodes.some((barcode: string) => barcode.startsWith(query))) {
       barcodePrefix.push(row);
     } else if (name.includes(query)) {
       nameContains.push(row);
-    } else if (barcodes.some((barcode) => barcode.includes(query))) {
+    } else if (barcodes.some((barcode: string) => barcode.includes(query))) {
       barcodeContains.push(row);
     }
   }

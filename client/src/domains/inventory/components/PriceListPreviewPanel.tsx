@@ -1,4 +1,43 @@
 import React from 'react';
+import type { PriceListLayout } from '@/domains/inventory/components/paperSizePresets';
+import type {
+  BarcodeWarning,
+  PriceListLabel,
+  PriceListRow,
+} from '@/domains/inventory/components/usePriceList';
+
+interface PriceListPreviewPanelProps {
+  selectedRows: PriceListRow[];
+  /** Rows multiplied by their copy counts. */
+  totalLabelCount: number;
+  /** Always 1 for thermal, which is not zoomable. */
+  activePreviewScale: number;
+  handleZoomOut: () => void;
+  handleZoomIn: () => void;
+  autoFit: boolean;
+  handleFitToWidth: () => void;
+  paperType: string;
+  missingBarcodeCount: number;
+  printError: string;
+  barcodeWarnings: BarcodeWarning[];
+  previewContainerRef: React.RefObject<HTMLDivElement | null>;
+  /** The node priceListPrintUtils clones its labels from. */
+  previewRef: React.RefObject<HTMLDivElement | null>;
+  isThermalPreview: boolean;
+  labelWidthMm: number;
+  previewPageWidthMm: number;
+  labelHeightMm: number;
+  marginTopMm: number;
+  marginRightMm: number;
+  marginBottomMm: number;
+  marginLeftMm: number;
+  previewLabels: PriceListLabel[];
+  renderPreviewLabelCard: (
+    label: PriceListLabel,
+    options?: Record<string, unknown>
+  ) => React.ReactNode;
+  layout: PriceListLayout;
+}
 import {
   Alert,
   Box,
@@ -41,7 +80,7 @@ const PriceListPreviewPanel = ({
   previewLabels,
   renderPreviewLabelCard,
   layout,
-}) => {
+}: PriceListPreviewPanelProps) => {
   return (
     <Box
       className="printable-labels-area"

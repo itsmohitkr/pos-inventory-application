@@ -1,4 +1,38 @@
 import React from 'react';
+import type {
+  BarcodeContentOptions,
+  BarcodeCustomDimensions,
+  BarcodeMargins,
+  BarcodeSpacing,
+} from '@/domains/inventory/components/barcodeSizePresets';
+import type { PrinterInfo } from '@/domains/settings/hooks/useSettings';
+
+interface BarcodeSettingsPanelProps {
+  quantity: number;
+  onQuantityChange: (quantity: number) => void;
+  /** 'browser' or 'thermal'. */
+  printMethod: string;
+  onPrintMethodChange: (method: string) => void;
+  printers: PrinterInfo[];
+  selectedPrinter: string;
+  onPrinterChange: (name: string) => void;
+  /** A DEFAULT_SIZES key, or 'custom'. */
+  paperSize: string;
+  onPaperSizeChange: (size: string) => void;
+  customDimensions: BarcodeCustomDimensions;
+  onCustomDimensionsChange: (dimensions: BarcodeCustomDimensions) => void;
+  margins: BarcodeMargins;
+  onMarginsChange: (margins: BarcodeMargins) => void;
+  spacing: BarcodeSpacing;
+  onSpacingChange: (spacing: BarcodeSpacing) => void;
+  contentOptions: BarcodeContentOptions;
+  /** Toggles a single field rather than replacing the whole object. */
+  onContentChange: (field: keyof BarcodeContentOptions) => void;
+  shopName: string;
+  onShopNameChange: (name: string) => void;
+  textAlign: string;
+  onTextAlignChange: (align: string) => void;
+}
 import {
   Paper, Stack, Typography, TextField, FormControl, InputLabel, Select, MenuItem,
   Grid, FormGroup, FormControlLabel, Checkbox, RadioGroup, Radio,
@@ -16,7 +50,7 @@ const BarcodeSettingsPanel = ({
   contentOptions, onContentChange,
   shopName, onShopNameChange,
   textAlign, onTextAlignChange,
-}) => (
+}: BarcodeSettingsPanelProps) => (
   <Stack spacing={3}>
     {/* Basic Settings */}
     <Paper elevation={0} sx={{ p: 2, bgcolor: '#f8fafc', border: '1px solid #e2e8f0' }}>
@@ -102,7 +136,7 @@ const BarcodeSettingsPanel = ({
     <Paper elevation={0} sx={{ p: 2, bgcolor: '#f8fafc', border: '1px solid #e2e8f0' }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Page Margins (mm)</Typography>
       <Grid container spacing={2}>
-        {['top', 'right', 'bottom', 'left'].map((side) => (
+        {(['top', 'right', 'bottom', 'left'] as (keyof BarcodeMargins)[]).map((side) => (
           <Grid size={{ xs: 6 }} key={side}>
             <TextField
               label={side.charAt(0).toUpperCase() + side.slice(1)}
@@ -140,13 +174,15 @@ const BarcodeSettingsPanel = ({
     <Paper elevation={0} sx={{ p: 2, bgcolor: '#f8fafc', border: '1px solid #e2e8f0' }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Display Content</Typography>
       <FormGroup>
-        {[
-          { field: 'productName', label: 'Product Name' },
-          { field: 'mrp', label: 'MRP' },
-          { field: 'sellingPrice', label: 'Selling Price' },
-          { field: 'discount', label: 'Discount/Savings' },
-          { field: 'shopName', label: 'Shop Name' },
-        ].map(({ field, label }) => (
+        {(
+          [
+            { field: 'productName', label: 'Product Name' },
+            { field: 'mrp', label: 'MRP' },
+            { field: 'sellingPrice', label: 'Selling Price' },
+            { field: 'discount', label: 'Discount/Savings' },
+            { field: 'shopName', label: 'Shop Name' },
+          ] as { field: keyof BarcodeContentOptions; label: string }[]
+        ).map(({ field, label }) => (
           <FormControlLabel
             key={field}
             control={<Checkbox checked={contentOptions[field]} onChange={() => onContentChange(field)} />}

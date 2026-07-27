@@ -1,11 +1,31 @@
 import React from 'react';
+import type {
+  BarcodeContentOptions,
+  BarcodeCustomDimensions,
+  BarcodeMargins,
+  BarcodeSpacing,
+} from '@/domains/inventory/components/barcodeSizePresets';
+import type { Product } from '@/shared/types/models';
 import { Box, Typography } from '@mui/material';
 import Barcode from 'react-barcode';
 import { DEFAULT_SIZES } from '@/domains/inventory/components/barcodeSizePresets';
 
+interface BarcodePreviewGridProps {
+  product?: Product | null;
+  /** How many copies of the label to render. */
+  quantity: number;
+  /** A DEFAULT_SIZES key, or 'custom' to use customDimensions. */
+  paperSize: string;
+  customDimensions: BarcodeCustomDimensions;
+  spacing: BarcodeSpacing;
+  contentOptions: BarcodeContentOptions;
+  textAlign: string;
+  shopName: string;
+}
+
 const BarcodePreviewGrid = ({
   product, quantity, paperSize, customDimensions, spacing, contentOptions, textAlign, shopName,
-}) => {
+}: BarcodePreviewGridProps) => {
   if (!product || !product.barcode) return null;
 
   const barcodes = product.barcode.split('|').map((b) => b.trim()).filter(Boolean);
