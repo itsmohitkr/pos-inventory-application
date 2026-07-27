@@ -2,7 +2,13 @@ import React from 'react';
 import { Box, Paper, Typography, Button } from '@mui/material';
 import { Settings as SettingsIcon, CalendarToday as CalendarIcon } from '@mui/icons-material';
 
-const PromotionSidebar = ({ activeTab, onChangeTab }) => (
+interface PromotionSidebarProps {
+  /** 'scheduled' or 'thresholds'. */
+  activeTab: string;
+  onChangeTab: (tab: string) => void;
+}
+
+const PromotionSidebar = ({ activeTab, onChangeTab }: PromotionSidebarProps) => (
   <Paper
     elevation={0}
     sx={{

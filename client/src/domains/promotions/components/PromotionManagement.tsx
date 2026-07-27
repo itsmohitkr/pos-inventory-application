@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import type {
+  ProductPriceInfo,
+  Promotion,
+  PromotionItem,
+  PromotionFormState,
+  PromoSettings,
+  PromoThresholdConfig,
+} from '@/domains/promotions/types';
+import type { CategoryNode, Product } from '@/shared/types/models';
 import * as Sentry from '@sentry/react';
 import type { AlertColor } from '@mui/material';
 import { Box, Container, Paper, Typography, Snackbar, Alert, Stack } from '@mui/material';
@@ -19,19 +28,10 @@ import PromotionFormDialog from '@/domains/promotions/components/PromotionFormDi
  * value through, while creating a promotion omits it and lets the server apply
  * its default.
  */
-interface PromotionFormState {
-  name: string;
-  /** YYYY-MM-DD local date. */
-  startDate: string;
-  endDate: string;
-  items: Record<string, any>[]; // eslint-disable-line @typescript-eslint/no-explicit-any
-  isActive?: boolean;
-}
-
 const PromotionManagement = () => {
-  const [promotions, setPromotions] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -46,13 +46,13 @@ const PromotionManagement = () => {
   });
 
   // Product selection state
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [productPriceInfo, setProductPriceInfo] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productPriceInfo, setProductPriceInfo] = useState<ProductPriceInfo | null>(null);
   const [promoPrice, setPromoPrice] = useState('');
 
-  const [promoSettings, setPromoSettings] = useState({
+  const [promoSettings, setPromoSettings] = useState<PromoSettings>({
     enabled: false,
-    config: [], // Array of { threshold, profitPercentage, minCostPrice, maxCostPrice, sortBySales, maxGiftsToShow }
+    config: [],
   });
   const [newThreshold, setNewThreshold] = useState('');
   const [snackbar, setSnackbar] = useState<{
@@ -64,9 +64,9 @@ const PromotionManagement = () => {
   async function fetchCategories() {
     try {
       const data = await inventoryService.fetchCategories();
-      const flatten = (nodes) => {
-        const list = [];
-        nodes.forEach((node) => {
+      const flatten = (nodes: CategoryNode[]): string[] => {
+        const list: string[] = [];
+        nodes.forEach((node: CategoryNode) => {
           list.push(node.path);
           if (node.children) list.push(...flatten(node.children));
         });
@@ -87,7 +87,7 @@ const PromotionManagement = () => {
         const promoData = settings.promotion_buy_x_get_free;
         // Migration: If old format (thresholds array) exists but not new config array
         if (promoData.thresholds && !promoData.config) {
-          const migratedConfig = promoData.thresholds.map((t) => ({
+          const migratedConfig = promoData.thresholds.map((t: number) => ({
             threshold: t,
             isActive: true,
             profitPercentage: promoData.profitPercentage || 20,
@@ -138,7 +138,7 @@ const PromotionManagement = () => {
     const currentConfig = promoSettings.config || [];
     if (currentConfig.some((c) => c.threshold === val)) return;
 
-    const newEntry = {
+    const newEntry: PromoThresholdConfig = {
       threshold: val,
       isActive: false,
       profitPercentage: 20,
@@ -157,14 +157,18 @@ const PromotionManagement = () => {
     setNewThreshold('');
   };
 
-  const handleRemoveThreshold = (threshold) => {
+  const handleRemoveThreshold = (threshold: number) => {
     setPromoSettings((prev) => ({
       ...prev,
       config: (prev.config || []).filter((c) => c.threshold !== threshold),
     }));
   };
 
-  const handleUpdateConfig = (threshold, field, value) => {
+  const handleUpdateConfig = (
+    threshold: number,
+    field: keyof PromoThresholdConfig,
+    value: unknown
+  ) => {
     setPromoSettings((prev) => ({
       ...prev,
       config: prev.config.map((c) => (c.threshold === threshold ? { ...c, [field]: value } : c)),
@@ -214,7 +218,7 @@ const PromotionManagement = () => {
     setOpenDialog(true);
   };
 
-  const handleEditOpen = async (promo) => {
+  const handleEditOpen = async (promo: Promotion) => {
     setIsEditMode(true);
     setEditId(promo.id);
 
@@ -224,7 +228,7 @@ const PromotionManagement = () => {
 
     // Fetch current pricing for the items in the promotion
     const enrichedItems = await Promise.all(
-      promo.items.map(async (item) => {
+      promo.items.map(async (item: PromotionItem) => {
         try {
           const data = await posService.fetchPromotionProductOptions(item.productId);
           return {
@@ -266,7 +270,10 @@ const PromotionManagement = () => {
     setPromoPrice('');
   };
 
-  const handleProductSelect = async (event, newValue) => {
+  const handleProductSelect = async (
+    event: React.SyntheticEvent,
+    newValue: Product | null
+  ) => {
     setSelectedProduct(newValue);
     if (newValue) {
       try {
@@ -305,7 +312,7 @@ const PromotionManagement = () => {
     setPromoPrice('');
   };
 
-  const handleRemoveItem = (index) => {
+  const handleRemoveItem = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       items: prev.items.filter((_, i) => i !== index),
@@ -353,7 +360,7 @@ const PromotionManagement = () => {
     }
   };
 
-  const handleDeletePromotion = async (id) => {
+  const handleDeletePromotion = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this promotion?')) return;
     try {
       await posService.deletePromotion(id);
@@ -364,7 +371,7 @@ const PromotionManagement = () => {
     }
   };
 
-  const isPromotionActive = (promo) => {
+  const isPromotionActive = (promo: Promotion) => {
     const now = new Date();
     const start = new Date(promo.startDate);
     const end = new Date(promo.endDate);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { PromoSettings, PromoThresholdConfig } from '@/domains/promotions/types';
 import {
   Box,
   Button,
@@ -35,6 +36,24 @@ import {
   ChevronRight as ChevronRightIcon
 } from '@mui/icons-material';
 
+interface ThresholdSettingsPanelProps {
+  promoSettings: PromoSettings;
+  setPromoSettings: React.Dispatch<React.SetStateAction<PromoSettings>>;
+  /** Bound to a text field, hence a string. */
+  newThreshold: string;
+  setNewThreshold: (value: string) => void;
+  /** Flattened category paths, used for the allow/disallow group pickers. */
+  categories: string[];
+  onSave: () => void;
+  onAddThreshold: () => void;
+  onUpdateConfig: (
+    threshold: number,
+    field: keyof PromoThresholdConfig,
+    value: unknown
+  ) => void;
+  onRemoveThreshold: (threshold: number) => void;
+}
+
 const ThresholdSettingsPanel = ({
   promoSettings,
   setPromoSettings,
@@ -45,14 +64,14 @@ const ThresholdSettingsPanel = ({
   onAddThreshold,
   onUpdateConfig,
   onRemoveThreshold,
-}) => {
-  const [editingThreshold, setEditingThreshold] = useState(null);
+}: ThresholdSettingsPanelProps) => {
+  const [editingThreshold, setEditingThreshold] = useState<number | null>(null);
 
   const editingConfig = (promoSettings.config || []).find(
-    (c) => c.threshold === editingThreshold
+    (c: PromoThresholdConfig) => c.threshold === editingThreshold
   );
 
-  const handleEditClick = (config) => {
+  const handleEditClick = (config: PromoThresholdConfig) => {
     setEditingThreshold(config.threshold);
   };
 

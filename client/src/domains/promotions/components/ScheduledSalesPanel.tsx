@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Promotion } from '@/domains/promotions/types';
 import {
   Box,
   Button,
@@ -20,7 +21,22 @@ import {
   CalendarToday as CalendarIcon,
 } from '@mui/icons-material';
 
-const ScheduledSalesPanel = ({ promotions, onCreate, onEdit, onDelete, isPromotionActive }) => (
+interface ScheduledSalesPanelProps {
+  promotions: Promotion[];
+  onCreate: () => void;
+  onEdit: (promo: Promotion) => void;
+  onDelete: (id: number) => void;
+  /** True when today falls inside the promotion's window and it is enabled. */
+  isPromotionActive: (promo: Promotion) => boolean;
+}
+
+const ScheduledSalesPanel = ({
+  promotions,
+  onCreate,
+  onEdit,
+  onDelete,
+  isPromotionActive,
+}: ScheduledSalesPanelProps) => (
   <Paper elevation={0} sx={{ p: 3, borderRadius: '12px', border: '1px solid #e2e8f0', bgcolor: '#ffffff', minHeight: '100%' }}>
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -67,7 +83,7 @@ const ScheduledSalesPanel = ({ promotions, onCreate, onEdit, onDelete, isPromoti
           </TableRow>
         </TableHead>
         <TableBody>
-          {promotions.map((promo) => (
+          {promotions.map((promo: Promotion) => (
             <TableRow key={promo.id} hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
               <TableCell sx={{ fontWeight: 500, color: '#0f172a', fontSize: '0.95rem' }}>{promo.name}</TableCell>
               <TableCell sx={{ color: '#475569', fontWeight: 600 }}>

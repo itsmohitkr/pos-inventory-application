@@ -1,4 +1,10 @@
 import React from 'react';
+import type {
+  ProductPriceInfo,
+  PromotionFormState,
+  PromotionItem,
+} from '@/domains/promotions/types';
+import type { Product } from '@/shared/types/models';
 import {
   Box,
   Button,
@@ -27,6 +33,25 @@ import {
   Inventory as InventoryIcon,
 } from '@mui/icons-material';
 
+interface PromotionFormDialogProps {
+  open: boolean;
+  onClose: () => void;
+  isEditMode: boolean;
+  formData: PromotionFormState;
+  setFormData: React.Dispatch<React.SetStateAction<PromotionFormState>>;
+  products: Product[];
+  selectedProduct?: Product | null;
+  /** Passed straight to MUI Autocomplete's onChange, hence the event first. */
+  onProductSelect: (event: React.SyntheticEvent, value: Product | null) => void;
+  productPriceInfo?: ProductPriceInfo | null;
+  /** Held as a string because it is bound to a text field. */
+  promoPrice: string;
+  setPromoPrice: (value: string) => void;
+  onAddItem: () => void;
+  onRemoveItem: (index: number) => void;
+  onSubmit: () => void;
+}
+
 const PromotionFormDialog = ({
   open,
   onClose,
@@ -42,7 +67,7 @@ const PromotionFormDialog = ({
   onAddItem,
   onRemoveItem,
   onSubmit,
-}) => (
+}: PromotionFormDialogProps) => (
   <Dialog
     open={open}
     onClose={onClose}
@@ -178,7 +203,7 @@ const PromotionFormDialog = ({
                   { label: 'Current SP', value: `₹${productPriceInfo.sellingPrice}`, color: '#0b1d39', bgcolor: 'white', border: '#e2e8f0' },
                   {
                     label: 'Discount Amount',
-                    value: `₹${Math.max(0, productPriceInfo.sellingPrice - parseFloat(promoPrice || 0)).toFixed(2)}`,
+                    value: `₹${Math.max(0, productPriceInfo.sellingPrice - parseFloat(promoPrice || '0')).toFixed(2)}`,
                     color: '#be185d',
                     labelColor: '#db2777',
                     bgcolor: '#fdf2f8',
@@ -227,7 +252,7 @@ const PromotionFormDialog = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {formData.items.map((item, index) => (
+                {formData.items.map((item: PromotionItem, index: number) => (
                   <TableRow
                     key={index}
                     hover

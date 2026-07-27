@@ -160,3 +160,16 @@ export interface ReportData {
   salesCount: number;
   sales: ReportSale[];
 }
+
+/**
+ * A node in the category tree from GET /api/categories.
+ * Mirrors CategoryNode in server/src/domains/category/category.service.ts;
+ * `path` is the full slash-joined ancestry, e.g. "Grocery/Oil".
+ */
+export interface CategoryNode {
+  id: number;
+  name: string;
+  parentId: number | null;
+  path: string;
+  children: CategoryNode[];
+}
