@@ -1,4 +1,4 @@
-import type { Product } from './inventoryTypes';
+import type { InventorySummaryTotals, Product } from './inventoryTypes';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
@@ -50,12 +50,12 @@ export default function useProductList({
   const [historyData, setHistoryData] = useState(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [sortBy, setSortBy] = useState('name');
-  const [sortOrder, setSortOrder] = useState('asc');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isLoadingBatches, setIsLoadingBatches] = useState(false);
-  const [summaryTotals, setSummaryTotals] = useState({
+  const [summaryTotals, setSummaryTotals] = useState<InventorySummaryTotals>({
     productCount: 0, totalQty: 0, totalCost: 0, totalSelling: 0, totalMrp: 0,
   });
-  const [categoryCounts, setCategoryCounts] = useState({});
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [uncategorizedCount, setUncategorizedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [stockFilter, setStockFilter] = useState('all');

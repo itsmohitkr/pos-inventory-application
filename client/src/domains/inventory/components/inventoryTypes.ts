@@ -9,3 +9,37 @@
 export type { Batch, CategoryNode, Product } from '@/shared/types/models';
 
 
+
+/** Aggregates for the inventory summary bar, from GET /api/products/summary. */
+export interface InventorySummaryTotals {
+  productCount: number;
+  totalQty: number;
+  totalCost: number;
+  totalSelling: number;
+  totalMrp: number;
+}
+
+/** Running totals per movement type in the stock history dialog. */
+export interface StockMovementTotals {
+  added: number;
+  sold: number;
+  returned: number;
+  adjustmentIn: number;
+  adjustmentOut: number;
+  net: number;
+}
+
+/** One ledger entry from GET /api/products/:id/history. */
+export interface StockMovement {
+  id: number;
+  type: string;
+  quantity: number;
+  note?: string | null;
+  createdAt: string;
+  batch?: { id: number; batchCode?: string | null } | null;
+}
+
+export interface ProductHistory {
+  totals: StockMovementTotals;
+  movements: StockMovement[];
+}

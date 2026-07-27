@@ -1,3 +1,4 @@
+import type { InventorySummaryTotals } from '@/domains/inventory/components/inventoryTypes';
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 
@@ -10,7 +11,18 @@ const STAT_CONFIGS = [
   { label: 'Avg Discount', getValue: (_, avg) => `${avg.discount}%`, accentColor: '#f43f5e' },
 ];
 
-const ProductSummaryBar = ({ summaryTotals, averageMargin, averageDiscount }) => {
+interface ProductSummaryBarProps {
+  summaryTotals: InventorySummaryTotals;
+  /** Percentages formatted to one decimal by useProductList, e.g. '24.5'. */
+  averageMargin: string;
+  averageDiscount: string;
+}
+
+const ProductSummaryBar = ({
+  summaryTotals,
+  averageMargin,
+  averageDiscount,
+}: ProductSummaryBarProps) => {
   const avg = { margin: averageMargin, discount: averageDiscount };
 
   return (

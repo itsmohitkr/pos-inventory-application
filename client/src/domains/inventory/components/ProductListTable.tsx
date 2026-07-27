@@ -1,3 +1,4 @@
+import type { Product } from '@/shared/types/models';
 import React, { useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
@@ -5,11 +6,27 @@ import {
 } from '@mui/material';
 import ProductRow from '@/domains/inventory/components/ProductRow';
 
+interface ProductListTableProps {
+  displayedProducts: Product[];
+  /** Row ids as strings, matching String(product.id). */
+  selectedIds: Set<string>;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+  isPending?: boolean;
+  onSort: (field: string) => void;
+  onSelect: (product: Product, event: React.MouseEvent) => void;
+  onDragStart: (event: React.DragEvent, product: Product) => void;
+  onEdit: (product: Product) => void;
+  onDelete: (id: number) => void;
+  /** Clears the selection; the row passes no arguments. */
+  onDoubleClick: () => void;
+}
+
 const ProductListTable = ({
   displayedProducts, selectedIds, sortBy, sortOrder, isPending,
   onSort, onSelect, onDragStart, onEdit, onDelete, onDoubleClick,
-}) => {
-  const tableContainerRef = useRef(null);
+}: ProductListTableProps) => {
+  const tableContainerRef = useRef<HTMLDivElement | null>(null);
 
   const rowVirtualizer = useVirtualizer({
     count: displayedProducts.length,
