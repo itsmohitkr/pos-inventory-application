@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { paramInt, queryInt } from '../../shared/utils/requestParams';
 import { StatusCodes } from 'http-status-codes';
 import authService = require('./auth.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
@@ -13,7 +14,11 @@ const login = async (req: Request, res: Response) => {
 };
 
 const getProfile = async (req: Request, res: Response) => {
-  const user = await authService.getProfile(req.query.userId);
+  // profileQuerySchema requires a positive integer userId, so validation has
+  // already rejected anything unparseable. NaN is the fallback only because
+  // req.query cannot be written back with the coerced value (Express 5 makes
+  // it a getter), which matches the previous Number(userId) behaviour.
+  const user = await authService.getProfile(queryInt(req.query.userId, Number.NaN));
 
   return sendSuccessResponse(res, StatusCodes.OK, user, 'Profile fetched successfully', {
     format: 'merge',
@@ -37,7 +42,7 @@ const createUser = async (req: Request, res: Response) => {
 };
 
 const updateUser = async (req: Request, res: Response) => {
-  const user = await authService.updateUser(req.params.id, req.body);
+  const user = await authService.updateUser(paramInt(req.params.id), req.body);
 
   return sendSuccessResponse(res, StatusCodes.OK, user, 'User updated successfully', {
     format: 'merge',
@@ -45,13 +50,13 @@ const updateUser = async (req: Request, res: Response) => {
 };
 
 const deleteUser = async (req: Request, res: Response) => {
-  await authService.deleteUser(req.params.id);
+  await authService.deleteUser(paramInt(req.params.id));
 
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'User deleted successfully');
 };
 
 const changePassword = async (req: Request, res: Response) => {
-  await authService.changePassword(req.params.id, req.body);
+  await authService.changePassword(paramInt(req.params.id), req.body);
 
   return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Password changed successfully');
 };

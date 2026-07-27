@@ -107,7 +107,7 @@ const ensureCategoriesFromProducts = async () => {
       .map((p) => p.trim())
       .filter(Boolean);
     let currentPath = '';
-    let parentId = null;
+    let parentId: number | null = null;
 
     for (const part of parts) {
       currentPath = currentPath ? `${currentPath}/${part}` : part;

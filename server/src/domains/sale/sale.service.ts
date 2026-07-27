@@ -9,7 +9,11 @@ import type { ProcessSaleInput } from './sale.validation';
  * Fetches all effective promotion prices for a list of product IDs at a given date.
  * Returns a Map where key is productId and value is the lowest promo price.
  */
-const getBulkEffectivePromoPrices = async (tx, productIds, date = new Date()) => {
+const getBulkEffectivePromoPrices = async (
+  tx: Prisma.TransactionClient,
+  productIds: number[],
+  date = new Date()
+): Promise<Map<number, number>> => {
   if (!productIds.length) return new Map();
 
   const activePromos = await tx.promotion.findMany({
@@ -26,7 +30,7 @@ const getBulkEffectivePromoPrices = async (tx, productIds, date = new Date()) =>
     },
   });
 
-  const priceMap = new Map();
+  const priceMap = new Map<number, number>();
 
   activePromos.forEach((promo) => {
     promo.items.forEach((item) => {

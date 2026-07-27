@@ -59,6 +59,18 @@ const wipeDatabaseBodySchema = z.object({
   }),
 });
 
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type LoginInput = z.infer<typeof loginBodySchema>;
+export type CreateUserInput = z.infer<typeof createUserBodySchema>;
+export type UpdateUserInput = z.infer<typeof updateUserBodySchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordBodySchema>;
+export type VerifyAdminInput = z.infer<typeof verifyAdminBodySchema>;
+export type WipeDatabaseInput = z.infer<typeof wipeDatabaseBodySchema>;
+export type CompleteOnboardingInput = z.infer<typeof completeOnboardingBodySchema>;
+
 export {
   userIdParamSchema,
   profileQuerySchema,

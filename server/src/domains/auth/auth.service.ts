@@ -5,6 +5,15 @@ import type { Prisma, User } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 import logger = require('../../shared/utils/logger');
 import { DEFAULT_RECEIPT_SETTINGS } from '../../config/constants';
+import type {
+  ChangePasswordInput,
+  CompleteOnboardingInput,
+  CreateUserInput,
+  LoginInput,
+  UpdateUserInput,
+  VerifyAdminInput,
+  WipeDatabaseInput,
+} from './auth.validation';
 
 const SALT_ROUNDS = 10;
 
@@ -21,13 +30,13 @@ const isHashed = (password: string | null | undefined): boolean => {
   return typeof password === 'string' && password.startsWith('$2');
 };
 
-const getUserById = async (userId) => {
+const getUserById = async (userId: number) => {
   return prisma.user.findUnique({
-    where: { id: Number(userId) },
+    where: { id: userId },
   });
 };
 
-const login = async ({ username, password }) => {
+const login = async ({ username, password }: LoginInput) => {
   const user = await prisma.user.findUnique({
     where: { username },
   });
@@ -85,7 +94,7 @@ const login = async ({ username, password }) => {
   return sanitizeUser(user);
 };
 
-const getProfile = async (userId) => {
+const getProfile = async (userId: number) => {
   const user = await getUserById(userId);
 
   if (!user) {
@@ -110,7 +119,7 @@ const getAllUsers = async () => {
   });
 };
 
-const createUser = async ({ username, password, role }) => {
+const createUser = async ({ username, password, role }: CreateUserInput) => {
   const existingUser = await prisma.user.findUnique({
     where: { username },
   });
@@ -140,7 +149,7 @@ const createUser = async ({ username, password, role }) => {
   });
 };
 
-const updateUser = async (userId, payload) => {
+const updateUser = async (userId: number, payload: UpdateUserInput) => {
   const user = await getUserById(userId);
 
   if (!user) {
@@ -159,7 +168,7 @@ const updateUser = async (userId, payload) => {
   }
 
   return prisma.user.update({
-    where: { id: Number(userId) },
+    where: { id: userId },
     data: updateData,
     select: {
       id: true,
@@ -171,7 +180,7 @@ const updateUser = async (userId, payload) => {
   });
 };
 
-const deleteUser = async (userId) => {
+const deleteUser = async (userId: number) => {
   const user = await getUserById(userId);
 
   if (!user) {
@@ -181,11 +190,11 @@ const deleteUser = async (userId) => {
   }
 
   await prisma.user.delete({
-    where: { id: Number(userId) },
+    where: { id: userId },
   });
 };
 
-const changePassword = async (userId, { oldPassword, newPassword }) => {
+const changePassword = async (userId: number, { oldPassword, newPassword }: ChangePasswordInput) => {
   const user = await getUserById(userId);
 
   if (!user) {
@@ -207,12 +216,12 @@ const changePassword = async (userId, { oldPassword, newPassword }) => {
   const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
   await prisma.user.update({
-    where: { id: Number(userId) },
+    where: { id: userId },
     data: { password: hashedPassword },
   });
 };
 
-const wipeDatabase = async ({ username, password }) => {
+const wipeDatabase = async ({ username, password }: WipeDatabaseInput) => {
   const user = await prisma.user.findUnique({
     where: { username },
   });
@@ -278,7 +287,7 @@ const wipeDatabase = async ({ username, password }) => {
   return { remainingUser: user.username };
 };
 
-const verifyAdmin = async ({ password }) => {
+const verifyAdmin = async ({ password }: VerifyAdminInput) => {
   const adminUsers = await prisma.user.findMany({
     where: {
       role: 'admin',
@@ -320,7 +329,16 @@ const verifyAdmin = async ({ password }) => {
 
 const ONBOARDING_VERSION = 1;
 
-const completeOnboarding = async ({ shopName, address, phone, phone2, email, gst, logo, adminPassword }) => {
+const completeOnboarding = async ({
+  shopName,
+  address,
+  phone,
+  phone2,
+  email,
+  gst,
+  logo,
+  adminPassword,
+}: CompleteOnboardingInput) => {
   const hashed = await bcrypt.hash(adminPassword, SALT_ROUNDS);
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
