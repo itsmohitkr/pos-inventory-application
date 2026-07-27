@@ -1,24 +1,38 @@
-import { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { getResponseArray } from '@/shared/utils/responseGuards';
+import type { CategoryNode } from '@/shared/types/models';
 
-export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchProducts, fetchSummary, showError, showConfirm) => {
-  const [categories, setCategories] = useState([]);
+/** Where the category right-click menu is anchored, in viewport pixels. */
+export interface CategoryContextMenu {
+  mouseX: number;
+  mouseY: number;
+}
+
+export const useCategoryManagement = (
+  categoryFilter: string,
+  onCategoryChange: (path: string) => void,
+  fetchProducts: () => void,
+  fetchSummary: () => void,
+  showError: (message: string) => void,
+  showConfirm: (message: string, title?: string) => Promise<boolean> | boolean
+) => {
+  const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [categorySortOrder, setCategorySortOrder] = useState('asc');
-  const [expandedCategoryIds, setExpandedCategoryIds] = useState({});
-  const [contextMenu, setContextMenu] = useState(null);
-  const [activeCategory, setActiveCategory] = useState(null);
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<Record<number, boolean>>({});
+  const [contextMenu, setContextMenu] = useState<CategoryContextMenu | null>(null);
+  const [activeCategory, setActiveCategory] = useState<CategoryNode | null>(null);
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categoryDialogMode, setCategoryDialogMode] = useState('add');
-  const [categoryDialogParent, setCategoryDialogParent] = useState(null);
-  const [categoryDialogTarget, setCategoryDialogTarget] = useState(null);
+  const [categoryDialogParent, setCategoryDialogParent] = useState<CategoryNode | null>(null);
+  const [categoryDialogTarget, setCategoryDialogTarget] = useState<CategoryNode | null>(null);
 
   const fetchCategories = useCallback(async () => {
     try {
       const data = await inventoryService.fetchCategories();
-      setCategories(getResponseArray(data));
+      setCategories(getResponseArray<CategoryNode>(data));
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-fetch-categories' } });
       console.error(error);
@@ -26,7 +40,7 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
   }, []);
 
   const sortedCategoryTree = useMemo(() => {
-    const sort = (nodes) =>
+    const sort = (nodes: CategoryNode[]): CategoryNode[] =>
       [...nodes]
         .sort((a, b) =>
           categorySortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
@@ -35,11 +49,11 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
     return sort(categories);
   }, [categories, categorySortOrder]);
 
-  const handleToggleExpand = useCallback((id) => {
+  const handleToggleExpand = useCallback((id: number) => {
     setExpandedCategoryIds((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
-  const openCategoryMenu = (event, category) => {
+  const openCategoryMenu = (event: React.MouseEvent, category: CategoryNode) => {
     event.preventDefault();
     setActiveCategory(category);
     setContextMenu({ mouseX: event.clientX - 2, mouseY: event.clientY - 4 });
@@ -47,7 +61,7 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
 
   const closeCategoryMenu = useCallback(() => setContextMenu(null), []);
 
-  const openAddCategoryDialog = (parent) => {
+  const openAddCategoryDialog = (parent: CategoryNode | null) => {
     setCategoryDialogMode('add');
     setCategoryDialogParent(parent);
     setCategoryDialogTarget(null);
@@ -55,7 +69,7 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
     setAddCategoryOpen(true);
   };
 
-  const openEditCategoryDialog = (category) => {
+  const openEditCategoryDialog = (category: CategoryNode) => {
     setCategoryDialogMode('edit');
     setCategoryDialogParent(null);
     setCategoryDialogTarget(category);
@@ -97,7 +111,7 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
     }
   };
 
-  const handleCategorySelect = useCallback((path) => {
+  const handleCategorySelect = useCallback((path: string) => {
     onCategoryChange(path);
   }, [onCategoryChange]);
 
@@ -105,7 +119,7 @@ export const useCategoryManagement = (categoryFilter, onCategoryChange, fetchPro
     setCategorySortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   }, []);
 
-  const handleDeleteCategory = async (category) => {
+  const handleDeleteCategory = async (category: CategoryNode | null) => {
     if (!category) return;
     const confirmed = await showConfirm(`Delete category "${category.name}" and all subcategories?`);
     if (!confirmed) return;

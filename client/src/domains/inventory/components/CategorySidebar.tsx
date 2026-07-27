@@ -29,6 +29,52 @@ import {
   ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 
+import type { CategoryNode } from '@/shared/types/models';
+import type { CategoryContextMenu } from '@/domains/inventory/components/useCategoryManagement';
+
+interface CategorySidebarProps {
+  sortedCategoryTree: CategoryNode[];
+  /** Product count per full category path. */
+  categoryCounts: Record<string, number>;
+  /** Expanded state keyed by category id. */
+  expandedCategoryIds: Record<number, boolean>;
+  /** The selected category path, or 'all'. */
+  categoryFilter: string;
+  totalCount: number;
+  uncategorizedCount: number;
+  hasUncategorized: boolean;
+  /** 'asc' | 'desc'. */
+  categorySortOrder: string;
+  isResizingLeft: boolean;
+  /** Right-click menu anchor; null when closed. */
+  contextMenu: CategoryContextMenu | null;
+  activeCategory: CategoryNode | null;
+  addCategoryOpen: boolean;
+  newCategoryName: string;
+  /** 'add' | 'edit'. */
+  categoryDialogMode: string;
+  categoryDialogParent: CategoryNode | null;
+  onCategorySelect: (path: string) => void;
+  onCategorySortToggle: () => void;
+  onAddCategoryDialog: (parent: CategoryNode | null) => void;
+  onCategoryDragOver: (event: React.DragEvent) => void;
+  /** Receives the target category path, or the literal 'uncategorized'. */
+  onCategoryDrop: (event: React.DragEvent, categoryPath: string) => void;
+  onToggleExpand: (id: number) => void;
+  onOpenCategoryMenu: (event: React.MouseEvent, category: CategoryNode) => void;
+  onCloseContextMenu: () => void;
+  onAddSubcategory: (category: CategoryNode) => void;
+  onEditCategory: (category: CategoryNode) => void;
+  onDeleteCategory: (category: CategoryNode | null) => void;
+  onCategoryDialogClose: () => void;
+  onCategoryNameChange: (name: string) => void;
+  onSaveCategory: () => void;
+  onResizeStart: () => void;
+  onDoubleClick: () => void;
+  onToggleCategories: () => void;
+}
+
+
 const CategorySidebar = ({
   sortedCategoryTree,
   categoryCounts,
@@ -62,8 +108,8 @@ const CategorySidebar = ({
   onResizeStart,
   onDoubleClick,
   onToggleCategories,
-}) => {
-  const renderCategoryNode = (node, depth = 0) => {
+}: CategorySidebarProps) => {
+  const renderCategoryNode = (node: CategoryNode, depth = 0) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedCategoryIds[node.id];
     const isSelected = categoryFilter === node.path;

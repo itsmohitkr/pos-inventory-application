@@ -99,11 +99,12 @@ export interface Batch {
   mrp: number;
   costPrice: number;
   sellingPrice: number;
-  wholesaleEnabled?: boolean;
+  wholesaleEnabled: boolean;
   wholesalePrice?: number | null;
   wholesaleMinQty?: number | null;
   expiryDate?: string | null;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Product {
@@ -111,13 +112,27 @@ export interface Product {
   name: string;
   barcode?: string | null;
   category?: string | null;
-  batchTrackingEnabled?: boolean;
-  lowStockWarningEnabled?: boolean;
-  lowStockThreshold?: number;
+  batchTrackingEnabled: boolean;
+  lowStockThreshold: number;
+  lowStockWarningEnabled: boolean;
   isDeleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  /** Present only on endpoints that include batches. */
   batches?: Batch[];
+  /**
+   * Aggregates computed server-side by the raw-SQL product list query.
+   * snake_case because product.service selects them under those names rather
+   * than mapping them to camelCase.
+   */
+  total_stock?: number;
+  total_cost?: number;
+  total_selling?: number;
+  lastUpdatedAt?: string | null;
+  /** Lowest active promotion price, when the endpoint resolves promotions. */
+  promoPrice?: number | null;
+  isOnSale?: boolean;
+  [key: string]: unknown;
 }
 
 export interface Expense {
