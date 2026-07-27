@@ -1,4 +1,5 @@
 import React from 'react';
+import type { LooseSale, ReportSale } from '@/shared/types/models';
 import {
   Box,
   Typography,
@@ -19,6 +20,22 @@ import {
 } from '@mui/icons-material';
 import { getRefundStatus, getStatusDisplay } from '@/shared/utils/refundStatus';
 
+interface SalesListPanelProps {
+  /** 'pos' shows `sales`, 'loose' shows `looseSales`. */
+  saleType: string;
+  sales: ReportSale[];
+  looseSales: LooseSale[];
+  /**
+   * In 'loose' mode the selected row is a LooseSale, not a ReportSale — the
+   * same handler serves both lists.
+   */
+  selectedSale?: ReportSale | LooseSale | null;
+  onSelectSale: (sale: ReportSale | LooseSale) => void;
+  onPrintReceipt: (sale: ReportSale) => void;
+  onRefund: (sale: ReportSale) => void;
+  onDeleteLoose: (id: number) => void;
+}
+
 const SalesListPanel = ({
   saleType,
   sales,
@@ -28,9 +45,9 @@ const SalesListPanel = ({
   onPrintReceipt,
   onRefund,
   onDeleteLoose,
-}) => {
-  const posTotal = sales.reduce((sum, s) => sum + (s.netTotalAmount || 0), 0);
-  const looseTotal = looseSales.reduce((sum, ls) => sum + (ls.price || 0), 0);
+}: SalesListPanelProps) => {
+  const posTotal = sales.reduce((sum: number, s: ReportSale) => sum + (s.netTotalAmount || 0), 0);
+  const looseTotal = looseSales.reduce((sum: number, ls: LooseSale) => sum + (ls.price || 0), 0);
   const combinedTotal = posTotal + looseTotal;
 
   return (

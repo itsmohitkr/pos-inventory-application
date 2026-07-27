@@ -1,4 +1,6 @@
 import React from 'react';
+import type { ReportSale } from '@/shared/types/models';
+import type { ReceiptSettings, ShopMetadata } from '@/domains/settings/hooks/useSettings';
 import { Box } from '@mui/material';
 import ReceiptUntyped from '@/domains/pos/components/Receipt';
 
@@ -24,7 +26,19 @@ const fallbackReceiptSettings = {
   customFooter: 'Thank You! Visit Again',
 };
 
-const SaleHistoryPrintContainer = ({ selectedSale, receiptSettings, shopMetadata }) => (
+interface SaleHistoryPrintContainerProps {
+  /** The sale being printed; null renders the off-screen container empty. */
+  selectedSale?: ReportSale | null;
+  /** Falls back to fallbackReceiptSettings above when not yet loaded. */
+  receiptSettings?: ReceiptSettings | null;
+  shopMetadata?: ShopMetadata | null;
+}
+
+const SaleHistoryPrintContainer = ({
+  selectedSale,
+  receiptSettings,
+  shopMetadata,
+}: SaleHistoryPrintContainerProps) => (
   <Box
     sx={{
       position: 'absolute',

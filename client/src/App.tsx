@@ -209,7 +209,6 @@ function App() {
             element={
               <SaleHistory
                 receiptSettings={receiptSettings}
-                shopName={shopName}
                 shopMetadata={shopMetadata}
                 printers={printers}
                 defaultPrinter={defaultPrinter}

@@ -15,6 +15,30 @@ import {
 } from '@mui/material';
 import { ShoppingBag as PosIcon, Sell as LooseIcon } from '@mui/icons-material';
 
+/** One selectable range in the timeframe dropdown. */
+export interface SaleHistoryTimeframe {
+  label: string;
+  getValue: () => { startDate: string; endDate: string } | null;
+}
+
+export interface SaleHistoryDateRange {
+  startDate: string;
+  endDate: string;
+}
+
+interface SaleHistoryHeaderProps {
+  /** 'pos' for till sales, 'loose' for weighed/loose sales. */
+  saleType: string;
+  onSaleTypeChange: (event: React.MouseEvent<HTMLElement>, value: string | null) => void;
+  /** Index into `timeframes`; the last entry is the custom range. */
+  tabValue: number;
+  onTabChange: (event: { target: { value: number } }) => void;
+  timeframes: SaleHistoryTimeframe[];
+  dateRange: SaleHistoryDateRange;
+  onDateRangeChange: (key: string, value: string) => void;
+  onApplyCustomRange: () => void;
+}
+
 const SaleHistoryHeader = ({
   saleType,
   onSaleTypeChange,
@@ -24,7 +48,7 @@ const SaleHistoryHeader = ({
   dateRange,
   onDateRangeChange,
   onApplyCustomRange,
-}) => (
+}: SaleHistoryHeaderProps) => (
   <Paper
     elevation={0}
     className="no-print"
@@ -74,7 +98,7 @@ const SaleHistoryHeader = ({
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Time Frame</InputLabel>
           <Select value={tabValue} label="Time Frame" onChange={onTabChange}>
-            {timeframes.map((tf, idx) => (
+            {timeframes.map((tf: SaleHistoryTimeframe, idx: number) => (
               <MenuItem key={idx} value={idx}>
                 {tf.label}
               </MenuItem>

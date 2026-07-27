@@ -1,4 +1,6 @@
 import React from 'react';
+import type { ReportSale } from '@/shared/types/models';
+import type { SaleStats } from '@/domains/saleHistory/components/saleHistoryStats';
 import {
   Box,
   Typography,
@@ -11,7 +13,12 @@ import {
   TableCell,
   TableBody,
 } from '@mui/material';
-const POSSaleDetailsPanel = ({ selectedSale, stats }) => {
+interface POSSaleDetailsPanelProps {
+  selectedSale?: ReportSale | null;
+  stats: SaleStats;
+}
+
+const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) => {
   if (!selectedSale) {
     return (
       <Paper

@@ -1,4 +1,4 @@
-export const getSaleHistoryRange = (type) => {
+export const getSaleHistoryRange = (type: string) => {
   const now = new Date();
   let start = new Date();
   let end = new Date();
@@ -68,7 +68,7 @@ export const getSaleHistoryRange = (type) => {
   };
 };
 
-export const buildInclusiveSaleHistoryRange = (startDate, endDate) => {
+export const buildInclusiveSaleHistoryRange = (startDate?: string, endDate?: string) => {
   if (!startDate || !endDate) return null;
 
   const [sy, sm, sd] = startDate.split('-').map(Number);

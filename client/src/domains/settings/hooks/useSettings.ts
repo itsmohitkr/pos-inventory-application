@@ -46,7 +46,18 @@ const getStoredReceiptSettings = (fallbackShopName) => {
  * TODO(ts-migration): derive from the mirrored DEFAULT_RECEIPT_SETTINGS once
  * that file is converted.
  */
-export type ReceiptSettings = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+/**
+ * Derived from DEFAULT_RECEIPT_SETTINGS rather than hand-written, so the type
+ * and the defaults cannot drift. The index signature is retained because
+ * settings persisted by an older build may carry keys this version has since
+ * dropped, and they must survive a load/save round trip.
+ *
+ * The authoritative default shape lives in
+ * server/src/config/constants.ts -> DEFAULT_RECEIPT_SETTINGS; the client copy
+ * in pos/components/posReceiptSettings.ts must be kept in step with it.
+ */
+export type ReceiptSettings = Partial<typeof DEFAULT_RECEIPT_SETTINGS> &
+  Record<string, unknown>;
 
 export interface ShopMetadata {
   shopMobile: string;

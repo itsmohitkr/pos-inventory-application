@@ -1,4 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import type { LooseSale, ReportSale } from '@/shared/types/models';
+import type {
+  PrinterInfo,
+  ReceiptSettings,
+  ShopMetadata,
+} from '@/domains/settings/hooks/useSettings';
+
+interface SaleHistoryProps {
+  receiptSettings?: ReceiptSettings | null;
+  shopMetadata?: ShopMetadata | null;
+  /** Supplied by the shell from Electron's printer list. */
+  printers?: PrinterInfo[];
+  defaultPrinter?: string | null;
+  showError?: (message: string, title?: string) => unknown;
+}
 import * as Sentry from '@sentry/react';
 import { flushSync } from 'react-dom';
 import posService from '@/shared/api/posService';
@@ -23,21 +38,21 @@ const SaleHistory = ({
   printers = [],
   defaultPrinter = null,
   showError,
-}: Record<string, any>) => {
-  const [sales, setSales] = useState([]);
-  const [looseSales, setLooseSales] = useState([]);
+}: SaleHistoryProps) => {
+  const [sales, setSales] = useState<ReportSale[]>([]);
+  const [looseSales, setLooseSales] = useState<LooseSale[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedSale, setSelectedSale] = useState(null);
+  const [selectedSale, setSelectedSale] = useState<ReportSale | LooseSale | null>(null);
   const [tabValue, setTabValue] = useState(0);
   const [saleType, setSaleType] = useState('pos');
-  const [deleteLooseId, setDeleteLooseId] = useState(null);
+  const [deleteLooseId, setDeleteLooseId] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState({
     startDate: '',
     endDate: '',
   });
   const [showRefundDialog, setShowRefundDialog] = useState(false);
-  const [refundSale, setRefundSale] = useState(null);
-  const abortControllerRef = useRef(null);
+  const [refundSale, setRefundSale] = useState<ReportSale | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const timeframes = [
     { label: 'Today', getValue: () => getSaleHistoryRange('day') },
@@ -51,7 +66,7 @@ const SaleHistory = ({
     { label: 'Custom', getValue: () => null },
   ];
 
-  const fetchSales = useCallback(async (start, end) => {
+  const fetchSales = useCallback(async (start?: string, end?: string) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -72,7 +87,7 @@ const SaleHistory = ({
       ]);
 
       const salesList = getResponseObject(salesData).sales || [];
-      const looseSalesList = getResponseArray(looseSalesData);
+      const looseSalesList = getResponseArray<LooseSale>(looseSalesData);
 
       setSales(salesList);
       setLooseSales(looseSalesList);
@@ -99,9 +114,10 @@ const SaleHistory = ({
   }, [fetchSales]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       // Don't navigate if user is typing in an input field
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const target = e.target as HTMLElement | null;
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
 
       if (sales.length === 0) return;
 
@@ -136,7 +152,7 @@ const SaleHistory = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [sales, selectedSale]);
 
-  const handleTabChange = (event) => {
+  const handleTabChange = (event: { target: { value: number } }) => {
     const newValue = event.target.value;
     setTabValue(newValue);
     if (newValue < 8) {
@@ -151,7 +167,7 @@ const SaleHistory = ({
     fetchSales(range.start, range.end);
   };
 
-  const handlePrintReceipt = async (sale) => {
+  const handlePrintReceipt = async (sale: ReportSale) => {
     flushSync(() => {
       setSelectedSale(sale);
     });
@@ -178,7 +194,7 @@ const SaleHistory = ({
     }
   };
 
-  const handleRefund = (sale) => {
+  const handleRefund = (sale: ReportSale) => {
     setRefundSale(sale);
     setShowRefundDialog(true);
   };
@@ -211,7 +227,7 @@ const SaleHistory = ({
     }
   };
 
-  const handleSaleTypeChange = (event, newType) => {
+  const handleSaleTypeChange = (event: React.MouseEvent<HTMLElement>, newType: string | null) => {
     if (newType !== null) {
       setSaleType(newType);
       // Reset selected item when switching tabs
@@ -223,7 +239,12 @@ const SaleHistory = ({
     }
   };
 
-  const stats = calculateSaleStats(selectedSale);
+  // The list can hold either kind of row; only till sales have `items`, and
+  // the detail/print panels below are POS-only.
+  const selectedPosSale =
+    selectedSale && 'items' in selectedSale ? (selectedSale as ReportSale) : null;
+
+  const stats = calculateSaleStats(selectedPosSale);
 
   return (
     <Box
@@ -242,7 +263,7 @@ const SaleHistory = ({
         onTabChange={handleTabChange}
         timeframes={timeframes}
         dateRange={dateRange}
-        onDateRangeChange={(key, value) => setDateRange((prev) => ({ ...prev, [key]: value }))}
+        onDateRangeChange={(key: string, value: string) => setDateRange((prev) => ({ ...prev, [key]: value }))}
         onApplyCustomRange={handleApplyCustomRange}
       />
 
@@ -318,7 +339,7 @@ const SaleHistory = ({
                 }}
               >
                 <POSSaleDetailsPanel
-                  selectedSale={selectedSale}
+                  selectedSale={selectedPosSale}
                   stats={stats}
                 />
               </Grid>
@@ -327,7 +348,7 @@ const SaleHistory = ({
         )}
 
         <SaleHistoryPrintContainer
-          selectedSale={selectedSale}
+          selectedSale={selectedPosSale}
           receiptSettings={receiptSettings}
           shopMetadata={shopMetadata}
         />

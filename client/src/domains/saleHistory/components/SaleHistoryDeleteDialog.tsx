@@ -9,7 +9,18 @@ import {
 } from '@mui/material';
 import { DeleteOutline as DeleteIcon } from '@mui/icons-material';
 
-const SaleHistoryDeleteDialog = ({ deleteLooseId, onClose, onConfirm }) => (
+interface SaleHistoryDeleteDialogProps {
+  /** The loose-sale id pending deletion; null closes the dialog. */
+  deleteLooseId?: number | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+const SaleHistoryDeleteDialog = ({
+  deleteLooseId,
+  onClose,
+  onConfirm,
+}: SaleHistoryDeleteDialogProps) => (
   <Dialog
     open={Boolean(deleteLooseId)}
     onClose={onClose}
