@@ -1,5 +1,5 @@
 import type { Product } from './inventoryTypes';
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { isRequestCanceled } from '@/shared/api/api';
@@ -12,12 +12,37 @@ import { useProductSelection } from '@/domains/inventory/components/useProductSe
 import { useCategoryManagement } from '@/domains/inventory/components/useCategoryManagement';
 import { useProductActions } from '@/domains/inventory/components/useProductActions';
 
-export default function useProductList({ categoryFilter, onCategoryChange, debouncedSearch, onSearchChange }) {
+/**
+ * A product with the lowercased search keys cached onto it.
+ *
+ * useProductList memoises these on first use so the filter loop does not
+ * re-lowercase every name and barcode on each keystroke. They are runtime-only
+ * additions, not server fields.
+ */
+interface SearchableProduct extends Product {
+  _searchName?: string;
+  _searchBarcodes?: string[];
+}
+
+interface UseProductListArgs {
+  /** Selected category path, or 'all'. */
+  categoryFilter: string;
+  onCategoryChange: (path: string) => void;
+  debouncedSearch: string;
+  onSearchChange: (value: string) => void;
+}
+
+export default function useProductList({
+  categoryFilter,
+  onCategoryChange,
+  debouncedSearch,
+  onSearchChange,
+}: UseProductListArgs) {
   const { dialogState, showError, showConfirm, closeDialog } = useCustomDialog();
 
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<SearchableProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedProductDetails, setSelectedProductDetails] = useState(null);
   const [selectedProductRefresh, setSelectedProductRefresh] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -38,13 +63,17 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
 
   const productsRequestId = useRef(0);
   const summaryRequestId = useRef(0);
-  const searchInputRef = useRef(null);
-  const selectedProductRef = useRef(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const selectedProductRef = useRef<Product | null>(null);
   selectedProductRef.current = selectedProduct;
 
-  const toTitleCase = (str) => {
+  const toTitleCase = (str?: string | null): string => {
     if (!str) return str;
-    return str.toLowerCase().split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
   };
 
   const fetchProducts = useCallback(async () => {
@@ -138,23 +167,26 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     if (!debouncedSearch) return baseProducts.slice(0, 1000);
 
     const query = debouncedSearch.toLowerCase();
-    const namePrefix = [], barcodePrefix = [], nameContains = [], barcodeContains = [];
+    const namePrefix: SearchableProduct[] = [],
+      barcodePrefix: SearchableProduct[] = [],
+      nameContains: SearchableProduct[] = [],
+      barcodeContains: SearchableProduct[] = [];
 
     for (const p of baseProducts) {
       const name = p._searchName || (p._searchName = p.name.toLowerCase());
       const barcodes =
         p._searchBarcodes ||
         (p._searchBarcodes = p.barcode
-          ? p.barcode.toLowerCase().split('|').map((b) => b.trim())
+          ? p.barcode.toLowerCase().split('|').map((b: string) => b.trim())
           : []);
 
       if (name.startsWith(query)) namePrefix.push(p);
-      else if (barcodes.some((b) => b.startsWith(query))) barcodePrefix.push(p);
+      else if (barcodes.some((b: string) => b.startsWith(query))) barcodePrefix.push(p);
       else if (name.includes(query)) nameContains.push(p);
-      else if (barcodes.some((b) => b.includes(query))) barcodeContains.push(p);
+      else if (barcodes.some((b: string) => b.includes(query))) barcodeContains.push(p);
     }
 
-    const sortFn = (a, b) => (a.name || '').localeCompare(b.name || '');
+    const sortFn = (a: Product, b: Product) => (a.name || '').localeCompare(b.name || '');
     namePrefix.sort(sortFn);
     barcodePrefix.sort(sortFn);
     nameContains.sort(sortFn);
@@ -163,7 +195,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     return [...namePrefix, ...barcodePrefix, ...nameContains, ...barcodeContains].slice(0, 1000);
   }, [barcodeOverride, products, debouncedSearch, stockFilter, categoryFilter]);
 
-  const selection = useProductSelection(displayedProducts, (product) => {
+  const selection = useProductSelection(displayedProducts, (product: Product | null) => {
     if (product?.id === selectedProduct?.id) return;
     setSelectedProduct(product);
     setSelectedProductDetails(null);
@@ -320,7 +352,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     setHistoryOpen(true);
   }, []);
 
-  const handleListDragStart = (e, product) => {
+  const handleListDragStart = (e: React.DragEvent, product: Product) => {
     const id = String(product.id);
     let dragIds: string[] = [String(id)];
     if (selection.selectedIds.has(id)) {
@@ -336,15 +368,15 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleCategoryDrop = async (event, targetCategory) => {
+  const handleCategoryDrop = async (event: React.DragEvent, targetCategory: string) => {
     event.preventDefault();
     const productIdsStr = event.dataTransfer.getData('text/plain');
     if (!productIdsStr) return;
     const productIds = productIdsStr.split(',').filter(Boolean);
     const nextCategory = targetCategory === 'uncategorized' ? null : targetCategory;
     const productsToMove = productIds
-      .map((id) => products.find((item) => String(item.id) === String(id)))
-      .filter((p) => p && (p.category || null) !== nextCategory);
+      .map((id: string) => products.find((item) => String(item.id) === String(id)))
+      .filter((p): p is SearchableProduct => Boolean(p) && (p!.category || null) !== nextCategory);
 
     if (productsToMove.length === 0) return;
 
@@ -371,7 +403,7 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     }
   };
 
-  const handleSortRequest = (field) => {
+  const handleSortRequest = (field: string) => {
     setSortOrder((prevOrder) => (sortBy === field ? (prevOrder === 'asc' ? 'desc' : 'asc') : 'asc'));
     setSortBy(field);
   };
@@ -409,6 +441,9 @@ export default function useProductList({ categoryFilter, onCategoryChange, debou
     handleProductDoubleClick, handleListDragStart,
     handleOpenHistory, handleCloseHistory: () => setHistoryOpen(false),
     handleSortRequest, handleCategoryDrop,
-    handleCategoryDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; },
+    handleCategoryDragOver: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    },
   };
 }

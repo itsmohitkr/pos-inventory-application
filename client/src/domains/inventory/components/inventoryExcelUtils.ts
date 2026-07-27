@@ -169,12 +169,21 @@ export const applyInventorySearch = (rows: InventoryRow[], searchTerm: string): 
   return [...namePrefix, ...barcodePrefix, ...nameContains, ...barcodeContains];
 };
 
-export const applyInventorySort = (rows, sortConfigs) => {
+/** One level of the multi-column sort, applied in array order. */
+export interface InventorySortConfig {
+  key: keyof InventoryRow;
+  direction: 'asc' | 'desc';
+}
+
+export const applyInventorySort = (
+  rows: InventoryRow[],
+  sortConfigs: InventorySortConfig[]
+): InventoryRow[] => {
   if (!sortConfigs.length) {
     return rows;
   }
 
-  return [...rows].sort((a, b) => {
+  return [...rows].sort((a: InventoryRow, b: InventoryRow) => {
     for (const config of sortConfigs) {
       let valA = a[config.key];
       let valB = b[config.key];
@@ -192,11 +201,14 @@ export const applyInventorySort = (rows, sortConfigs) => {
   });
 };
 
-export const calculateInventoryTotals = (rows) => {
-  const totalStock = rows.reduce((sum, row) => sum + row.stock, 0);
-  const totalValueCost = rows.reduce((sum, row) => sum + row.stock * row.cp, 0);
-  const totalValueSelling = rows.reduce((sum, row) => sum + row.stock * row.sp, 0);
-  const totalValueMrp = rows.reduce((sum, row) => sum + row.stock * (row.mrp || row.sp), 0);
+export const calculateInventoryTotals = (rows: InventoryRow[]) => {
+  const sumBy = (fn: (row: InventoryRow) => number) =>
+    rows.reduce((sum: number, row: InventoryRow) => sum + fn(row), 0);
+
+  const totalStock = sumBy((row) => row.stock);
+  const totalValueCost = sumBy((row) => row.stock * row.cp);
+  const totalValueSelling = sumBy((row) => row.stock * row.sp);
+  const totalValueMrp = sumBy((row) => row.stock * (row.mrp || row.sp));
 
   return {
     totalStock,
@@ -217,8 +229,12 @@ export const calculateInventoryTotals = (rows) => {
   };
 };
 
-export const buildInventoryCsv = (cols, rows) => {
-  const headers = [];
+export const buildInventoryCsv = (
+  /** Which columns are visible, keyed by InventoryColumn id. */
+  cols: Record<string, boolean>,
+  rows: InventoryRow[]
+): string => {
+  const headers: string[] = [];
   if (cols.sno) headers.push('S.No');
   if (cols.name) headers.push('Name');
   if (cols.stockStatus) headers.push('Status');
@@ -244,8 +260,8 @@ export const buildInventoryCsv = (cols, rows) => {
 
   return [
     headers.join(','),
-    ...rows.map((row, idx) => {
-      const rowData = [];
+    ...rows.map((row: InventoryRow, idx: number) => {
+      const rowData: (string | number)[] = [];
       if (cols.sno) rowData.push(idx + 1);
       if (cols.name) rowData.push(`"${row.name}"`);
       if (cols.stockStatus) rowData.push(`"${row.stockStatus}"`);
@@ -276,7 +292,7 @@ export const buildInventoryCsv = (cols, rows) => {
   ].join('\n');
 };
 
-export const getInventoryExpiryColor = (expiryStr) => {
+export const getInventoryExpiryColor = (expiryStr?: string | null): string => {
   if (!expiryStr || expiryStr === 'N/A' || expiryStr === '—') return 'inherit';
 
   const expDate = new Date(expiryStr);
