@@ -1,3 +1,13 @@
+import type { Batch } from '@/shared/types/models';
+
+interface EditBatchDialogProps {
+  open: boolean;
+  onClose: () => void;
+  /** The batch being edited; its expiryDate arrives pre-formatted YYYY-MM-DD. */
+  batch?: Batch | null;
+  onBatchUpdated: () => void;
+}
+
 import FormDialogContent from '@/shared/components/FormDialogContent';
 import React, { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/react';
@@ -19,7 +29,7 @@ import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
 
-const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }) => {
+const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDialogProps) => {
   const { dialogState, showError, closeDialog } = useCustomDialog();
   const [formData, setFormData] = useState<Record<string, any>>({
     batchCode: '',

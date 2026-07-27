@@ -39,7 +39,13 @@ export interface StockMovement {
   batch?: { id: number; batchCode?: string | null } | null;
 }
 
+/** Per-day movement totals, keyed by ISO date, sorted ascending. */
+export interface StockMovementDaySummary extends StockMovementTotals {
+  date: string;
+}
+
 export interface ProductHistory {
   totals: StockMovementTotals;
   movements: StockMovement[];
+  summaryByDate: StockMovementDaySummary[];
 }

@@ -1,3 +1,12 @@
+import type { Product } from '@/shared/types/models';
+
+interface AddStockDialogProps {
+  open: boolean;
+  onClose: () => void;
+  product?: Product | null;
+  onStockAdded: () => void;
+}
+
 import FormDialogContent from '@/shared/components/FormDialogContent';
 import React from 'react';
 import {
@@ -18,7 +27,7 @@ import CustomDialog from '@/shared/components/CustomDialog';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
 import { useAddStock } from '@/domains/inventory/components/useAddStock';
 
-const AddStockDialog = ({ open, onClose, product, onStockAdded }) => {
+const AddStockDialog = ({ open, onClose, product, onStockAdded }: AddStockDialogProps) => {
   const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
 
   const {

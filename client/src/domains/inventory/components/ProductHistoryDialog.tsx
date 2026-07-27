@@ -1,3 +1,18 @@
+import type { Product } from '@/shared/types/models';
+import type { ProductHistory } from '@/domains/inventory/components/inventoryTypes';
+
+interface ProductHistoryDialogProps {
+  open: boolean;
+  onClose: () => void;
+  product?: Product | null;
+  /** Null while the range is still loading. */
+  history?: ProductHistory | null;
+  loading: boolean;
+  /** A getDateRange preset key, e.g. 'today' or 'thisMonth'. */
+  range: string;
+  onRangeChange: (range: string) => void;
+}
+
 import React from 'react';
 import {
   Dialog,
@@ -82,7 +97,7 @@ const ProductHistoryDialog = ({
   loading,
   range,
   onRangeChange,
-}) => {
+}: ProductHistoryDialogProps) => {
   const totals = history?.totals || {
     added: 0,
     sold: 0,

@@ -1,3 +1,13 @@
+import type { Batch } from '@/shared/types/models';
+
+interface QuickInventoryDialogProps {
+  open: boolean;
+  onClose: () => void;
+  batch?: Batch | null;
+  productName?: string;
+  onUpdated: () => void;
+}
+
 import React, { useState } from 'react';
 import * as Sentry from '@sentry/react';
 import api from '@/shared/api/api';
@@ -14,7 +24,13 @@ import {
 import CustomDialog from '@/shared/components/CustomDialog';
 import SuccessNotification from '@/shared/components/SuccessNotification';
 
-const QuickInventoryDialog = ({ open, onClose, batch, productName, onUpdated }) => {
+const QuickInventoryDialog = ({
+  open,
+  onClose,
+  batch,
+  productName,
+  onUpdated,
+}: QuickInventoryDialogProps) => {
   const [addQty, setAddQty] = useState('');
   const [newCostPrice, setNewCostPrice] = useState('');
   const [isAveragingEnabled, setIsAveragingEnabled] = useState(false);
@@ -30,7 +46,7 @@ const QuickInventoryDialog = ({ open, onClose, batch, productName, onUpdated }) 
         const res = await api.get('/api/settings');
         if (res.data.data.posEnableWeightedAverageCost) {
           setIsAveragingEnabled(true);
-          setNewCostPrice(batch?.costPrice || '');
+          setNewCostPrice(batch?.costPrice ? String(batch.costPrice) : '');
         } else {
           setIsAveragingEnabled(false);
         }

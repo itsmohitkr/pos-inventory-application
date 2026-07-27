@@ -1,3 +1,22 @@
+import type { Batch, Product } from '@/shared/types/models';
+
+interface ProductDetailPanelProps {
+  /** Null collapses the panel. */
+  displayProduct?: Product | null;
+  isLoadingBatches: boolean;
+  /** Panel width in px, driven by the drag handle. */
+  width: number;
+  isResizing: boolean;
+  onResizeStart: () => void;
+  onAddStock: (product: Product) => void;
+  /** Opens the history dialog for the currently displayed product. */
+  onOpenHistory: () => void;
+  onBatchEditClick: (batch: Batch) => void;
+  onBatchDelete: (batchId: number) => void;
+  onQuickInventoryOpen: (batch: Batch) => void;
+  onClose: () => void;
+}
+
 import React from 'react';
 import {
   Box,
@@ -29,7 +48,7 @@ const ProductDetailPanel = ({
   onBatchDelete,
   onQuickInventoryOpen,
   onClose,
-}) => {
+}: ProductDetailPanelProps) => {
   return (
     <Slide direction="left" in={!!displayProduct} mountOnEnter unmountOnExit timeout={{ enter: 100, exit: 150 }}>
       <Box

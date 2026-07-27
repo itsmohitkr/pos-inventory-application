@@ -1,3 +1,15 @@
+interface ProductBarcodeSectionProps {
+  manualBarcodeInput: string;
+  setManualBarcodeInput: (value: string) => void;
+  barcodes: string[];
+  /** Empty string when the entered barcode is valid. */
+  barcodeError: string;
+  barcodeChecking: boolean;
+  onAddBarcode: (barcode: string) => void;
+  onRemoveBarcode: (index: number) => void;
+  onGenerate: () => void;
+}
+
 import React from 'react';
 import { Box, TextField, Button, Chip, Grid, InputAdornment } from '@mui/material';
 import { QrCode as QrCodeIcon, Refresh as RefreshIcon, Close as CloseIcon } from '@mui/icons-material';
@@ -6,7 +18,7 @@ const ProductBarcodeSection = ({
   manualBarcodeInput, setManualBarcodeInput,
   barcodes, barcodeError, barcodeChecking,
   onAddBarcode, onRemoveBarcode, onGenerate,
-}) => (
+}: ProductBarcodeSectionProps) => (
   <Box sx={{ mb: 2 }}>
     <Grid container spacing={1} alignItems="center">
       <Grid size="grow">
