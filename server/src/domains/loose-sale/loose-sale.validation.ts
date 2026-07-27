@@ -14,4 +14,11 @@ const looseSalesReportQuerySchema = z.object({
   endDate: z.union([z.coerce.date(), str()]).optional(),
 });
 
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type CreateLooseSaleInput = z.infer<typeof createLooseSaleBodySchema>;
+export type LooseSaleIdParam = z.infer<typeof looseSaleIdParamSchema>;
+
 export { looseSaleIdParamSchema, createLooseSaleBodySchema, looseSalesReportQuerySchema };

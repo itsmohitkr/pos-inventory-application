@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import customerService = require('./customer.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
-import { paramInt, queryCount, queryStrOr } from '../../shared/utils/requestParams';
+import { paramInt, paramStr, queryCount, queryStrOr } from '../../shared/utils/requestParams';
 
 const findOrCreate = async (req: Request, res: Response) => {
   const { phone, name } = req.body;
@@ -41,12 +41,12 @@ const updateCustomer = async (req: Request, res: Response) => {
 
 
 const getByBarcode = async (req: Request, res: Response) => {
-  const customer = await customerService.findByBarcode(req.params.barcode);
+  const customer = await customerService.findByBarcode(paramStr(req.params.barcode));
   return sendSuccessResponse(res, StatusCodes.OK, customer, 'Customer found', { format: 'raw' });
 };
 
 const getByPhone = async (req: Request, res: Response) => {
-  const customer = await customerService.findByPhone(req.params.phone);
+  const customer = await customerService.findByPhone(paramStr(req.params.phone));
   return sendSuccessResponse(res, StatusCodes.OK, customer, 'Customer found', { format: 'raw' });
 };
 

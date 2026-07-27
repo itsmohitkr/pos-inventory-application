@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import looseSaleService = require('./loose-sale.service');
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
-import { queryStr } from '../../shared/utils/requestParams';
+import { paramValue, queryStr } from '../../shared/utils/requestParams';
 
 const createLooseSale = async (req: Request, res: Response) => {
   const { itemName, price } = req.body;
@@ -29,7 +29,7 @@ const getLooseSalesReport = async (req: Request, res: Response) => {
 };
 
 const deleteLooseSale = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = paramValue(req.params.id);
   await looseSaleService.deleteLooseSale(id);
   return sendSuccessResponse(
     res,

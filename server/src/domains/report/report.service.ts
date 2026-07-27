@@ -1,5 +1,5 @@
 import prisma = require('../../config/prisma');
-import type { Prisma } from '@prisma/client';
+import type { Prisma, Sale, SaleItem } from '@prisma/client';
 
 /** Optional ISO date bounds shared by every report query. */
 interface DateRangeFilter {
@@ -8,16 +8,33 @@ interface DateRangeFilter {
 }
 
 /**
+ * The SaleItem fields the report maths reads. Structural (rather than the full
+ * model) so the helpers work with any query that selects at least these, and
+ * derived from Prisma so a schema change breaks here rather than silently
+ * producing wrong money.
+ */
+type ReportSaleItem = Pick<
+  SaleItem,
+  'quantity' | 'returnedQuantity' | 'sellingPrice' | 'costPrice'
+>;
+
+/** The Sale fields the report maths reads, plus its items. */
+interface ReportSale extends Pick<Sale, 'discount' | 'extraDiscount'> {
+  items: ReportSaleItem[];
+}
+
+/**
  * Net quantity actually kept by the customer (sold minus returned).
  */
-const getNetQuantity = (item) => item.quantity - item.returnedQuantity;
+const getNetQuantity = (item: ReportSaleItem): number =>
+  item.quantity - item.returnedQuantity;
 
 /**
  * Per-sale money maths, shared by every report so the summary, monthly, and
  * daily views can never disagree about what profit means. Returns gross figures
  * (before sale-level discounts) plus the discount-adjusted finals.
  */
-const calculateSaleTotals = (sale) => {
+const calculateSaleTotals = (sale: ReportSale) => {
   let grossProfit = 0;
   let grossNetTotal = 0;
 
@@ -221,7 +238,7 @@ const getLowStockReport = async () => {
     .filter((product) => product.totalQuantity <= product.lowStockThreshold);
 };
 
-const getMonthlySales = async ({ year }) => {
+const getMonthlySales = async ({ year }: { year: number }) => {
   const startDate = new Date(year, 0, 1);
   const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
 
@@ -272,7 +289,7 @@ const getMonthlySales = async ({ year }) => {
   return monthlyData;
 };
 
-const getDailySales = async ({ year, month }) => {
+const getDailySales = async ({ year, month }: { year: number; month: number }) => {
   // Note: month is 0-indexed (0 = Jan, 11 = Dec)
   const startDate = new Date(year, month, 1);
   const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999); // Last day of the requested month
@@ -348,7 +365,8 @@ const getTopSellingProducts = async () => {
     select: { id: true, productId: true },
   });
 
-  const productSales = {};
+  // productId -> total quantity sold.
+  const productSales: Record<number, number> = {};
   saleItems.forEach((si) => {
     const batch = batches.find((b) => b.id === si.batchId);
     if (batch) {

@@ -1,4 +1,8 @@
 import { StatusCodes } from 'http-status-codes';
+import type {
+  FindOrCreateCustomerInput,
+  UpdateCustomerInput,
+} from './customer.validation';
 import { randomBytes } from 'crypto';
 import prisma = require('../../config/prisma');
 import { createHttpError } from '../../shared/error/appError';
@@ -24,7 +28,7 @@ const generateCustomerBarcode = async () => {
   );
 };
 
-const findOrCreateCustomer = async ({ phone, name }) => {
+const findOrCreateCustomer = async ({ phone, name }: FindOrCreateCustomerInput) => {
   const existing = await prisma.customer.findUnique({ where: { phone } });
   if (existing) {
     // If customer exists but has no name, and we have one now, update it
@@ -45,19 +49,19 @@ const findOrCreateCustomer = async ({ phone, name }) => {
   return { customer, isNew: true };
 };
 
-const findByBarcode = async (barcode) => {
+const findByBarcode = async (barcode: string) => {
   const customer = await prisma.customer.findUnique({ where: { customerBarcode: barcode } });
   if (!customer) throw createHttpError(404, 'Customer not found');
   return customer;
 };
 
-const findByPhone = async (phone) => {
+const findByPhone = async (phone: string) => {
   const customer = await prisma.customer.findUnique({ where: { phone } });
   if (!customer) throw createHttpError(404, 'Customer not found');
   return customer;
 };
 
-const updateCustomer = async (id, { name, phone }) => {
+const updateCustomer = async (id: number, { name, phone }: UpdateCustomerInput) => {
   const customer = await prisma.customer.findUnique({ where: { id } });
   if (!customer) throw createHttpError(404, 'Customer not found');
 
@@ -129,13 +133,13 @@ const getAllCustomers = async ({ page = 1, limit = 50, search = '', sortBy = 'cr
   return { customers: customersWithFallback, total, page, limit, sortBy, order };
 };
 
-const getCustomerById = async (id) => {
+const getCustomerById = async (id: number) => {
   const customer = await prisma.customer.findUnique({ where: { id } });
   if (!customer) throw createHttpError(404, 'Customer not found');
   return customer;
 };
 
-const getCustomerPurchaseHistory = async (customerId) => {
+const getCustomerPurchaseHistory = async (customerId: number) => {
   const customer = await prisma.customer.findUnique({ where: { id: customerId } });
   if (!customer) throw createHttpError(404, 'Customer not found');
 

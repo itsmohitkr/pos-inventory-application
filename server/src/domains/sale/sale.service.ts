@@ -3,6 +3,7 @@ import prisma = require('../../config/prisma');
 import type { Prisma } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 import settingService = require('../setting/setting.service');
+import type { ProcessSaleInput } from './sale.validation';
 
 /**
  * Fetches all effective promotion prices for a list of product IDs at a given date.
@@ -77,7 +78,13 @@ export type SaleWithItems = Prisma.SaleGetPayload<{
   include: { items: typeof saleItemsInclude };
 }>;
 
-const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMethod = 'Cash', customerId = null }) => {
+const processSale = async ({
+  items,
+  discount = 0,
+  extraDiscount = 0,
+  paymentMethod = 'Cash',
+  customerId = null,
+}: ProcessSaleInput) => {
   // Only roundOff is read here. The full shape lives in
   // server/src/config/constants.ts -> DEFAULT_RECEIPT_SETTINGS; declaring just
   // what this function uses avoids a third copy of those ~34 fields.
@@ -90,7 +97,11 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
     const movementData = [];
 
     // 1. Fetch all batches and products in one go to validate and get basic info
-    const batchIds = items.map((i) => i.batch_id);
+    // batch_id is typed string | number by the schema, but every downstream
+    // use (Prisma lookup, batchMap key, SaleItem.batchId) needs the number.
+    // Normalising here means a non-numeric id reaches the "not found" 400
+    // below instead of failing inside Prisma as a 500.
+    const batchIds = items.map((i) => Number(i.batch_id));
     const batches = await tx.batch.findMany({
       where: { id: { in: batchIds } },
       include: { product: true },
@@ -103,7 +114,8 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
     const promoMap = await getBulkEffectivePromoPrices(tx, productIds);
 
     for (const item of items) {
-      const batch = batchMap.get(item.batch_id);
+      const batchId = Number(item.batch_id);
+      const batch = batchMap.get(batchId);
 
       if (!batch) {
         const message = `Batch ID ${item.batch_id} not found.`;
@@ -125,7 +137,7 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
 
       // Update stock
       await tx.batch.update({
-        where: { id: item.batch_id },
+        where: { id: batchId },
         data: { quantity: { decrement: item.quantity } },
       });
 
@@ -159,7 +171,7 @@ const processSale = async ({ items, discount = 0, extraDiscount = 0, paymentMeth
       totalAmount += effectivePrice * item.quantity;
 
       saleItemsData.push({
-        batchId: item.batch_id,
+        batchId,
         quantity: item.quantity,
         sellingPrice: effectivePrice,
         costPrice: batch.costPrice,

@@ -61,6 +61,17 @@ export const paramValue = (value: unknown): string | number =>
   typeof value === 'string' || typeof value === 'number' ? value : '';
 
 /**
+ * A route parameter as a string.
+ *
+ * Numbers are stringified for the same reason paramValue exists: a validated
+ * param may already have been coerced by its schema.
+ */
+export const paramStr = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  return typeof value === 'number' ? String(value) : '';
+};
+
+/**
  * A route parameter as an integer.
  *
  * Handles the already-coerced number case above; a non-numeric id yields NaN,

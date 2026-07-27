@@ -1,10 +1,13 @@
 import prisma = require('../../config/prisma');
+import type { CreateLooseSaleInput } from './loose-sale.validation';
 
-const createLooseSale = async ({ itemName, price }) => {
+const createLooseSale = async ({ itemName, price }: CreateLooseSaleInput) => {
   return await prisma.looseSale.create({
     data: {
       itemName: itemName || 'Loose Item',
-      price: parseFloat(price),
+      // `price` is already a number here: the schema coerces it, so the
+      // previous parseFloat() was re-parsing an existing number.
+      price,
     },
   });
 };
@@ -31,9 +34,10 @@ const getLooseSalesReport = async ({ startDate, endDate }: {
   return items;
 };
 
-const deleteLooseSale = async (id) => {
+// The id param schema accepts a coerced number or a digit string.
+const deleteLooseSale = async (id: string | number) => {
   return await prisma.looseSale.delete({
-    where: { id: parseInt(id) },
+    where: { id: typeof id === 'number' ? id : parseInt(id, 10) },
   });
 };
 

@@ -22,6 +22,13 @@ const updateCustomerBodySchema = z.object({
   name: str().max(100).nullable().optional(),
 });
 
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type FindOrCreateCustomerInput = z.infer<typeof findOrCreateBodySchema>;
+export type UpdateCustomerInput = z.infer<typeof updateCustomerBodySchema>;
+
 export {
   customerIdParamSchema,
   barcodeParamSchema,
