@@ -2,17 +2,11 @@ import React from 'react';
 import type { Batch, Product } from '@/shared/types/models';
 import type { PrinterInfo } from '@/domains/settings/hooks/useSettings';
 import type {
+  PaperPresetOption,
   PriceListDisplayOptions,
   PriceListLayout,
 } from '@/domains/inventory/components/paperSizePresets';
 import type { PriceListRow } from '@/domains/inventory/components/usePriceList';
-
-/** One entry in PAPER_PRESETS for the selected paper type. */
-interface PaperPresetOption {
-  id: string;
-  name: string;
-  layout: PriceListLayout;
-}
 
 interface PriceListConfigurationPanelProps {
   products: Product[];

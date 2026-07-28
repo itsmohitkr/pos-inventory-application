@@ -1,3 +1,5 @@
+import type { Product } from '@/shared/types/models';
+import type { InventorySortConfig } from '@/domains/inventory/components/inventoryExcelUtils';
 import { useMemo } from 'react';
 import {
   flattenInventoryRows,
@@ -7,7 +9,20 @@ import {
   getInventoryExpiryColor,
 } from '@/domains/inventory/components/inventoryExcelUtils';
 
-const useInventoryExcelData = ({ products, localCategoryFilter, searchTerm, sortConfigs }) => {
+interface UseInventoryExcelDataArgs {
+  products: Product[];
+  /** 'all' or a category name. */
+  localCategoryFilter: string;
+  searchTerm: string;
+  sortConfigs: InventorySortConfig[];
+}
+
+const useInventoryExcelData = ({
+  products,
+  localCategoryFilter,
+  searchTerm,
+  sortConfigs,
+}: UseInventoryExcelDataArgs) => {
   const uniqueCategories = useMemo(() => {
     const categorySet = new Set(products.map((product) => product.category).filter(Boolean));
     return ['all', ...Array.from(categorySet).sort()];

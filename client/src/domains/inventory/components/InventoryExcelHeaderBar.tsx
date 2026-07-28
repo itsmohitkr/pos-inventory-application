@@ -1,3 +1,14 @@
+interface InventoryExcelHeaderBarProps {
+  onClose: () => void;
+  /** Anchor for the column-visibility menu; null when closed. */
+  colAnchorEl: HTMLElement | null;
+  setColAnchorEl: (anchor: HTMLElement | null) => void;
+  cols: Record<string, boolean>;
+  setCols: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  onExportCSV: () => void;
+  onPrint: () => void;
+}
+
 import React from 'react';
 import {
   AppBar,
@@ -25,7 +36,7 @@ const InventoryExcelHeaderBar = ({
   setCols,
   onExportCSV,
   onPrint,
-}) => (
+}: InventoryExcelHeaderBarProps) => (
   <AppBar className="no-print" sx={{ position: 'relative', bgcolor: '#1a237e' }}>
     <Toolbar variant="dense">
       <IconButton edge="start" color="inherit" onClick={onClose} aria-label="close">

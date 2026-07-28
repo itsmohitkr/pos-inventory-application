@@ -1,3 +1,25 @@
+import type {
+  AddProductFormState,
+  InitialBatchForm,
+} from '@/domains/inventory/components/useAddProductForm';
+
+interface ProductInitialBatchSectionProps {
+  initialBatch: InitialBatchForm;
+  /** Reveals the batch-code and expiry fields when true. */
+  enableBatchTracking: boolean;
+  discountInput: string;
+  sellingInvalid: boolean;
+  /** Derived pricing figures, computed in useAddProductForm. */
+  discountValue: number;
+  discountPercent: number;
+  marginValue: number;
+  marginPercent: number;
+  vendorDiscountValue: number;
+  vendorDiscountPercent: number;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  setFormData: React.Dispatch<React.SetStateAction<AddProductFormState>>;
+}
+
 import React from 'react';
 import { Box, Typography, Grid, TextField, InputAdornment, Switch, FormControlLabel, Divider } from '@mui/material';
 import { SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
@@ -7,7 +29,7 @@ const ProductInitialBatchSection = ({
   sellingInvalid, discountValue, discountPercent, marginValue, marginPercent,
   vendorDiscountValue, vendorDiscountPercent,
   onChange, setFormData,
-}) => (
+}: ProductInitialBatchSectionProps) => (
   <Box>
     {/* Inventory Tracking */}
     <Typography variant="subtitle2" color="primary" sx={{ mb: 3, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>

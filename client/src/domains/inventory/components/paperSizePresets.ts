@@ -1,6 +1,17 @@
+import type { Options as BarcodeOptions } from 'react-barcode';
 import type { Batch, Product } from '@/shared/types/models';
 
-export const PAPER_PRESETS = {
+/** The symbologies react-barcode accepts. */
+export type BarcodeFormat = NonNullable<BarcodeOptions['format']>;
+
+/** One selectable sheet preset. */
+export interface PaperPresetOption {
+  id: string;
+  name: string;
+  layout: PriceListLayout;
+}
+
+export const PAPER_PRESETS: Record<'a4' | 'thermal', PaperPresetOption[]> = {
   a4: [
     {
       id: 'a4_4x10',
@@ -75,7 +86,8 @@ export interface PriceListLayout {
   barcodeLineWidth: number;
   /** Pixels, not mm — passed straight to JsBarcode. */
   barcodeHeight: number;
-  barcodeFormat: string;
+  /** One of react-barcode's supported symbologies. */
+  barcodeFormat: BarcodeFormat;
   barcodeLineSpacing?: number;
   textAlign?: string;
 }

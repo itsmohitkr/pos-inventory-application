@@ -1,18 +1,43 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import Barcode from 'react-barcode';
+import type {
+  PriceListDisplayOptions,
+  PriceListLayout,
+} from '@/domains/inventory/components/paperSizePresets';
+import type { PriceListLabel } from '@/domains/inventory/components/usePriceList';
 
-const formatCurrency = (value) => {
+const formatCurrency = (value: unknown): string => {
   if (value === undefined || value === null || Number.isNaN(Number(value))) {
     return '-';
   }
   return Number(value).toFixed(2);
 };
 
-/** Free-form style overrides applied to a label card. */
-type LabelCardOptions = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+/**
+ * Style overrides applied to a label card. Only these four are read; the
+ * print preview passes fixed dimensions, the on-screen grid passes none.
+ */
+interface LabelCardOptions {
+  width?: string;
+  minHeight?: string;
+  padding?: number;
+  justifyContent?: string;
+}
 
-const PriceListLabelCard = ({ label, options = {} as LabelCardOptions, layout, displayOptions }) => {
+interface PriceListLabelCardProps {
+  label: PriceListLabel;
+  options?: LabelCardOptions;
+  layout: PriceListLayout;
+  displayOptions: PriceListDisplayOptions;
+}
+
+const PriceListLabelCard = ({
+  label,
+  options = {},
+  layout,
+  displayOptions,
+}: PriceListLabelCardProps) => {
   const resolvedTextAlign = layout.textAlign || 'left';
 
   return (

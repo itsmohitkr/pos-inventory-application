@@ -1,3 +1,14 @@
+import type { Batch } from '@/shared/types/models';
+
+interface ProductBatchTableProps {
+  batches: Batch[];
+  /** Shows the batch-code and expiry columns when true. */
+  batchTrackingEnabled?: boolean;
+  onQuickInventoryOpen: (batch: Batch) => void;
+  onBatchEditClick: (batch: Batch) => void;
+  onBatchDelete: (batchId: number) => void;
+}
+
 import React from 'react';
 import {
   Table,
@@ -22,7 +33,7 @@ const ProductBatchTable = ({
   onQuickInventoryOpen,
   onBatchEditClick,
   onBatchDelete
-}) => {
+}: ProductBatchTableProps) => {
   return (
     <Box sx={{ flex: 1, overflow: 'auto' }}>
       <Box sx={{ p: 1.5, pb: 1 }}>

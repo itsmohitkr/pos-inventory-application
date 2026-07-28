@@ -1,3 +1,15 @@
+
+interface ProductSearchFieldProps {
+  searchTerm: string;
+  /** The debounced value actually used for filtering. */
+  debouncedSearch: string;
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
+  onSearchChange: (value: string) => void;
+  /** Exact-barcode lookup, triggered on scanner input. */
+  onBarcodeSearch: (value: string) => void;
+  onClearSearch: () => void;
+}
+
 import React from 'react';
 import { TextField, InputAdornment, IconButton, Chip } from '@mui/material';
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
@@ -9,7 +21,7 @@ const ProductSearchField = ({
   onSearchChange,
   onBarcodeSearch,
   onClearSearch,
-}) => {
+}: ProductSearchFieldProps) => {
   return (
     <>
       {searchTerm && (

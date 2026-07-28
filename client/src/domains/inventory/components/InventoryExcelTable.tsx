@@ -1,3 +1,21 @@
+import type {
+  InventoryRow,
+  InventorySortConfig,
+} from '@/domains/inventory/components/inventoryExcelUtils';
+import type { InventoryTotals } from '@/domains/inventory/components/inventoryTableConfig';
+
+interface InventoryExcelTableProps {
+  /** Column visibility, keyed by InventoryColumn id. */
+  cols: Record<string, boolean>;
+  /** Applied in array order, outermost first. */
+  sortConfigs: InventorySortConfig[];
+  /** Shift-click adds a secondary sort level, hence the event. */
+  handleSort: (key: string, event?: React.MouseEvent) => void;
+  filteredAndSortedData: InventoryRow[];
+  getExpiryColor: (expiry?: string | null) => string;
+  totals: InventoryTotals;
+}
+
 import React from 'react';
 import {
   Table,
@@ -18,7 +36,7 @@ const InventoryExcelTable = ({
   filteredAndSortedData,
   getExpiryColor,
   totals,
-}) => {
+}: InventoryExcelTableProps) => {
   const visibleColumns = INVENTORY_COLUMNS.filter((col) => cols[col.id]);
 
   return (

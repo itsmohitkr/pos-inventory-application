@@ -1,3 +1,8 @@
+import type { Product } from '@/shared/types/models';
+import type {
+  InventoryRow,
+  InventorySortConfig,
+} from '@/domains/inventory/components/inventoryExcelUtils';
 import type { TransitionProps } from '@mui/material/transitions';
 import React, { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
@@ -17,8 +22,22 @@ const Transition = React.forwardRef(function Transition(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSearch = '' }) => {
-  const [products, setProducts] = useState([]);
+interface InventoryExcelViewProps {
+  open: boolean;
+  onClose: () => void;
+  /** Category preselected by the inventory page. */
+  categoryFilter?: string;
+  /** Search text carried over from the main list. */
+  externalSearch?: string;
+}
+
+const InventoryExcelView = ({
+  open,
+  onClose,
+  categoryFilter = 'all',
+  externalSearch = '',
+}: InventoryExcelViewProps) => {
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Column Visibility State
@@ -51,7 +70,9 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
   const [colAnchorEl, setColAnchorEl] = useState(null);
 
   // Spreadsheet Sorting Enhancements
-  const [sortConfigs, setSortConfigs] = useState([{ key: 'name', direction: 'asc' }]);
+  const [sortConfigs, setSortConfigs] = useState<InventorySortConfig[]>([
+    { key: 'name', direction: 'asc' },
+  ]);
 
   // Active Category Filter for Spreadsheet
   const [localCategoryFilter, setLocalCategoryFilter] = useState('all');
@@ -94,7 +115,10 @@ const InventoryExcelView = ({ open, onClose, categoryFilter = 'all', externalSea
     }
   }, [localCategoryFilter, uniqueCategories]);
 
-  const handleSort = (property, event) => {
+  const handleSort = (propertyId: string, event?: React.MouseEvent) => {
+    // `propertyId` always comes from an INVENTORY_COLUMNS id, every one of
+    // which is an InventoryRow field (except 'sno', which is not sortable).
+    const property = propertyId as keyof InventoryRow;
     const isShift = event?.shiftKey;
 
     setSortConfigs((prev) => {

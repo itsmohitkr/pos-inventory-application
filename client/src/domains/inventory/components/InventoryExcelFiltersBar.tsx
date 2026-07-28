@@ -1,3 +1,16 @@
+import type { InventoryTotals } from '@/domains/inventory/components/inventoryTableConfig';
+
+interface InventoryExcelFiltersBarProps {
+  searchTerm: string;
+  onSearchTermChange: (value: string) => void;
+  /** 'all' or a category name. */
+  localCategoryFilter: string;
+  onCategoryFilterChange: (value: string) => void;
+  uniqueCategories: string[];
+  filteredCount: number;
+  totals: InventoryTotals;
+}
+
 import React from 'react';
 import { Paper, Box, TextField, InputAdornment, Chip } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
@@ -10,7 +23,7 @@ const InventoryExcelFiltersBar = ({
   uniqueCategories,
   filteredCount,
   totals,
-}) => (
+}: InventoryExcelFiltersBarProps) => (
   <Paper
     className="no-print"
     elevation={0}

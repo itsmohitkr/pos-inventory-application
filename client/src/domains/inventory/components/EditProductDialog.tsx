@@ -1,3 +1,12 @@
+import type { Product } from '@/shared/types/models';
+
+interface EditProductDialogProps {
+  open: boolean;
+  onClose: () => void;
+  product?: Product | null;
+  onProductUpdated: () => void;
+}
+
 import React from 'react';
 import {
   Dialog,
@@ -23,7 +32,12 @@ import CustomDialog from '@/shared/components/CustomDialog';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import { useEditProduct } from '@/domains/inventory/components/useEditProduct';
 
-const EditProductDialog = ({ open, onClose, product, onProductUpdated }) => {
+const EditProductDialog = ({
+  open,
+  onClose,
+  product,
+  onProductUpdated,
+}: EditProductDialogProps) => {
   const { dialogState, showError, closeDialog } = useCustomDialog();
   
   const {
