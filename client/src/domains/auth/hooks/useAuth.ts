@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import settingsService from '@/shared/api/settingsService';
 import { getAdminAutoLogoutTime } from '@/shared/utils/paymentSettings';
 import type { AuthActionResult, AuthUser } from '@/shared/types/auth';
+import { clearAdminToken, setAdminToken } from '@/shared/api/adminToken';
 
 const STORAGE_KEYS = {
   user: 'posCurrentUser',
@@ -25,6 +26,7 @@ export const useAuth = () => {
       setCurrentUser(restoredUser);
       localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(restoredUser));
       localStorage.removeItem(STORAGE_KEYS.expiry);
+      clearAdminToken();
       setAdminLogoutTimer(null);
 
       window.location.hash = '#/pos';
@@ -93,6 +95,11 @@ export const useAuth = () => {
   }, [adminLogoutTimer, handleAdminLogout]);
 
   const handleLogin = (user: AuthUser) => {
+    // Admins are handed a token at login so they do not have to verify again
+    // straight away; other roles receive none.
+    if (user.adminToken && user.adminTokenExpiresAt) {
+      setAdminToken(user.adminToken, user.adminTokenExpiresAt);
+    }
     setCurrentUser(user);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
   };
@@ -101,12 +108,18 @@ export const useAuth = () => {
     setCurrentUser(null);
     localStorage.removeItem(STORAGE_KEYS.user);
     localStorage.removeItem(STORAGE_KEYS.expiry);
+    clearAdminToken();
   };
 
   const handleAdminLogin = async (password: string): Promise<AuthActionResult> => {
     try {
       const res = await settingsService.verifyAdmin(password);
       if (res.success) {
+        // The token is what the server actually checks. Without it the
+        // elevation below only changes the UI.
+        if (res.adminToken && res.adminTokenExpiresAt) {
+          setAdminToken(res.adminToken, res.adminTokenExpiresAt);
+        }
         const elevatedUser = {
           ...currentUser,
           originalRole: currentUser.role,

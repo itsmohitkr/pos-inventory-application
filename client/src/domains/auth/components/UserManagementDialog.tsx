@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import type { User } from '@/shared/api/settingsService';
 import settingsService from '@/shared/api/settingsService';
+import type { ApiError } from '@/shared/api/api';
 import type { AuthUser } from '@/shared/types/auth';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
@@ -100,6 +101,18 @@ const UserManagementDialog = ({ open, onClose, currentUser }: UserManagementDial
     }
   };
 
+  /**
+   * The user-management routes require a live admin elevation token. A 401
+   * means it expired or was never issued, which is a different problem from a
+   * validation failure and needs a different instruction.
+   */
+  const describeError = (err: ApiError, fallback: string): string => {
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      return 'Admin session expired. Close this dialog and verify as admin again.';
+    }
+    return err.response?.data?.error || fallback;
+  };
+
   const handleAddUser = async () => {
     if (!formData.username || !formData.password) {
       setError('Username and password are required');
@@ -117,7 +130,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }: UserManagementDial
       fetchUsers();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'user-management-create' } });
-      setError(err.response?.data?.error || 'Failed to create user');
+      setError(describeError(err, 'Failed to create user'));
     }
   };
 
@@ -132,7 +145,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }: UserManagementDial
       fetchUsers();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'user-management-update' } });
-      setError(err.response?.data?.error || 'Failed to update user');
+      setError(describeError(err, 'Failed to update user'));
     }
   };
 
@@ -149,7 +162,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }: UserManagementDial
         fetchUsers();
       } catch (err) {
         Sentry.captureException(err, { tags: { feature: 'user-management-delete' } });
-        setError(err.response?.data?.error || 'Failed to delete user');
+        setError(describeError(err, 'Failed to delete user'));
       }
     }
   };

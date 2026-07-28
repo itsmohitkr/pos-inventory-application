@@ -7,6 +7,10 @@ import type {
   Cancel,
 } from 'axios';
 import { IPC } from '@/shared/ipcChannels';
+import { getAdminToken } from '@/shared/api/adminToken';
+
+/** Must match ADMIN_TOKEN_HEADER in server/src/shared/middleware/requireAdmin.ts. */
+export const ADMIN_TOKEN_HEADER = 'X-Admin-Token';
 
 /** Error shape after the response interceptor tags cancellations. */
 export interface ApiError extends Error {
@@ -65,18 +69,23 @@ const isElectronProd =
 
 const ipcAdapter: AxiosAdapter | undefined = isElectronProd
   ? async (config) => {
-      const { method, url, data: body, params, signal } = config;
+      const { method, url, data: body, params, signal, headers } = config;
 
       let canceled = false;
       signal?.addEventListener('abort', () => {
         canceled = true;
       });
 
+      // Headers must cross the bridge: desktop/main.js already accepts and
+      // forwards them, but this adapter used to drop them. Anything set by a
+      // request interceptor — notably the admin elevation token — would work in
+      // the browser dev server and silently vanish in a packaged build.
       const result = await window.electron!.ipcRenderer.invoke<BridgeResult>(IPC.API_BRIDGE, {
         method,
         url,
         body,
         params,
+        headers: headers ? JSON.parse(JSON.stringify(headers)) : undefined,
       });
 
       if (canceled) {
@@ -107,6 +116,16 @@ const api = axios.create({
   baseURL: import.meta.env.PROD ? 'http://localhost:5001' : '',
   timeout: 10000,
   ...(ipcAdapter ? { adapter: ipcAdapter } : {}),
+});
+
+// Attach the admin elevation token when one is live. The server requires it on
+// the user-management routes; every other route ignores it.
+api.interceptors.request.use((config) => {
+  const token = getAdminToken();
+  if (token) {
+    config.headers.set(ADMIN_TOKEN_HEADER, token);
+  }
+  return config;
 });
 
 api.interceptors.response.use(

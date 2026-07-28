@@ -2,11 +2,27 @@ const request = require('supertest');
 const app = require('../../src/app');
 const prisma = require('../../src/config/prisma');
 const bcrypt = require('bcryptjs');
+const adminTokens = require('../../src/domains/auth/adminTokens');
+
+/**
+ * The user-management routes require a live admin elevation token. Tests mint
+ * one directly rather than logging in, so they exercise the middleware without
+ * depending on the login flow.
+ */
+const withAdminToken = async () => {
+    const { token } = await adminTokens.issueToken({
+        id: 1,
+        username: 'admin',
+        role: 'admin',
+    });
+    return token;
+};
 
 describe('Auth Domain API', () => {
     beforeEach(() => {
         // Reset mocks before each test
         jest.clearAllMocks();
+        adminTokens.__clearAllTokens();
     });
 
     describe('POST /api/auth/login', () => {
@@ -93,6 +109,7 @@ describe('Auth Domain API', () => {
 
             const res = await request(app)
                 .post('/api/auth/users')
+                .set('X-Admin-Token', await withAdminToken())
                 .send({
                     username: 'newuser',
                     password: 'password123',
@@ -110,6 +127,7 @@ describe('Auth Domain API', () => {
 
             const res = await request(app)
                 .post('/api/auth/users')
+                .set('X-Admin-Token', await withAdminToken())
                 .send({
                     username: 'existing',
                     password: 'password123',
@@ -127,11 +145,103 @@ describe('Auth Domain API', () => {
             prisma.user.findUnique.mockResolvedValue({ id: 2, username: 'victim' });
             prisma.user.delete.mockResolvedValue({ id: 2 });
 
-            const res = await request(app).delete('/api/auth/users/2');
+            const res = await request(app)
+                .delete('/api/auth/users/2')
+                .set('X-Admin-Token', await withAdminToken());
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
             expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 2 } });
+        });
+    });
+
+    /**
+     * These are the regression guard for the privilege-escalation hole: before
+     * requireAdmin existed, an unauthenticated PUT could set any user's role to
+     * 'admin', and the change survived logout and restart.
+     */
+    describe('user-management routes require an admin token', () => {
+        it('rejects PUT /users/:id with no token and does not touch the database', async () => {
+            const res = await request(app)
+                .put('/api/auth/users/2')
+                .send({ role: 'admin' });
+
+            expect(res.status).toBe(401);
+            expect(prisma.user.update).not.toHaveBeenCalled();
+        });
+
+        it('rejects PUT /users/:id with an unknown token', async () => {
+            const res = await request(app)
+                .put('/api/auth/users/2')
+                .set('X-Admin-Token', 'not-a-real-token')
+                .send({ role: 'admin' });
+
+            expect(res.status).toBe(401);
+            expect(prisma.user.update).not.toHaveBeenCalled();
+        });
+
+        it('rejects PUT /users/:id once the token has expired', async () => {
+            const token = await withAdminToken();
+
+            // Push past the elevation window rather than waiting it out.
+            const realNow = Date.now;
+            Date.now = () => realNow() + 24 * 60 * 60 * 1000;
+            try {
+                const res = await request(app)
+                    .put('/api/auth/users/2')
+                    .set('X-Admin-Token', token)
+                    .send({ role: 'admin' });
+
+                expect(res.status).toBe(401);
+                expect(prisma.user.update).not.toHaveBeenCalled();
+            } finally {
+                Date.now = realNow;
+            }
+        });
+
+        it('rejects a token belonging to a non-admin', async () => {
+            const { token } = await adminTokens.issueToken({
+                id: 4,
+                username: 'cashier',
+                role: 'cashier',
+            });
+
+            const res = await request(app)
+                .put('/api/auth/users/2')
+                .set('X-Admin-Token', token)
+                .send({ role: 'admin' });
+
+            expect(res.status).toBe(403);
+            expect(prisma.user.update).not.toHaveBeenCalled();
+        });
+
+        it('allows PUT /users/:id with a valid admin token', async () => {
+            prisma.user.findUnique.mockResolvedValue({ id: 2, username: 'victim', role: 'cashier' });
+            prisma.user.update.mockResolvedValue({ id: 2, username: 'victim', role: 'admin' });
+
+            const res = await request(app)
+                .put('/api/auth/users/2')
+                .set('X-Admin-Token', await withAdminToken())
+                .send({ role: 'admin' });
+
+            expect(res.status).toBe(200);
+            expect(prisma.user.update).toHaveBeenCalled();
+        });
+
+        it('rejects DELETE /users/:id with no token', async () => {
+            const res = await request(app).delete('/api/auth/users/2');
+
+            expect(res.status).toBe(401);
+            expect(prisma.user.delete).not.toHaveBeenCalled();
+        });
+
+        it('rejects POST /users with no token', async () => {
+            const res = await request(app)
+                .post('/api/auth/users')
+                .send({ username: 'sneaky', password: 'password123', role: 'admin' });
+
+            expect(res.status).toBe(401);
+            expect(prisma.user.create).not.toHaveBeenCalled();
         });
     });
 

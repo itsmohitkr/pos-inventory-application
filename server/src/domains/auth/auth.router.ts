@@ -2,6 +2,7 @@ import express = require('express');
 import authController = require('./auth.controller');
 import methodNotAllowed = require('../../shared/error/methodNotAllowed');
 import { validateRequest } from '../../shared/middleware/validateRequest';
+import { requireAdmin } from '../../shared/middleware/requireAdmin';
 import {
   userIdParamSchema,
   profileQuerySchema,
@@ -24,18 +25,31 @@ router
   .route('/profile')
   .get(validateRequest({ query: profileQuerySchema }), authController.getProfile)
   .all(methodNotAllowed);
+// The three routes below grant durable privilege — a write here survives
+// logout, restart and reinstall — so they require a live admin elevation
+// token. See shared/middleware/requireAdmin.ts for why the rest of this API
+// stays unauthenticated.
 router
   .route('/users')
   .get(authController.getAllUsers)
-  .post(validateRequest({ body: createUserBodySchema }), authController.createUser)
+  .post(
+    requireAdmin,
+    validateRequest({ body: createUserBodySchema }),
+    authController.createUser
+  )
   .all(methodNotAllowed);
 router
   .route('/users/:id')
   .put(
+    requireAdmin,
     validateRequest({ params: userIdParamSchema, body: updateUserBodySchema }),
     authController.updateUser
   )
-  .delete(validateRequest({ params: userIdParamSchema }), authController.deleteUser)
+  .delete(
+    requireAdmin,
+    validateRequest({ params: userIdParamSchema }),
+    authController.deleteUser
+  )
   .all(methodNotAllowed);
 router
   .route('/users/:id/change-password')

@@ -18,6 +18,14 @@ export interface AuthUser {
   updatedAt?: string;
   /** Present only during an active admin elevation. */
   originalRole?: string;
+  /**
+   * Elevation token, returned by the login response for admins only. It is
+   * moved into its own storage key by handleLogin and is NOT part of the
+   * persisted user — see shared/api/adminToken.ts.
+   */
+  adminToken?: string;
+  /** Epoch milliseconds. */
+  adminTokenExpiresAt?: number;
 }
 
 /** Result shape shared by the admin-elevation calls. */

@@ -74,9 +74,17 @@ const wipeDatabase = async (req: Request, res: Response) => {
 };
 
 const verifyAdmin = async (req: Request, res: Response) => {
-  await authService.verifyAdmin(req.body);
+  // The token is the point of this endpoint now — the renderer stores it and
+  // sends it back on privileged routes.
+  const { token, expiresAt } = await authService.verifyAdmin(req.body);
 
-  return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Admin verified');
+  return sendSuccessResponse(
+    res,
+    StatusCodes.OK,
+    { adminToken: token, adminTokenExpiresAt: expiresAt },
+    'Admin verified',
+    { format: 'merge' }
+  );
 };
 
 const completeOnboarding = async (req: Request, res: Response) => {

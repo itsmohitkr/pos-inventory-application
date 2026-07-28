@@ -5,6 +5,7 @@ import type { Prisma, User } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 import logger = require('../../shared/utils/logger');
 import { DEFAULT_RECEIPT_SETTINGS } from '../../config/constants';
+import { issueToken } from './adminTokens';
 import type {
   ChangePasswordInput,
   CompleteOnboardingInput,
@@ -91,7 +92,16 @@ const login = async ({ username, password }: LoginInput) => {
     }
   }
 
-  return sanitizeUser(user);
+  const safeUser = sanitizeUser(user);
+
+  // Admins get an elevation token here so a direct admin login works without a
+  // second password prompt. Non-admins get none — there is nothing to elevate.
+  if (user.role === 'admin') {
+    const { token, expiresAt } = await issueToken(user);
+    return { ...safeUser, adminToken: token, adminTokenExpiresAt: expiresAt };
+  }
+
+  return safeUser;
 };
 
 const getProfile = async (userId: number) => {
@@ -325,6 +335,11 @@ const verifyAdmin = async ({ password }: VerifyAdminInput) => {
       logger.error({ err, adminId: foundAdmin.id }, 'Failed to migrate admin password.');
     }
   }
+
+  // The token is what makes this elevation mean something server-side. Before
+  // it existed, verifyAdmin only told the renderer "yes", and the renderer set
+  // role: 'admin' in localStorage — which the user could have done themselves.
+  return issueToken(foundAdmin);
 };
 
 const ONBOARDING_VERSION = 1;

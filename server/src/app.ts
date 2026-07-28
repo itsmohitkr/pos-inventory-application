@@ -50,6 +50,18 @@ const authLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// Stricter limit for the two endpoints that check a password. The general
+// authLimiter above allows 100 requests per window, which is 100 password
+// guesses against /login and /verify-admin — too generous for a brute-force
+// guard. Applied before authLimiter so the tighter budget wins on these paths.
+const passwordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,
+    message: { error: 'Too many password attempts, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // Request logging middleware
 app.use((req, res, next) => {
     logger.info({ method: req.method, url: req.url, ip: req.ip }, 'Incoming Request');
@@ -74,6 +86,8 @@ const lazyLoad =
     return router(req, res, next);
   };
 
+apiRouter.use('/auth/login', passwordLimiter);
+apiRouter.use('/auth/verify-admin', passwordLimiter);
 apiRouter.use('/auth', authLimiter, lazyLoad('./domains/auth/auth.router'));
 apiRouter.use(lazyLoad('./domains/product/product.router'));
 apiRouter.use(lazyLoad('./domains/category/category.router'));

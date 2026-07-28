@@ -21,6 +21,17 @@ export interface User {
 }
 
 /** Wipe requires the admin password *and* the typed confirmation phrase. */
+/**
+ * POST /api/auth/verify-admin. The token is the part that matters — the server
+ * requires it on the user-management routes.
+ */
+export interface VerifyAdminResult {
+  success: boolean;
+  message?: string;
+  adminToken?: string;
+  adminTokenExpiresAt?: number;
+}
+
 export interface WipeDatabaseCredentials {
   username: string;
   password: string;
@@ -64,7 +75,10 @@ const settingsService = {
     return response.data;
   },
 
-  verifyAdmin: async (password: string, config: RequestConfig = {}) => {
+  verifyAdmin: async (
+    password: string,
+    config: RequestConfig = {}
+  ): Promise<VerifyAdminResult> => {
     const response = await api.post('/api/auth/verify-admin', { password }, config);
     return response.data;
   },
