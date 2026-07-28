@@ -14,12 +14,12 @@ import ProductBarcodeSection from '@/domains/inventory/components/ProductBarcode
 import ProductInitialBatchSection from '@/domains/inventory/components/ProductInitialBatchSection';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
 
-const AddProductForm = ({ onProductAdded }) => {
+const AddProductForm = ({ onProductAdded }: { onProductAdded: () => void }) => {
   const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
   const form = useAddProductForm({ showError, showSuccess, onProductAdded });
   const [activeTab, setActiveTab] = useState(0);
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeTab < 2) {
       setActiveTab((prev) => prev + 1);

@@ -251,7 +251,7 @@ Loose Vegetables,,Groceries,0,100,60,80,,`;
     onClose();
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.defaultPrevented) return;
     if (event.key !== 'Enter' || event.shiftKey) return;
     if ((event.target as HTMLElement | null)?.tagName === 'TEXTAREA') return;

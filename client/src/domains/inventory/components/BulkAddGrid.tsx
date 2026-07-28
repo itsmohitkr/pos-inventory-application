@@ -102,7 +102,11 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }: BulkAddGridProps) => {
     setRows(rows.filter((row) => row.id !== id));
   };
 
-  const handleFieldChange = (id, field, value) => {
+  const handleFieldChange = (
+    id: number,
+    field: keyof BulkAddRow,
+    value: string | boolean
+  ) => {
     setRows(
       rows.map((row) => {
         if (row.id === id) {

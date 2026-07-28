@@ -47,7 +47,7 @@ const SAMPLE_SALE = {
       sellingPrice: 40,
       batch: {
         mrp: 50,
-        expiryDate: null,
+        expiryDate: null as string | null,
         product: { name: 'Sample Tea 200g', barcode: '8900000000011' },
       },
     },

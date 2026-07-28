@@ -104,7 +104,10 @@ const InventoryExcelTable = ({
               }}
             >
               {visibleColumns.map((col) => {
-                const cellValue = col.id === 'sno' ? index + 1 : row[col.id];
+                // 'sno' is a rendered row number, every other column id is a
+                // field on InventoryRow.
+                const cellValue =
+                  col.id === 'sno' ? index + 1 : row[col.id as keyof InventoryRow];
                 const content = col.render ? col.render(row, { getExpiryColor }) : cellValue;
 
                 return (

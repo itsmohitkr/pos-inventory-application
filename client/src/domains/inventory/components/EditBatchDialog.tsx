@@ -70,9 +70,9 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
     }
   }, [open, batch]);
 
-  const handleChange = (name, value) => {
+  const handleChange = (name: string, value: string | boolean) => {
     if (name === 'discount_percent') {
-      setDiscountInput(value);
+      setDiscountInput(String(value));
       const val = parseFloat(String(value));
       if (!isNaN(val)) {
         const m = parseFloat(String(formData.mrp)) || 0;
@@ -102,7 +102,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
     }
   };
 
-  const handleSave = async (e) => {
+  const handleSave = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     const mrp = Number(formData.mrp) || 0;
     const costPrice = Number(formData.costPrice) || 0;
@@ -164,7 +164,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
   const sellingAboveMrp = sellingPrice > mrp;
   const sellingInvalid = sellingBelowCost || sellingAboveMrp;
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.defaultPrevented) return;
     if (event.key !== 'Enter') return;
     if (event.shiftKey) return;

@@ -53,7 +53,7 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }: AddStockDialog
 
   const sellingInvalid = sellingBelowCost || sellingAboveMrp;
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.defaultPrevented || event.key !== 'Enter' || event.shiftKey) return;
     if ((event.target as HTMLElement | null)?.tagName === 'TEXTAREA') return;
     event.preventDefault();

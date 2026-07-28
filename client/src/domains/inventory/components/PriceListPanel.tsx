@@ -13,7 +13,12 @@ import { buildPriceListPrintableHtml } from '@/domains/inventory/components/pric
 import { PAPER_PRESETS } from '@/domains/inventory/components/paperSizePresets';
 import usePriceList from '@/domains/inventory/components/usePriceList';
 
-const PriceListPanel = ({ open, onClose }) => {
+interface PriceListPanelProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+const PriceListPanel = ({ open, onClose }: PriceListPanelProps) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const pl = usePriceList(open);

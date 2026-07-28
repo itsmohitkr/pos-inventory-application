@@ -43,19 +43,19 @@ const rangeOptions = [
   { value: 'lastYear', label: 'Last Year' },
 ];
 
-const formatDate = (value) => {
+const formatDate = (value?: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
   return date.toLocaleDateString();
 };
 
-const formatTime = (value) => {
+const formatTime = (value?: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-const movementColor = (type) => {
+const movementColor = (type: string) => {
   switch (type) {
     case 'added':
       return 'success';
@@ -72,7 +72,7 @@ const movementColor = (type) => {
   }
 };
 
-const movementLabel = (type) => {
+const movementLabel = (type: string): string => {
   switch (type) {
     case 'added':
       return 'Added';
