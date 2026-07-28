@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { Batch, Product } from '@/shared/types/models';
+import type { PromoThresholdConfig } from '@/domains/promotions/types';
+import type { CartItem, OrderTab } from '@/domains/pos/types';
 
 /**
  * Hook to manage POS tabs and cart state
  */
 export const usePOSTabs = () => {
   // Multi-tab state
-  const [tabs, setTabs] = useState(() => {
+  const [tabs, setTabs] = useState<OrderTab[]>(() => {
     try {
       const savedTabs = sessionStorage.getItem('posOrderTabs');
       if (savedTabs) {
@@ -17,7 +20,7 @@ export const usePOSTabs = () => {
     return [{ id: 1, name: 'Order 1', cart: [], discount: 0 }];
   });
 
-  const [activeTabId, setActiveTabId] = useState(() => {
+  const [activeTabId, setActiveTabId] = useState<number>(() => {
     try {
       const savedActiveTab = sessionStorage.getItem('posActiveTabId');
       if (savedActiveTab) {
@@ -29,7 +32,7 @@ export const usePOSTabs = () => {
     return 1;
   });
 
-  const [lastAddedItemId, setLastAddedItemId] = useState(null);
+  const [lastAddedItemId, setLastAddedItemId] = useState<number | null>(null);
 
   // Save state to sessionStorage
   useEffect(() => {
@@ -42,7 +45,7 @@ export const usePOSTabs = () => {
 
   const activeTab = useMemo(
     () =>
-      tabs.find((t) => t.id === activeTabId) ||
+      tabs.find((t: OrderTab) => t.id === activeTabId) ||
       tabs[0] || { id: 1, name: 'Order 1', cart: [], discount: 0 },
     [tabs, activeTabId]
   );
@@ -50,24 +53,24 @@ export const usePOSTabs = () => {
   const cart = useMemo(() => activeTab.cart || [], [activeTab.cart]);
   const discount = useMemo(() => activeTab.discount || 0, [activeTab.discount]);
 
-  const updateTab = useCallback((tabId, updates) => {
-    setTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, ...updates } : tab)));
+  const updateTab = useCallback((tabId: number, updates: Partial<OrderTab>) => {
+    setTabs((prev: OrderTab[]) => prev.map((tab: OrderTab) => (tab.id === tabId ? { ...tab, ...updates } : tab)));
   }, []);
 
   const handleAddTab = useCallback(() => {
-    const newId = tabs.reduce((max, t) => (t.id > max ? t.id : max), 0) + 1;
-    const newTab = { id: newId, name: `Order ${newId}`, cart: [], discount: 0 };
-    setTabs((prev) => [...prev, newTab]);
+    const newId = tabs.reduce((max: number, t: OrderTab) => (t.id > max ? t.id : max), 0) + 1;
+    const newTab: OrderTab = { id: newId, name: `Order ${newId}`, cart: [], discount: 0 };
+    setTabs((prev: OrderTab[]) => [...prev, newTab]);
     setActiveTabId(newId);
   }, [tabs]);
 
   const handleCloseTab = useCallback(
-    (tabId) => {
-      setTabs((prev) => {
+    (tabId: number) => {
+      setTabs((prev: OrderTab[]) => {
         if (prev.length === 1) {
           return [{ id: tabId, name: prev[0].name, cart: [], discount: 0 }];
         }
-        const newTabs = prev.filter((t) => t.id !== tabId);
+        const newTabs = prev.filter((t: OrderTab) => t.id !== tabId);
         if (activeTabId === tabId) {
           setActiveTabId(newTabs[newTabs.length - 1].id);
         }
@@ -78,9 +81,9 @@ export const usePOSTabs = () => {
   );
 
   const setCart = useCallback(
-    (newCartOrFn) => {
-      setTabs((prev) =>
-        prev.map((tab) => {
+    (newCartOrFn: CartItem[] | ((current: CartItem[]) => CartItem[])) => {
+      setTabs((prev: OrderTab[]) =>
+        prev.map((tab: OrderTab) => {
           if (tab.id === activeTabId) {
             const currentCart = tab.cart || [];
             const newCart =
@@ -95,19 +98,19 @@ export const usePOSTabs = () => {
   );
 
   const setDiscount = useCallback(
-    (newDiscount) => {
+    (newDiscount: number) => {
       updateTab(activeTabId, { discount: newDiscount });
     },
     [activeTabId, updateTab]
   );
 
   const addToCart = useCallback(
-    (product, batch) => {
-      setCart((prev) => {
-        const existing = prev.find((item) => item.batch_id === batch.id);
+    (product: Product, batch: Batch) => {
+      setCart((prev: CartItem[]) => {
+        const existing = prev.find((item: CartItem) => item.batch_id === batch.id);
         const newQuantity = existing ? existing.quantity + 1 : 1;
 
-        const getPrice = (qty) => {
+        const getPrice = (qty: number): number => {
           if (batch.wholesaleEnabled && batch.wholesaleMinQty && qty >= batch.wholesaleMinQty) {
             return batch.wholesalePrice;
           }
@@ -120,7 +123,7 @@ export const usePOSTabs = () => {
         const effectivePrice = getPrice(newQuantity);
 
         if (existing) {
-          return prev.map((item) =>
+          return prev.map((item: CartItem) =>
             item.batch_id === batch.id
               ? { ...item, quantity: newQuantity, price: effectivePrice }
               : item
@@ -155,16 +158,16 @@ export const usePOSTabs = () => {
   );
 
   const removeFromCart = useCallback(
-    (batchId) => {
-      setCart((prev) => prev.filter((item) => item.batch_id !== batchId));
+    (batchId: number) => {
+      setCart((prev: CartItem[]) => prev.filter((item: CartItem) => item.batch_id !== batchId));
     },
     [setCart]
   );
 
   const updateQuantity = useCallback(
-    (batchId, change) => {
-      setCart((prev) =>
-        prev.map((item) => {
+    (batchId: number, change: number) => {
+      setCart((prev: CartItem[]) =>
+        prev.map((item: CartItem) => {
           if (item.batch_id === batchId) {
             if (item.isFree) return item;
             const newQty = item.quantity + change;
@@ -187,10 +190,10 @@ export const usePOSTabs = () => {
   );
 
   const handleSetQuantity = useCallback(
-    (batchId, quantity) => {
+    (batchId: number, quantity: number) => {
       if (quantity < 1) return;
-      setCart((prev) =>
-        prev.map((item) => {
+      setCart((prev: CartItem[]) =>
+        prev.map((item: CartItem) => {
           if (item.batch_id === batchId) {
             if (item.isFree) return item;
             let newPrice = item.sellingPrice;
@@ -209,21 +212,21 @@ export const usePOSTabs = () => {
   );
 
   const addFreeProduct = useCallback(
-    (product, config, totalProfitValue) => {
+    (product: Product, config: PromoThresholdConfig | null, totalProfitValue: number) => {
       if (!config) return;
 
       const profitLimit = Number(totalProfitValue) * (Number(config.profitPercentage || 20) / 100);
       const minCost = Number(config.minCostPrice || 0);
       const maxCost = config.maxCostPrice !== null ? Number(config.maxCostPrice) : profitLimit;
 
-      const batch = product.batches.find((b) => {
+      const batch = (product.batches || []).find((b: Batch) => {
         const cp = Number(b.costPrice);
         return cp >= minCost && cp <= maxCost + 0.001 && b.quantity > 0;
       });
 
       if (!batch) return false;
 
-      const newFreeItem = {
+      const newFreeItem: CartItem = {
         product_id: product.id,
         batch_id: batch.id,
         name: `(FREE) ${product.name}`,
@@ -242,8 +245,8 @@ export const usePOSTabs = () => {
         isFree: true,
       };
 
-      setCart((prev) => {
-        const filtered = prev.filter((item) => !item.isFree);
+      setCart((prev: CartItem[]) => {
+        const filtered = prev.filter((item: CartItem) => !item.isFree);
         return [...filtered, newFreeItem];
       });
       return true;
@@ -256,31 +259,31 @@ export const usePOSTabs = () => {
   }, [activeTabId, updateTab]);
 
   const subTotal = useMemo(
-    () => cart.reduce((sum, item) => sum + (item?.price || 0) * (item?.quantity || 0), 0),
+    () => cart.reduce((sum: number, item: CartItem) => sum + (item?.price || 0) * (item?.quantity || 0), 0),
     [cart]
   );
   const totalMrp = useMemo(
-    () => cart.reduce((sum, item) => sum + (item?.mrp || 0) * (item?.quantity || 0), 0),
+    () => cart.reduce((sum: number, item: CartItem) => sum + (item?.mrp || 0) * (item?.quantity || 0), 0),
     [cart]
   );
   const totalCostPrice = useMemo(
-    () => cart.reduce((sum, item) => sum + (item?.costPrice || 0) * (item?.quantity || 0), 0),
+    () => cart.reduce((sum: number, item: CartItem) => sum + (item?.costPrice || 0) * (item?.quantity || 0), 0),
     [cart]
   );
   const totalQty = useMemo(
-    () => cart.reduce((sum, item) => sum + (item?.quantity || 0), 0),
+    () => cart.reduce((sum: number, item: CartItem) => sum + (item?.quantity || 0), 0),
     [cart]
   );
   const baseTotalAmount = useMemo(() => Math.max(0, subTotal - discount), [subTotal, discount]);
   const totalProfit = useMemo(() => {
-    return cart.reduce((sum, item) => {
+    return cart.reduce((sum: number, item: CartItem) => {
       if (item.isFree) return sum;
       const profitPerUnit = (item.price || 0) - (item.costPrice || 0);
       return sum + profitPerUnit * item.quantity;
     }, 0);
   }, [cart]);
 
-  const alreadyHasFreeProduct = useMemo(() => cart.some((item) => item.isFree), [cart]);
+  const alreadyHasFreeProduct = useMemo(() => cart.some((item: CartItem) => item.isFree), [cart]);
 
   return {
     tabs,
