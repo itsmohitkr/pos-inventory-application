@@ -34,7 +34,7 @@ const PromotionManagement = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editId, setEditId] = useState(null);
+  const [editId, setEditId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('threshold');
 
   // Form state
@@ -291,7 +291,7 @@ const PromotionManagement = () => {
   };
 
   const handleAddItem = () => {
-    if (!selectedProduct || !promoPrice) return;
+    if (!selectedProduct || !promoPrice || !productPriceInfo) return;
 
     const newItem = {
       productId: selectedProduct.id,
@@ -347,7 +347,7 @@ const PromotionManagement = () => {
         endDate: end.toISOString(),
       };
 
-      if (isEditMode) {
+      if (isEditMode && editId) {
         await posService.updatePromotion(editId, submissionData);
       } else {
         await posService.createPromotion(submissionData);

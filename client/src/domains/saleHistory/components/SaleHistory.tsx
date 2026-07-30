@@ -66,7 +66,7 @@ const SaleHistory = ({
     { label: 'Custom', getValue: (): null => null },
   ];
 
-  const fetchSales = useCallback(async (start?: string, end?: string) => {
+  const fetchSales = useCallback(async (start: string, end: string) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -157,7 +157,7 @@ const SaleHistory = ({
     setTabValue(newValue);
     if (newValue < 8) {
       const range = timeframes[newValue].getValue();
-      fetchSales(range.start, range.end);
+      if (range) fetchSales(range.start, range.end);
     }
   };
 
@@ -203,7 +203,7 @@ const SaleHistory = ({
     // Refresh the sales list based on current timeframe
     if (tabValue < 8) {
       const range = timeframes[tabValue].getValue();
-      fetchSales(range.start, range.end);
+      if (range) fetchSales(range.start, range.end);
     } else if (dateRange.startDate && dateRange.endDate) {
       handleApplyCustomRange();
     }
@@ -217,7 +217,7 @@ const SaleHistory = ({
       // Refresh
       if (tabValue < 8) {
         const range = timeframes[tabValue].getValue();
-        fetchSales(range.start, range.end);
+        if (range) fetchSales(range.start, range.end);
       } else {
         handleApplyCustomRange();
       }

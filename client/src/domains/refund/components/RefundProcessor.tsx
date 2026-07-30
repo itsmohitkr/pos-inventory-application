@@ -99,6 +99,7 @@ const RefundProcessor = ({
   };
 
   const processRefund = async () => {
+    if (!sale) return;
     const itemsToReturn = Object.entries(selectedItems)
       .filter(([, data]) => data.checked)
       .map(([id, data]) => ({

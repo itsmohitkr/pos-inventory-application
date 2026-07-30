@@ -159,7 +159,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
               TOTAL DISCOUNT
             </Typography>
             <Typography variant="body1" sx={{ fontWeight: 500, color: '#0b1d39', fontSize: '0.85rem', lineHeight: 1 }}>
-              ₹{stats.totalDiscount.toFixed(2)}
+              ₹{(stats.totalDiscount ?? 0).toFixed(2)}
             </Typography>
             <Typography
               variant="caption"

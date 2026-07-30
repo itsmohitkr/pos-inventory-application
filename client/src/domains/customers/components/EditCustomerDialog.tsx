@@ -42,7 +42,8 @@ const EditCustomerDialog = ({
 
   const handleSave = async () => {
     setError('');
-    
+    if (!customer) return;
+
     const trimmedPhone = phone.trim();
     if (!trimmedPhone || trimmedPhone.length < 7) {
       setError('A valid phone number (at least 7 digits) is required.');

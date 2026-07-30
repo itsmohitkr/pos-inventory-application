@@ -222,18 +222,18 @@ const ThresholdSettingsPanel = ({
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={0.5}>
-                          {config.allowedGroups?.length > 0 ? (
+                          {(config.allowedGroups?.length ?? 0) > 0 ? (
                             <Chip
-                              label={`${config.allowedGroups.length} Groups`}
+                              label={`${config.allowedGroups?.length} Groups`}
                               size="small"
                               sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800, bgcolor: '#f0f9ff', color: '#0369a1' }}
                             />
                           ) : (
                             <Typography variant="caption" sx={{ fontWeight: 700, color: '#94a3b8' }}>ALL PRODUCTS</Typography>
                           )}
-                          {config.disallowedGroups?.length > 0 && (
+                          {(config.disallowedGroups?.length ?? 0) > 0 && (
                             <Chip
-                              label={`-${config.disallowedGroups.length}`}
+                              label={`-${config.disallowedGroups?.length}`}
                               size="small"
                               sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800, bgcolor: '#fef2f2', color: '#991b1b' }}
                             />
