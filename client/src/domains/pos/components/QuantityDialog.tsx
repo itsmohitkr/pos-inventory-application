@@ -39,7 +39,7 @@ const QuantityDialog = ({
     return () => window.cancelAnimationFrame(frame);
   }, [open, initialValue]);
 
-  const handleNumberClick = (num) => {
+  const handleNumberClick = (num: number | string) => {
     if (value === '0') {
       setValue(num.toString());
     } else {

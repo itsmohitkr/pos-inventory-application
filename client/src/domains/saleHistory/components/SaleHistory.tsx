@@ -63,7 +63,7 @@ const SaleHistory = ({
     { label: 'Last Month', getValue: () => getSaleHistoryRange('last_month') },
     { label: 'This Year', getValue: () => getSaleHistoryRange('this_year') },
     { label: 'Last Year', getValue: () => getSaleHistoryRange('last_year') },
-    { label: 'Custom', getValue: () => null },
+    { label: 'Custom', getValue: (): null => null },
   ];
 
   const fetchSales = useCallback(async (start?: string, end?: string) => {

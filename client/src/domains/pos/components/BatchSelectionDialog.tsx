@@ -64,7 +64,7 @@ const BatchSelectionDialog = ({
   useEffect(() => {
     if (!scannedProduct) return;
 
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (!keyboardEnabled) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();

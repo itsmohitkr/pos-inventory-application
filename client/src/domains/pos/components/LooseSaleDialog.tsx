@@ -39,7 +39,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }: LooseSaleDialogProps) =>
     }
   }, [open]);
 
-  const handleNumberClick = (num) => {
+  const handleNumberClick = (num: number | string) => {
     setPrice((prev) => {
       if (prev === '0') return String(num);
       if (prev.length >= 10) return prev;
@@ -86,7 +86,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }: LooseSaleDialogProps) =>
   useEffect(() => {
     if (!open) return;
 
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       // If typing in Name field, only handle Enter and Escape
       if (isNameFocused) {
         if (e.key === 'Enter') {

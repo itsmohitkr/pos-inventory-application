@@ -4,14 +4,14 @@ import { TableRow, TableCell, IconButton, Box, Typography, Chip } from '@mui/mat
 import { Edit as EditIcon, Delete as DeleteIcon, Circle as CircleIcon } from '@mui/icons-material';
 import BarcodeChips from '@/domains/inventory/components/BarcodeChips';
 
-const getStockStatus = (product) => {
+const getStockStatus = (product: Product) => {
   if (product.total_stock === 0) return 'zero';
   if (product.lowStockWarningEnabled && product.total_stock <= product.lowStockThreshold)
     return 'low';
   return 'sufficient';
 };
 
-const isUpdatedToday = (dateStr) => {
+const isUpdatedToday = (dateStr?: string | null) => {
   if (!dateStr) return false;
   const d = new Date(dateStr);
   const today = new Date();

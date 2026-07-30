@@ -72,7 +72,7 @@ const QuickInventoryDialog = ({
     onClose();
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!batch) return;
 
@@ -119,7 +119,7 @@ const QuickInventoryDialog = ({
   const previewQty =
     Number.isFinite(parsedAddQty) && parsedAddQty > 0 ? currentQty + parsedAddQty : currentQty;
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.defaultPrevented) return;
     if (event.key !== 'Enter') return;
     if (event.shiftKey) return;

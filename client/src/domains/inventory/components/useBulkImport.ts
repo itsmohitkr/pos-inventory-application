@@ -68,7 +68,7 @@ export const useBulkImport = (
     return result;
   };
 
-  const validateAllRows = async (allData) => {
+  const validateAllRows = async (allData: BulkImportRow[]) => {
     setValidating(true);
     const errors = [];
     const seenBarcodes = new Map();
@@ -98,8 +98,8 @@ export const useBulkImport = (
       const uniqueBarcodes = Array.from(seenBarcodes.keys()).filter((b) => b);
       if (uniqueBarcodes.length > 0) {
         const originalBarcodes = allData
-          .filter((row) => row.barcode && row.barcode.trim())
-          .map((row) => row.barcode.trim());
+          .filter((row: BulkImportRow) => row.barcode && row.barcode.trim())
+          .map((row: BulkImportRow) => row.barcode.trim());
 
         const data = await inventoryService.validateBarcodes(originalBarcodes);
         const { existingBarcodes } = data;
@@ -107,7 +107,7 @@ export const useBulkImport = (
         for (const row of allData) {
           if (row.barcode && row.barcode.trim()) {
             const rowBarcode = row.barcode.trim().toLowerCase();
-            const exists = existingBarcodes.some((eb) => eb.toLowerCase() === rowBarcode);
+            const exists = existingBarcodes.some((eb: string) => eb.toLowerCase() === rowBarcode);
             if (exists) {
               const error = 'Barcode already exists in database';
               row.errors.push(error);

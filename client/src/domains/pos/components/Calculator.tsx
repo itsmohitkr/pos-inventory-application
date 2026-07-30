@@ -23,7 +23,7 @@ const Calculator = ({ open, onClose }: { open: boolean; onClose: () => void }) =
     }
   }, [expression]);
 
-  const handleInput = (val) => {
+  const handleInput = (val: string) => {
     // Prevent multiple consecutive operators
     const lastChar = expression.slice(-1);
     const isOperator = ['+', '-', '*', '/'].includes(val);
@@ -162,9 +162,9 @@ const Calculator = ({ open, onClose }: { open: boolean; onClose: () => void }) =
           C: handleClear,
         };
 
-        if (keyMap[e.key]) {
+        if (keyMap[(e.key as keyof typeof keyMap)]) {
           e.preventDefault();
-          keyMap[e.key]();
+          keyMap[(e.key as keyof typeof keyMap)]();
         } else if (/[0-9+\-*/.%]/.test(e.key)) {
           e.preventDefault();
           const val = e.key;

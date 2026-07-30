@@ -40,7 +40,7 @@ const NumpadDialog = ({
     return () => window.cancelAnimationFrame(frame);
   }, [open, initialValue]);
 
-  const handleNumberClick = React.useCallback((num) => {
+  const handleNumberClick = React.useCallback((num: string) => {
     setValue((prev) => (prev === '0' ? num.toString() : prev + num));
   }, []);
 
@@ -65,7 +65,7 @@ const NumpadDialog = ({
   useEffect(() => {
     if (!open) return;
 
-    const handleGlobalKeyDown = (e) => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.key >= '0' && e.key <= '9') {
         e.preventDefault();
         handleNumberClick(e.key);

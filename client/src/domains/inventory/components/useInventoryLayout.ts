@@ -12,7 +12,7 @@ export const useInventoryLayout = () => {
   const [isResizingRight, setIsResizingRight] = useState(false);
 
   useEffect(() => {
-    const handleMouseMove = (event) => {
+    const handleMouseMove = (event: MouseEvent) => {
       if (isResizingLeft) {
         const nextWidth = Math.max(80, Math.min(window.innerWidth * 0.4, event.clientX - 40));
         setLeftPanelWidth(nextWidth);

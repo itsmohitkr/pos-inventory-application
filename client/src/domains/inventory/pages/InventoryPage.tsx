@@ -33,13 +33,13 @@ const InventoryPage = () => {
   const [isPending, startTransition] = useTransition();
   const inventoryRef = useRef(null);
 
-  const handleCategoryChange = (val) => {
+  const handleCategoryChange = (val: string) => {
     startTransition(() => {
       setCategoryFilter(val);
     });
   };
 
-  const handleSearchChange = (val) => {
+  const handleSearchChange = (val: string) => {
     startTransition(() => {
       setDebouncedSearch(val);
     });

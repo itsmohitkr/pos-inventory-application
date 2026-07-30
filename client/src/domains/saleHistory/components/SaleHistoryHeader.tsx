@@ -18,7 +18,8 @@ import { ShoppingBag as PosIcon, Sell as LooseIcon } from '@mui/icons-material';
 /** One selectable range in the timeframe dropdown. */
 export interface SaleHistoryTimeframe {
   label: string;
-  getValue: () => { startDate: string; endDate: string } | null;
+  /** Null for the 'Custom' entry, which is driven by the date pickers. */
+  getValue: () => { start: string; end: string } | null;
 }
 
 export interface SaleHistoryDateRange {
