@@ -135,6 +135,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }: UserManagementDial
   };
 
   const handleUpdateUser = async () => {
+    if (!selectedUser) return;
     try {
       await settingsService.updateUser(selectedUser.id, {
         role: formData.role,
@@ -290,7 +291,7 @@ const UserManagementDialog = ({ open, onClose, currentUser }: UserManagementDial
                         size="small"
                         onClick={() => handleDeleteUser(user.id, user.username)}
                         title="Delete user"
-                        disabled={currentUser.id === user.id}
+                        disabled={currentUser?.id === user.id}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>

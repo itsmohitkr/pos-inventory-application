@@ -72,7 +72,9 @@ const ipcAdapter: AxiosAdapter | undefined = isElectronProd
       const { method, url, data: body, params, signal, headers } = config;
 
       let canceled = false;
-      signal?.addEventListener('abort', () => {
+      // Axios's GenericAbortSignal declares addEventListener itself as
+      // optional (not just the signal), hence the second `?.`.
+      signal?.addEventListener?.('abort', () => {
         canceled = true;
       });
 

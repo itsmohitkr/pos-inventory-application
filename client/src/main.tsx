@@ -38,7 +38,12 @@ import GlobalErrorBoundary from '@/shared/components/GlobalErrorBoundary';
 
 // In production (Electron build), axios baseURL is handled in src/api.js
 
-createRoot(document.getElementById('root')).render(
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error('Root element #root not found — check index.html');
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <GlobalErrorBoundary>
       <ThemeProvider theme={theme}>

@@ -23,7 +23,8 @@ const getStoredShopName = () => {
 
 const getStoredReceiptSettings = (fallbackShopName: string): ReceiptSettings => {
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.receipt));
+    const rawStored = localStorage.getItem(STORAGE_KEYS.receipt);
+    const stored = rawStored ? JSON.parse(rawStored) : null;
     return {
       ...DEFAULT_RECEIPT_SETTINGS,
       ...stored,
@@ -176,7 +177,7 @@ export const useSettings = (showError?: (message: string) => void) => {
 
   const refreshPrinters = useCallback(async function runFetch(retries = 3) {
     try {
-      const printerList = await window.electron.ipcRenderer.invoke('get-printers');
+      const printerList = await window.electron?.ipcRenderer.invoke('get-printers');
       const list = Array.isArray(printerList) ? printerList : [];
       setPrinters(list);
       const defaultP = list.find((p) => p.isDefault);

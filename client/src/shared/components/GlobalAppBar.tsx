@@ -79,7 +79,7 @@ const GlobalAppBar = ({
   permissions,
 }: GlobalAppBarProps) => {
   const formatTimer = (seconds: number | null | undefined): string => {
-    if (seconds === null) return '';
+    if (seconds == null) return '';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return ` (${mins}:${secs.toString().padStart(2, '0')})`;
@@ -125,10 +125,11 @@ const GlobalAppBar = ({
               </RouterLink>
             </Typography>
             <Typography variant="caption" sx={{ color: 'rgba(248, 245, 240, 0.7)' }}>
-              {currentUser.username} • {currentUser.role} {currentUser.originalRole && '(Elevated)'}
+              {currentUser?.username} • {currentUser?.role}{' '}
+              {currentUser?.originalRole && '(Elevated)'}
             </Typography>
           </Box>
-          {currentUser.originalRole && (
+          {currentUser?.originalRole && (
             <Button
               onClick={onAdminLogout}
               component={RouterLink}

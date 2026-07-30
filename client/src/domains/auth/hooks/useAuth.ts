@@ -113,6 +113,11 @@ export const useAuth = () => {
 
   const handleAdminLogin = async (password: string): Promise<AuthActionResult> => {
     try {
+      // Elevation only makes sense once someone is already logged in.
+      if (!currentUser) {
+        return { success: false, error: 'No active session' };
+      }
+
       const res = await settingsService.verifyAdmin(password);
       if (res.success) {
         // The token is what the server actually checks. Without it the
@@ -120,7 +125,7 @@ export const useAuth = () => {
         if (res.adminToken && res.adminTokenExpiresAt) {
           setAdminToken(res.adminToken, res.adminTokenExpiresAt);
         }
-        const elevatedUser = {
+        const elevatedUser: AuthUser = {
           ...currentUser,
           originalRole: currentUser.role,
           role: 'admin',

@@ -43,6 +43,10 @@ const ChangePasswordDialog = ({
       setPasswordError('New passwords do not match');
       return;
     }
+    if (!currentUser) {
+      setPasswordError('No active session');
+      return;
+    }
     try {
       await api.put(`/api/auth/users/${currentUser.id}/change-password`, {
         oldPassword: passwordData.oldPassword,

@@ -92,7 +92,7 @@ function App() {
     fetchSettings,
   } = useSettings(showError);
 
-  const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
+  const [settingsAnchorEl, setSettingsAnchorEl] = useState<HTMLElement | null>(null);
   const [showAccountDialog, setShowAccountDialog] = useState(false);
   const [showBillDialog, setShowBillDialog] = useState(false);
   const [showUserManagementDialog, setShowUserManagementDialog] = useState(false);
@@ -137,7 +137,7 @@ function App() {
       navigate('/pos');
       window.dispatchEvent(new Event('pos-refocus'));
     } else {
-      setAdminLoginError(result.error);
+      setAdminLoginError(result.error || 'Invalid admin password');
     }
   };
 
