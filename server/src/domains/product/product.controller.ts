@@ -170,6 +170,14 @@ const exportProducts = async (req: Request, res: Response) => {
 };
 
 const importProducts = async (req: Request, res: Response) => {
+  // validateUploadedFile('file') runs before this on the router and already
+  // rejects with 400 when req.file is missing; multer's own type still marks
+  // it optional since that guarantee lives in another middleware.
+  if (!req.file) {
+    throw createHttpError(StatusCodes.BAD_REQUEST, 'No file uploaded', {
+      error: 'No file uploaded',
+    });
+  }
   const csvData = req.file.buffer.toString('utf-8');
   const result = await productService.importProducts(csvData);
   return sendSuccessResponse(res, StatusCodes.OK, result, 'Products imported successfully', {

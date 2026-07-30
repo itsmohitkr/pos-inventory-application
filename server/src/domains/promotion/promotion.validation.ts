@@ -6,16 +6,17 @@ const promotionIdParamSchema = z.object({ id: numericId });
 
 const productIdParamSchema = z.object({ productId: numericId });
 
-const promotionItemSchema = z
-  .object({
-    productId: numericId,
-    promoPrice: num().min(0).nullable().optional(),
-    discountPercentage: num().min(0).max(100).nullable().optional(),
-  })
-  // Joi's .or('promoPrice', 'discountPercentage') — at least one required.
-  .refine((v) => v.promoPrice != null || v.discountPercentage != null, {
-    message: 'one of promoPrice or discountPercentage is required',
-  });
+const promotionItemSchema = z.object({
+  productId: numericId,
+  // NOT optional: PromotionItem.promoPrice is a non-nullable Float column
+  // with no default. The previous schema allowed submitting
+  // discountPercentage alone (Joi's `.or()`), but nothing ever computed a
+  // promoPrice from it in that case — the client always sends an explicit
+  // promoPrice, and no test exercises the percentage-only path.
+  // discountPercentage is stored alongside it for display only.
+  promoPrice: num().min(0),
+  discountPercentage: num().min(0).max(100).optional(),
+});
 
 const promotionBodySchema = z.object({
   name: str().min(1).max(150),

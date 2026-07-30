@@ -59,7 +59,7 @@ const buildTree = (categories: Category[], pathMap: Map<number, string>): Catego
 
 const ensureCategoriesFromProducts = async () => {
   // 1. Get distinct category strings from products (fast with index)
-  const products = await prisma.product.findMany({
+  const rawProducts = await prisma.product.findMany({
     // NOTE: this was `{ not: null, not: '' }` — a duplicate key, so only the
     // second survived and `not: null` was always discarded. Behaviour is
     // unchanged: SQL `category <> ''` already excludes NULL rows, so the
@@ -69,11 +69,19 @@ const ensureCategoriesFromProducts = async () => {
     select: { category: true },
   });
 
+  // The query above already excludes null/empty categories at the SQL level;
+  // this filter makes that guarantee explicit for the type checker (Prisma's
+  // return type is still `string | null` because the column itself is
+  // nullable) rather than relying on the query shape never changing.
+  const products = rawProducts.filter(
+    (p): p is { category: string } => p.category !== null
+  );
+
   if (products.length === 0) return;
 
   // 2. Fetch all existing categories once to build a path map
   const existingCategories = await prisma.category.findMany();
-  const byId = new Map();
+  const byId = new Map<number, Category>();
   existingCategories.forEach((c) => byId.set(c.id, c));
 
   // Helper to get full path for a category ID
@@ -89,8 +97,8 @@ const ensureCategoriesFromProducts = async () => {
     return fullPath;
   };
 
-  const pathCache = new Map();
-  const existingPaths = new Map(); // path -> id
+  const pathCache = new Map<number, string>();
+  const existingPaths = new Map<string, number>(); // path -> id
   existingCategories.forEach((c) => {
     const p = getPath(c.id, pathCache);
     existingPaths.set(p, c.id);
@@ -112,16 +120,19 @@ const ensureCategoriesFromProducts = async () => {
     for (const part of parts) {
       currentPath = currentPath ? `${currentPath}/${part}` : part;
       if (existingPaths.has(currentPath)) {
-        parentId = existingPaths.get(currentPath);
+        parentId = existingPaths.get(currentPath) ?? null;
       } else {
-        // Create missing segment
-        const created = await prisma.category.create({
+        // Create missing segment. Explicit type breaks a circular-inference
+        // error TS reports here (Prisma's generic create() overload combined
+        // with the surrounding closures over `parentId`).
+        const created: Category = await prisma.category.create({
           data: { name: part, parentId },
         });
-        parentId = created.id;
-        existingPaths.set(currentPath, parentId);
+        const newId: number = created.id;
+        parentId = newId;
+        existingPaths.set(currentPath, newId);
         // Also add to byId for getPath consistency if needed (though existingPaths is enough for this loop)
-        byId.set(parentId, { id: parentId, name: part, parentId: created.parentId });
+        byId.set(parentId, created);
       }
     }
   }
@@ -190,6 +201,11 @@ const updateCategory = async (id: number, { name }: UpdateCategoryInput) => {
   });
 
   for (const product of productsToUpdate) {
+    // The where clause only matches non-null categories at the SQL level;
+    // this guard makes that explicit for the type checker and is itself
+    // another "should not happen" fallback.
+    if (!product.category) continue;
+
     let nextCategory;
     // Case-insensitive check for exact match or path prefix
     if (product.category.toLowerCase() === oldPath.toLowerCase()) {

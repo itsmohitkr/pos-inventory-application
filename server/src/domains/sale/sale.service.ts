@@ -156,15 +156,22 @@ const processSale = async ({
       if (item.sellingPrice === 0 || item.isFree) {
         effectivePrice = 0;
       } else {
+        // wholesalePrice can be null even when wholesaleEnabled is true and a
+        // minimum quantity is set — product.service's validatePricing only
+        // checks it when explicitly provided on write. Requiring it here too
+        // means a batch with that data gap is priced (and reported, via the
+        // isWholesale flag below) as a normal sale instead of writing NaN
+        // into totalAmount.
         isWholesaleItem = !!(
           batch.wholesaleEnabled &&
           batch.wholesaleMinQty &&
+          batch.wholesalePrice !== null &&
           item.quantity >= batch.wholesaleMinQty
         );
 
         // 1. Check Wholesale (highest priority if applicable)
         if (isWholesaleItem) {
-          effectivePrice = batch.wholesalePrice;
+          effectivePrice = batch.wholesalePrice as number;
         }
         // 2. Check Promotion
         else if (promoPrice !== null && promoPrice < batch.sellingPrice) {
@@ -216,7 +223,10 @@ const processSale = async ({
         totalAmount: Math.max(0, finalAmount),
         discount: discount,
         extraDiscount: extraDiscount,
-        paymentMethod: paymentMethod,
+        // `paymentMethod = 'Cash'` above only catches `undefined` — a client
+        // explicitly sending `null` reached Prisma as null for a non-nullable
+        // column with a default. Coalescing here catches that case too.
+        paymentMethod: paymentMethod || 'Cash',
         customerId: customerId || null,
         items: {
           create: saleItemsData,

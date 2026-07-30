@@ -370,7 +370,11 @@ const getTopSellingProducts = async () => {
   saleItems.forEach((si) => {
     const batch = batches.find((b) => b.id === si.batchId);
     if (batch) {
-      productSales[batch.productId] = (productSales[batch.productId] || 0) + si._sum.quantity;
+      // _sum.quantity is typed nullable by Prisma's aggregate API regardless
+      // of the summed column's own nullability; SaleItem.quantity is a
+      // non-null Int and every group here has at least one row, so this is
+      // never actually null in practice.
+      productSales[batch.productId] = (productSales[batch.productId] || 0) + (si._sum.quantity || 0);
     }
   });
 

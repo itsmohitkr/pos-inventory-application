@@ -282,6 +282,14 @@ const syncPurchaseStatus = async (purchaseId: number, tx: Prisma.TransactionClie
     include: { payments: true },
   });
 
+  // The purchase this payment belongs to was already validated by the caller
+  // in the same transaction; a missing row here means it was deleted mid-flight.
+  if (!purchase) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Purchase not found', {
+      error: 'Purchase not found',
+    });
+  }
+
   const totalPaid = purchase.payments.reduce((sum, p) => sum + p.amount, 0);
   let newStatus = 'Unpaid';
   if (totalPaid >= purchase.totalAmount) {
@@ -315,6 +323,12 @@ const addPayment = async (purchaseId: number, paymentData: PurchasePaymentInput)
       where: { id: purchaseId },
       include: { payments: true },
     });
+
+    if (!purchase) {
+      throw createHttpError(StatusCodes.NOT_FOUND, 'Purchase not found', {
+        error: 'Purchase not found',
+      });
+    }
 
     const totalPaid = purchase.payments.reduce((sum, p) => sum + p.amount, 0);
     if (totalPaid >= purchase.totalAmount) {

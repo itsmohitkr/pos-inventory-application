@@ -17,7 +17,10 @@ const expenseBodySchema = z.object({
   date: z.union([z.coerce.date(), str().min(1)]).optional(),
   paidAmount: moneyValue().optional(),
   paymentMethod: str().nullable().optional(),
-  paymentStatus: str().nullable().optional(),
+  // NOT nullable: Expense.paymentStatus is a non-nullable String column with a
+  // default. A `null` here previously passed validation and would have reached
+  // Prisma as a null write to a required field.
+  paymentStatus: str().optional(),
 });
 
 // Joi's .min(1) on an all-optional object — at least one field must be present.
@@ -29,7 +32,10 @@ const expenseUpdateBodySchema = z
     date: z.union([z.coerce.date(), str().min(1)]).optional(),
     paidAmount: moneyValue().optional(),
     paymentMethod: str().nullable().optional(),
-    paymentStatus: str().nullable().optional(),
+    // NOT nullable: Expense.paymentStatus is a non-nullable String column with a
+  // default. A `null` here previously passed validation and would have reached
+  // Prisma as a null write to a required field.
+  paymentStatus: str().optional(),
   })
   .refine((v) => Object.keys(v).length >= 1, {
     message: 'at least one field is required',

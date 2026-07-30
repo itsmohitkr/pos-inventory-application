@@ -197,7 +197,7 @@ const validatePricing = ({
   mrp?: number;
   costPrice?: number;
   sellingPrice?: number;
-  wholesalePrice?: number;
+  wholesalePrice?: number | null;
   wholesaleEnabled?: boolean;
 }) => {
   if (mrp === undefined || costPrice === undefined || sellingPrice === undefined) return;
@@ -212,7 +212,11 @@ const validatePricing = ({
     });
   }
 
-  if (wholesaleEnabled && wholesalePrice !== undefined) {
+  // `!= null` (loose) catches both null and undefined. Using `!== undefined`
+  // alone let a cleared wholesale price (null) through to the comparisons
+  // below, which coerce null to 0 — silently comparing 0 against cost/selling
+  // price instead of skipping validation for "no wholesale price set".
+  if (wholesaleEnabled && wholesalePrice != null) {
     if (Number.isNaN(wholesalePrice)) {
       throw createHttpError(StatusCodes.BAD_REQUEST, 'Invalid wholesale price', {
         error: 'Invalid wholesale price',
@@ -1330,8 +1334,9 @@ const getProductHistory = async (
 
   movements.forEach((movement) => {
     const dateKey = movement.createdAt.toISOString().split('T')[0];
-    if (!summaryMap.has(dateKey)) {
-      summaryMap.set(dateKey, {
+    let summary = summaryMap.get(dateKey);
+    if (!summary) {
+      summary = {
         date: dateKey,
         added: 0,
         sold: 0,
@@ -1339,9 +1344,9 @@ const getProductHistory = async (
         adjustmentIn: 0,
         adjustmentOut: 0,
         net: 0,
-      });
+      };
+      summaryMap.set(dateKey, summary);
     }
-    const summary = summaryMap.get(dateKey);
     applyMovement(summary, movement);
     applyMovement(totals, movement);
   });

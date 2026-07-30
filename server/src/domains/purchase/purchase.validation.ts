@@ -23,7 +23,10 @@ const purchaseFields = {
   note: z.string().nullable().optional(),
   paidAmount: moneyValue().optional(),
   paymentMethod: str().nullable().optional(),
-  paymentStatus: str().nullable().optional(),
+  // NOT nullable: Purchase.paymentStatus is a non-nullable String column with
+  // a default. A `null` here previously passed validation and would have
+  // reached Prisma as a null write to a required field.
+  paymentStatus: str().optional(),
   items: z.array(purchaseItemSchema).optional(),
 };
 

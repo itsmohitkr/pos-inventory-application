@@ -126,6 +126,14 @@ const syncExpenseStatus = async (expenseId: number, tx?: Prisma.TransactionClien
     include: { payments: true },
   });
 
+  // The expense a payment belongs to was already validated by the caller in
+  // the same transaction; a missing row here means it was deleted mid-flight.
+  if (!expense) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Expense not found', {
+      error: 'Expense not found',
+    });
+  }
+
   const totalPaid = expense.payments.reduce((sum, p) => sum + p.amount, 0);
   let newStatus = 'Unpaid';
   if (totalPaid >= expense.amount) {
