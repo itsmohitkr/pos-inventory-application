@@ -327,7 +327,7 @@ const ExpenseManagement = () => {
               : !em.selectedExpense?.payments?.length || !em.selectedPayment || em.selectedExpense?.payments[em.selectedExpense.payments.length - 1]?.id !== em.selectedPayment.id
           }
           onOpenEditPayment={em.handleOpenEditPayment}
-          onDeletePayment={() => em.handleDeletePaymentAction(em.selectedPayment.id)}
+          onDeletePayment={() => em.selectedPayment && em.handleDeletePaymentAction(em.selectedPayment.id)}
           editDialogOpen={em.paymentEditDialogOpen}
           onCloseEditDialog={() => em.setPaymentEditDialogOpen(false)}
           onEditSubmit={em.handleEditPaymentSubmission}

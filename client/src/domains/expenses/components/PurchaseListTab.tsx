@@ -168,9 +168,9 @@ const PurchaseListTab = ({
                 ₹{row.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </TableCell>
               <TableCell align="right">
-                {row.dueAmount > 0 ? (
+                {(row.dueAmount ?? 0) > 0 ? (
                   <Typography variant="body2" sx={{ fontWeight: 900, color: '#dc2626' }}>
-                    ₹{row.dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ₹{(row.dueAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </Typography>
                 ) : (
                   <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>SETTLED</Typography>
@@ -191,7 +191,7 @@ const PurchaseListTab = ({
               </TableCell>
               <TableCell align="center">
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                  {row.dueAmount > 0 && (
+                  {(row.dueAmount ?? 0) > 0 && (
                     <IconButton size="small" onClick={() => onOpenPaymentDialog(row)} aria-label="Record Payment" sx={{ bgcolor: '#f0fdf4', color: '#16a34a', '&:hover': { bgcolor: '#dcfce7' } }}>
                       <PaymentIcon sx={{ fontSize: 18 }} />
                     </IconButton>

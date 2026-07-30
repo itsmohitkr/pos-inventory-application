@@ -28,8 +28,8 @@ interface RecordPaymentDialogProps {
   onSubmit: (e: React.FormEvent) => void;
   title: string;
   totalLabel: string;
-  totalValue: number;
-  dueAmount: number;
+  totalValue?: number;
+  dueAmount?: number;
   paymentForm: PaymentFormState;
   onPaymentFormChange: (update: Partial<PaymentFormState>) => void;
   /** Omitted by the expense payment dialog. */

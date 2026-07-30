@@ -195,6 +195,7 @@ export default function useExpenseManagement() {
 
   const handleCreateExpensePayment = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!selectedExpense) return;
     try {
       await posService.createExpensePayment(selectedExpense.id, { amount: parseFloat(paymentForm.amount), paymentMethod: paymentForm.paymentMethod, date: paymentForm.date, note: paymentForm.note });
       setExpensePaymentDialogOpen(false);
@@ -267,6 +268,7 @@ export default function useExpenseManagement() {
 
   const handleCreatePayment = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!selectedPurchase) return;
     try {
       await posService.createPurchasePayment(selectedPurchase.id, { amount: parseFloat(paymentForm.amount), paymentMethod: paymentForm.paymentMethod, date: paymentForm.date, note: paymentForm.note });
       setPaymentDialogOpen(false);
@@ -303,6 +305,7 @@ export default function useExpenseManagement() {
 
   const handleEditPaymentSubmission = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!selectedPayment) return;
     try {
       const payload = { amount: parseFloat(editPaymentForm.amount), paymentMethod: editPaymentForm.paymentMethod, date: editPaymentForm.date, note: editPaymentForm.note };
       if (selectedPurchase) {
@@ -359,7 +362,13 @@ export default function useExpenseManagement() {
   };
 
   // --- Derived state ---
-  const vendorOptions = useMemo(() => Array.from(new Set(purchases.map((p) => p.vendor).filter(Boolean))), [purchases]);
+  const vendorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(purchases.map((p) => p.vendor).filter((vendor): vendor is string => Boolean(vendor)))
+      ),
+    [purchases]
+  );
   const filteredExpenses = useMemo(() => filterExpenses(expenses, expenseCategoryFilter, expenseSearchFilter), [expenses, expenseCategoryFilter, expenseSearchFilter]);
   const filteredPurchases = useMemo(() => filterPurchases(purchases, purchaseStatusFilter, purchaseVendorFilter, purchaseSearchFilter), [purchases, purchaseStatusFilter, purchaseVendorFilter, purchaseSearchFilter]);
   const { totalExpensesAmount, totalExpensesDue, totalPurchasesAmount, totalPurchasesDue } = useMemo(() => calculateExpenseTotals(filteredExpenses, filteredPurchases), [filteredExpenses, filteredPurchases]);

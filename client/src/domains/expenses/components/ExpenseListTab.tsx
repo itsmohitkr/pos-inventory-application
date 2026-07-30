@@ -162,7 +162,7 @@ const ExpenseListTab = ({
               <TableCell align="right">
                 {(row.dueAmount || 0) > 0 ? (
                   <Typography variant="body2" sx={{ fontWeight: 900, color: '#dc2626' }}>
-                    ₹{row.dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ₹{(row.dueAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </Typography>
                 ) : (
                   <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700 }}>SETTLED</Typography>
