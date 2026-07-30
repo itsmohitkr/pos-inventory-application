@@ -1,15 +1,22 @@
 import { useState, useCallback, useRef } from 'react';
 import * as Sentry from '@sentry/react';
 import customerService from '@/shared/api/customerService';
+import type { Customer } from '@/shared/api/customerService';
 
-export const usePOSCustomer = ({ showNotification }: Record<string, any>) => {
-  const [activeCustomer, setActiveCustomer] = useState(null);
+interface UsePOSCustomerArgs {
+  showNotification: (message: string, severity?: string) => void;
+  /** Printed on the customer card; unused by the lookups themselves. */
+  shopName?: string;
+}
+
+export const usePOSCustomer = ({ showNotification }: UsePOSCustomerArgs) => {
+  const [activeCustomer, setActiveCustomer] = useState<Customer | null>(null);
   const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<Customer[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const debounceRef = useRef(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const searchCustomers = useCallback((query) => {
+  const searchCustomers = useCallback((query: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!query || query.length < 2) {
       setSearchResults([]);
@@ -28,7 +35,7 @@ export const usePOSCustomer = ({ showNotification }: Record<string, any>) => {
     }, 300);
   }, []);
 
-  const lookupByPhone = useCallback(async (phone) => {
+  const lookupByPhone = useCallback(async (phone: string) => {
     if (!phone?.trim()) return null;
     setIsLoadingCustomer(true);
     try {
@@ -46,7 +53,11 @@ export const usePOSCustomer = ({ showNotification }: Record<string, any>) => {
     }
   }, [showNotification]);
 
-  const lookupByBarcode = useCallback(async (barcode) => {
+  // NOTE: unlike lookupByPhone this has no empty-input guard, and its bare
+  // catch treats every failure as "not recognised" — a network error or a 500
+  // shows the same message as an unknown card. Left as-is; changing it is a
+  // behaviour change, not a typing one.
+  const lookupByBarcode = useCallback(async (barcode: string) => {
     setIsLoadingCustomer(true);
     try {
       const res = await customerService.findByBarcode(barcode);
@@ -61,14 +72,14 @@ export const usePOSCustomer = ({ showNotification }: Record<string, any>) => {
     }
   }, [showNotification]);
 
-  const lookupCustomer = useCallback(async (query) => {
+  const lookupCustomer = useCallback(async (query: string) => {
     if (query.startsWith('CUST-')) {
       return lookupByBarcode(query);
     }
     return lookupByPhone(query);
   }, [lookupByBarcode, lookupByPhone]);
 
-  const selectCustomer = useCallback((customer) => {
+  const selectCustomer = useCallback((customer: Customer | null) => {
     setActiveCustomer(customer);
     setSearchResults([]);
     showNotification(`Customer: ${customer.name || customer.phone}`);
@@ -84,7 +95,7 @@ export const usePOSCustomer = ({ showNotification }: Record<string, any>) => {
     setSearchResults([]);
   }, []);
 
-  const registerCustomer = useCallback(async (phone, name) => {
+  const registerCustomer = useCallback(async (phone: string, name?: string) => {
     if (!phone?.trim()) return null;
     setIsLoadingCustomer(true);
     try {

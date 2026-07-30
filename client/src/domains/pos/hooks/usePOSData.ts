@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type {
+  ReceiptSettings,
+  ShopMetadata,
+} from '@/domains/settings/hooks/useSettings';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import settingsService from '@/shared/api/settingsService';
@@ -83,7 +87,7 @@ export const usePOSData = (propReceiptSettings?: any, propShopMetadata?: any) =>
       const sett = settingsRes.data;
 
       if (sett.posReceiptSettings) {
-        setReceiptSettings(prev => {
+        setReceiptSettings((prev: ReceiptSettings) => {
           if (JSON.stringify(prev) === JSON.stringify(sett.posReceiptSettings)) return prev;
           return sett.posReceiptSettings;
         });
@@ -109,7 +113,7 @@ export const usePOSData = (propReceiptSettings?: any, propShopMetadata?: any) =>
         return topSellingData || {};
       });
 
-      setShopMetadata(prev => {
+      setShopMetadata((prev: ShopMetadata) => {
         const next = {
           shopMobile: sett.shopMobile || '',
           shopMobile2: sett.shopMobile2 || '',
@@ -125,7 +129,7 @@ export const usePOSData = (propReceiptSettings?: any, propShopMetadata?: any) =>
       if (sett.promotion_buy_x_get_free) {
         const data = sett.promotion_buy_x_get_free;
         if (data.thresholds && !data.config) {
-          const migratedConfig = data.thresholds.map((t) => ({
+          const migratedConfig = data.thresholds.map((t: number) => ({
             threshold: t,
             isActive: true,
             profitPercentage: data.profitPercentage || 20,

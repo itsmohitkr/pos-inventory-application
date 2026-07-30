@@ -170,8 +170,6 @@ const POS = ({
     totalProfit,
     products,
     productSales,
-    cart,
-    removeFromCart,
     addFreeProductHook,
     showNotification,
     refocus,

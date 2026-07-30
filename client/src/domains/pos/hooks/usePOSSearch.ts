@@ -1,14 +1,25 @@
 import { useMemo, useCallback } from 'react';
+import type { Batch, Product } from '@/shared/types/models';
 
-export const usePOSSearch = (products) => {
+/**
+ * Lowercased search keys precomputed per product, so the filter does not
+ * re-lowercase every name and barcode on each keystroke.
+ */
+interface SearchFields {
+  searchName: string;
+  searchBarcode: string;
+  searchPrices: string[];
+}
+
+export const usePOSSearch = (products: Product[]) => {
   // Precompute search fields alongside the barcode map — avoids mutating state objects during render
   const { barcodeMap, searchIndex } = useMemo(() => {
-    const map = new Map();
-    const index = new Map();
-    products.forEach((p) => {
+    const map = new Map<string, Product>();
+    const index = new Map<Product, SearchFields>();
+    products.forEach((p: Product) => {
       const searchName = String(p.name || '').toLowerCase();
       const searchBarcode = String(p.barcode || '').toLowerCase();
-      const searchPrices = (p.batches || []).map((b) => String(b.sellingPrice || ''));
+      const searchPrices = (p.batches || []).map((b: Batch) => String(b.sellingPrice || ''));
       index.set(p, { searchName, searchBarcode, searchPrices });
       if (p.barcode) {
         String(p.barcode).split('|').forEach((code) => {
@@ -20,14 +31,14 @@ export const usePOSSearch = (products) => {
   }, [products]);
 
   const filterOptions = useCallback(
-    (options, { inputValue }) => {
+    (options: Product[], { inputValue }: { inputValue: string }) => {
       const normalizedInput = inputValue.trim().toLowerCase();
       if (!normalizedInput) return [];
 
       const exactMatch = barcodeMap.get(normalizedInput);
-      const namePrefix = [];
-      const barcodePrefix = [];
-      const nameContains = [];
+      const namePrefix: Product[] = [];
+      const barcodePrefix: Product[] = [];
+      const nameContains: Product[] = [];
       const barcodeContains = [];
       const priceMatches = [];
 
@@ -43,10 +54,10 @@ export const usePOSSearch = (products) => {
         else if (searchBarcode.startsWith(normalizedInput)) barcodePrefix.push(option);
         else if (searchName.includes(normalizedInput)) nameContains.push(option);
         else if (searchBarcode.includes(normalizedInput)) barcodeContains.push(option);
-        else if (searchPrices.some((p) => p.includes(normalizedInput))) priceMatches.push(option);
+        else if (searchPrices.some((p: string) => p.includes(normalizedInput))) priceMatches.push(option);
       }
 
-      const sortFn = (a, b) => (a.name || '').localeCompare(b.name || '');
+      const sortFn = (a: Product, b: Product) => (a.name || '').localeCompare(b.name || '');
       namePrefix.sort(sortFn);
       barcodePrefix.sort(sortFn);
       nameContains.sort(sortFn);

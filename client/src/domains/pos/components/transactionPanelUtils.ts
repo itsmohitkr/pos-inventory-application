@@ -1,3 +1,9 @@
+import type {
+  CustomPaymentMethod,
+  PaymentSettings,
+} from '@/shared/utils/paymentSettings';
+import type { PaymentMethod } from '@/domains/pos/types';
+
 export const PAYMENT_METHOD_CONFIG = {
   cash: { label: 'Cash', color: '#16a34a' },
   upi: { label: 'UPI', color: '#0369a1' },
@@ -7,7 +13,9 @@ export const PAYMENT_METHOD_CONFIG = {
   cheque: { label: 'Cheque', color: '#64748b' },
 };
 
-export const getAvailablePaymentMethods = (paymentSettings) => {
+export const getAvailablePaymentMethods = (
+  paymentSettings?: PaymentSettings | null
+): PaymentMethod[] => {
   const enabled = paymentSettings?.enabledMethods || [];
   const custom = paymentSettings?.customMethods || [];
 
@@ -15,7 +23,7 @@ export const getAvailablePaymentMethods = (paymentSettings) => {
     .filter(([id]) => enabled.includes(id))
     .map(([id, config]) => ({ id, ...config }));
 
-  custom.forEach((m) => {
+  custom.forEach((m: CustomPaymentMethod) => {
     methods.push({
       id: m.id,
       label: m.label,

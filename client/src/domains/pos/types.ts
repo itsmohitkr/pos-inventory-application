@@ -38,6 +38,17 @@ export interface CartItem {
 }
 
 /**
+ * A payment method the cashier can select, as produced by
+ * getAvailablePaymentMethods in components/transactionPanelUtils.ts — the
+ * built-ins from PAYMENT_METHOD_CONFIG plus any the shop has defined.
+ */
+export interface PaymentMethod {
+  id: string;
+  label: string;
+  color: string;
+}
+
+/**
  * One order tab. Multiple tabs let a cashier park a sale and start another;
  * the whole array is persisted to sessionStorage.
  */

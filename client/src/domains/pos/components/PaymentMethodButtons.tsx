@@ -1,4 +1,4 @@
-import type { PaymentMethod } from './posTypes';
+import type { PaymentMethod } from '@/domains/pos/types';
 import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import {
@@ -11,7 +11,7 @@ import {
   TagFaces as CustomIcon,
 } from '@mui/icons-material';
 
-const ICON_MAP = {
+const ICON_MAP: Record<string, React.ElementType> = {
   cash: CashIcon,
   upi: UpiIcon,
   card: CardIcon,
@@ -20,7 +20,7 @@ const ICON_MAP = {
   cheque: ChequeIcon,
 };
 
-const getIconForMethod = (methodId) => {
+const getIconForMethod = (methodId: string) => {
   const IconComponent = ICON_MAP[methodId];
   return IconComponent ? <IconComponent /> : <CustomIcon />;
 };

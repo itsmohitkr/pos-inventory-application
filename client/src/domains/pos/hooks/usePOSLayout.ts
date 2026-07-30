@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as Sentry from '@sentry/react';
 export const usePOSLayout = () => {
   const [transactionPanelWidth, setTransactionPanelWidth] = useState(() => {
@@ -17,7 +17,7 @@ export const usePOSLayout = () => {
   const refocusTimerRef = useRef(null);
 
   // Resizing logic
-  const startResizing = useCallback((e) => {
+  const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
   }, []);
@@ -27,7 +27,7 @@ export const usePOSLayout = () => {
   }, []);
 
   const resize = useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       if (isResizing) {
         const newWidth = window.innerWidth - e.clientX - 24;
         if (newWidth > 320 && newWidth < window.innerWidth * 0.6) {

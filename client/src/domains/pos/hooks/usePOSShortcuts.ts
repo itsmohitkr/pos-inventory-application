@@ -19,7 +19,7 @@ export const usePOSShortcuts = (
     useEffect(() => {
         if (disabled) return;
 
-        const handleKeyDown = (event) => {
+        const handleKeyDown = (event: KeyboardEvent) => {
             // ...
             const { key } = event;
             const currentHandlers = handlersRef.current;

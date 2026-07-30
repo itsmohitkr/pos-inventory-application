@@ -1,3 +1,4 @@
+import type { PrinterInfo } from '@/domains/settings/hooks/useSettings';
 export const RECEIPT_VISIBILITY_FIELDS = [
   'shopName',
   'header',
@@ -27,11 +28,11 @@ export const resolvePrinterName = ({
 }: Record<string, any>): string | null => {
   const rawPrinter = receiptSettings?.printerType;
   const hasPrinters = Array.isArray(printers) && printers.length > 0;
-  const isValidPrinter = hasPrinters && rawPrinter && printers.some((p) => p.name === rawPrinter);
+  const isValidPrinter = hasPrinters && rawPrinter && printers.some((p: PrinterInfo) => p.name === rawPrinter);
 
   if (isValidPrinter) return rawPrinter;
 
-  return defaultPrinter || (printers.find((p) => p.isDefault) || printers[0])?.name;
+  return defaultPrinter || (printers.find((p: PrinterInfo) => p.isDefault) || printers[0])?.name;
 };
 
 export const handleManualPrint = async ({
