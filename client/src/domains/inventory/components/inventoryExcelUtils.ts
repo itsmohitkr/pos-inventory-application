@@ -193,6 +193,10 @@ export const applyInventorySort = (
 
       const isDesc = config.direction === 'desc';
 
+      if (valA == null && valB == null) continue;
+      if (valA == null) return 1;
+      if (valB == null) return -1;
+
       if (valA < valB) return isDesc ? 1 : -1;
       if (valA > valB) return isDesc ? -1 : 1;
     }

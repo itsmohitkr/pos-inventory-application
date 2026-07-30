@@ -24,7 +24,11 @@ const useInventoryExcelData = ({
   sortConfigs,
 }: UseInventoryExcelDataArgs) => {
   const uniqueCategories = useMemo(() => {
-    const categorySet = new Set(products.map((product) => product.category).filter(Boolean));
+    const categorySet = new Set(
+      products
+        .map((product) => product.category)
+        .filter((category): category is string => Boolean(category))
+    );
     return ['all', ...Array.from(categorySet).sort()];
   }, [products]);
 

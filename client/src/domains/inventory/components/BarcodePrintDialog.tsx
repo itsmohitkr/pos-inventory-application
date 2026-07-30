@@ -5,6 +5,7 @@ import type {
   BarcodeSpacing,
 } from '@/domains/inventory/components/barcodeSizePresets';
 import type { Product } from '@/shared/types/models';
+import type { PrinterInfo } from '@/domains/settings/hooks/useSettings';
 import React, { useState } from 'react';
 import * as Sentry from '@sentry/react';
 import {
@@ -28,7 +29,7 @@ const BarcodePrintDialog = ({ open, onClose, product }: BarcodePrintDialogProps)
   const [printMethod, setPrintMethod] = useState('a4');
   const [paperSize, setPaperSize] = useState('50x25');
   const [customDimensions, setCustomDimensions] = useState({ width: 2, height: 50, cols: 1 });
-  const [printers, setPrinters] = useState([]);
+  const [printers, setPrinters] = useState<PrinterInfo[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [margins, setMargins] = useState({ top: 10, right: 10, bottom: 10, left: 10 });

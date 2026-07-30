@@ -70,7 +70,7 @@ interface CategorySidebarProps {
   onCategoryNameChange: (name: string) => void;
   onSaveCategory: () => void;
   onResizeStart: () => void;
-  onDoubleClick: () => void;
+  onDoubleClick?: () => void;
   onToggleCategories: () => void;
 }
 

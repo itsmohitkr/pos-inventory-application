@@ -70,7 +70,7 @@ export default function useAddProductForm({
     }).catch(() => {});
   }, []);
 
-  const toTitleCase = (str?: string | null): string =>
+  const toTitleCase = (str: string): string =>
     str.toLowerCase().split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

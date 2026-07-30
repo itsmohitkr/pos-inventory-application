@@ -228,7 +228,7 @@ const ProductDetailPanel = ({
                       <Typography
                         variant="body2"
                         data-testid="inventory-detail-total-stock"
-                        sx={{ mt: 0.5, fontWeight: 700, color: displayProduct.total_stock > 0 ? '#1f8a5b' : '#ef4444' }}
+                        sx={{ mt: 0.5, fontWeight: 700, color: (displayProduct.total_stock ?? 0) > 0 ? '#1f8a5b' : '#ef4444' }}
                       >
                         {displayProduct.total_stock}
                       </Typography>

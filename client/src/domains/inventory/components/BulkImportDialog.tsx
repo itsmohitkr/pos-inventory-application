@@ -170,7 +170,7 @@ const ImportResultSection = ({ result }: { result: BulkImportResult }) => (
         ) : (
           <>Import Failed. No products were added.</>
         )}
-        {result.failed > 0 && result.success && (
+        {(result.failed ?? 0) > 0 && result.success && (
           <>, <strong>{result.failed}</strong> failed</>
         )}
       </Typography>

@@ -104,6 +104,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
 
   const handleSave = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!batch) return;
     const mrp = Number(formData.mrp) || 0;
     const costPrice = Number(formData.costPrice) || 0;
     const sellingPrice = Number(formData.sellingPrice) || 0;

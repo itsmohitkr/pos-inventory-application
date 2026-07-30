@@ -5,8 +5,9 @@ import { Edit as EditIcon, Delete as DeleteIcon, Circle as CircleIcon } from '@m
 import BarcodeChips from '@/domains/inventory/components/BarcodeChips';
 
 const getStockStatus = (product: Product) => {
-  if (product.total_stock === 0) return 'zero';
-  if (product.lowStockWarningEnabled && product.total_stock <= product.lowStockThreshold)
+  const totalStock = product.total_stock ?? 0;
+  if (totalStock === 0) return 'zero';
+  if (product.lowStockWarningEnabled && totalStock <= product.lowStockThreshold)
     return 'low';
   return 'sufficient';
 };
@@ -24,11 +25,11 @@ interface ProductRowProps {
   product: Product;
   index: number;
   isSelected?: boolean;
-  onSelect?: (product: Product, event: React.MouseEvent) => void;
-  onEdit?: (product: Product) => void;
-  onDelete?: (productId: number) => void;
-  onDoubleClick?: () => void;
-  onDragStart?: (event: React.DragEvent, product: Product) => void;
+  onSelect: (product: Product, event: React.MouseEvent) => void;
+  onEdit: (product: Product) => void;
+  onDelete: (productId: number) => void;
+  onDoubleClick: () => void;
+  onDragStart: (event: React.DragEvent, product: Product) => void;
 }
 
 const ProductRow = React.memo(

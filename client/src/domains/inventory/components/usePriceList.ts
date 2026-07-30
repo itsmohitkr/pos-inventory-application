@@ -72,20 +72,23 @@ export default function usePriceList(open: boolean) {
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
 
   const productById = useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, Product>();
     products.forEach((product) => map.set(String(product.id), product));
     return map;
   }, [products]);
 
   const selectedProductOptions = useMemo(
-    () => selectedProducts.map((item) => productById.get(String(item.productId))).filter(Boolean),
+    () =>
+      selectedProducts
+        .map((item) => productById.get(String(item.productId)))
+        .filter((product): product is Product => product !== undefined),
     [productById, selectedProducts]
   );
 
   const selectedRows = useMemo(
     () =>
       selectedProducts
-        .map((item) => {
+        .map((item): PriceListRow | null => {
           const product = productById.get(String(item.productId));
           if (!product) return null;
           return {
@@ -95,7 +98,7 @@ export default function usePriceList(open: boolean) {
             barcodeValue: getPrimaryBarcode(product),
           };
         })
-        .filter(Boolean),
+        .filter((row): row is PriceListRow => row !== null),
     [productById, selectedProducts]
   );
 
@@ -129,7 +132,7 @@ export default function usePriceList(open: boolean) {
   const barcodeWarnings = useMemo<BarcodeWarning[]>(() => {
     if (!displayOptions.barcode) return [];
     return selectedRows
-      .map((row) => {
+      .map((row): BarcodeWarning | null => {
         const message = getBarcodeReadabilityWarning({
           value: row.barcodeValue,
           format: layout.barcodeFormat || 'CODE128',
@@ -139,7 +142,7 @@ export default function usePriceList(open: boolean) {
         if (!message) return null;
         return { id: row.product.id, productName: row.product.name, message };
       })
-      .filter(Boolean);
+      .filter((warning): warning is BarcodeWarning => warning !== null);
   }, [displayOptions.barcode, selectedRows, layout.barcodeFormat, layout.barcodeLineWidth, labelWidthMm]);
 
   const previewPageWidthMm = useMemo(() => {

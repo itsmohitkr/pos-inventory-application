@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
-import type { Batch } from '@/shared/types/models';
+import type { Batch, Product } from '@/shared/types/models';
 import * as Sentry from '@sentry/react';
 import { Paper, Typography, Box, Chip, IconButton, Tooltip } from '@mui/material';
 import { ChevronRight as ChevronRightIcon } from '@mui/icons-material';
@@ -21,10 +21,10 @@ import useProductList from '@/domains/inventory/components/useProductList';
 import inventoryService from '@/shared/api/inventoryService';
 
 interface ProductListProps {
-  categoryFilter?: string;
-  onCategoryChange?: (category: string) => void;
-  debouncedSearch?: string;
-  onSearchChange?: (value: string) => void;
+  categoryFilter: string;
+  onCategoryChange: (category: string) => void;
+  debouncedSearch: string;
+  onSearchChange: (value: string) => void;
   isPending?: boolean;
 }
 
@@ -36,7 +36,7 @@ export interface ProductListHandle {
 const ProductList = forwardRef<ProductListHandle, ProductListProps>(
   ({ categoryFilter, onCategoryChange, debouncedSearch, onSearchChange, isPending }, ref) => {
     const pl = useProductList({ categoryFilter, onCategoryChange, debouncedSearch, onSearchChange });
-    const searchTimerRef = useRef(null);
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useImperativeHandle(ref, () => ({
       refresh: () => {
@@ -53,7 +53,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
         return;
       }
 
-      let found = pl.products.find(
+      let found: Product | undefined = pl.products.find(
         (p) => p.barcode && p.barcode.split('|').some((b) => b.trim() === val)
       );
 
@@ -61,13 +61,14 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
         try {
           const data = await inventoryService.fetchProductByBarcode(val);
           if (data && data.product) {
-            found = data.product;
+            const fetchedProduct: Product = data.product;
             if (data.batches) {
-              found.total_stock = data.batches.reduce(
+              fetchedProduct.total_stock = data.batches.reduce(
                 (sum: number, b: Batch) => sum + b.quantity,
                 0
               );
             }
+            found = fetchedProduct;
           }
         } catch (error) {
           Sentry.captureException(error, { tags: { feature: 'inventory-barcode-fetch' } });

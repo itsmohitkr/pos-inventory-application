@@ -67,7 +67,7 @@ const InventoryExcelView = ({
     totalValSp: true,
     createdAt: true,
   });
-  const [colAnchorEl, setColAnchorEl] = useState(null);
+  const [colAnchorEl, setColAnchorEl] = useState<HTMLElement | null>(null);
 
   // Spreadsheet Sorting Enhancements
   const [sortConfigs, setSortConfigs] = useState<InventorySortConfig[]>([

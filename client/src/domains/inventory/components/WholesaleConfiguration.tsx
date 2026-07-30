@@ -16,11 +16,11 @@ import {
  */
 interface WholesaleConfigurationProps {
   wholesaleEnabled?: boolean;
-  onToggleChange?: (enabled: boolean) => void;
+  onToggleChange: (enabled: boolean) => void;
   wholesalePrice?: number | string;
-  onPriceChange?: (value: string) => void;
+  onPriceChange: (value: string) => void;
   wholesaleMinQty?: number | string;
-  onMinQtyChange?: (value: string) => void;
+  onMinQtyChange: (value: string) => void;
   sellingPrice?: number | string;
   costPrice?: number | string;
   showErrors?: boolean;

@@ -123,6 +123,7 @@ export const useAddStock = ({
     const hasEmptyFields = requiredFields.some(field => isFieldEmpty(stockData[field]));
 
     if (hasEmptyFields) return;
+    if (!product) return;
 
     if (stockData.wholesaleEnabled) {
       if (isFieldEmpty(stockData.wholesalePrice) || isFieldEmpty(stockData.wholesaleMinQty)) {

@@ -14,6 +14,7 @@ import api from '@/shared/api/api';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import AddProductForm from '@/domains/inventory/components/AddProductForm';
 import ProductList from '@/domains/inventory/components/ProductList';
+import type { ProductListHandle } from '@/domains/inventory/components/ProductList';
 import BulkImportDialog from '@/domains/inventory/components/BulkImportDialog';
 import InventoryExcelView from '@/domains/inventory/components/InventoryExcelView';
 import BulkAddGrid from '@/domains/inventory/components/BulkAddGrid';
@@ -31,7 +32,7 @@ const InventoryPage = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isPending, startTransition] = useTransition();
-  const inventoryRef = useRef(null);
+  const inventoryRef = useRef<ProductListHandle>(null);
 
   const handleCategoryChange = (val: string) => {
     startTransition(() => {

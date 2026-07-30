@@ -77,6 +77,7 @@ export const useEditProduct = ({
   const addBarcode = async (barcode: string) => {
     const trimmed = barcode.trim();
     if (!trimmed) return true;
+    if (!product) return false;
 
     if (barcodes.some((b) => b.toLowerCase() === trimmed.toLowerCase())) {
       setBarcodeError('Barcode already added');

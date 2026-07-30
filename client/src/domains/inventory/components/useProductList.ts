@@ -1,4 +1,4 @@
-import type { InventorySummaryTotals, Product } from './inventoryTypes';
+import type { InventorySummaryTotals, Product, ProductHistory } from './inventoryTypes';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
@@ -43,11 +43,11 @@ export default function useProductList({
   const [products, setProducts] = useState<SearchableProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedProductDetails, setSelectedProductDetails] = useState(null);
+  const [selectedProductDetails, setSelectedProductDetails] = useState<Product | null>(null);
   const [selectedProductRefresh, setSelectedProductRefresh] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRange, setHistoryRange] = useState('thisMonth');
-  const [historyData, setHistoryData] = useState(null);
+  const [historyData, setHistoryData] = useState<ProductHistory | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -59,7 +59,7 @@ export default function useProductList({
   const [uncategorizedCount, setUncategorizedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [stockFilter, setStockFilter] = useState('all');
-  const [barcodeOverride, setBarcodeOverride] = useState(null);
+  const [barcodeOverride, setBarcodeOverride] = useState<SearchableProduct[] | null>(null);
 
   const productsRequestId = useRef(0);
   const summaryRequestId = useRef(0);
@@ -67,7 +67,7 @@ export default function useProductList({
   const selectedProductRef = useRef<Product | null>(null);
   selectedProductRef.current = selectedProduct;
 
-  const toTitleCase = (str?: string | null): string => {
+  const toTitleCase = (str: string): string => {
     if (!str) return str;
     return str
       .toLowerCase()
@@ -92,7 +92,7 @@ export default function useProductList({
 
       if (selectedProductRef.current) {
         const refreshed = productsData.find(
-          (p) => String(p.id) === String(selectedProductRef.current.id)
+          (p) => String(p.id) === String(selectedProductRef.current?.id)
         );
         if (refreshed) setSelectedProduct(refreshed);
       }
@@ -158,7 +158,10 @@ export default function useProductList({
 
     if (stockFilter === 'low') {
       baseProducts = baseProducts.filter(
-        (p) => p.lowStockWarningEnabled && p.total_stock > 0 && p.total_stock <= p.lowStockThreshold
+        (p) =>
+          p.lowStockWarningEnabled &&
+          (p.total_stock ?? 0) > 0 &&
+          (p.total_stock ?? 0) <= p.lowStockThreshold
       );
     } else if (stockFilter === 'zero') {
       baseProducts = baseProducts.filter((p) => p.total_stock === 0);
