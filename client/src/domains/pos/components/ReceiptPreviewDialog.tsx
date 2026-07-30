@@ -1,3 +1,32 @@
+import type { ReceiptSale } from '@/domains/pos/types';
+import type {
+  PrinterInfo,
+  ReceiptSettings,
+  ShopMetadata,
+} from '@/domains/settings/hooks/useSettings';
+
+interface ReceiptPreviewDialogProps {
+  open: boolean;
+  onClose: () => void;
+  /** The sale rendered in the preview; also the sample sale on the settings screen. */
+  lastSale?: ReceiptSale | null;
+  receiptSettings?: ReceiptSettings | null;
+  /** Toggles a boolean setting by key. */
+  onSettingChange: (field: string) => void;
+  /** Sets a text setting, e.g. the custom header. */
+  onTextSettingChange: (field: string, value: unknown) => void;
+  /** Omitted in preview-only mode, where there is nothing to persist. */
+  onSave?: () => void | Promise<void>;
+  isAdmin?: boolean;
+  showPrint?: boolean;
+  showShopNameField?: boolean;
+  saveLabel?: string;
+  shopMetadata?: ShopMetadata | null;
+  printers?: PrinterInfo[];
+  defaultPrinter?: string | null;
+  customerFeatureEnabled?: boolean;
+}
+
 import React from 'react';
 import {
   Dialog,
@@ -49,10 +78,10 @@ const ReceiptPreviewDialog = ({
   printers = [],
   defaultPrinter = null,
   customerFeatureEnabled = true,
-}) => {
+}: ReceiptPreviewDialogProps) => {
   const [snackbar, setSnackbar] = React.useState({ open: false, message: '', severity: 'info' });
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
     handleEnterKeySaveOrClose({ event, onSave, onClose });
   };
 
@@ -405,7 +434,7 @@ const ReceiptPreviewDialog = ({
                     </Typography>
                     <Checkbox
                       size="small"
-                      checked={receiptSettings[field]}
+                      checked={Boolean(receiptSettings[field])}
                       onChange={() => onSettingChange(field)}
                     />
                   </Box>

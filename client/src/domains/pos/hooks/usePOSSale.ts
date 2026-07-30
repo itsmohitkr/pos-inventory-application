@@ -3,6 +3,31 @@ import { flushSync } from 'react-dom';
 import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
 import { IPC } from '@/shared/ipcChannels';
+import type { CartItem, PaymentMethod, ReceiptSale } from '@/domains/pos/types';
+import type { Customer } from '@/shared/api/customerService';
+import type {
+  PrinterInfo,
+  ReceiptSettings,
+} from '@/domains/settings/hooks/useSettings';
+
+interface UsePOSSaleArgs {
+  cart: CartItem[];
+  discount: number;
+  activeTabId: number;
+  handleCloseTab: (tabId: number) => void;
+  fetchProducts: () => void;
+  receiptSettings?: ReceiptSettings | null;
+  defaultPrinter?: string | null;
+  printers?: PrinterInfo[];
+  setShowReceipt: (show: boolean) => void;
+  showError: (message: string) => void;
+  showNotification: (message: string, severity?: string) => void;
+  refocus: (options?: { force?: boolean; delay?: number }) => void;
+  activeCustomer?: Customer | null;
+  clearCustomerOnSale: () => void;
+  /** Printed on the receipt header. */
+  shopName?: string;
+}
 
 export const usePOSSale = ({
   cart,
@@ -19,16 +44,20 @@ export const usePOSSale = ({
   refocus,
   activeCustomer,
   clearCustomerOnSale,
-}: Record<string, any>) => {
-  const [lastSale, setLastSale] = useState(null);
+}: UsePOSSaleArgs) => {
+  const [lastSale, setLastSale] = useState<ReceiptSale | null>(null);
   const [isPaying, setIsPaying] = useState(false);
 
-  const handlePay = useCallback(async (selectedPaymentMethod, customerOverride) => {
+  const handlePay = useCallback(async (
+    selectedPaymentMethod?: PaymentMethod | null,
+    customerOverride?: Customer | null
+  ) => {
     if (isPaying) return;
     setIsPaying(true);
-    const methodToUse = selectedPaymentMethod || { id: 'cash', label: 'Cash' };
+    const methodToUse: Partial<PaymentMethod> & { id: string; label: string } =
+      selectedPaymentMethod || { id: 'cash', label: 'Cash' };
     try {
-      const items = cart.map((item) => ({
+      const items = cart.map((item: CartItem) => ({
         batch_id: item.batch_id,
         quantity: item.quantity,
         sellingPrice: item.price,
@@ -63,12 +92,16 @@ export const usePOSSale = ({
     }
   }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale, setShowReceipt, receiptSettings]);
 
-  const handlePayAndPrint = useCallback(async (selectedPaymentMethod, customerOverride) => {
+  const handlePayAndPrint = useCallback(async (
+    selectedPaymentMethod?: PaymentMethod | null,
+    customerOverride?: Customer | null
+  ) => {
     if (isPaying) return;
     setIsPaying(true);
-    const methodToUse = selectedPaymentMethod || { id: 'cash', label: 'Cash' };
+    const methodToUse: Partial<PaymentMethod> & { id: string; label: string } =
+      selectedPaymentMethod || { id: 'cash', label: 'Cash' };
     try {
-      const items = cart.map((item) => ({
+      const items = cart.map((item: CartItem) => ({
         batch_id: item.batch_id,
         quantity: item.quantity,
         sellingPrice: item.price,
@@ -94,7 +127,7 @@ export const usePOSSale = ({
         const printer =
           receiptSettings.printerType ||
           defaultPrinter ||
-          (printers.find((p) => p.isDefault) || printers[0])?.name;
+          (printers.find((p: PrinterInfo) => p.isDefault) || printers[0])?.name;
         if (window.electron) {
           if (!printer) {
             showError('No printer configured. Go to Settings → Receipt Settings to select a printer.');
@@ -128,7 +161,7 @@ export const usePOSSale = ({
         const printer =
           receiptSettings.printerType ||
           defaultPrinter ||
-          (printers.find((p) => p.isDefault) || printers[0])?.name;
+          (printers.find((p: PrinterInfo) => p.isDefault) || printers[0])?.name;
         if (window.electron) {
           if (!printer) {
             showError('No printer configured. Go to Settings → Receipt Settings to select a printer.');

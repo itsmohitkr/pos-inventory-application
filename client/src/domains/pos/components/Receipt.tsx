@@ -1,3 +1,4 @@
+import type { ReceiptSaleItem } from '@/domains/pos/types';
 import React, { forwardRef } from 'react';
 import { Box, Typography } from '@mui/material';
 import {
@@ -225,7 +226,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
           </thead>
           <tbody>
             {sale.items ? (
-              sale.items.map((item, idx) => {
+              sale.items.map((item: ReceiptSaleItem, idx: number) => {
                 const mrp = item.mrp || item.sellingPrice;
                 return (
                   <tr key={idx} style={{ borderBottom: theme.itemDivider }}>

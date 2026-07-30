@@ -48,6 +48,14 @@ export interface PaymentMethod {
   id: string;
   label: string;
   color: string;
+  /**
+   * Never actually set — getAvailablePaymentMethods returns only id/label/color
+   * and PaymentMethodButtons resolves its icons from the id at render time.
+   * Declared because usePOSSale destructures it off before JSON.stringify-ing
+   * the method into paymentDetails, a guard against a React element reaching
+   * the server. Kept so that guard keeps compiling.
+   */
+  icon?: unknown;
 }
 
 /**
@@ -72,4 +80,43 @@ export interface ScannedProduct {
   product: Product;
   batches: Batch[];
   mode: 'batch' | 'price';
+}
+
+/**
+ * A sale as the receipt renders it.
+ *
+ * Deliberately structural rather than reusing `Sale`: the same components
+ * print three different shapes — the sale processSale just returned, a
+ * ReportSale reprinted from Sales History, and a loose sale (which has
+ * `itemName` and `price` instead of `items` and `totalAmount`). Every field
+ * the receipt reads is optional here for that reason.
+ *
+ * Field list derived from what Receipt.tsx and receiptUtils.ts actually
+ * access; adding a field to either means adding it here too.
+ */
+export interface ReceiptSaleItem {
+  quantity: number;
+  sellingPrice: number;
+  mrp?: number;
+  productName?: string;
+  isFree?: boolean;
+  isWholesale?: boolean;
+  batch?: {
+    mrp?: number;
+    expiryDate?: string | null;
+    product?: { name?: string; barcode?: string | null };
+  } | null;
+}
+
+export interface ReceiptSale {
+  id?: number;
+  createdAt?: string;
+  items?: ReceiptSaleItem[];
+  totalAmount?: number;
+  discount?: number;
+  extraDiscount?: number;
+  customer?: { name?: string | null; phone?: string } | null;
+  /** Loose sales carry these instead of items/totalAmount. */
+  itemName?: string;
+  price?: number;
 }
