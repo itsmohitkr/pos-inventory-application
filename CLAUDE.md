@@ -341,6 +341,38 @@ Set automatically by `desktop/main.js` at runtime. For standalone server develop
 
 ---
 
+## TypeScript strictness — current state
+
+Deliberate, not half-finished. `noImplicitAny` is **enabled and enforced** in
+both `server/tsconfig.json` and `client/tsconfig.json` — new code cannot
+introduce an implicit `any` in either package. It is set per-package rather
+than in `tsconfig.base.json` because the base is shared with `desktop/`, which
+has not been assessed.
+
+Everything stricter is off, with the work measured rather than guessed:
+
+| Flag | Server | Client | State |
+|---|---|---|---|
+| `noImplicitAny` | 0 | 0 | **on** |
+| `strictNullChecks` | 22 | 206 | off |
+| `strict` (all flags) | 40 | 260 | off |
+| explicit return types | ~174 | ~192 | rule not enabled |
+| `allowJs` | — | — | still `true` |
+
+Re-measure with, e.g., `cd client && npx tsc --noEmit --strictNullChecks`.
+
+Two conventions worth keeping if this is taken further:
+
+- **Types are derived, not hand-written.** Server service inputs come from
+  `z.infer` of the domain's Zod schemas; query-result shapes come from Prisma
+  via `satisfies` + `GetPayload` (see `sale.service.ts`). Client API entities
+  live in `client/src/shared/types/models.ts` and mirror the server's include
+  shapes.
+- **Do not satisfy the compiler with `any`.** 15 documented escape hatches
+  remain; each carries a comment explaining why.
+
+---
+
 ## Known Constraints
 
 - **SQLite only** — single file, no concurrent write processes. The server and the Electron main process must never open the DB simultaneously (server handles all DB access).

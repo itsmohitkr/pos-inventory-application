@@ -24,6 +24,25 @@ import { usePOSSearch } from '@/domains/pos/hooks/usePOSSearch';
 import { usePOSCustomer } from '@/domains/pos/hooks/usePOSCustomer';
 import settingsService from '@/shared/api/settingsService';
 import { STORAGE_KEYS } from '@/domains/pos/components/posReceiptSettings';
+import type { Batch, Product } from '@/shared/types/models';
+import type {
+  CartItem,
+  PaymentMethod,
+  ScannedProduct,
+} from '@/domains/pos/types';
+import type {
+  PrinterInfo,
+  ReceiptSettings,
+  ShopMetadata,
+} from '@/domains/settings/hooks/useSettings';
+
+interface POSProps {
+  receiptSettings?: ReceiptSettings | null;
+  shopName?: string;
+  shopMetadata?: ShopMetadata | null;
+  printers?: PrinterInfo[];
+  defaultPrinter?: string | null;
+}
 
 const POS = ({
   receiptSettings: propReceiptSettings,
@@ -31,7 +50,7 @@ const POS = ({
   shopMetadata: propShopMetadata,
   printers = [],
   defaultPrinter = null,
-}) => {
+}: POSProps) => {
   const navigate = useNavigate();
   const { dialogState, showError, showConfirm, closeDialog } = useCustomDialog();
 
@@ -104,12 +123,12 @@ const POS = ({
     refocus,
   } = usePOSLayout();
 
-  const [scannedProduct, setScannedProduct] = useState(null);
-  const [manualQuantityItem, setManualQuantityItem] = useState(null);
+  const [scannedProduct, setScannedProduct] = useState<ScannedProduct | null>(null);
+  const [manualQuantityItem, setManualQuantityItem] = useState<CartItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [customerSearchValue, setCustomerSearchValue] = useState('');
   const [customerNameValue, setCustomerNameValue] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [receivedAmount, setReceivedAmount] = useState(0);
 
   const [notification, setNotification] = useState<Record<string, any>>({
@@ -118,7 +137,7 @@ const POS = ({
     severity: 'success',
   });
 
-  const showNotification = useCallback((message, severity = 'success') => {
+  const showNotification = useCallback((message: string, severity = 'success') => {
     setNotification({ open: true, message, severity });
   }, []);
 
@@ -201,7 +220,7 @@ const POS = ({
   ]);
 
   useEffect(() => {
-    const isEditableTarget = (target) => {
+    const isEditableTarget = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
 
       const tagName = target.tagName;
@@ -213,7 +232,7 @@ const POS = ({
       );
     };
 
-    const shouldHandlePosInteraction = (target) => {
+    const shouldHandlePosInteraction = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
 
       return Boolean(
@@ -224,7 +243,7 @@ const POS = ({
       );
     };
 
-    const handlePointerUp = (event) => {
+    const handlePointerUp = (event: PointerEvent) => {
       const target = event.target;
       if (!shouldHandlePosInteraction(target) || isEditableTarget(target)) {
         return;
@@ -249,7 +268,7 @@ const POS = ({
   // Auto-select Cash when cart gets items, clear when empty
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedPaymentMethod((prev) => {
+    setSelectedPaymentMethod((prev: PaymentMethod | null) => {
       if (cart.length > 0 && !prev) {
         return { id: 'cash', label: 'Cash', color: '#16a34a' };
       } else if (cart.length === 0 && prev) {
@@ -259,7 +278,7 @@ const POS = ({
     });
   }, [cart.length]);
 
-  const persistReceiptSettings = async (nextSettings) => {
+  const persistReceiptSettings = async (nextSettings: ReceiptSettings) => {
     try {
       localStorage.setItem(STORAGE_KEYS.receipt, JSON.stringify(nextSettings));
       window.dispatchEvent(new Event('pos-settings-updated'));
@@ -273,16 +292,16 @@ const POS = ({
     }
   };
 
-  const handleSettingChange = (field) => {
-    setReceiptSettings((prev) => {
+  const handleSettingChange = (field: string) => {
+    setReceiptSettings((prev: ReceiptSettings) => {
       const next = { ...prev, [field]: !prev[field] };
       persistReceiptSettings(next);
       return next;
     });
   };
 
-  const handleTextSettingChange = (field, value) => {
-    setReceiptSettings((prev) => {
+  const handleTextSettingChange = (field: string, value: unknown) => {
+    setReceiptSettings((prev: ReceiptSettings) => {
       const next = { ...prev, [field]: value };
       persistReceiptSettings(next);
       return next;
@@ -290,9 +309,9 @@ const POS = ({
   };
 
 
-  const handleProductInteraction = (product) => {
+  const handleProductInteraction = (product: Product) => {
     setSearchQuery('');
-    const batches = (product.batches || []).filter((b) => b.quantity > 0);
+    const batches = (product.batches || []).filter((b: Batch) => b.quantity > 0);
     if (batches.length === 0) {
       showNotification(`${product.name} is Out of Stock!`, 'error');
       return;
@@ -344,11 +363,11 @@ const POS = ({
     if (!activeConfig) setShowPromoGifts(false);
   }, [activeConfig, setShowPromoGifts]);
 
-  const handleSelectPaymentMethod = (method) => setSelectedPaymentMethod(method);
+  const handleSelectPaymentMethod = (method: PaymentMethod) => setSelectedPaymentMethod(method);
 
 
   // Keyboard Shortcuts handlers (memoized to avoid re-registration churn)
-  const handlePayWithCustomerSync = useCallback(async (method) => {
+  const handlePayWithCustomerSync = useCallback(async (method?: PaymentMethod | null) => {
     let customer = activeCustomer;
     if (!customer && customerSearchValue.trim().length === 10) {
       customer = await registerCustomer(customerSearchValue.trim(), customerNameValue.trim());
@@ -360,7 +379,7 @@ const POS = ({
     return handlePay(method, customer);
   }, [activeCustomer, customerSearchValue, customerNameValue, registerCustomer, handlePay]);
 
-  const handlePayAndPrintWithCustomerSync = useCallback(async (method) => {
+  const handlePayAndPrintWithCustomerSync = useCallback(async (method?: PaymentMethod | null) => {
     let customer = activeCustomer;
     if (!customer && customerSearchValue.trim().length === 10) {
       customer = await registerCustomer(customerSearchValue.trim(), customerNameValue.trim());
