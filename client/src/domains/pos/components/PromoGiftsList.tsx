@@ -1,3 +1,18 @@
+import type { Batch, Product } from '@/shared/types/models';
+import type { CartItem } from '@/domains/pos/types';
+import type { PromoThresholdConfig } from '@/domains/promotions/types';
+
+interface PromoGiftsListProps {
+  show?: boolean;
+  /** The buy-X-get-free tier the cart total has unlocked; null hides the list. */
+  activeConfig?: PromoThresholdConfig | null;
+  eligibleFreeProducts: Product[];
+  cart: CartItem[];
+  onAddFreeProduct: (product: Product) => void;
+  onClose: () => void;
+  totalProfit: number;
+}
+
 import React from 'react';
 import { Box, Typography, IconButton, Chip, ButtonBase } from '@mui/material';
 import { LocalOffer as PromoIcon, Close as CloseIcon } from '@mui/icons-material';
@@ -10,7 +25,7 @@ const PromoGiftsList = ({
   onAddFreeProduct,
   onClose,
   totalProfit,
-}) => {
+}: PromoGiftsListProps) => {
   if (!show || !activeConfig || eligibleFreeProducts.length === 0) return null;
 
   return (
@@ -65,7 +80,7 @@ const PromoGiftsList = ({
           '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e0', borderRadius: '3px' },
         }}
       >
-        {eligibleFreeProducts.map((product) => {
+        {eligibleFreeProducts.map((product: Product) => {
           const profitLimit = totalProfit * ((activeConfig.profitPercentage || 20) / 100);
           const minCost = activeConfig.minCostPrice || 0;
           const maxCost =

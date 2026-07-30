@@ -3,7 +3,7 @@ import { Dialog, DialogContent, Typography, Box, IconButton, Button, Paper } fro
 import CloseIcon from '@mui/icons-material/Close';
 import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
 
-const Calculator = ({ open, onClose }) => {
+const Calculator = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const [expression, setExpression] = useState('');
 
   const result = useMemo(() => {

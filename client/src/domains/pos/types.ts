@@ -1,3 +1,5 @@
+import type { Batch, Product } from '@/shared/types/models';
+
 /**
  * Types for the POS domain.
  *
@@ -57,4 +59,17 @@ export interface OrderTab {
   name: string;
   cart: CartItem[];
   discount: number;
+}
+
+/**
+ * A product awaiting batch/price selection after a scan.
+ *
+ * `mode` decides which dialog the POS shows: 'batch' when batch tracking is on
+ * and several batches have stock, 'price' when tracking is off but the batches
+ * carry different MRPs.
+ */
+export interface ScannedProduct {
+  product: Product;
+  batches: Batch[];
+  mode: 'batch' | 'price';
 }

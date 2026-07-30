@@ -1,9 +1,10 @@
+import type { OrderTab } from '@/domains/pos/types';
 import React from 'react';
 import { Tabs, Tab, IconButton, Box } from '@mui/material';
 import { Add as AddIcon, Close as CloseIcon } from '@mui/icons-material';
 
 // Generate distinct colors for each tab
-const getTabColor = (index) => {
+const getTabColor = (index: number) => {
   const colors = [
     { bg: '#e3f2fd', border: '#1976d2', text: '#0d47a1' }, // Blue
     { bg: '#f3e5f5', border: '#9c27b0', text: '#6a1b9a' }, // Purple
@@ -19,7 +20,21 @@ const getTabColor = (index) => {
   return colors[index % colors.length];
 };
 
-const POSTabs = ({ tabs, activeTabId, onTabChange, onTabClose, onAddTab }) => {
+interface POSTabsProps {
+  tabs: OrderTab[];
+  activeTabId: number;
+  onTabChange: (tabId: number) => void;
+  onTabClose: (tabId: number) => void;
+  onAddTab: () => void;
+}
+
+const POSTabs = ({
+  tabs,
+  activeTabId,
+  onTabChange,
+  onTabClose,
+  onAddTab,
+}: POSTabsProps) => {
   return (
     <Box
       sx={{ display: 'flex', alignItems: 'center', mb: 2, borderBottom: 1, borderColor: 'divider' }}
@@ -31,7 +46,7 @@ const POSTabs = ({ tabs, activeTabId, onTabChange, onTabClose, onAddTab }) => {
         scrollButtons="auto"
         sx={{ flexGrow: 1 }}
       >
-        {tabs.map((tab, index) => {
+        {tabs.map((tab: OrderTab, index: number) => {
           const tabColor = getTabColor(index);
           const isActive = activeTabId === tab.id;
           return (

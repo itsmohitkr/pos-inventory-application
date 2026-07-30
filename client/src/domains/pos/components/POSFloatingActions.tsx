@@ -1,3 +1,11 @@
+interface POSFloatingActionsProps {
+  fullscreenEnabled?: boolean;
+  isFullscreen?: boolean;
+  onToggleFullscreen: () => void;
+  isCalculatorEnabled?: boolean;
+  onOpenCalculator: () => void;
+}
+
 import React from 'react';
 import { IconButton, Tooltip } from '@mui/material';
 import {
@@ -12,7 +20,7 @@ const POSFloatingActions = ({
   onToggleFullscreen,
   isCalculatorEnabled,
   onOpenCalculator,
-}) => (
+}: POSFloatingActionsProps) => (
   <>
     {fullscreenEnabled && (
       <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}>

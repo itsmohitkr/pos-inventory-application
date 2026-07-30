@@ -12,7 +12,21 @@ import {
 } from '@mui/material';
 import { Backspace as BackspaceIcon, Close as CloseIcon } from '@mui/icons-material';
 
-const QuantityDialog = ({ open, onClose, onConfirm, itemName, initialValue = 1 }) => {
+interface QuantityDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (quantity: number) => void;
+  itemName?: string;
+  initialValue?: number;
+}
+
+const QuantityDialog = ({
+  open,
+  onClose,
+  onConfirm,
+  itemName,
+  initialValue = 1,
+}: QuantityDialogProps) => {
   const [value, setValue] = useState(initialValue.toString());
 
   useEffect(() => {

@@ -1,3 +1,11 @@
+interface ChangeCalculatorSectionProps {
+  changeCalculatorEnabled?: boolean;
+  receivedAmount: number;
+  /** Received minus total; negative means still owing. */
+  changeDue: number;
+  setShowNumpad: (show: boolean) => void;
+}
+
 import React from 'react';
 import { Box, Typography, Chip } from '@mui/material';
 
@@ -6,7 +14,7 @@ const ChangeCalculatorSection = ({
   receivedAmount,
   changeDue,
   setShowNumpad,
-}) => {
+}: ChangeCalculatorSectionProps) => {
   if (!changeCalculatorEnabled) return null;
 
   return (

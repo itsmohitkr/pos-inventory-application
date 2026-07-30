@@ -19,7 +19,13 @@ import {
 } from '@mui/icons-material';
 import posService from '@/shared/api/posService';
 
-const LooseSaleDialog = ({ open, onClose, onComplete }) => {
+interface LooseSaleDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onComplete: () => void;
+}
+
+const LooseSaleDialog = ({ open, onClose, onComplete }: LooseSaleDialogProps) => {
   const [price, setPrice] = useState('0');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);

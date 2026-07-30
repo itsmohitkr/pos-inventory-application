@@ -1,3 +1,4 @@
+import type { CartItem } from '@/domains/pos/types';
 import React, { useEffect, useRef } from 'react';
 import {
   Box,
@@ -26,7 +27,7 @@ import {
   shouldHighlightCartRow,
 } from '@/domains/pos/components/cartTableUtils';
 
-const ShortBatchCode = ({ batchCode }) => {
+const ShortBatchCode = ({ batchCode }: { batchCode?: string | null }) => {
   const batchDisplay = getBatchCodeDisplay(batchCode);
 
   if (batchDisplay.type === 'missing') {
@@ -69,14 +70,25 @@ const ShortBatchCode = ({ batchCode }) => {
   );
 };
 
+interface CartTableProps {
+  cart: CartItem[];
+  /** Delta, not an absolute value — +1 / -1 from the stepper. */
+  onUpdateQuantity: (batchId: number, change: number) => void;
+  onRemoveFromCart: (batchId: number) => void;
+  /** Opens the numpad to type an exact quantity. */
+  onQuantityClick: (item: CartItem) => void;
+  /** Batch id of the most recent addition; that row is highlighted. */
+  lastAddedItemId: number | null;
+}
+
 const CartTable = ({
   cart,
   onUpdateQuantity,
   onRemoveFromCart,
   onQuantityClick,
   lastAddedItemId,
-}) => {
-  const scrollContainerRef = useRef(null);
+}: CartTableProps) => {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (lastAddedItemId) {
@@ -122,7 +134,7 @@ const CartTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {cart.map((item, index) => {
+            {cart.map((item: CartItem, index: number) => {
               const totalDiscount = getCartItemDiscount(item);
               return (
                 <TableRow

@@ -1,7 +1,17 @@
 import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
 
-const PriceBreakdownSection = ({ subTotal, discount, totalAmount }) => {
+interface PriceBreakdownSectionProps {
+  subTotal: number;
+  discount: number;
+  totalAmount: number;
+}
+
+const PriceBreakdownSection = ({
+  subTotal,
+  discount,
+  totalAmount,
+}: PriceBreakdownSectionProps) => {
   return (
     <>
       {/* Price Breakdown */}

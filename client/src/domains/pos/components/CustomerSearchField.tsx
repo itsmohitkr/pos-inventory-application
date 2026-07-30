@@ -1,3 +1,4 @@
+import type { Customer } from '@/shared/api/customerService';
 import React, { useState, useMemo } from 'react';
 import {
   Autocomplete,
@@ -37,7 +38,7 @@ const CustomerSearchField = ({
   const [open, setOpen] = useState(false);
 
   // Filter input to only allow digits and max 10
-  const handlePhoneChange = (value) => {
+  const handlePhoneChange = (value: string) => {
     const cleaned = value.replace(/\D/g, '').slice(0, 10);
     setCustomerSearchValue(cleaned);
     onSearch(cleaned);
@@ -49,7 +50,7 @@ const CustomerSearchField = ({
     if (customerSearchValue.length !== 10) return false;
 
     // Check if this 10-digit number is NOT in the search results
-    const match = searchResults.find(c => c.phone === customerSearchValue);
+    const match = searchResults.find((c: Customer) => c.phone === customerSearchValue);
     return !match;
   }, [activeCustomer, customerSearchValue, searchResults]);
 

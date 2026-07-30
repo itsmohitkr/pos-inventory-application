@@ -1,3 +1,4 @@
+import type { Batch, Product } from '@/shared/types/models';
 import React, { useEffect, useRef } from 'react';
 import {
   Box,
@@ -52,7 +53,7 @@ const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
     const [typewriterBarcode, setTypewriterBarcode] = React.useState('');
 
     const completeSelection = React.useCallback(
-      (product, displayValue) => {
+      (product: Product | null, displayValue: string) => {
         if (!product) return;
 
         setAnimating(true);
@@ -107,7 +108,7 @@ const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
       }
     };
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: React.KeyboardEvent) => {
       if (event.key === 'Enter' && searchQuery.trim()) {
         event.preventDefault();
 
@@ -277,7 +278,7 @@ const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
                       )}
                     </Box>
                     <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                      {option.batches.map((b) => {
+                      {option.batches.map((b: Batch) => {
                         const isPromoActive = option.isOnSale && option.promoPrice < b.sellingPrice;
                         return (
                           <Box key={b.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

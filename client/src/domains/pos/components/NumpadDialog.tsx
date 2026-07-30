@@ -12,7 +12,22 @@ import {
 } from '@mui/material';
 import { Backspace as BackspaceIcon, Close as CloseIcon } from '@mui/icons-material';
 
-const NumpadDialog = ({ open, onClose, onConfirm, initialValue = '', title = 'Enter Amount' }) => {
+interface NumpadDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (value: number) => void;
+  /** Seeded into the field; held as a string while editing. */
+  initialValue?: string | number;
+  title?: string;
+}
+
+const NumpadDialog = ({
+  open,
+  onClose,
+  onConfirm,
+  initialValue = '',
+  title = 'Enter Amount',
+}: NumpadDialogProps) => {
   const [value, setValue] = useState(initialValue.toString());
 
   useEffect(() => {

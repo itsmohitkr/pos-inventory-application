@@ -1,3 +1,6 @@
+import type { Batch, Product } from '@/shared/types/models';
+import type { ScannedProduct } from '@/domains/pos/types';
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
@@ -11,7 +14,19 @@ import {
 } from '@mui/material';
 import { KeyboardArrowDown as ArrowDownIcon } from '@mui/icons-material';
 
-const BatchSelectionDialog = ({ scannedProduct, onSelectBatch, onClose }) => {
+interface BatchSelectionDialogProps {
+  /** Null closes the dialog. */
+  scannedProduct?: ScannedProduct | null;
+  /** Receives both — the cart item is built from the product and the batch. */
+  onSelectBatch: (product: Product, batch: Batch) => void;
+  onClose: () => void;
+}
+
+const BatchSelectionDialog = ({
+  scannedProduct,
+  onSelectBatch,
+  onClose,
+}: BatchSelectionDialogProps) => {
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [keyboardEnabled, setKeyboardEnabled] = useState(false);
   const listRef = useRef(null);
