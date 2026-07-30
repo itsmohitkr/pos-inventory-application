@@ -119,7 +119,7 @@ type SaleRow = ReportSale;
 interface SalesHistoryProps {
   sales?: SaleRow[] | null;
   timeframeLabel?: string;
-  onSelectSale?: (sale: SaleRow) => void;
+  onSelectSale: (sale: SaleRow) => void;
 }
 
 const SalesHistory = ({ sales, timeframeLabel, onSelectSale }: SalesHistoryProps) => {
@@ -143,7 +143,7 @@ const SalesHistory = ({ sales, timeframeLabel, onSelectSale }: SalesHistoryProps
 
   const handlePrint = () => window.print();
 
-  const handleExportPDF = () => exportSalesToPDF(sales, timeframeLabel, totals);
+  const handleExportPDF = () => exportSalesToPDF(sales, timeframeLabel || '', totals);
 
   return (
     <Box

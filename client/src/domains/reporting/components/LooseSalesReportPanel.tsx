@@ -53,7 +53,7 @@ const LooseSalesReportPanel = ({
     requestSort,
     sortConfig,
   } = useSortableTable(data || [], { key: 'createdAt', direction: 'desc' });
-  const [deleteId, setDeleteId] = React.useState(null);
+  const [deleteId, setDeleteId] = React.useState<number | null>(null);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -76,7 +76,7 @@ const LooseSalesReportPanel = ({
 
     doc.setFontSize(11);
     doc.setTextColor(100);
-    doc.text(`Timeframe: ${timeframeLabel}`, 14, 28);
+    doc.text(`Timeframe: ${timeframeLabel || ''}`, 14, 28);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34);
 
     const tableColumn = ['Date', 'Item Name', 'Price (₹)'];
@@ -95,7 +95,7 @@ const LooseSalesReportPanel = ({
       headStyles: { fillColor: [245, 158, 11] },
     });
 
-    doc.save(`loose_sales_report_${timeframeLabel.replace(/\s+/g, '_').toLowerCase()}.pdf`);
+    doc.save(`loose_sales_report_${(timeframeLabel || '').replace(/\s+/g, '_').toLowerCase()}.pdf`);
   };
 
   const handlePrint = () => {

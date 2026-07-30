@@ -33,7 +33,7 @@ const AnalyticsCashFlowTable = ({
   cashFlowItems,
   totalCashBalance,
 }: AnalyticsCashFlowTableProps) => {
-  const [filterValue, setFilterValue] = React.useState(null);
+  const [filterValue, setFilterValue] = React.useState<string | null>(null);
 
   const categories = React.useMemo(() => {
     const labels = cashFlowItems.map(item => item.label);

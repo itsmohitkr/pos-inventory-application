@@ -109,7 +109,7 @@ export const useReportingData = (reportType?: string) => {
     const controller = new AbortController();
 
     if (reportType === 'low_stock') {
-      fetchReports(null, null, { signal: controller.signal });
+      fetchReports(undefined, undefined, { signal: controller.signal });
       return () => controller.abort();
     }
 
@@ -132,10 +132,12 @@ export const useReportingData = (reportType?: string) => {
     setTabValue(newValue);
     if (newValue < 8) {
       const range = timeframes[newValue].getValue();
-      setDateRange({
-        startDate: range.localStart,
-        endDate: range.localEnd,
-      });
+      if (range) {
+        setDateRange({
+          startDate: range.localStart,
+          endDate: range.localEnd,
+        });
+      }
     }
   };
 
@@ -154,7 +156,7 @@ export const useReportingData = (reportType?: string) => {
 
     if (tabValue < 8) {
       const range = timeframes[tabValue].getValue();
-      fetchReports(range.start, range.end);
+      if (range) fetchReports(range.start, range.end);
       return;
     }
 

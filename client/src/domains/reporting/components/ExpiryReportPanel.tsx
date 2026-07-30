@@ -85,7 +85,7 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
     doc.setFontSize(11);
     doc.setTextColor(100);
     doc.text(`Category: ${selectedCategory}`, 14, 28);
-    doc.text(`Timeframe: ${timeframeLabel}`, 14, 34);
+    doc.text(`Timeframe: ${timeframeLabel || ''}`, 14, 34);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
 
     const tableColumn = ['Product Name', 'Category', 'Batch Code', 'Quantity', 'Expiry Date'];
@@ -94,7 +94,7 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
       batch.category,
       batch.batchCode || 'N/A',
       batch.quantity.toString(),
-      new Date(batch.expiryDate).toLocaleDateString(),
+      new Date(batch.expiryDate as string).toLocaleDateString(),
     ]);
 
     autoTable(doc, {
@@ -106,7 +106,7 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
       headStyles: { fillColor: [25, 118, 210] },
     });
 
-    doc.save(`expiry_report_${selectedCategory.toLowerCase().replace(/\s+/g, '_')}_${timeframeLabel.replace(/\s+/g, '_').toLowerCase()}.pdf`);
+    doc.save(`expiry_report_${selectedCategory.toLowerCase().replace(/\s+/g, '_')}_${(timeframeLabel || '').replace(/\s+/g, '_').toLowerCase()}.pdf`);
   };
 
   const handlePrint = () => {
@@ -272,7 +272,7 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
                             variant="body2"
                             sx={{ fontWeight: 600, color: isCritical ? '#d32f2f' : 'inherit' }}
                           >
-                            {new Date(batch.expiryDate).toLocaleDateString()}
+                            {new Date(batch.expiryDate as string).toLocaleDateString()}
                           </Typography>
                           <Typography
                             variant="caption"

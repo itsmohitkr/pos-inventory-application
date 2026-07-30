@@ -6,10 +6,11 @@ import SaleDetailDialog from '@/domains/reporting/components/SaleDetailDialog';
 import ReportingTimeframeControls from '@/domains/reporting/components/ReportingTimeframeControls';
 import ReportingContent from '@/domains/reporting/components/ReportingContent';
 import { useReportingData } from '@/domains/reporting/components/useReportingData';
+import type { ReportSale } from '@/shared/types/models';
 
 const Reporting = () => {
   const [reportType, setReportType] = useState('cash_flow');
-  const [selectedSale, setSelectedSale] = useState(null);
+  const [selectedSale, setSelectedSale] = useState<ReportSale | null>(null);
 
   const {
     reportData,

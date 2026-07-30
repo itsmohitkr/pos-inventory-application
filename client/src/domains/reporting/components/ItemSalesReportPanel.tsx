@@ -97,7 +97,7 @@ const ItemSalesReportPanel = ({
     sortConfig,
   } = useSortableTable(filteredAggregatedData, { key: 'revenue', direction: 'desc' });
 
-  const handleExportPDF = () => exportItemSalesToPDF(filteredAggregatedData, filteredTotals, timeframeLabel);
+  const handleExportPDF = () => exportItemSalesToPDF(filteredAggregatedData, filteredTotals, timeframeLabel || '');
   const handlePrint = () => window.print();
 
   if (loading) {
