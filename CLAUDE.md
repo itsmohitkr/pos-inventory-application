@@ -343,13 +343,15 @@ Set automatically by `desktop/main.js` at runtime. For standalone server develop
 
 ## TypeScript strictness — current state
 
-Deliberate, not half-finished. `noImplicitAny` and `strictNullChecks` are both
-**enabled and enforced** in `server/tsconfig.json` and `client/tsconfig.json`
-— new code on either side cannot introduce an implicit `any` or an unguarded
-null/undefined dereference. Both flags are set per-package rather than in
-`tsconfig.base.json` because the base is shared with `desktop/`, which has
-not been assessed, and because a flag can only be turned on for a package
-once that package's count reaches zero.
+Deliberate, not half-finished. `noImplicitAny` and `strictNullChecks` are
+**enabled and enforced** on both sides. `server/tsconfig.json` now sets
+`strict: true` outright (the full strict family, not just those two flags) —
+server was the more-converted package, so it crossed the line first.
+`client/tsconfig.json` still lists `noImplicitAny`/`strictNullChecks`
+individually; the rest of the `strict` family remains open there. Flags are
+set per-package rather than in `tsconfig.base.json` because the base is
+shared with `desktop/`, which has not been assessed, and because a flag can
+only be turned on for a package once that package's count reaches zero.
 
 Everything else is off, with the work measured rather than guessed:
 
@@ -357,11 +359,19 @@ Everything else is off, with the work measured rather than guessed:
 |---|---|---|---|
 | `noImplicitAny` | 0 | 0 | **on** (both) |
 | `strictNullChecks` | 0 | 0 | **on** (both) |
-| `strict` (all flags) | 18 | 284 | off |
+| `strict` (all flags) | 0 | 54 | **on** (server only) |
 | explicit return types | ~174 | ~192 | rule not enabled |
 | `allowJs` | — | — | still `true` |
 
-Re-measure with, e.g., `cd client && npx tsc --noEmit --strictNullChecks`.
+Re-measure with, e.g., `cd client && npx tsc --noEmit --strict`.
+
+`strict` on the server found two more real bugs beyond missing annotations:
+`useUnknownInCatchVariables` (part of `strict`) caught a handful of
+`catch (err) { ...err.message }` sites that would throw *inside* the error
+handler itself if something non-`Error` were ever thrown — see the new
+`shared/utils/errorMessage.ts` helper and its call sites. It also caught a
+few `const x = []` "evolving array" declarations whose inferred `never[]`
+type had been silently accepted; each now has an explicit element type.
 
 `strictNullChecks` found real bugs on both sides, not just missing
 annotations. Server (see git history on `purchase.service.ts` /
