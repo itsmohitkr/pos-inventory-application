@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
+import { getApiErrorMessage, type ApiError } from '@/shared/api/api';
 import type { CategoryNode, Product } from '@/shared/types/models';
 
 interface UseEditProductArgs {
@@ -94,7 +95,7 @@ export const useEditProduct = ({
           return false;
         }
       } catch (error) {
-        if (error.response?.status === 404) {
+        if ((error as ApiError).response?.status === 404) {
           // Safe to add
         } else {
           console.error('Barcode verification failed:', error);
@@ -145,8 +146,8 @@ export const useEditProduct = ({
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-update-product' } });
       console.error('Error updating product:', error);
-      const errorMessage = error.response?.data?.error || error.message;
-      if (error.response?.status === 409) {
+      const errorMessage = getApiErrorMessage(error);
+      if ((error as ApiError).response?.status === 409) {
         setBarcodeError(errorMessage);
         showError('Conflict: ' + errorMessage);
       } else {

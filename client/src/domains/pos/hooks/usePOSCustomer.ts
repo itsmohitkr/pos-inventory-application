@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import * as Sentry from '@sentry/react';
 import customerService from '@/shared/api/customerService';
 import type { Customer } from '@/shared/api/customerService';
+import { getApiErrorMessage } from '@/shared/api/api';
 
 interface UsePOSCustomerArgs {
   showNotification: (message: string, severity?: string) => void;
@@ -46,7 +47,7 @@ export const usePOSCustomer = ({ showNotification }: UsePOSCustomerArgs) => {
       return customer;
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'pos-customer-lookup' } });
-      showNotification(err.response?.data?.error || 'Customer lookup failed', 'error');
+      showNotification(getApiErrorMessage(err, 'Customer lookup failed'), 'error');
       return null;
     } finally {
       setIsLoadingCustomer(false);
@@ -106,7 +107,7 @@ export const usePOSCustomer = ({ showNotification }: UsePOSCustomerArgs) => {
       return customer;
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'pos-customer-register' } });
-      showNotification(err.response?.data?.error || 'Registration failed', 'error');
+      showNotification(getApiErrorMessage(err, 'Registration failed'), 'error');
       return null;
     } finally {
       setIsLoadingCustomer(false);

@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { Autocomplete } from '@mui/material';
 import inventoryService from '@/shared/api/inventoryService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import type { CategoryNode } from '@/shared/types/models';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
@@ -152,7 +153,7 @@ const BulkAddGrid = ({ onProductsAdded, onCancel }: BulkAddGridProps) => {
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'bulk-add-products' } });
       console.error('Bulk add failed:', err);
-      setError(err.response?.data?.error || err.message);
+      setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }

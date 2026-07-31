@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import settingsService from '@/shared/api/settingsService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import { getAdminAutoLogoutTime } from '@/shared/utils/paymentSettings';
 import type { AuthActionResult, AuthUser } from '@/shared/types/auth';
 import { clearAdminToken, setAdminToken } from '@/shared/api/adminToken';
@@ -144,7 +145,7 @@ export const useAuth = () => {
       return { success: false, error: 'Invalid admin password' };
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'admin-elevation' } });
-      return { success: false, error: error.response?.data?.error || 'Invalid admin password' };
+      return { success: false, error: getApiErrorMessage(error, 'Invalid admin password') };
     }
   };
 

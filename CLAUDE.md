@@ -343,23 +343,19 @@ Set automatically by `desktop/main.js` at runtime. For standalone server develop
 
 ## TypeScript strictness — current state
 
-Deliberate, not half-finished. `noImplicitAny` and `strictNullChecks` are
-**enabled and enforced** on both sides. `server/tsconfig.json` now sets
-`strict: true` outright (the full strict family, not just those two flags) —
-server was the more-converted package, so it crossed the line first.
-`client/tsconfig.json` still lists `noImplicitAny`/`strictNullChecks`
-individually; the rest of the `strict` family remains open there. Flags are
-set per-package rather than in `tsconfig.base.json` because the base is
-shared with `desktop/`, which has not been assessed, and because a flag can
-only be turned on for a package once that package's count reaches zero.
+Deliberate, not half-finished. Both `server/tsconfig.json` and
+`client/tsconfig.json` now set `strict: true` outright (the full strict
+family). Server crossed the line first; client followed once its 54
+strict-mode errors were fixed. Flags are set per-package rather than in
+`tsconfig.base.json` because the base is shared with `desktop/`, which has
+not been assessed, and because a flag can only be turned on for a package
+once that package's count reaches zero.
 
 Everything else is off, with the work measured rather than guessed:
 
 | Flag | Server | Client | State |
 |---|---|---|---|
-| `noImplicitAny` | 0 | 0 | **on** (both) |
-| `strictNullChecks` | 0 | 0 | **on** (both) |
-| `strict` (all flags) | 0 | 54 | **on** (server only) |
+| `strict` (all flags) | 0 | 0 | **on** (both) |
 | explicit return types | ~174 | ~192 | rule not enabled |
 | `allowJs` | — | — | still `true` |
 
@@ -372,6 +368,20 @@ handler itself if something non-`Error` were ever thrown — see the new
 `shared/utils/errorMessage.ts` helper and its call sites. It also caught a
 few `const x = []` "evolving array" declarations whose inferred `never[]`
 type had been silently accepted; each now has an explicit element type.
+
+`strict` on the client was almost entirely the same `useUnknownInCatchVariables`
+pattern — dozens of `catch (err) { err.response?.data?.error || err.message }`
+sites across POS, inventory, auth, refund, and settings components, all now
+routed through the existing `getApiErrorMessage(error, fallback)` helper
+(`client/src/shared/api/api.ts`) instead of ad hoc property access; a few
+sites that needed the raw `.status`/`.response` (404/409 branching) cast
+through the existing `ApiError` interface instead. `AccountDetailsDialog.tsx`
+also had `strictFunctionTypes` catches on four Electron IPC listener
+callbacks, whose params are typed `unknown` by `IpcListener`
+(`client/src/types/electron.d.ts`) — fixed by widening the listener
+signatures and coercing (`String(msg)`, `Number(percent)`) at the call site
+rather than the channel type. The same evolving-array pattern as the server
+turned up too (`useBulkImport.ts`, `usePOSSearch.ts`).
 
 `strictNullChecks` found real bugs on both sides, not just missing
 annotations. Server (see git history on `purchase.service.ts` /

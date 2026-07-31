@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import { IPC } from '@/shared/ipcChannels';
 import type { CartItem, PaymentMethod, ReceiptSale } from '@/domains/pos/types';
 import type { Customer } from '@/shared/api/customerService';
@@ -85,7 +86,7 @@ export const usePOSSale = ({
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'pos-pay' } });
       console.error(error);
-      const msg = error.response?.data?.error || error.message || 'Payment failed';
+      const msg = getApiErrorMessage(error, 'Payment failed');
       showError(`Payment failed: ${msg}`);
     } finally {
       setIsPaying(false);
@@ -148,7 +149,7 @@ export const usePOSSale = ({
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'pos-pay-and-print' } });
       console.error(error);
-      const msg = error.response?.data?.error || error.message || 'Payment failed';
+      const msg = getApiErrorMessage(error, 'Payment failed');
       showError(`Payment failed: ${msg}`);
     } finally {
       setIsPaying(false);

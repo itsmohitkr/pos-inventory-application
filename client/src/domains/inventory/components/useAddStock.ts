@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import type { Product } from '@/shared/types/models';
 
 interface UseAddStockArgs {
@@ -167,7 +168,7 @@ export const useAddStock = ({
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-add-stock' } });
       console.error(error);
-      await showError('Failed to add stock: ' + (error.response?.data?.error || error.message));
+      await showError('Failed to add stock: ' + getApiErrorMessage(error));
     }
   };
 

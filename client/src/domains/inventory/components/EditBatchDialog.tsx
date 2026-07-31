@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import inventoryService from '@/shared/api/inventoryService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
@@ -152,7 +153,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-edit-batch' } });
       console.error('Failed to update batch:', error);
-      showError('Failed to update batch: ' + (error.response?.data?.error || error.message));
+      showError('Failed to update batch: ' + getApiErrorMessage(error));
     } finally {
       setIsSaving(false);
     }

@@ -14,6 +14,7 @@ interface AccountDetailsDialogProps {
 import React, { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/react';
 import settingsService from '@/shared/api/settingsService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import {
   Dialog,
   DialogTitle,
@@ -146,17 +147,17 @@ const AccountDetailsDialog = ({
         setUpdateStatus('downloaded');
         setUpdateMessage('Update downloaded!');
       };
-      const onError = (_event: unknown, msg: string) => {
+      const onError = (_event: unknown, msg: unknown) => {
         setUpdateStatus('error');
-        setUpdateMessage('Update error: ' + msg);
+        setUpdateMessage('Update error: ' + String(msg));
       };
       const onNotAvailable = () => {
         setUpdateStatus('latest');
         setUpdateMessage('You are on the latest version!');
       };
-      const onProgress = (_event: unknown, percent: number) => {
+      const onProgress = (_event: unknown, percent: unknown) => {
         setUpdateStatus('downloading');
-        setDownloadProgress(Math.round(percent));
+        setDownloadProgress(Math.round(Number(percent)));
       };
 
       electron.ipcRenderer.on(IPC.UPDATE_AVAILABLE, onAvailable);
@@ -300,7 +301,7 @@ const AccountDetailsDialog = ({
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'wipe-database' } });
       console.error('Wipe error:', error);
-      showError(error.response?.data?.error || 'Failed to wipe database');
+      showError(getApiErrorMessage(error, 'Failed to wipe database'));
       setWipeLoading(false);
     }
   };

@@ -39,8 +39,8 @@ export const usePOSSearch = (products: Product[]) => {
       const namePrefix: Product[] = [];
       const barcodePrefix: Product[] = [];
       const nameContains: Product[] = [];
-      const barcodeContains = [];
-      const priceMatches = [];
+      const barcodeContains: Product[] = [];
+      const priceMatches: Product[] = [];
 
       if (exactMatch) barcodePrefix.push(exactMatch);
 

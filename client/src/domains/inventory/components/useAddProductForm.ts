@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
+import { getApiErrorMessage, type ApiError } from '@/shared/api/api';
 
 const INITIAL_BATCH = {
   batch_code: '', quantity: '', mrp: '', cost_price: '', selling_price: '',
@@ -119,8 +120,13 @@ export default function useAddProductForm({
         setBarcodeError(`Barcode '${trimmed}' is already associated with product '${name}'`);
         return false;
       } catch (err) {
-        if (!err.response || err.response.status !== 404) {
-          setBarcodeError(err.response?.data?.error || (err.response ? 'Unable to verify barcode' : 'Network Error: Cannot reach server'));
+        const apiErr = err as ApiError;
+        if (!apiErr.response || apiErr.response.status !== 404) {
+          setBarcodeError(
+            apiErr.response
+              ? getApiErrorMessage(err, 'Unable to verify barcode')
+              : 'Network Error: Cannot reach server'
+          );
           return false;
         }
       }
@@ -175,13 +181,13 @@ export default function useAddProductForm({
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-create-product' } });
       console.error(error);
-      if (error.response?.status === 409) {
-        const msg = error.response?.data?.error || 'Barcode already exists';
+      if ((error as ApiError).response?.status === 409) {
+        const msg = getApiErrorMessage(error, 'Barcode already exists');
         setBarcodeError(msg);
         await showError(msg);
         return;
       }
-      await showError('Failed to add product: ' + (error.response?.data?.error || error.message));
+      await showError('Failed to add product: ' + getApiErrorMessage(error));
     }
   };
 

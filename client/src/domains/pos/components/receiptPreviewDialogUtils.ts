@@ -66,9 +66,10 @@ export const fetchPrintersForPreview = async () => {
       severity: 'success',
     };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: `Error: ${error.message}`,
+      message: `Error: ${message}`,
       severity: 'error',
     };
   }

@@ -70,11 +70,11 @@ export const useBulkImport = (
 
   const validateAllRows = async (allData: BulkImportRow[]) => {
     setValidating(true);
-    const errors = [];
-    const seenBarcodes = new Map();
+    const errors: { line: number; messages: string[] }[] = [];
+    const seenBarcodes = new Map<string, number>();
 
     for (const row of allData) {
-      const rowErrors = [];
+      const rowErrors: string[] = [];
       if (!row.name || !row.name.trim()) {
         rowErrors.push('Missing product name');
       }

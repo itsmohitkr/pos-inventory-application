@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import { getResponseArray } from '@/shared/utils/responseGuards';
 import type { CategoryNode } from '@/shared/types/models';
 
@@ -107,7 +108,7 @@ export const useCategoryManagement = (
       if (fetchSummary) fetchSummary();
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-save-category' } });
-      showError('Failed to save category: ' + (error.response?.data?.error || error.message));
+      showError('Failed to save category: ' + getApiErrorMessage(error));
     }
   };
 
@@ -133,7 +134,7 @@ export const useCategoryManagement = (
       if (fetchSummary) fetchSummary();
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-delete-category' } });
-      showError('Failed to delete category: ' + (error.response?.data?.error || error.message));
+      showError('Failed to delete category: ' + getApiErrorMessage(error));
     }
   };
 

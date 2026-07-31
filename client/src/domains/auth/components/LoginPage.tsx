@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import trovixLogo from '@/assets/trovix.png';
 import settingsService from '@/shared/api/settingsService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import type { AuthUser } from '@/shared/types/auth';
 
 const LoginPage = ({ onLogin }: { onLogin: (user: AuthUser) => void }) => {
@@ -30,7 +31,7 @@ const LoginPage = ({ onLogin }: { onLogin: (user: AuthUser) => void }) => {
       onLogin(data);
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'login' } });
-      setError(err.response?.data?.error || 'Login failed');
+      setError(getApiErrorMessage(err, 'Login failed'));
     } finally {
       setLoading(false);
     }

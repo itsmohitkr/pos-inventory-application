@@ -2,6 +2,7 @@ import type { InventorySummaryTotals, Product, ProductHistory } from './inventor
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import { isRequestCanceled } from '@/shared/api/api';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
@@ -401,7 +402,7 @@ export default function useProductList({
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-move-products' } });
       console.error(error);
-      showError('Failed to move products: ' + (error.response?.data?.error || error.message));
+      showError('Failed to move products: ' + getApiErrorMessage(error));
       fetchProducts();
     }
   };

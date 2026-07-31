@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Edit as EditIcon } from '@mui/icons-material';
 import type { Customer } from '@/shared/api/customerService';
+import { getApiErrorMessage } from '@/shared/api/api';
 
 interface EditCustomerDialogProps {
   open: boolean;
@@ -59,7 +60,7 @@ const EditCustomerDialog = ({
       onClose();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'customer-edit' } });
-      setError(err.response?.data?.error || err.message || 'Failed to update customer');
+      setError(getApiErrorMessage(err, 'Failed to update customer'));
     } finally {
       setIsSaving(false);
     }

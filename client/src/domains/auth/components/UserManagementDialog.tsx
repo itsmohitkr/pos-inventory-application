@@ -106,7 +106,8 @@ const UserManagementDialog = ({ open, onClose, currentUser }: UserManagementDial
    * means it expired or was never issued, which is a different problem from a
    * validation failure and needs a different instruction.
    */
-  const describeError = (err: ApiError, fallback: string): string => {
+  const describeError = (error: unknown, fallback: string): string => {
+    const err = error as ApiError;
     if (err.response?.status === 401 || err.response?.status === 403) {
       return 'Admin session expired. Close this dialog and verify as admin again.';
     }

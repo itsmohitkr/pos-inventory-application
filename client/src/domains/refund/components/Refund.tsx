@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
+import { getApiErrorMessage } from '@/shared/api/api';
 import {
   Typography,
   TextField,
@@ -13,12 +14,13 @@ import {
 } from '@mui/material';
 import { Search as SearchIcon, Undo as UndoIcon } from '@mui/icons-material';
 import RefundProcessor from '@/domains/refund/components/RefundProcessor';
+import type { ReportSale } from '@/shared/types/models';
 
 const Refund = () => {
   const [orderId, setOrderId] = useState('');
-  const [sale, setSale] = useState(null);
+  const [sale, setSale] = useState<ReportSale | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchOrder = async () => {
     if (!orderId) return;
@@ -32,7 +34,7 @@ const Refund = () => {
       setSale(saleData);
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'refund-order-lookup' } });
-      setError(err.response?.data?.error || 'Order not found or an error occurred');
+      setError(getApiErrorMessage(err, 'Order not found or an error occurred'));
     } finally {
       setLoading(false);
     }

@@ -10,7 +10,7 @@ interface QuickInventoryDialogProps {
 
 import React, { useState } from 'react';
 import * as Sentry from '@sentry/react';
-import api from '@/shared/api/api';
+import api, { getApiErrorMessage } from '@/shared/api/api';
 import {
   Dialog,
   DialogTitle,
@@ -107,7 +107,7 @@ const QuickInventoryDialog = ({
       console.error('Failed to update batch stock:', error);
       setNotification({
         open: true,
-        message: 'Failed to update stock: ' + (error.response?.data?.error || error.message),
+        message: 'Failed to update stock: ' + getApiErrorMessage(error),
         severity: 'error',
       });
     }

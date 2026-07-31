@@ -10,7 +10,7 @@ import {
   Typography,
   Button,
 } from '@mui/material';
-import api from '@/shared/api/api';
+import api, { getApiErrorMessage } from '@/shared/api/api';
 import type { AuthUser } from '@/shared/types/auth';
 
 interface ChangePasswordDialogProps {
@@ -57,7 +57,7 @@ const ChangePasswordDialog = ({
       showSuccess('Password changed successfully');
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'change-password' } });
-      setPasswordError(err.response?.data?.error || 'Failed to change password');
+      setPasswordError(getApiErrorMessage(err, 'Failed to change password'));
     }
   };
 

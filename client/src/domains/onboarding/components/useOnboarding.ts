@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/react';
 import authService from '@/shared/api/authService';
 import settingsService from '@/shared/api/settingsService';
+import { getApiErrorMessage } from '@/shared/api/api';
 
 /** Shop details collected in step one; keys match the onboarding API body. */
 export interface ShopFields {
@@ -96,7 +97,7 @@ export function useOnboarding({ onComplete }: { onComplete: () => void }) {
       onComplete();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'onboarding-setup' } });
-      setError(err?.response?.data?.message || 'Setup failed. Please try again.');
+      setError(getApiErrorMessage(err, 'Setup failed. Please try again.'));
     } finally {
       setSubmitting(false);
     }

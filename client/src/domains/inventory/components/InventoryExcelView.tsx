@@ -41,7 +41,7 @@ const InventoryExcelView = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Column Visibility State
-  const [cols, setCols] = useState({
+  const [cols, setCols] = useState<Record<string, boolean>>({
     sno: true,
     name: true,
     stockStatus: true,
