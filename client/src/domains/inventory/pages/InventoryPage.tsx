@@ -207,11 +207,21 @@ const InventoryPage = () => {
         anchor="right"
         open={showAddProduct}
         onClose={() => setShowAddProduct(false)}
+        transitionDuration={{ enter: 280, exit: 220 }}
+        slotProps={{
+          backdrop: {
+            sx: {
+              bgcolor: 'rgba(15, 23, 42, 0.25)',
+            },
+          },
+        }}
         PaperProps={{
           sx: {
-            width: { xs: '100%', sm: 600, md: 650 },
+            width: { xs: '100vw', sm: 550, md: 650 },
+            boxShadow: '-8px 0 24px rgba(0,0,0,0.12)',
+            borderLeft: '1px solid #e2e8f0',
             bgcolor: '#ffffff',
-          }
+          },
         }}
       >
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -236,7 +246,7 @@ const InventoryPage = () => {
             </IconButton>
           </Box>
           <Box sx={{ p: { xs: 2, md: 3 }, flexGrow: 1, overflowY: 'auto' }}>
-            <AddProductForm onProductAdded={handleProductAdded} />
+            <AddProductForm onProductAdded={handleProductAdded} onClose={() => setShowAddProduct(false)} />
           </Box>
         </Box>
       </Drawer>

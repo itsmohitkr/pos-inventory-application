@@ -47,13 +47,11 @@ const INITIAL_FORM: AddProductFormState = {
 };
 
 interface UseAddProductFormArgs {
-  showError: (message: string) => void;
   showSuccess: (message: string) => void;
   onProductAdded: () => void;
 }
 
 export default function useAddProductForm({
-  showError,
   showSuccess,
   onProductAdded,
 }: UseAddProductFormArgs) {
@@ -63,6 +61,8 @@ export default function useAddProductForm({
   const [barcodeChecking, setBarcodeChecking] = useState(false);
   const [manualBarcodeInput, setManualBarcodeInput] = useState('');
   const [discountInput, setDiscountInput] = useState('0');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     inventoryService.fetchSummary().then((data) => {
@@ -77,6 +77,12 @@ export default function useAddProductForm({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === 'barcode') setBarcodeError('');
+    setSubmitError('');
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
 
     if (name === 'initialBatch.discount_percent') {
       setDiscountInput(value);
@@ -152,18 +158,98 @@ export default function useAddProductForm({
     addBarcode(Math.floor(1000000000000 + Math.random() * 9000000000000).toString());
   };
 
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!formData.name.trim()) {
+      errors.name = 'Product Name is required.';
+    }
+
+    if (!formData.category.trim()) {
+      errors.category = 'Product Category is required.';
+    }
+
+    if (formData.barcodes.length === 0 && !manualBarcodeInput.trim()) {
+      setBarcodeError('At least one barcode is required.');
+      errors.barcode = 'At least one barcode is required.';
+    }
+
+    const b = formData.initialBatch;
+    const mrpStr = String(b.mrp).trim();
+    const costStr = String(b.cost_price).trim();
+    const sellingStr = String(b.selling_price).trim();
+    const qtyStr = String(b.quantity).trim();
+
+    const mrp = Number(b.mrp);
+    const costPrice = Number(b.cost_price);
+    const sellingPrice = Number(b.selling_price);
+    const quantity = Number(b.quantity);
+
+    if (!mrpStr || isNaN(mrp)) {
+      errors['initialBatch.mrp'] = 'MRP is required.';
+    } else if (mrp < 0) {
+      errors['initialBatch.mrp'] = 'MRP must be 0 or greater.';
+    }
+
+    if (!costStr || isNaN(costPrice)) {
+      errors['initialBatch.cost_price'] = 'Cost Price is required.';
+    } else if (costPrice < 0) {
+      errors['initialBatch.cost_price'] = 'Cost Price must be 0 or greater.';
+    }
+
+    if (!qtyStr || isNaN(quantity)) {
+      errors['initialBatch.quantity'] = 'Quantity is required.';
+    } else if (quantity < 0) {
+      errors['initialBatch.quantity'] = 'Quantity must be 0 or greater.';
+    }
+
+    if (!sellingStr || isNaN(sellingPrice)) {
+      errors['initialBatch.selling_price'] = 'Selling Price is required.';
+    } else if (!isNaN(mrp) && !isNaN(costPrice)) {
+      if (sellingPrice < costPrice || sellingPrice > mrp) {
+        errors['initialBatch.selling_price'] = 'Selling price must be ≤ MRP & ≥ Cost Price.';
+      }
+    }
+
+    if (b.wholesaleEnabled) {
+      const wPrice = Number(b.wholesalePrice);
+      const wQty = Number(b.wholesaleMinQty);
+      if (!b.wholesalePrice || String(b.wholesalePrice).trim() === '' || isNaN(wPrice) || wPrice < 0) {
+        errors['initialBatch.wholesalePrice'] = 'Wholesale price is required and must be ≥ 0.';
+      }
+      if (!b.wholesaleMinQty || String(b.wholesaleMinQty).trim() === '' || isNaN(wQty) || wQty < 1) {
+        errors['initialBatch.wholesaleMinQty'] = 'Minimum quantity is required and must be ≥ 1.';
+      }
+    }
+
+    if (formData.lowStockWarningEnabled) {
+      const threshold = Number(formData.lowStockThreshold);
+      if (formData.lowStockThreshold === '' || isNaN(threshold) || threshold < 0) {
+        errors.lowStockThreshold = 'Low stock threshold is required.';
+      }
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError('');
+
     if (manualBarcodeInput.trim()) {
       const ok = await addBarcode(manualBarcodeInput);
       if (!ok) return;
     }
     if (barcodeChecking || barcodeError) return;
+
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       const b = formData.initialBatch;
       const mrp = Number(b.mrp) || 0, costPrice = Number(b.cost_price) || 0, sellingPrice = Number(b.selling_price) || 0, quantity = Number(b.quantity) || 0;
-      if (mrp < 0 || costPrice < 0 || sellingPrice < 0 || quantity < 0) { await showError('Values must be zero or greater'); return; }
-      if (sellingPrice < costPrice || sellingPrice > mrp) return;
+
       await inventoryService.createProduct({
         name: toTitleCase(formData.name),
         barcode: formData.barcodes.length > 0 ? formData.barcodes.join('|') : null,
@@ -177,6 +263,8 @@ export default function useAddProductForm({
       setFormData({ ...INITIAL_FORM, initialBatch: { ...INITIAL_BATCH } });
       setManualBarcodeInput('');
       setDiscountInput('0');
+      setFieldErrors({});
+      setSubmitError('');
       if (onProductAdded) onProductAdded();
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-create-product' } });
@@ -184,10 +272,9 @@ export default function useAddProductForm({
       if ((error as ApiError).response?.status === 409) {
         const msg = getApiErrorMessage(error, 'Barcode already exists');
         setBarcodeError(msg);
-        await showError(msg);
         return;
       }
-      await showError('Failed to add product: ' + getApiErrorMessage(error));
+      setSubmitError(getApiErrorMessage(error, 'Failed to add product'));
     }
   };
 
@@ -208,7 +295,7 @@ export default function useAddProductForm({
     existingCategories,
     barcodeError, barcodeChecking,
     manualBarcodeInput, setManualBarcodeInput,
-    discountInput,
+    discountInput, fieldErrors, setFieldErrors, submitError, setSubmitError,
     handleChange, addBarcode, removeBarcode, generateBarcode, handleSubmit,
     sellingInvalid, discountValue, discountPercent, marginValue, marginPercent,
     vendorDiscountValue, vendorDiscountPercent,

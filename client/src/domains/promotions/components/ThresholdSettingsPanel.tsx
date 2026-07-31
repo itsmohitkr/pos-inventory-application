@@ -284,8 +284,21 @@ const ThresholdSettingsPanel = ({
         anchor="right"
         open={editingThreshold !== null}
         onClose={handleCloseDrawer}
+        transitionDuration={{ enter: 280, exit: 220 }}
+        slotProps={{
+          backdrop: {
+            sx: {
+              bgcolor: 'rgba(15, 23, 42, 0.25)',
+            },
+          },
+        }}
         PaperProps={{
-          sx: { width: 420, bgcolor: '#f8fafc', borderLeft: '1px solid #e2e8f0' }
+          sx: {
+            width: { xs: '100vw', sm: 480, md: 540 },
+            boxShadow: '-8px 0 24px rgba(0,0,0,0.12)',
+            borderLeft: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
+          },
         }}
       >
         {editingConfig && (

@@ -9,6 +9,7 @@ interface ProductInitialBatchSectionProps {
   enableBatchTracking: boolean;
   discountInput: string;
   sellingInvalid: boolean;
+  fieldErrors?: Record<string, string>;
   /** Derived pricing figures, computed in useAddProductForm. */
   discountValue: number;
   discountPercent: number;
@@ -26,7 +27,7 @@ import { SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
 
 const ProductInitialBatchSection = ({
   initialBatch, enableBatchTracking, discountInput,
-  sellingInvalid, discountValue, discountPercent, marginValue, marginPercent,
+  sellingInvalid, fieldErrors = {}, discountValue, discountPercent, marginValue, marginPercent,
   vendorDiscountValue, vendorDiscountPercent,
   onChange, setFormData,
 }: ProductInitialBatchSectionProps) => (
@@ -59,7 +60,13 @@ const ProductInitialBatchSection = ({
       )}
 
       <Grid size={{ xs: 12, sm: enableBatchTracking ? 12 : 6 }}>
-        <TextField fullWidth size="small" type="number" label="Quantity" name="initialBatch.quantity" value={initialBatch.quantity} onChange={onChange} placeholder="0" InputLabelProps={{ shrink: true }} InputProps={{ inputProps: { min: 0, step: 1 } }} />
+        <TextField
+          fullWidth size="small" type="number" label="Quantity" name="initialBatch.quantity"
+          required value={initialBatch.quantity} onChange={onChange} placeholder="0"
+          error={Boolean(fieldErrors['initialBatch.quantity'])}
+          helperText={fieldErrors['initialBatch.quantity']}
+          InputLabelProps={{ shrink: true }} InputProps={{ inputProps: { min: 0, step: 1 } }}
+        />
       </Grid>
     </Grid>
 
@@ -71,10 +78,22 @@ const ProductInitialBatchSection = ({
     </Typography>
     <Grid container spacing={3}>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth size="small" type="number" label="MRP" name="initialBatch.mrp" value={initialBatch.mrp} onChange={onChange} placeholder="0.00" InputLabelProps={{ shrink: true }} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, inputProps: { min: 0, step: '0.01' } }} />
+        <TextField
+          fullWidth size="small" type="number" label="MRP" name="initialBatch.mrp"
+          required value={initialBatch.mrp} onChange={onChange} placeholder="0.00"
+          error={Boolean(fieldErrors['initialBatch.mrp'])}
+          helperText={fieldErrors['initialBatch.mrp']}
+          InputLabelProps={{ shrink: true }} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, inputProps: { min: 0, step: '0.01' } }}
+        />
       </Grid>
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField fullWidth size="small" type="number" label="Cost Price" name="initialBatch.cost_price" value={initialBatch.cost_price} onChange={onChange} placeholder="0.00" InputLabelProps={{ shrink: true }} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, inputProps: { min: 0, step: '0.01' } }} />
+        <TextField
+          fullWidth size="small" type="number" label="Cost Price" name="initialBatch.cost_price"
+          required value={initialBatch.cost_price} onChange={onChange} placeholder="0.00"
+          error={Boolean(fieldErrors['initialBatch.cost_price'])}
+          helperText={fieldErrors['initialBatch.cost_price']}
+          InputLabelProps={{ shrink: true }} InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, inputProps: { min: 0, step: '0.01' } }}
+        />
       </Grid>
 
       <Grid size={{ xs: 12, sm: 5 }}>
@@ -84,7 +103,13 @@ const ProductInitialBatchSection = ({
         <SwapHorizIcon color="action" />
       </Grid>
       <Grid size={{ xs: 12, sm: 5 }}>
-        <TextField fullWidth size="small" type="number" label="Selling Price" name="initialBatch.selling_price" InputLabelProps={{ shrink: true }} value={initialBatch.selling_price} onChange={onChange} error={sellingInvalid} helperText={sellingInvalid ? 'Must be ≤ MRP & ≥ Cost' : ' '} placeholder="0.00" InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, inputProps: { min: 0, step: '0.01' } }} />
+        <TextField
+          fullWidth size="small" type="number" label="Selling Price" name="initialBatch.selling_price"
+          required InputLabelProps={{ shrink: true }} value={initialBatch.selling_price} onChange={onChange}
+          error={sellingInvalid || Boolean(fieldErrors['initialBatch.selling_price'])}
+          helperText={fieldErrors['initialBatch.selling_price'] || (sellingInvalid ? 'Must be ≤ MRP & ≥ Cost' : ' ')}
+          placeholder="0.00" InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment>, inputProps: { min: 0, step: '0.01' } }}
+        />
       </Grid>
 
       {/* Pricing summary strip */}

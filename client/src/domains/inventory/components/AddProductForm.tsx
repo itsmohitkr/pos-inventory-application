@@ -1,11 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Typography, TextField, Button, Grid, Box,
-  InputAdornment, Divider, Switch, FormControlLabel, Autocomplete, Tabs, Tab, Fade
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Box,
+  Divider,
+  Switch,
+  FormControlLabel,
+  Autocomplete,
+  Paper,
+  Alert,
 } from '@mui/material';
 import {
-  Inventory as InventoryIcon, Category as CategoryIcon,
-  Save as SaveIcon, Settings as SettingsIcon, Numbers as NumbersIcon
+  Inventory as InventoryIcon,
+  Save as SaveIcon,
+  QrCode as QrCodeIcon,
+  Tune as TuneIcon,
 } from '@mui/icons-material';
 import CustomDialog from '@/shared/components/CustomDialog';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
@@ -14,193 +25,305 @@ import ProductBarcodeSection from '@/domains/inventory/components/ProductBarcode
 import ProductInitialBatchSection from '@/domains/inventory/components/ProductInitialBatchSection';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
 
-const AddProductForm = ({ onProductAdded }: { onProductAdded: () => void }) => {
-  const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
-  const form = useAddProductForm({ showError, showSuccess, onProductAdded });
-  const [activeTab, setActiveTab] = useState(0);
+interface AddProductFormProps {
+  onProductAdded: () => void;
+  onClose?: () => void;
+}
+
+const AddProductForm = ({ onProductAdded, onClose }: AddProductFormProps) => {
+  const { dialogState, showSuccess, closeDialog } = useCustomDialog();
+  const form = useAddProductForm({ showSuccess, onProductAdded });
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (activeTab < 2) {
-      setActiveTab((prev) => prev + 1);
-      return;
-    }
-    if (!form.formData.name.trim()) {
-      setActiveTab(0);
-      showError('Product Name is required.');
-      return;
-    }
     form.handleSubmit(e);
   };
 
   return (
     <>
-      <Box sx={{ pb: 4 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 4 }}>
-          <Tabs 
-            value={activeTab} 
-            onChange={(e, val) => setActiveTab(val)} 
-            textColor="primary" 
-            indicatorColor="primary"
-            variant="fullWidth"
-          >
-            <Tab label="Product Details" sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.95rem' }} />
-            <Tab label="Stock & Quantity" sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.95rem' }} />
-            <Tab label="Settings" sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.95rem' }} />
-          </Tabs>
-        </Box>
-
+      <Box sx={{ pb: 6, position: 'relative' }}>
         <form onSubmit={handleFormSubmit} noValidate>
-          {/* Tab 0 */}
-          {activeTab === 0 && (
-            <Fade in={true} timeout={300}>
-              <Box>
-                <Typography variant="subtitle2" color="primary" sx={{ mb: 3, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
-                  General Information
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth size="small" label="Product Name" name="name"
-                      InputLabelProps={{ shrink: true }} value={form.formData.name}
-                      onChange={form.handleChange} required
-                      InputProps={{ startAdornment: <InputAdornment position="start"><InventoryIcon color="action" /></InputAdornment> }}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Autocomplete
-                      freeSolo options={form.existingCategories}
-                      size="small"
-                      value={form.formData.category}
-                      onChange={(e, val) => form.setFormData((prev) => ({ ...prev, category: val || '' }))}
-                      onInputChange={(e, val) => form.setFormData((prev) => ({ ...prev, category: val }))}
-                      renderInput={(params) => (
-                        <TextField {...params} size="small" label="Category" InputLabelProps={{ shrink: true }}
-                          InputProps={{ ...params.InputProps, startAdornment: (<><InputAdornment position="start"><CategoryIcon color="action" /></InputAdornment>{params.InputProps.startAdornment}</>) }}
-                        />
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-
-                <Box sx={{ mt: 4 }} />
-
-                <Typography variant="subtitle2" color="primary" sx={{ mb: 3, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
-                  Barcodes
-                </Typography>
-                <ProductBarcodeSection
-                  manualBarcodeInput={form.manualBarcodeInput}
-                  setManualBarcodeInput={form.setManualBarcodeInput}
-                  barcodes={form.formData.barcodes}
-                  barcodeError={form.barcodeError}
-                  barcodeChecking={form.barcodeChecking}
-                  onAddBarcode={form.addBarcode}
-                  onRemoveBarcode={form.removeBarcode}
-                  onGenerate={form.generateBarcode}
-                />
-              </Box>
-            </Fade>
+          {form.submitError && (
+            <Alert
+              severity="error"
+              onClose={() => form.setSubmitError('')}
+              sx={{ mb: 3, borderRadius: '8px', fontWeight: 600 }}
+            >
+              {form.submitError}
+            </Alert>
           )}
 
-          {/* Tab 1 */}
-          {activeTab === 1 && (
-            <Fade in={true} timeout={300}>
-              <Box>
-                <ProductInitialBatchSection
-                  initialBatch={form.formData.initialBatch}
-                  enableBatchTracking={form.formData.enableBatchTracking}
-                  discountInput={form.discountInput}
-                  sellingInvalid={form.sellingInvalid}
-                  discountValue={form.discountValue}
-                  discountPercent={form.discountPercent}
-                  marginValue={form.marginValue}
-                  marginPercent={form.marginPercent}
-                  vendorDiscountValue={form.vendorDiscountValue}
-                  vendorDiscountPercent={form.vendorDiscountPercent}
-                  onChange={form.handleChange}
-                  setFormData={form.setFormData}
-                />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* SECTION 1: Product General Info & Barcodes */}
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 3,
+                borderRadius: '12px',
+                bgcolor: '#f8fafc',
+                borderColor: '#e2e8f0',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                '& .MuiOutlinedInput-root': { bgcolor: '#ffffff' },
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
+                <InventoryIcon sx={{ color: '#0f172a', fontSize: '1.25rem' }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                  Basic Product Information
+                </Typography>
               </Box>
-            </Fade>
-          )}
 
-          {/* Tab 2 */}
-          {activeTab === 2 && (
-            <Fade in={true} timeout={300}>
-              <Box>
-                <Typography variant="subtitle2" color="primary" sx={{ mb: 3, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
-                  Wholesale Pricing
-                </Typography>
-                <WholesaleConfiguration
-                  wholesaleEnabled={form.formData.initialBatch.wholesaleEnabled}
-                  onToggleChange={(checked) => form.setFormData((prev) => ({ ...prev, initialBatch: { ...prev.initialBatch, wholesaleEnabled: checked } }))}
-                  wholesalePrice={form.formData.initialBatch.wholesalePrice}
-                  onPriceChange={(val) => form.setFormData((prev) => ({ ...prev, initialBatch: { ...prev.initialBatch, wholesalePrice: val } }))}
-                  wholesaleMinQty={form.formData.initialBatch.wholesaleMinQty}
-                  onMinQtyChange={(val) => form.setFormData((prev) => ({ ...prev, initialBatch: { ...prev.initialBatch, wholesaleMinQty: val } }))}
-                  sellingPrice={form.formData.initialBatch.selling_price}
-                  costPrice={form.formData.initialBatch.cost_price}
-                />
-
-                <Divider sx={{ my: 4 }} />
-
-                <Typography variant="subtitle2" color="primary" sx={{ mb: 3, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
-                  Inventory Alerts
-                </Typography>
-                <Box>
-                  <FormControlLabel
-                    control={<Switch checked={form.formData.lowStockWarningEnabled} onChange={(e) => form.setFormData((prev) => ({ ...prev, lowStockWarningEnabled: e.target.checked }))} />}
-                    label={<Typography fontWeight={500}>Enable low stock warning</Typography>}
+              <Grid container spacing={2.5}>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Product Name"
+                    name="name"
+                    InputLabelProps={{ shrink: true }}
+                    value={form.formData.name}
+                    onChange={form.handleChange}
+                    required
+                    error={Boolean(form.fieldErrors.name)}
+                    helperText={form.fieldErrors.name}
+                    placeholder="e.g. Cerelac Wheat Apple 300g"
                   />
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                    Get notified when stock falls below the threshold.
-                  </Typography>
-                  {form.formData.lowStockWarningEnabled && (
-                    <TextField
-                      fullWidth size="small" type="number" label="Low Stock Threshold"
-                      value={form.formData.lowStockThreshold}
-                      onChange={(e) => form.setFormData((prev) => ({ ...prev, lowStockThreshold: e.target.value }))}
-                      placeholder="2" InputLabelProps={{ shrink: true }}
-                      InputProps={{ inputProps: { min: 0, step: 1 } }}
-                      helperText={`Less than or equal to ${form.formData.lowStockThreshold || 2} quantity will be under the low stock warning`}
-                    />
-                  )}
-                </Box>
-              </Box>
-            </Fade>
-          )}
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Autocomplete
+                    freeSolo
+                    forcePopupIcon={true}
+                    options={form.existingCategories}
+                    size="small"
+                    value={form.formData.category}
+                    onChange={(e, val) =>
+                      form.setFormData((prev) => ({ ...prev, category: val || '' }))
+                    }
+                    onInputChange={(e, val) =>
+                      form.setFormData((prev) => ({ ...prev, category: val }))
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        label="Product Category"
+                        required
+                        error={Boolean(form.fieldErrors.category)}
+                        helperText={form.fieldErrors.category}
+                        placeholder="Select or type new category"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
 
-          <Box sx={{ 
-            position: 'sticky', 
-            bottom: { xs: -16, md: -24 }, 
-            bgcolor: '#ffffff', 
-            pt: 2, 
-            pb: { xs: 2, md: 3 }, 
-            mt: 6, 
-            zIndex: 10,
-            borderTop: '1px solid', borderColor: 'divider',
-            mx: { xs: -2, md: -3 }, px: { xs: 2, md: 3 },
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
-          }}>
-            {activeTab > 0 ? (
-              <Button type="button" onClick={() => setActiveTab(prev => prev - 1)} size="large">Back</Button>
-            ) : <Box />}
-            
-            {activeTab < 2 ? (
-              <Button key="btn-next" type="button" variant="contained" color="primary" onClick={() => setActiveTab(prev => prev + 1)} size="large" sx={{ px: 5, fontWeight: 600 }}>
-                Next
-              </Button>
-            ) : (
+              <Divider sx={{ my: 3 }} />
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <QrCodeIcon sx={{ color: '#0f172a', fontSize: '1.25rem' }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                  Barcodes & Identification
+                </Typography>
+              </Box>
+              <ProductBarcodeSection
+                manualBarcodeInput={form.manualBarcodeInput}
+                setManualBarcodeInput={form.setManualBarcodeInput}
+                barcodes={form.formData.barcodes}
+                barcodeError={form.barcodeError}
+                barcodeChecking={form.barcodeChecking}
+                onAddBarcode={form.addBarcode}
+                onRemoveBarcode={form.removeBarcode}
+                onGenerate={form.generateBarcode}
+              />
+            </Paper>
+
+            {/* SECTION 2: Stock, Quantity & Pricing */}
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 3,
+                borderRadius: '12px',
+                bgcolor: '#f8fafc',
+                borderColor: '#e2e8f0',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                '& .MuiOutlinedInput-root': { bgcolor: '#ffffff' },
+              }}
+            >
+              <ProductInitialBatchSection
+                initialBatch={form.formData.initialBatch}
+                enableBatchTracking={form.formData.enableBatchTracking}
+                discountInput={form.discountInput}
+                sellingInvalid={form.sellingInvalid}
+                fieldErrors={form.fieldErrors}
+                discountValue={form.discountValue}
+                discountPercent={form.discountPercent}
+                marginValue={form.marginValue}
+                marginPercent={form.marginPercent}
+                vendorDiscountValue={form.vendorDiscountValue}
+                vendorDiscountPercent={form.vendorDiscountPercent}
+                onChange={form.handleChange}
+                setFormData={form.setFormData}
+              />
+            </Paper>
+
+            {/* SECTION 3: Wholesale & Inventory Alerts */}
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 3,
+                borderRadius: '12px',
+                bgcolor: '#f8fafc',
+                borderColor: '#e2e8f0',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                '& .MuiOutlinedInput-root': { bgcolor: '#ffffff' },
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <TuneIcon sx={{ color: '#0f172a', fontSize: '1.25rem' }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                  Wholesale Configuration
+                </Typography>
+              </Box>
+              <WholesaleConfiguration
+                wholesaleEnabled={form.formData.initialBatch.wholesaleEnabled}
+                onToggleChange={(checked) =>
+                  form.setFormData((prev) => ({
+                    ...prev,
+                    initialBatch: { ...prev.initialBatch, wholesaleEnabled: checked },
+                  }))
+                }
+                wholesalePrice={form.formData.initialBatch.wholesalePrice}
+                onPriceChange={(val) =>
+                  form.setFormData((prev) => ({
+                    ...prev,
+                    initialBatch: { ...prev.initialBatch, wholesalePrice: val },
+                  }))
+                }
+                wholesaleMinQty={form.formData.initialBatch.wholesaleMinQty}
+                onMinQtyChange={(val) =>
+                  form.setFormData((prev) => ({
+                    ...prev,
+                    initialBatch: { ...prev.initialBatch, wholesaleMinQty: val },
+                  }))
+                }
+                sellingPrice={form.formData.initialBatch.selling_price}
+                costPrice={form.formData.initialBatch.cost_price}
+                fieldErrors={form.fieldErrors}
+              />
+
+              <Divider sx={{ my: 3 }} />
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                  Inventory Alert Settings
+                </Typography>
+              </Box>
+              <Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={form.formData.lowStockWarningEnabled}
+                      onChange={(e) =>
+                        form.setFormData((prev) => ({
+                          ...prev,
+                          lowStockWarningEnabled: e.target.checked,
+                        }))
+                      }
+                    />
+                  }
+                  label={<Typography fontWeight={600}>Enable Low Stock Warning</Typography>}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                  Automatically flags product when quantity drops below the alert threshold.
+                </Typography>
+                {form.formData.lowStockWarningEnabled && (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="number"
+                    label="Low Stock Threshold"
+                    value={form.formData.lowStockThreshold}
+                    onChange={(e) =>
+                      form.setFormData((prev) => ({ ...prev, lowStockThreshold: e.target.value }))
+                    }
+                    placeholder="2"
+                    error={Boolean(form.fieldErrors.lowStockThreshold)}
+                    helperText={
+                      form.fieldErrors.lowStockThreshold ||
+                      `Alerts when stock is ≤ ${form.formData.lowStockThreshold || 2} units`
+                    }
+                    InputLabelProps={{ shrink: true }}
+                    InputProps={{ inputProps: { min: 0, step: 1 } }}
+                  />
+                )}
+              </Box>
+            </Paper>
+          </Box>
+
+          {/* Fixed Solid Bottom Action Bar */}
+          <Box
+            sx={{
+              position: 'sticky',
+              bottom: { xs: -16, md: -24 },
+              bgcolor: '#ffffff',
+              pt: 2,
+              pb: { xs: 2, md: 3 },
+              mt: 3,
+              zIndex: 20,
+              borderTop: '1px solid #cbd5e1',
+              mx: { xs: -2, md: -3 },
+              px: { xs: 2, md: 3 },
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 1.5,
+              boxShadow: '0 -6px 16px rgba(0,0,0,0.06)',
+            }}
+          >
+            {onClose && (
               <Button
-                key="btn-submit"
-                variant="contained" color="primary" type="submit" size="large"
-                startIcon={<SaveIcon />}
-                disabled={form.barcodeChecking || Boolean(form.barcodeError)}
-                sx={{ px: 5, fontWeight: 600 }}
+                variant="outlined"
+                color="inherit"
+                onClick={onClose}
+                size="large"
+                sx={{
+                  px: 3,
+                  py: 1,
+                  fontWeight: 600,
+                  borderColor: '#cbd5e1',
+                  color: '#475569',
+                  '&:hover': { bgcolor: '#f8fafc', borderColor: '#94a3b8' },
+                  borderRadius: '8px',
+                }}
               >
-                Add Product
+                Cancel
               </Button>
             )}
+            <Button
+              variant="contained"
+              disableElevation
+              type="submit"
+              size="large"
+              startIcon={<SaveIcon sx={{ color: '#ffffff !important' }} />}
+              disabled={form.barcodeChecking || Boolean(form.barcodeError)}
+              sx={{
+                px: 4,
+                py: 1,
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                bgcolor: '#0f172a !important',
+                color: '#ffffff !important',
+                '&:hover': { bgcolor: '#1e293b !important', color: '#ffffff !important' },
+                '&:focus': { bgcolor: '#0f172a !important', color: '#ffffff !important' },
+                '&:active': { bgcolor: '#0f172a !important', color: '#ffffff !important' },
+                '& .MuiButton-startIcon': { color: '#ffffff !important' },
+                '& .MuiSvgIcon-root': { color: '#ffffff !important' },
+                borderRadius: '8px',
+              }}
+            >
+              Add Product
+            </Button>
           </Box>
         </form>
       </Box>

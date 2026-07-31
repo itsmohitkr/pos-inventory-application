@@ -23,6 +23,7 @@ interface WholesaleConfigurationProps {
   onMinQtyChange: (value: string) => void;
   sellingPrice?: number | string;
   costPrice?: number | string;
+  fieldErrors?: Record<string, string>;
   showErrors?: boolean;
 }
 
@@ -35,6 +36,7 @@ const WholesaleConfiguration = ({
   onMinQtyChange,
   sellingPrice = 0,
   costPrice = 0,
+  fieldErrors = {},
   showErrors = false,
 }: WholesaleConfigurationProps) => {
   const sPrice = Number(sellingPrice) || 0;
@@ -45,6 +47,9 @@ const WholesaleConfiguration = ({
   const wholesalePricePercent = sPrice > 0 ? (wholesaleSavings / sPrice) * 100 : 0;
   const wholesaleMarginValue = wPrice - cPrice;
   const wholesaleMarginPercent = wPrice > 0 ? (wholesaleMarginValue / wPrice) * 100 : 0;
+
+  const wPriceError = fieldErrors['initialBatch.wholesalePrice'] || (showErrors && (!wholesalePrice || wholesalePrice.toString().trim() === '') ? 'Required' : '');
+  const wQtyError = fieldErrors['initialBatch.wholesaleMinQty'] || (showErrors && (!wholesaleMinQty || wholesaleMinQty.toString().trim() === '') ? 'Required' : '');
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -79,12 +84,8 @@ const WholesaleConfiguration = ({
               value={wholesalePrice}
               onChange={(e) => onPriceChange(e.target.value)}
               placeholder="0.00"
-              error={showErrors && (!wholesalePrice || wholesalePrice.toString().trim() === '')}
-              helperText={
-                showErrors && (!wholesalePrice || wholesalePrice.toString().trim() === '')
-                  ? 'Required'
-                  : ''
-              }
+              error={Boolean(wPriceError)}
+              helperText={wPriceError}
               InputProps={{
                 startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                 inputProps: { min: 0, step: '0.01' },
@@ -102,12 +103,8 @@ const WholesaleConfiguration = ({
               value={wholesaleMinQty}
               onChange={(e) => onMinQtyChange(e.target.value)}
               placeholder="10"
-              error={showErrors && (!wholesaleMinQty || wholesaleMinQty.toString().trim() === '')}
-              helperText={
-                showErrors && (!wholesaleMinQty || wholesaleMinQty.toString().trim() === '')
-                  ? 'Required'
-                  : ''
-              }
+              error={Boolean(wQtyError)}
+              helperText={wQtyError}
               InputProps={{ inputProps: { min: 1, step: 1 } }}
             />
           </Grid>
