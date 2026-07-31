@@ -64,3 +64,12 @@ export {
   expenseUpdateBodySchema,
   paymentBodySchema,
 };
+
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const CreateExpenseSchema = { body: expenseBodySchema };
+export const GetExpensesSchema = { query: expenseQuerySchema };
+export const UpdateExpenseSchema = { params: expenseIdParamSchema, body: expenseUpdateBodySchema };
+export const DeleteExpenseSchema = { params: expenseIdParamSchema };
+export const AddPaymentSchema = { params: expenseIdParamSchema, body: paymentBodySchema };
+export const UpdatePaymentSchema = { params: expenseIdParamSchema, body: paymentBodySchema };
+export const DeletePaymentSchema = { params: expenseIdParamSchema };

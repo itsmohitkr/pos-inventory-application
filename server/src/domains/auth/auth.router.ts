@@ -4,26 +4,26 @@ import methodNotAllowed = require('../../shared/error/methodNotAllowed');
 import { validateRequest } from '../../shared/middleware/validateRequest';
 import { requireAdmin } from '../../shared/middleware/requireAdmin';
 import {
-  userIdParamSchema,
-  profileQuerySchema,
-  loginBodySchema,
-  createUserBodySchema,
-  updateUserBodySchema,
-  changePasswordBodySchema,
-  verifyAdminBodySchema,
-  wipeDatabaseBodySchema,
-  completeOnboardingBodySchema,
+  LoginSchema,
+  GetProfileSchema,
+  CreateUserSchema,
+  UpdateUserSchema,
+  DeleteUserSchema,
+  ChangePasswordSchema,
+  WipeDatabaseSchema,
+  VerifyAdminSchema,
+  CompleteOnboardingSchema,
 } from './auth.validation';
 
 const router = express.Router();
 
 router
   .route('/login')
-  .post(validateRequest({ body: loginBodySchema }), authController.login)
+  .post(validateRequest(LoginSchema), authController.login)
   .all(methodNotAllowed);
 router
   .route('/profile')
-  .get(validateRequest({ query: profileQuerySchema }), authController.getProfile)
+  .get(validateRequest(GetProfileSchema), authController.getProfile)
   .all(methodNotAllowed);
 // The three routes below grant durable privilege — a write here survives
 // logout, restart and reinstall — so they require a live admin elevation
@@ -34,7 +34,7 @@ router
   .get(authController.getAllUsers)
   .post(
     requireAdmin,
-    validateRequest({ body: createUserBodySchema }),
+    validateRequest(CreateUserSchema),
     authController.createUser
   )
   .all(methodNotAllowed);
@@ -42,37 +42,37 @@ router
   .route('/users/:id')
   .put(
     requireAdmin,
-    validateRequest({ params: userIdParamSchema, body: updateUserBodySchema }),
+    validateRequest(UpdateUserSchema),
     authController.updateUser
   )
   .delete(
     requireAdmin,
-    validateRequest({ params: userIdParamSchema }),
+    validateRequest(DeleteUserSchema),
     authController.deleteUser
   )
   .all(methodNotAllowed);
 router
   .route('/users/:id/change-password')
   .put(
-    validateRequest({ params: userIdParamSchema, body: changePasswordBodySchema }),
+    validateRequest(ChangePasswordSchema),
     authController.changePassword
   )
   .all(methodNotAllowed);
 router
   .route('/wipe-database')
   .post(
-    validateRequest({ body: wipeDatabaseBodySchema }),
+    validateRequest(WipeDatabaseSchema),
     authController.wipeDatabase
   )
   .all(methodNotAllowed);
 router
   .route('/verify-admin')
-  .post(validateRequest({ body: verifyAdminBodySchema }), authController.verifyAdmin)
+  .post(validateRequest(VerifyAdminSchema), authController.verifyAdmin)
   .all(methodNotAllowed);
 router
   .route('/complete-onboarding')
   .post(
-    validateRequest({ body: completeOnboardingBodySchema }),
+    validateRequest(CompleteOnboardingSchema),
     authController.completeOnboarding
   )
   .all(methodNotAllowed);

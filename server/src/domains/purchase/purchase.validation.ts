@@ -66,3 +66,12 @@ export {
   purchaseUpdateBodySchema,
   paymentBodySchema,
 };
+
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const CreatePurchaseSchema = { body: purchaseBodySchema };
+export const GetPurchasesSchema = { query: purchaseQuerySchema };
+export const UpdatePurchaseSchema = { params: purchaseIdParamSchema, body: purchaseUpdateBodySchema };
+export const DeletePurchaseSchema = { params: purchaseIdParamSchema };
+export const AddPaymentSchema = { params: purchaseIdParamSchema, body: paymentBodySchema };
+export const UpdatePaymentSchema = { params: purchaseIdParamSchema, body: paymentBodySchema };
+export const DeletePaymentSchema = { params: purchaseIdParamSchema };

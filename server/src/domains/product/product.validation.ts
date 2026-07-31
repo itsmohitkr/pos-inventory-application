@@ -121,3 +121,18 @@ export {
   validateBarcodesBodySchema,
   bulkCreateProductsBodySchema,
 };
+
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const GetAllProductsSchema = { query: productQuerySchema };
+export const CreateProductSchema = { body: createProductBodySchema };
+export const GetProductSummarySchema = { query: productSummaryQuerySchema };
+export const BulkCreateProductsSchema = { body: bulkCreateProductsBodySchema };
+export const ValidateBarcodesSchema = { body: validateBarcodesBodySchema };
+export const GetProductByIdSchema = { params: productIdParamSchema };
+export const GetProductHistorySchema = { params: productIdParamSchema, query: productHistoryQuerySchema };
+export const GetProductByBarcodeSchema = { params: barcodeParamSchema };
+export const UpdateProductSchema = { params: productIdParamSchema, body: updateProductBodySchema };
+export const DeleteProductSchema = { params: productIdParamSchema };
+export const AddBatchSchema = { body: addBatchBodySchema };
+export const UpdateBatchSchema = { params: batchIdParamSchema, body: updateBatchBodySchema };
+export const DeleteBatchSchema = { params: batchIdParamSchema };

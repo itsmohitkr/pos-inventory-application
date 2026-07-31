@@ -50,3 +50,8 @@ export type ProcessReturnInput = z.infer<typeof processReturnBodySchema>;
 export type SaleItemInput = z.infer<typeof saleItemSchema>;
 
 export { saleIdParamSchema, processSaleBodySchema, processReturnBodySchema };
+
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const ProcessSaleSchema = { body: processSaleBodySchema };
+export const GetSaleByIdSchema = { params: saleIdParamSchema };
+export const ProcessReturnSchema = { params: saleIdParamSchema, body: processReturnBodySchema };

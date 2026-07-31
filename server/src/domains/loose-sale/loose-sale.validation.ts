@@ -19,3 +19,8 @@ export type CreateLooseSaleInput = z.infer<typeof createLooseSaleBodySchema>;
 export type LooseSaleIdParam = z.infer<typeof looseSaleIdParamSchema>;
 
 export { looseSaleIdParamSchema, createLooseSaleBodySchema, looseSalesReportQuerySchema };
+
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const CreateLooseSaleSchema = { body: createLooseSaleBodySchema };
+export const GetLooseSalesReportSchema = { query: looseSalesReportQuerySchema };
+export const DeleteLooseSaleSchema = { params: looseSaleIdParamSchema };

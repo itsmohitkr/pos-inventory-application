@@ -89,3 +89,14 @@ export {
   wipeDatabaseBodySchema,
   completeOnboardingBodySchema,
 };
+
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const LoginSchema = { body: loginBodySchema };
+export const GetProfileSchema = { query: profileQuerySchema };
+export const CreateUserSchema = { body: createUserBodySchema };
+export const UpdateUserSchema = { params: userIdParamSchema, body: updateUserBodySchema };
+export const DeleteUserSchema = { params: userIdParamSchema };
+export const ChangePasswordSchema = { params: userIdParamSchema, body: changePasswordBodySchema };
+export const WipeDatabaseSchema = { body: wipeDatabaseBodySchema };
+export const VerifyAdminSchema = { body: verifyAdminBodySchema };
+export const CompleteOnboardingSchema = { body: completeOnboardingBodySchema };

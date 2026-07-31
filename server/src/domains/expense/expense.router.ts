@@ -3,28 +3,30 @@ import expenseController = require('./expense.controller');
 import methodNotAllowed = require('../../shared/error/methodNotAllowed');
 import { validateRequest } from '../../shared/middleware/validateRequest';
 import {
-  expenseIdParamSchema,
-  expenseQuerySchema,
-  expenseBodySchema,
-  expenseUpdateBodySchema,
-  paymentBodySchema,
+  CreateExpenseSchema,
+  GetExpensesSchema,
+  UpdateExpenseSchema,
+  DeleteExpenseSchema,
+  AddPaymentSchema,
+  UpdatePaymentSchema,
+  DeletePaymentSchema,
 } from './expense.validation';
 
 const router = express.Router();
 
 router
   .route('/')
-  .post(validateRequest({ body: expenseBodySchema }), expenseController.createExpense)
-  .get(validateRequest({ query: expenseQuerySchema }), expenseController.getExpenses)
+  .post(validateRequest(CreateExpenseSchema), expenseController.createExpense)
+  .get(validateRequest(GetExpensesSchema), expenseController.getExpenses)
   .all(methodNotAllowed);
 router
   .route('/:id')
   .put(
-    validateRequest({ params: expenseIdParamSchema, body: expenseUpdateBodySchema }),
+    validateRequest(UpdateExpenseSchema),
     expenseController.updateExpense
   )
   .delete(
-    validateRequest({ params: expenseIdParamSchema }),
+    validateRequest(DeleteExpenseSchema),
     expenseController.deleteExpense
   )
   .all(methodNotAllowed);
@@ -33,18 +35,18 @@ router
 router
   .route('/:id/payments')
   .post(
-    validateRequest({ params: expenseIdParamSchema, body: paymentBodySchema }),
+    validateRequest(AddPaymentSchema),
     expenseController.addPayment
   )
   .all(methodNotAllowed);
 router
   .route('/payments/:id')
   .put(
-    validateRequest({ params: expenseIdParamSchema, body: paymentBodySchema }),
+    validateRequest(UpdatePaymentSchema),
     expenseController.updatePayment
   )
   .delete(
-    validateRequest({ params: expenseIdParamSchema }),
+    validateRequest(DeletePaymentSchema),
     expenseController.deletePayment
   )
   .all(methodNotAllowed);

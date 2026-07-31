@@ -3,11 +3,13 @@ import purchaseController = require('./purchase.controller');
 import methodNotAllowed = require('../../shared/error/methodNotAllowed');
 import { validateRequest } from '../../shared/middleware/validateRequest';
 import {
-  purchaseIdParamSchema,
-  purchaseQuerySchema,
-  purchaseBodySchema,
-  purchaseUpdateBodySchema,
-  paymentBodySchema,
+  CreatePurchaseSchema,
+  GetPurchasesSchema,
+  UpdatePurchaseSchema,
+  DeletePurchaseSchema,
+  AddPaymentSchema,
+  UpdatePaymentSchema,
+  DeletePaymentSchema,
 } from './purchase.validation';
 
 const router = express.Router();
@@ -15,40 +17,40 @@ const router = express.Router();
 router
   .route('/')
   .post(
-    validateRequest({ body: purchaseBodySchema }),
+    validateRequest(CreatePurchaseSchema),
     purchaseController.createPurchase
   )
   .get(
-    validateRequest({ query: purchaseQuerySchema }),
+    validateRequest(GetPurchasesSchema),
     purchaseController.getPurchases
   )
   .all(methodNotAllowed);
 router
   .route('/:id')
   .put(
-    validateRequest({ params: purchaseIdParamSchema, body: purchaseUpdateBodySchema }),
+    validateRequest(UpdatePurchaseSchema),
     purchaseController.updatePurchase
   )
   .delete(
-    validateRequest({ params: purchaseIdParamSchema }),
+    validateRequest(DeletePurchaseSchema),
     purchaseController.deletePurchase
   )
   .all(methodNotAllowed);
 router
   .route('/:id/payments')
   .post(
-    validateRequest({ params: purchaseIdParamSchema, body: paymentBodySchema }),
+    validateRequest(AddPaymentSchema),
     purchaseController.addPayment
   )
   .all(methodNotAllowed);
 router
   .route('/payments/:id')
   .put(
-    validateRequest({ params: purchaseIdParamSchema, body: paymentBodySchema }),
+    validateRequest(UpdatePaymentSchema),
     purchaseController.updatePayment
   )
   .delete(
-    validateRequest({ params: purchaseIdParamSchema }),
+    validateRequest(DeletePaymentSchema),
     purchaseController.deletePayment
   )
   .all(methodNotAllowed);

@@ -6,18 +6,19 @@ import { validateRequest } from '../../shared/middleware/validateRequest';
 import validateUploadedFile = require('../../shared/middleware/validateUploadedFile');
 import handleUploadErrors = require('../../shared/middleware/handleUploadErrors');
 import {
-  productIdParamSchema,
-  batchIdParamSchema,
-  barcodeParamSchema,
-  productQuerySchema,
-  productSummaryQuerySchema,
-  productHistoryQuerySchema,
-  createProductBodySchema,
-  addBatchBodySchema,
-  updateProductBodySchema,
-  updateBatchBodySchema,
-  validateBarcodesBodySchema,
-  bulkCreateProductsBodySchema,
+  GetAllProductsSchema,
+  CreateProductSchema,
+  GetProductSummarySchema,
+  BulkCreateProductsSchema,
+  ValidateBarcodesSchema,
+  GetProductByIdSchema,
+  GetProductHistorySchema,
+  GetProductByBarcodeSchema,
+  UpdateProductSchema,
+  DeleteProductSchema,
+  AddBatchSchema,
+  UpdateBatchSchema,
+  DeleteBatchSchema,
 } from './product.validation';
 
 const router = express.Router();
@@ -26,11 +27,11 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 router
   .route('/products')
   .get(
-    validateRequest({ query: productQuerySchema }),
+    validateRequest(GetAllProductsSchema),
     productController.getAllProducts
   )
   .post(
-    validateRequest({ body: createProductBodySchema }),
+    validateRequest(CreateProductSchema),
     productController.createProduct
   )
   .all(methodNotAllowed);
@@ -38,7 +39,7 @@ router
 router
   .route('/products/summary')
   .get(
-    validateRequest({ query: productSummaryQuerySchema }),
+    validateRequest(GetProductSummarySchema),
     productController.getProductSummary
   )
   .all(methodNotAllowed);
@@ -60,7 +61,7 @@ router
 router
   .route('/products/bulk')
   .post(
-    validateRequest({ body: bulkCreateProductsBodySchema }),
+    validateRequest(BulkCreateProductsSchema),
     productController.bulkCreateProducts
   )
   .all(methodNotAllowed);
@@ -68,7 +69,7 @@ router
 router
   .route('/products/validate-barcodes')
   .post(
-    validateRequest({ body: validateBarcodesBodySchema }),
+    validateRequest(ValidateBarcodesSchema),
     productController.validateBarcodes
   )
   .all(methodNotAllowed);
@@ -76,7 +77,7 @@ router
 router
   .route('/products/id/:id')
   .get(
-    validateRequest({ params: productIdParamSchema }),
+    validateRequest(GetProductByIdSchema),
     productController.getProductById
   )
   .all(methodNotAllowed);
@@ -84,7 +85,7 @@ router
 router
   .route('/products/:id/history')
   .get(
-    validateRequest({ params: productIdParamSchema, query: productHistoryQuerySchema }),
+    validateRequest(GetProductHistorySchema),
     productController.getProductHistory
   )
   .all(methodNotAllowed);
@@ -93,34 +94,34 @@ router
 // path shape overlaps with `/products/:id` mutation routes.
 router.get(
   '/products/:barcode',
-  validateRequest({ params: barcodeParamSchema }),
+  validateRequest(GetProductByBarcodeSchema),
   productController.getProductByBarcode
 );
 
 router
   .route('/products/:id')
   .put(
-    validateRequest({ params: productIdParamSchema, body: updateProductBodySchema }),
+    validateRequest(UpdateProductSchema),
     productController.updateProduct
   )
   .delete(
-    validateRequest({ params: productIdParamSchema }),
+    validateRequest(DeleteProductSchema),
     productController.deleteProduct
   );
 
 router
   .route('/batches')
-  .post(validateRequest({ body: addBatchBodySchema }), productController.addBatch)
+  .post(validateRequest(AddBatchSchema), productController.addBatch)
   .all(methodNotAllowed);
 
 router
   .route('/batches/:id')
   .put(
-    validateRequest({ params: batchIdParamSchema, body: updateBatchBodySchema }),
+    validateRequest(UpdateBatchSchema),
     productController.updateBatch
   )
   .delete(
-    validateRequest({ params: batchIdParamSchema }),
+    validateRequest(DeleteBatchSchema),
     productController.deleteBatch
   )
   .all(methodNotAllowed);

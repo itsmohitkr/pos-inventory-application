@@ -31,3 +31,10 @@ const promotionBodySchema = z.object({
 export type PromotionInput = z.infer<typeof promotionBodySchema>;
 
 export { promotionIdParamSchema, productIdParamSchema, promotionBodySchema };
+
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const CreatePromotionSchema = { body: promotionBodySchema };
+export const UpdatePromotionSchema = { params: promotionIdParamSchema, body: promotionBodySchema };
+export const DeletePromotionSchema = { params: promotionIdParamSchema };
+export const GetProductPricingOptionsSchema = { params: productIdParamSchema };
+export const GetEffectivePromoPriceSchema = { params: productIdParamSchema };

@@ -3,9 +3,11 @@ import promotionController = require('./promotion.controller');
 import methodNotAllowed = require('../../shared/error/methodNotAllowed');
 import { validateRequest } from '../../shared/middleware/validateRequest';
 import {
-  promotionIdParamSchema,
-  productIdParamSchema,
-  promotionBodySchema,
+  CreatePromotionSchema,
+  UpdatePromotionSchema,
+  DeletePromotionSchema,
+  GetProductPricingOptionsSchema,
+  GetEffectivePromoPriceSchema,
 } from './promotion.validation';
 
 const router = express.Router();
@@ -13,7 +15,7 @@ const router = express.Router();
 router
   .route('/promotions')
   .post(
-    validateRequest({ body: promotionBodySchema }),
+    validateRequest(CreatePromotionSchema),
     promotionController.createPromotion
   )
   .get(promotionController.getAllPromotions)
@@ -21,25 +23,25 @@ router
 router
   .route('/promotions/:id')
   .put(
-    validateRequest({ params: promotionIdParamSchema, body: promotionBodySchema }),
+    validateRequest(UpdatePromotionSchema),
     promotionController.updatePromotion
   )
   .delete(
-    validateRequest({ params: promotionIdParamSchema }),
+    validateRequest(DeletePromotionSchema),
     promotionController.deletePromotion
   )
   .all(methodNotAllowed);
 router
   .route('/promotions/product-options/:productId')
   .get(
-    validateRequest({ params: productIdParamSchema }),
+    validateRequest(GetProductPricingOptionsSchema),
     promotionController.getProductPricingOptions
   )
   .all(methodNotAllowed);
 router
   .route('/promotions/effective-price/:productId')
   .get(
-    validateRequest({ params: productIdParamSchema }),
+    validateRequest(GetEffectivePromoPriceSchema),
     promotionController.getEffectivePromoPrice
   )
   .all(methodNotAllowed);

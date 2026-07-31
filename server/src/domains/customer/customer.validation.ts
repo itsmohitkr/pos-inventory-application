@@ -34,3 +34,11 @@ export {
   findOrCreateBodySchema,
   updateCustomerBodySchema,
 };
+
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const FindOrCreateSchema = { body: findOrCreateBodySchema };
+export const GetByBarcodeSchema = { params: barcodeParamSchema };
+export const GetByPhoneSchema = { params: phoneParamSchema };
+export const GetCustomerByIdSchema = { params: customerIdParamSchema };
+export const UpdateCustomerSchema = { params: customerIdParamSchema, body: updateCustomerBodySchema };
+export const GetPurchaseHistorySchema = { params: customerIdParamSchema };

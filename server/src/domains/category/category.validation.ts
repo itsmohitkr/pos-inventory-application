@@ -19,3 +19,8 @@ export type CreateCategoryInput = z.infer<typeof createCategoryBodySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategoryBodySchema>;
 
 export { categoryIdParamSchema, createCategoryBodySchema, updateCategoryBodySchema };
+
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const CreateCategorySchema = { body: createCategoryBodySchema };
+export const UpdateCategorySchema = { params: categoryIdParamSchema, body: updateCategoryBodySchema };
+export const DeleteCategorySchema = { params: categoryIdParamSchema };

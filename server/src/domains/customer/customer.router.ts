@@ -3,11 +3,12 @@ import customerController = require('./customer.controller');
 import methodNotAllowed = require('../../shared/error/methodNotAllowed');
 import { validateRequest } from '../../shared/middleware/validateRequest';
 import {
-  customerIdParamSchema,
-  barcodeParamSchema,
-  phoneParamSchema,
-  findOrCreateBodySchema,
-  updateCustomerBodySchema,
+  FindOrCreateSchema,
+  GetByBarcodeSchema,
+  GetByPhoneSchema,
+  GetCustomerByIdSchema,
+  UpdateCustomerSchema,
+  GetPurchaseHistorySchema,
 } from './customer.validation';
 
 const router = express.Router();
@@ -16,7 +17,7 @@ router
   .route('/')
   .get(customerController.getAllCustomers)
   .post(
-    validateRequest({ body: findOrCreateBodySchema }),
+    validateRequest(FindOrCreateSchema),
     customerController.findOrCreate
   )
   .all(methodNotAllowed);
@@ -24,7 +25,7 @@ router
 router
   .route('/barcode/:barcode')
   .get(
-    validateRequest({ params: barcodeParamSchema }),
+    validateRequest(GetByBarcodeSchema),
     customerController.getByBarcode
   )
   .all(methodNotAllowed);
@@ -32,7 +33,7 @@ router
 router
   .route('/phone/:phone')
   .get(
-    validateRequest({ params: phoneParamSchema }),
+    validateRequest(GetByPhoneSchema),
     customerController.getByPhone
   )
   .all(methodNotAllowed);
@@ -40,11 +41,11 @@ router
 router
   .route('/:id')
   .get(
-    validateRequest({ params: customerIdParamSchema }),
+    validateRequest(GetCustomerByIdSchema),
     customerController.getCustomerById
   )
   .put(
-    validateRequest({ params: customerIdParamSchema, body: updateCustomerBodySchema }),
+    validateRequest(UpdateCustomerSchema),
     customerController.updateCustomer
   )
   .all(methodNotAllowed);
@@ -52,7 +53,7 @@ router
 router
   .route('/:id/history')
   .get(
-    validateRequest({ params: customerIdParamSchema }),
+    validateRequest(GetPurchaseHistorySchema),
     customerController.getPurchaseHistory
   )
   .all(methodNotAllowed);

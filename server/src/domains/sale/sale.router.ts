@@ -3,25 +3,25 @@ import saleController = require('./sale.controller');
 import methodNotAllowed = require('../../shared/error/methodNotAllowed');
 import { validateRequest } from '../../shared/middleware/validateRequest';
 import {
-  saleIdParamSchema,
-  processSaleBodySchema,
-  processReturnBodySchema,
+  ProcessSaleSchema,
+  GetSaleByIdSchema,
+  ProcessReturnSchema,
 } from './sale.validation';
 
 const router = express.Router();
 
 router
   .route('/sale')
-  .post(validateRequest({ body: processSaleBodySchema }), saleController.processSale)
+  .post(validateRequest(ProcessSaleSchema), saleController.processSale)
   .all(methodNotAllowed);
 router
   .route('/sale/:id')
-  .get(validateRequest({ params: saleIdParamSchema }), saleController.getSaleById)
+  .get(validateRequest(GetSaleByIdSchema), saleController.getSaleById)
   .all(methodNotAllowed);
 router
   .route('/sale/:id/return')
   .post(
-    validateRequest({ params: saleIdParamSchema, body: processReturnBodySchema }),
+    validateRequest(ProcessReturnSchema),
     saleController.processReturn
   )
   .all(methodNotAllowed);
