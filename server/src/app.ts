@@ -1,13 +1,12 @@
 import express = require('express');
-import type { RequestHandler } from 'express';
 import cors = require('cors');
 import bodyParser = require('body-parser');
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import logger = require('./shared/utils/logger');
 
 import pathNotFound = require('./shared/error/pathNotFound');
 import errorHandler = require('./shared/error/errorHandler');
+import apiRouter = require('./apiRouter');
 
 const app = express();
 
@@ -41,64 +40,11 @@ app.use((req, res, next) => {
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting for sensitive routes
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: { error: 'Too many authentication attempts, please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-// Stricter limit for the two endpoints that check a password. The general
-// authLimiter above allows 100 requests per window, which is 100 password
-// guesses against /login and /verify-admin — too generous for a brute-force
-// guard. Applied before authLimiter so the tighter budget wins on these paths.
-const passwordLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10,
-    message: { error: 'Too many password attempts, please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
 // Request logging middleware
 app.use((req, res, next) => {
     logger.info({ method: req.method, url: req.url, ip: req.ip }, 'Incoming Request');
     next();
 });
-
-// Main API Router
-const apiRouter = express.Router();
-
-// Helper for lazy loading routers.
-//
-// The require() is intentional and stays dynamic: routers are resolved on first
-// request rather than at module load, which is what lets index.ts open the port
-// before the whole domain layer is pulled in. Only the types are tightened here
-// — the router was previously `any`, so a non-router export would have failed
-// at request time rather than at compile time.
-const lazyLoad =
-  (routerPath: string): RequestHandler =>
-  (req, res, next) => {
-     
-    const router = require(routerPath) as RequestHandler;
-    return router(req, res, next);
-  };
-
-apiRouter.use('/auth/login', passwordLimiter);
-apiRouter.use('/auth/verify-admin', passwordLimiter);
-apiRouter.use('/auth', authLimiter, lazyLoad('./domains/auth/auth.router'));
-apiRouter.use(lazyLoad('./domains/product/product.router'));
-apiRouter.use(lazyLoad('./domains/category/category.router'));
-apiRouter.use(lazyLoad('./domains/sale/sale.router'));
-apiRouter.use(lazyLoad('./domains/report/report.router'));
-apiRouter.use(lazyLoad('./domains/loose-sale/loose-sale.router'));
-apiRouter.use(lazyLoad('./domains/promotion/promotion.router'));
-apiRouter.use('/expenses', lazyLoad('./domains/expense/expense.router'));
-apiRouter.use('/purchases', lazyLoad('./domains/purchase/purchase.router'));
-apiRouter.use('/settings', lazyLoad('./domains/setting/setting.router'));
-apiRouter.use('/customers', lazyLoad('./domains/customer/customer.router'));
 
 // Handle legacy un-prefixed routes if any (all should be prefixed now)
 // Note: If any routes were previously mounted without prefix (e.g. app.use(productRoutes)), 
