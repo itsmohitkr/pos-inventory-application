@@ -1,6 +1,8 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
+import request from 'supertest';
+import app = require('../../src/app');
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 describe('Setting Domain API', () => {
     beforeEach(() => {
@@ -9,10 +11,10 @@ describe('Setting Domain API', () => {
 
     describe('GET /api/settings', () => {
         it('should fetch all application settings mapped identically', async () => {
-            prisma.setting.findMany.mockResolvedValue([
+            prisma.setting.findMany.mockResolvedValue(asMock([
                 { key: 'STORE_NAME', value: 'My Shop' },
                 { key: 'TAX_RATE', value: '5' }
-            ]);
+            ]));
 
             const res = await request(app).get('/api/settings');
 
@@ -30,9 +32,9 @@ describe('Setting Domain API', () => {
     describe('JSON serialisation round-trip', () => {
         it('parses object-valued settings back into objects', async () => {
             const receiptSettings = { roundOff: true, paperSize: '72mm', marginSide: 4 };
-            prisma.setting.findMany.mockResolvedValue([
+            prisma.setting.findMany.mockResolvedValue(asMock([
                 { key: 'posReceiptSettings', value: JSON.stringify(receiptSettings) },
-            ]);
+            ]));
 
             const res = await request(app).get('/api/settings');
 
@@ -42,7 +44,7 @@ describe('Setting Domain API', () => {
         });
 
         it('stores values JSON-stringified', async () => {
-            prisma.setting.upsert.mockResolvedValue({});
+            prisma.setting.upsert.mockResolvedValue(asMock({}));
 
             await request(app)
                 .post('/api/settings')
@@ -59,10 +61,10 @@ describe('Setting Domain API', () => {
 
         it('falls back to the raw string when a stored value is not valid JSON', async () => {
             // A legacy or hand-edited row must not crash the settings endpoint.
-            prisma.setting.findMany.mockResolvedValue([
+            prisma.setting.findMany.mockResolvedValue(asMock([
                 { key: 'posShopName', value: 'Bachat Bazaar' },
                 { key: 'broken', value: '{not valid json' },
-            ]);
+            ]));
 
             const res = await request(app).get('/api/settings');
 
@@ -75,7 +77,7 @@ describe('Setting Domain API', () => {
     describe('POST /api/settings', () => {
         it('should update multiple settings transactionally', async () => {
             // Mock upsert logic
-            prisma.setting.upsert.mockResolvedValue({ key: 'STORE_NAME', value: 'New Bazaar' });
+            prisma.setting.upsert.mockResolvedValue(asMock({ key: 'STORE_NAME', value: 'New Bazaar' }));
 
             const res = await request(app)
                 .post('/api/settings')

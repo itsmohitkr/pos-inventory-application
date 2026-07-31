@@ -1,6 +1,8 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
+import request from 'supertest';
+import app = require('../../src/app');
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 describe('Sale Domain API', () => {
     beforeEach(() => {
@@ -9,7 +11,7 @@ describe('Sale Domain API', () => {
 
     describe('POST /api/sale', () => {
         it('should checkout and record a sale successfully', async () => {
-            prisma.$transaction.mockResolvedValue({
+            prisma.$transaction.mockResolvedValue(asMock({
                 id: 1,
                 totalAmount: 50,
                 discount: 0,
@@ -18,7 +20,7 @@ describe('Sale Domain API', () => {
                 customerId: null,
                 createdAt: new Date(),
                 items: [],
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -39,7 +41,7 @@ describe('Sale Domain API', () => {
         });
 
         it('should link sale to customer when customerId is provided', async () => {
-            prisma.$transaction.mockResolvedValue({
+            prisma.$transaction.mockResolvedValue(asMock({
                 id: 2,
                 totalAmount: 120,
                 discount: 0,
@@ -49,7 +51,7 @@ describe('Sale Domain API', () => {
                 createdAt: new Date(),
                 items: [],
                 customer: { id: 5, phone: '9876543210', name: 'Ravi' },
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -77,7 +79,7 @@ describe('Sale Domain API', () => {
         const runRealTransaction = () => {
             prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
             prisma.setting.findUnique.mockResolvedValue(null);
-            prisma.promotion.findMany.mockResolvedValue([]);
+            prisma.promotion.findMany.mockResolvedValue(asMock([]));
         };
 
         const batch = (overrides = {}) => ({
@@ -98,7 +100,7 @@ describe('Sale Domain API', () => {
 
         it('rejects a sale when requested quantity exceeds batch stock', async () => {
             runRealTransaction();
-            prisma.batch.findMany.mockResolvedValue([batch({ quantity: 2 })]);
+            prisma.batch.findMany.mockResolvedValue(asMock([batch({ quantity: 2 })]));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -117,7 +119,7 @@ describe('Sale Domain API', () => {
             runRealTransaction();
             const expired = new Date();
             expired.setFullYear(expired.getFullYear() - 1);
-            prisma.batch.findMany.mockResolvedValue([batch({ expiryDate: expired })]);
+            prisma.batch.findMany.mockResolvedValue(asMock([batch({ expiryDate: expired })]));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -133,7 +135,7 @@ describe('Sale Domain API', () => {
 
         it('rejects a sale referencing an unknown batch id', async () => {
             runRealTransaction();
-            prisma.batch.findMany.mockResolvedValue([]);
+            prisma.batch.findMany.mockResolvedValue(asMock([]));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -149,7 +151,7 @@ describe('Sale Domain API', () => {
         it('rejects a discount larger than the cart total', async () => {
             runRealTransaction();
             // 2 units @ 60 = 120 cart total.
-            prisma.batch.findMany.mockResolvedValue([batch()]);
+            prisma.batch.findMany.mockResolvedValue(asMock([batch()]));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -166,7 +168,7 @@ describe('Sale Domain API', () => {
 
         it('rejects when discount and extraDiscount together exceed the cart total', async () => {
             runRealTransaction();
-            prisma.batch.findMany.mockResolvedValue([batch()]);
+            prisma.batch.findMany.mockResolvedValue(asMock([batch()]));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -183,10 +185,10 @@ describe('Sale Domain API', () => {
 
         it('allows a discount exactly equal to the cart total (100% off)', async () => {
             runRealTransaction();
-            prisma.batch.findMany.mockResolvedValue([batch()]);
-            prisma.sale.create.mockResolvedValue({
+            prisma.batch.findMany.mockResolvedValue(asMock([batch()]));
+            prisma.sale.create.mockResolvedValue(asMock({
                 id: 9, totalAmount: 0, discount: 120, extraDiscount: 0, items: [],
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -203,13 +205,13 @@ describe('Sale Domain API', () => {
             // processSale reads posReceiptSettings.roundOff. This couples the
             // settings JSON path to money — pin it before that code is typed.
             prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-            prisma.promotion.findMany.mockResolvedValue([]);
-            prisma.setting.findUnique.mockResolvedValue({
+            prisma.promotion.findMany.mockResolvedValue(asMock([]));
+            prisma.setting.findUnique.mockResolvedValue(asMock({
                 key: 'posReceiptSettings',
                 value: JSON.stringify({ roundOff: true }),
-            });
-            prisma.batch.findMany.mockResolvedValue([batch({ sellingPrice: 60.4 })]);
-            prisma.sale.create.mockResolvedValue({ id: 7, totalAmount: 60, items: [] });
+            }));
+            prisma.batch.findMany.mockResolvedValue(asMock([batch({ sellingPrice: 60.4 })]));
+            prisma.sale.create.mockResolvedValue(asMock({ id: 7, totalAmount: 60, items: [] }));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -228,13 +230,13 @@ describe('Sale Domain API', () => {
 
         it('preserves fractional totals when roundOff is disabled', async () => {
             prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-            prisma.promotion.findMany.mockResolvedValue([]);
-            prisma.setting.findUnique.mockResolvedValue({
+            prisma.promotion.findMany.mockResolvedValue(asMock([]));
+            prisma.setting.findUnique.mockResolvedValue(asMock({
                 key: 'posReceiptSettings',
                 value: JSON.stringify({ roundOff: false }),
-            });
-            prisma.batch.findMany.mockResolvedValue([batch({ sellingPrice: 60.4 })]);
-            prisma.sale.create.mockResolvedValue({ id: 8, totalAmount: 60.4, items: [] });
+            }));
+            prisma.batch.findMany.mockResolvedValue(asMock([batch({ sellingPrice: 60.4 })]));
+            prisma.sale.create.mockResolvedValue(asMock({ id: 8, totalAmount: 60.4, items: [] }));
 
             const res = await request(app)
                 .post('/api/sale')
@@ -274,14 +276,14 @@ describe('Sale Domain API', () => {
     describe('POST /api/sale/:id/return — error paths', () => {
         it('rejects a return larger than the quantity originally sold', async () => {
             prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-            prisma.sale.findUnique.mockResolvedValue({ id: 1, customerId: null });
-            prisma.saleItem.findUnique.mockResolvedValue({
+            prisma.sale.findUnique.mockResolvedValue(asMock({ id: 1, customerId: null }));
+            prisma.saleItem.findUnique.mockResolvedValue(asMock({
                 id: 1,
                 batchId: 1,
                 quantity: 2,
                 returnedQuantity: 0,
                 sellingPrice: 100,
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/sale/1/return')
@@ -317,7 +319,7 @@ describe('Sale Domain API', () => {
 
         it('rejects a return referencing an unknown sale item', async () => {
             prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-            prisma.sale.findUnique.mockResolvedValue({ id: 1, customerId: null });
+            prisma.sale.findUnique.mockResolvedValue(asMock({ id: 1, customerId: null }));
             prisma.saleItem.findUnique.mockResolvedValue(null);
 
             const res = await request(app)
@@ -348,9 +350,9 @@ describe('Sale Domain API', () => {
             };
 
             // Setup mocks for the service logic
-            prisma.sale.findUnique.mockResolvedValue(mockSale);
-            prisma.saleItem.findUnique.mockResolvedValue(mockSale.items[0]);
-            prisma.batch.findUnique.mockResolvedValue({ id: 1, productId: 1 });
+            prisma.sale.findUnique.mockResolvedValue(asMock(mockSale));
+            prisma.saleItem.findUnique.mockResolvedValue(asMock(mockSale.items[0]));
+            prisma.batch.findUnique.mockResolvedValue(asMock({ id: 1, productId: 1 }));
             prisma.$transaction.mockImplementation(async (callback) => {
                 return await callback(prisma);
             });

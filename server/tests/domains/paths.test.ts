@@ -1,14 +1,14 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const {
+import {
   SERVER_ROOT,
   APP_ROOT,
   PRISMA_DIR,
   SCHEMA_PATH,
   MIGRATIONS_DIR,
   getPrismaCliPath,
-} = require('../../src/config/paths');
+} from '../../src/config/paths';
 
 /**
  * These paths were previously built from `__dirname` in server/index.js, which

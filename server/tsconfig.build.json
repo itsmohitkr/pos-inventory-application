@@ -1,0 +1,10 @@
+{
+  "//": [
+    "Used by `npm run build` / `npm run dev` only. tsconfig.json includes",
+    "tests/ so `tsc --noEmit` (typecheck) and ts-jest enforce strict on the",
+    "test suite too, but the shipped dist/ must not contain compiled test",
+    "output — this config extends the base and excludes tests/ for that."
+  ],
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "dist", "prisma", "coverage", "tests"]
+}

@@ -1,8 +1,10 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
-const bcrypt = require('bcryptjs');
-const adminTokens = require('../../src/domains/auth/adminTokens');
+import request from 'supertest';
+import app = require('../../src/app');
+import bcrypt from 'bcryptjs';
+import * as adminTokens from '../../src/domains/auth/adminTokens';
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 /**
  * The user-management routes require a live admin elevation token. Tests mint
@@ -35,7 +37,7 @@ describe('Auth Domain API', () => {
                 status: 'active'
             };
 
-            prisma.user.findUnique.mockResolvedValue(mockUser);
+            prisma.user.findUnique.mockResolvedValue(asMock(mockUser));
 
             const res = await request(app)
                 .post('/api/auth/login')
@@ -55,7 +57,7 @@ describe('Auth Domain API', () => {
                 status: 'active'
             };
 
-            prisma.user.findUnique.mockResolvedValue(mockUser);
+            prisma.user.findUnique.mockResolvedValue(asMock(mockUser));
 
             const res = await request(app)
                 .post('/api/auth/login')
@@ -85,7 +87,7 @@ describe('Auth Domain API', () => {
                 { id: 2, username: 'cashier', role: 'cashier' }
             ];
 
-            prisma.user.findMany.mockResolvedValue(mockUsers);
+            prisma.user.findMany.mockResolvedValue(asMock(mockUsers));
 
             const res = await request(app).get('/api/auth/users');
 
@@ -100,12 +102,12 @@ describe('Auth Domain API', () => {
     describe('POST /api/auth/users', () => {
         it('should create a new user', async () => {
             prisma.user.findUnique.mockResolvedValue(null);
-            prisma.user.create.mockResolvedValue({
+            prisma.user.create.mockResolvedValue(asMock({
                 id: 3,
                 username: 'newuser',
                 role: 'cashier',
                 status: 'active'
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/auth/users')
@@ -123,7 +125,7 @@ describe('Auth Domain API', () => {
         });
 
         it('should fail if user already exists', async () => {
-            prisma.user.findUnique.mockResolvedValue({ id: 1, username: 'existing' });
+            prisma.user.findUnique.mockResolvedValue(asMock({ id: 1, username: 'existing' }));
 
             const res = await request(app)
                 .post('/api/auth/users')
@@ -142,8 +144,8 @@ describe('Auth Domain API', () => {
     describe('DELETE /api/auth/users/:id', () => {
         it('should delete user successfully', async () => {
             // Must return a user to bypass getUserById check first
-            prisma.user.findUnique.mockResolvedValue({ id: 2, username: 'victim' });
-            prisma.user.delete.mockResolvedValue({ id: 2 });
+            prisma.user.findUnique.mockResolvedValue(asMock({ id: 2, username: 'victim' }));
+            prisma.user.delete.mockResolvedValue(asMock({ id: 2 }));
 
             const res = await request(app)
                 .delete('/api/auth/users/2')
@@ -216,8 +218,8 @@ describe('Auth Domain API', () => {
         });
 
         it('allows PUT /users/:id with a valid admin token', async () => {
-            prisma.user.findUnique.mockResolvedValue({ id: 2, username: 'victim', role: 'cashier' });
-            prisma.user.update.mockResolvedValue({ id: 2, username: 'victim', role: 'admin' });
+            prisma.user.findUnique.mockResolvedValue(asMock({ id: 2, username: 'victim', role: 'cashier' }));
+            prisma.user.update.mockResolvedValue(asMock({ id: 2, username: 'victim', role: 'admin' }));
 
             const res = await request(app)
                 .put('/api/auth/users/2')
@@ -255,7 +257,7 @@ describe('Auth Domain API', () => {
             }];
 
             // It calls findMany internally
-            prisma.user.findMany.mockResolvedValue(mockAdminArray);
+            prisma.user.findMany.mockResolvedValue(asMock(mockAdminArray));
 
             const res = await request(app)
                 .post('/api/auth/verify-admin')
@@ -269,10 +271,10 @@ describe('Auth Domain API', () => {
     describe('POST /api/auth/complete-onboarding', () => {
         it('creates shop, updates admin password, and sets onboardingVersion', async () => {
             prisma.shop.findFirst.mockResolvedValue(null);
-            prisma.shop.create.mockResolvedValue({ id: 1, name: 'Test Shop' });
-            prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
-            prisma.user.update.mockResolvedValue({ id: 1 });
-            prisma.setting.upsert.mockResolvedValue({});
+            prisma.shop.create.mockResolvedValue(asMock({ id: 1, name: 'Test Shop' }));
+            prisma.user.findFirst.mockResolvedValue(asMock({ id: 1, role: 'admin', password: 'hashed' }));
+            prisma.user.update.mockResolvedValue(asMock({ id: 1 }));
+            prisma.setting.upsert.mockResolvedValue(asMock({}));
             prisma.setting.findUnique.mockResolvedValue(null);
             prisma.$transaction.mockImplementation((cb) => cb(prisma));
 
@@ -300,10 +302,10 @@ describe('Auth Domain API', () => {
             // any admin exists. Without a completed-onboarding guard it stays
             // callable forever, letting any local caller (e.g. a cashier using
             // the app's devtools) reset the owner's admin password.
-            prisma.setting.findUnique.mockResolvedValue({
+            prisma.setting.findUnique.mockResolvedValue(asMock({
                 key: 'onboardingVersion',
                 value: '1',
-            });
+            }));
             prisma.$transaction.mockImplementation((cb) => cb(prisma));
 
             const res = await request(app)
@@ -337,11 +339,11 @@ describe('Auth Domain API', () => {
         });
 
         it('upserts existing shop instead of creating a duplicate', async () => {
-            prisma.shop.findFirst.mockResolvedValue({ id: 1, name: 'Old Name' });
-            prisma.shop.update.mockResolvedValue({ id: 1, name: 'New Name' });
-            prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
-            prisma.user.update.mockResolvedValue({ id: 1 });
-            prisma.setting.upsert.mockResolvedValue({});
+            prisma.shop.findFirst.mockResolvedValue(asMock({ id: 1, name: 'Old Name' }));
+            prisma.shop.update.mockResolvedValue(asMock({ id: 1, name: 'New Name' }));
+            prisma.user.findFirst.mockResolvedValue(asMock({ id: 1, role: 'admin', password: 'hashed' }));
+            prisma.user.update.mockResolvedValue(asMock({ id: 1 }));
+            prisma.setting.upsert.mockResolvedValue(asMock({}));
             prisma.setting.findUnique.mockResolvedValue(null);
             prisma.$transaction.mockImplementation((cb) => cb(prisma));
 
@@ -356,10 +358,10 @@ describe('Auth Domain API', () => {
 
         it('seeds posReceiptSettings with shop name and address from onboarding', async () => {
             prisma.shop.findFirst.mockResolvedValue(null);
-            prisma.shop.create.mockResolvedValue({ id: 1, name: 'Corner Store' });
-            prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
-            prisma.user.update.mockResolvedValue({ id: 1 });
-            prisma.setting.upsert.mockResolvedValue({});
+            prisma.shop.create.mockResolvedValue(asMock({ id: 1, name: 'Corner Store' }));
+            prisma.user.findFirst.mockResolvedValue(asMock({ id: 1, role: 'admin', password: 'hashed' }));
+            prisma.user.update.mockResolvedValue(asMock({ id: 1 }));
+            prisma.setting.upsert.mockResolvedValue(asMock({}));
             prisma.setting.findUnique.mockResolvedValue(null);
             prisma.$transaction.mockImplementation((cb) => cb(prisma));
 
@@ -373,32 +375,39 @@ describe('Auth Domain API', () => {
                 (args) => args[0].where.key === 'posReceiptSettings'
             );
             expect(receiptCall).toBeDefined();
-            const written = JSON.parse(receiptCall[0].create.value);
+            const written = JSON.parse(receiptCall![0].create.value as string);
             expect(written.customShopName).toBe('Corner Store');
             expect(written.customHeader).toBe('42 Market Lane');
         });
 
         it('does not overwrite customHeader when address is empty', async () => {
             prisma.shop.findFirst.mockResolvedValue(null);
-            prisma.shop.create.mockResolvedValue({ id: 1, name: 'No Address Shop' });
-            prisma.user.findFirst.mockResolvedValue({ id: 1, role: 'admin', password: 'hashed' });
-            prisma.user.update.mockResolvedValue({ id: 1 });
-            prisma.setting.upsert.mockResolvedValue({});
+            prisma.shop.create.mockResolvedValue(asMock({ id: 1, name: 'No Address Shop' }));
+            prisma.user.findFirst.mockResolvedValue(asMock({ id: 1, role: 'admin', password: 'hashed' }));
+            prisma.user.update.mockResolvedValue(asMock({ id: 1 }));
+            prisma.setting.upsert.mockResolvedValue(asMock({}));
             // Keyed rather than blanket: completeOnboarding now reads
             // onboardingVersion as a guard, so it must resolve to null here
             // while posReceiptSettings still returns the existing value.
-            prisma.setting.findUnique.mockImplementation(({ where }) =>
-                Promise.resolve(
-                    where.key === 'posReceiptSettings'
-                        ? {
-                              key: 'posReceiptSettings',
-                              value: JSON.stringify({
-                                  customHeader: 'My Custom Tagline',
-                                  customShopName: 'Old Name',
-                              }),
-                          }
-                        : null
-                )
+            prisma.setting.findUnique.mockImplementation(
+                ({ where }) =>
+                    // Prisma's real return type here is `Prisma__SettingClient`, a
+                    // thenable with extra Prisma-only members (batching, field
+                    // accessors) — not a plain Promise. `Promise.resolve(...)`
+                    // structurally satisfies every part of that except the
+                    // `[Symbol.toStringTag]` brand, so it needs one cast through
+                    // `unknown` rather than reproducing the full fluent-client shape.
+                    Promise.resolve(
+                        where.key === 'posReceiptSettings'
+                            ? asMock({
+                                  key: 'posReceiptSettings',
+                                  value: JSON.stringify({
+                                      customHeader: 'My Custom Tagline',
+                                      customShopName: 'Old Name',
+                                  }),
+                              })
+                            : null
+                    ) as unknown as ReturnType<typeof prisma.setting.findUnique>
             );
             prisma.$transaction.mockImplementation((cb) => cb(prisma));
 
@@ -411,7 +420,7 @@ describe('Auth Domain API', () => {
             const receiptCall = prisma.setting.upsert.mock.calls.find(
                 (args) => args[0].where.key === 'posReceiptSettings'
             );
-            const written = JSON.parse(receiptCall[0].update.value);
+            const written = JSON.parse(receiptCall![0].update.value as string);
             expect(written.customHeader).toBe('My Custom Tagline');
             expect(written.customShopName).toBe('No Address Shop');
         });

@@ -1,6 +1,8 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
+import request from 'supertest';
+import app = require('../../src/app');
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 describe('Promotion Domain API', () => {
     beforeEach(() => {
@@ -9,7 +11,7 @@ describe('Promotion Domain API', () => {
 
     describe('POST /api/promotions', () => {
         it('should create a promotion successfully', async () => {
-            prisma.$transaction.mockResolvedValue({ id: 1, name: 'Summer Sale' });
+            prisma.$transaction.mockResolvedValue(asMock({ id: 1, name: 'Summer Sale' }));
 
             const res = await request(app)
                 .post('/api/promotions')
@@ -30,9 +32,9 @@ describe('Promotion Domain API', () => {
 
     describe('GET /api/promotions', () => {
         it('should fetch all promotions', async () => {
-            prisma.promotion.findMany.mockResolvedValue([
+            prisma.promotion.findMany.mockResolvedValue(asMock([
                 { id: 1, type: 'discount_percentage', value: 10 }
-            ]);
+            ]));
 
             const res = await request(app).get('/api/promotions');
 
@@ -46,9 +48,9 @@ describe('Promotion Domain API', () => {
     describe('GET /api/promotions/effective-price/:productId', () => {
         it('should calculate effective price for product', async () => {
             // Mocking service layer DB lookups to mimic product with promo
-            prisma.promotion.findMany.mockResolvedValue([
+            prisma.promotion.findMany.mockResolvedValue(asMock([
                 { items: [{ promoPrice: 90 }] }
-            ]);
+            ]));
 
             const res = await request(app).get('/api/promotions/effective-price/1');
 

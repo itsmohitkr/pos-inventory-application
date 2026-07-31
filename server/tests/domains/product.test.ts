@@ -1,23 +1,25 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
+import request from 'supertest';
+import app = require('../../src/app');
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 describe('Product Domain API', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        prisma.product.findMany.mockResolvedValue([]);
+        prisma.product.findMany.mockResolvedValue(asMock([]));
     });
 
     describe('GET /api/products', () => {
         it('should fetch paginated products', async () => {
-            prisma.$queryRawUnsafe.mockResolvedValueOnce([{ count: 1n }]); // count query
-            prisma.$queryRawUnsafe.mockResolvedValueOnce([ // data query
+            prisma.$queryRawUnsafe.mockResolvedValueOnce(asMock([{ count: 1n }])); // count query
+            prisma.$queryRawUnsafe.mockResolvedValueOnce(asMock([ // data query
                 {
                     id: 1, name: 'Cola', barcode: '123', category: null,
                     batchTrackingEnabled: false, lowStockWarningEnabled: false,
                     total_stock: 10, total_cost: 100, total_selling: 150
                 }
-            ]);
+            ]));
 
             const res = await request(app).get('/api/products?page=1&limit=10');
 
@@ -30,12 +32,12 @@ describe('Product Domain API', () => {
     describe('POST /api/products', () => {
         it('should create new product with initial batch', async () => {
             prisma.product.findFirst.mockResolvedValue(null); // Barcode check
-            prisma.product.findMany.mockResolvedValue([]);    // Category background sync
-            prisma.$transaction.mockResolvedValue({
+            prisma.product.findMany.mockResolvedValue(asMock([]));    // Category background sync
+            prisma.$transaction.mockResolvedValue(asMock({
                 id: 2,
                 name: 'Chips',
                 sku: 'CHP-123'
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/products')
@@ -59,8 +61,8 @@ describe('Product Domain API', () => {
     describe('PUT /api/products/:id', () => {
         it('should update product details', async () => {
             prisma.product.findFirst.mockResolvedValue(null); // Barcode check
-            prisma.product.findMany.mockResolvedValue([]);    // Category background sync
-            prisma.product.update.mockResolvedValue({ id: 1, name: 'Diet Cola' });
+            prisma.product.findMany.mockResolvedValue(asMock([]));    // Category background sync
+            prisma.product.update.mockResolvedValue(asMock({ id: 1, name: 'Diet Cola' }));
             // updateProduct now runs inside $transaction; call the callback with prisma as tx
             prisma.$transaction.mockImplementationOnce((cb) => cb(prisma));
 
@@ -81,15 +83,15 @@ describe('Product Domain API', () => {
     describe('Batch creation writes the stock ledger', () => {
         const runRealTransaction = () => {
             prisma.$transaction.mockImplementation(async (cb) => cb(prisma));
-            prisma.batch.create.mockResolvedValue({ id: 10, productId: 1, quantity: 5 });
-            prisma.batch.update.mockResolvedValue({ id: 11, productId: 1, quantity: 15 });
+            prisma.batch.create.mockResolvedValue(asMock({ id: 10, productId: 1, quantity: 5 }));
+            prisma.batch.update.mockResolvedValue(asMock({ id: 11, productId: 1, quantity: 15 }));
         };
 
         it('records a movement when adding a batch to a tracked product', async () => {
             runRealTransaction();
-            prisma.product.findUnique.mockResolvedValue({
+            prisma.product.findUnique.mockResolvedValue(asMock({
                 id: 1, batchTrackingEnabled: true, batches: [],
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/batches')
@@ -106,11 +108,11 @@ describe('Product Domain API', () => {
 
         it('accumulates into the existing batch when tracking is off', async () => {
             runRealTransaction();
-            prisma.product.findUnique.mockResolvedValue({
+            prisma.product.findUnique.mockResolvedValue(asMock({
                 id: 1,
                 batchTrackingEnabled: false,
                 batches: [{ id: 11, productId: 1, quantity: 10 }],
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/batches')
@@ -132,9 +134,9 @@ describe('Product Domain API', () => {
 
         it('creates the first batch when an untracked product has none', async () => {
             runRealTransaction();
-            prisma.product.findUnique.mockResolvedValue({
+            prisma.product.findUnique.mockResolvedValue(asMock({
                 id: 1, batchTrackingEnabled: false, batches: [],
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/batches')
@@ -150,10 +152,10 @@ describe('Product Domain API', () => {
         it('records a movement for a new product created with initial stock', async () => {
             runRealTransaction();
             prisma.product.findFirst.mockResolvedValue(null);
-            prisma.product.findMany.mockResolvedValue([]);
-            prisma.product.create.mockResolvedValue({
+            prisma.product.findMany.mockResolvedValue(asMock([]));
+            prisma.product.create.mockResolvedValue(asMock({
                 id: 1, name: 'Chips', batchTrackingEnabled: false, batches: [],
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/products')
@@ -171,11 +173,11 @@ describe('Product Domain API', () => {
         it('skips the movement for a zero-quantity bulk row', async () => {
             runRealTransaction();
             prisma.product.findFirst.mockResolvedValue(null);
-            prisma.product.findMany.mockResolvedValue([]);
-            prisma.product.create.mockResolvedValue({
+            prisma.product.findMany.mockResolvedValue(asMock([]));
+            prisma.product.create.mockResolvedValue(asMock({
                 id: 1, name: 'Zero', batchTrackingEnabled: false,
-            });
-            prisma.batch.create.mockResolvedValue({ id: 10, productId: 1, quantity: 0 });
+            }));
+            prisma.batch.create.mockResolvedValue(asMock({ id: 10, productId: 1, quantity: 0 }));
 
             const res = await request(app)
                 .post('/api/products/bulk')
@@ -195,7 +197,7 @@ describe('Product Domain API', () => {
 
     describe('DELETE /api/products/:id', () => {
         it('should soft-delete product', async () => {
-            prisma.product.update.mockResolvedValue({ id: 1, isDeleted: true });
+            prisma.product.update.mockResolvedValue(asMock({ id: 1, isDeleted: true }));
 
             const res = await request(app).delete('/api/products/1');
 

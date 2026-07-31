@@ -1,6 +1,8 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
+import request from 'supertest';
+import app = require('../../src/app');
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 describe('Loose-Sale Domain API', () => {
     beforeEach(() => {
@@ -10,11 +12,11 @@ describe('Loose-Sale Domain API', () => {
     describe('POST /api/loose-sales', () => {
         it('should checkout loose-weight transactions properly', async () => {
             // Loose sales use similar transactions but calculate split weights
-            prisma.looseSale.create.mockResolvedValue({
+            prisma.looseSale.create.mockResolvedValue(asMock({
                 id: 2,
                 invoiceNumber: 'LS1002',
                 totalAmount: 12.5,
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/loose-sales')
@@ -33,7 +35,7 @@ describe('Loose-Sale Domain API', () => {
 
     describe('DELETE /api/loose-sales/:id', () => {
         it('should refund loose weight', async () => {
-            prisma.looseSale.delete.mockResolvedValue({ id: 2 });
+            prisma.looseSale.delete.mockResolvedValue(asMock({ id: 2 }));
 
             const res = await request(app).delete('/api/loose-sales/2');
 

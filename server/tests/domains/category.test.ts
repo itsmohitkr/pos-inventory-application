@@ -1,6 +1,8 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
+import request from 'supertest';
+import app = require('../../src/app');
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 describe('Category Domain API', () => {
     beforeEach(() => {
@@ -10,7 +12,7 @@ describe('Category Domain API', () => {
     describe('GET /api/categories', () => {
         it('should fetch all categories formatted as tree', async () => {
             const mockCategories = [{ id: 1, name: 'Beverages' }];
-            prisma.category.findMany.mockResolvedValue(mockCategories);
+            prisma.category.findMany.mockResolvedValue(asMock(mockCategories));
 
             const res = await request(app).get('/api/categories');
 
@@ -23,11 +25,11 @@ describe('Category Domain API', () => {
     describe('POST /api/categories', () => {
         it('should create a new root category', async () => {
             prisma.category.findFirst.mockResolvedValue(null);
-            prisma.category.create.mockResolvedValue({
+            prisma.category.create.mockResolvedValue(asMock({
                 id: 3,
                 name: 'Snacks',
                 parentId: null
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/categories')
@@ -39,7 +41,7 @@ describe('Category Domain API', () => {
         });
 
         it('should act idempotently for duplicate category names', async () => {
-            prisma.category.findFirst.mockResolvedValue({ id: 1, name: 'Beverages' });
+            prisma.category.findFirst.mockResolvedValue(asMock({ id: 1, name: 'Beverages' }));
 
             const res = await request(app)
                 .post('/api/categories')
@@ -55,9 +57,9 @@ describe('Category Domain API', () => {
     describe('PUT /api/categories/:id', () => {
         it('should rename a category successfully', async () => {
             // It queries all categories to map tree paths
-            prisma.category.findMany.mockResolvedValue([{ id: 1, name: 'Beverages' }]);
-            prisma.product.findMany.mockResolvedValue([]); // For related products sync
-            prisma.category.update.mockResolvedValue({ id: 1, name: 'Cold Beverages' });
+            prisma.category.findMany.mockResolvedValue(asMock([{ id: 1, name: 'Beverages' }]));
+            prisma.product.findMany.mockResolvedValue(asMock([])); // For related products sync
+            prisma.category.update.mockResolvedValue(asMock({ id: 1, name: 'Cold Beverages' }));
 
             const res = await request(app)
                 .put('/api/categories/1')
@@ -71,8 +73,8 @@ describe('Category Domain API', () => {
     describe('DELETE /api/categories/:id', () => {
         it('should delete category successfully', async () => {
             // Must return full tree
-            prisma.category.findMany.mockResolvedValue([{ id: 1, name: 'Beverages' }]);
-            prisma.$transaction.mockResolvedValue([1, 1]); // the 2-step transaction
+            prisma.category.findMany.mockResolvedValue(asMock([{ id: 1, name: 'Beverages' }]));
+            prisma.$transaction.mockResolvedValue(asMock([1, 1])); // the 2-step transaction
 
             const res = await request(app).delete('/api/categories/1');
 
@@ -83,11 +85,11 @@ describe('Category Domain API', () => {
 
         it('should recursively cascade delete category and its children', async () => {
             // Provide parent and child
-            prisma.category.findMany.mockResolvedValue([
+            prisma.category.findMany.mockResolvedValue(asMock([
                 { id: 1, name: 'Beverages', parentId: null },
                 { id: 2, name: 'Soda', parentId: 1 }
-            ]);
-            prisma.$transaction.mockResolvedValue([1, 2]);
+            ]));
+            prisma.$transaction.mockResolvedValue(asMock([1, 2]));
 
             const res = await request(app).delete('/api/categories/1');
 

@@ -1,6 +1,8 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
+import request from 'supertest';
+import app = require('../../src/app');
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 describe('Purchase Domain API', () => {
     beforeEach(() => {
@@ -9,11 +11,11 @@ describe('Purchase Domain API', () => {
 
     describe('POST /api/purchases', () => {
         it('should create a purchase with transaction items successfully', async () => {
-            prisma.$transaction.mockResolvedValue({
+            prisma.$transaction.mockResolvedValue(asMock({
                 id: 1,
                 vendor: 'Distributor A',
                 totalAmount: 1000
-            });
+            }));
 
             const res = await request(app)
                 .post('/api/purchases')
@@ -33,8 +35,8 @@ describe('Purchase Domain API', () => {
 
     describe('GET /api/purchases', () => {
         it('should fetch purchases history list', async () => {
-            prisma.purchase.findMany.mockResolvedValue([{ id: 1, vendor: 'Distributor A', payments: [] }]);
-            prisma.purchase.count.mockResolvedValue(1);
+            prisma.purchase.findMany.mockResolvedValue(asMock([{ id: 1, vendor: 'Distributor A', payments: [] }]));
+            prisma.purchase.count.mockResolvedValue(asMock(1));
 
             const res = await request(app).get('/api/purchases');
 
@@ -47,11 +49,17 @@ describe('Purchase Domain API', () => {
 
     describe('PUT /api/purchases/payments/:id', () => {
         it('should update a payment log independently', async () => {
-            prisma.payment.findUnique.mockResolvedValue({ id: 5, amount: 500, purchaseId: 1 });
-            prisma.purchase.findUnique.mockResolvedValue({ id: 1, totalAmount: 1000, paidAmount: 500 });
+            // NB: the real delegate is `purchasePayment` (there is no `Payment`
+            // model). This mock is inert either way — `$transaction` below is
+            // mocked to resolve directly, so the callback that would call
+            // `tx.purchasePayment.findUnique` never runs — but the property
+            // name was wrong even for a dead mock, which strict typing on
+            // DeepMockProxy<PrismaClient> now catches.
+            prisma.purchasePayment.findUnique.mockResolvedValue(asMock({ id: 5, amount: 500, purchaseId: 1 }));
+            prisma.purchase.findUnique.mockResolvedValue(asMock({ id: 1, totalAmount: 1000, paidAmount: 500 }));
 
             // Process transaction update
-            prisma.$transaction.mockResolvedValue({ id: 5, amount: 500 });
+            prisma.$transaction.mockResolvedValue(asMock({ id: 5, amount: 500 }));
 
             const res = await request(app)
                 .put('/api/purchases/payments/5')

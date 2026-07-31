@@ -1,8 +1,9 @@
-const express = require('express');
-const request = require('supertest');
-const { validateRequest } = require('../../src/shared/middleware/validateRequest');
-const { z, num, int } = require('../../src/shared/middleware/zodHelpers');
-const errorHandler = require('../../src/shared/error/errorHandler');
+import express, { type Request, type Response } from 'express';
+import request from 'supertest';
+import { validateRequest } from '../../src/shared/middleware/validateRequest';
+import { z, num, int } from '../../src/shared/middleware/zodHelpers';
+import errorHandler = require('../../src/shared/error/errorHandler');
+import type { ZodType } from 'zod';
 
 /**
  * Express 5 defines req.query as a getter with no setter.
@@ -15,7 +16,9 @@ const errorHandler = require('../../src/shared/error/errorHandler');
  * These tests pin the current behaviour: body and params receive coerced
  * values, query does not, and nothing throws.
  */
-const buildApp = (schemas, handler) => {
+type Schemas = Partial<Record<'body' | 'query' | 'params', ZodType>>;
+
+const buildApp = (schemas: Schemas, handler: (req: Request, res: Response) => void) => {
   const app = express();
   app.use(express.json());
   app.get('/q/:id', validateRequest(schemas), handler);

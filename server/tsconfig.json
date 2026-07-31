@@ -14,9 +14,14 @@
     "desktop/ has not been converted yet, so flipping either in the shared base",
     "would break that package. A per-package override is how each flag advances",
     "one package at a time — it cannot be scoped to a folder within a package.",
-    "allowJs:false is safe because 'tests' is excluded above (its .js files are",
-    "converted separately, see server/jest.config.js) and no other .js file is",
-    "matched by 'include'."
+    "allowJs:false is safe because tests/ is now TypeScript too (see",
+    "server/jest.config.js) and no other .js file is matched by 'include'.",
+    "",
+    "tests/ is included here (rather than excluded) so `tsc --noEmit` covers",
+    "the test suite under the same strict settings as src/ — ts-jest itself",
+    "runs with isolatedModules:true (transpile-only, no program/type-check),",
+    "so this include is what actually gates strictness on tests; it doesn't",
+    "affect how ts-jest transforms files at test-run time."
   ],
   "compilerOptions": {
     "module": "node16",
@@ -27,6 +32,6 @@
     "strict": true,
     "allowJs": false
   },
-  "include": ["index.ts", "seed.ts", "src/**/*", "scripts/**/*"],
-  "exclude": ["node_modules", "dist", "tests", "prisma", "coverage"]
+  "include": ["index.ts", "seed.ts", "src/**/*", "scripts/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist", "prisma", "coverage"]
 }

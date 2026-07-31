@@ -1,6 +1,8 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
+import request from 'supertest';
+import app = require('../../src/app');
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 describe('Customer Domain API', () => {
   beforeEach(() => {
@@ -12,7 +14,7 @@ describe('Customer Domain API', () => {
   describe('POST /api/customers (findOrCreate)', () => {
     it('creates a new customer when phone is not registered', async () => {
       prisma.customer.findUnique.mockResolvedValue(null);
-      prisma.customer.create.mockResolvedValue({
+      prisma.customer.create.mockResolvedValue(asMock({
         id: 1,
         phone: '9876543210',
         name: 'Ravi Kumar',
@@ -21,7 +23,7 @@ describe('Customer Domain API', () => {
         lastVisit: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      }));
 
       const res = await request(app)
         .post('/api/customers')
@@ -44,7 +46,7 @@ describe('Customer Domain API', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      prisma.customer.findUnique.mockResolvedValue(existing);
+      prisma.customer.findUnique.mockResolvedValue(asMock(existing));
 
       const res = await request(app)
         .post('/api/customers')
@@ -68,8 +70,8 @@ describe('Customer Domain API', () => {
         updatedAt: new Date(),
       };
       const updated = { ...existing, name: 'New Name' };
-      prisma.customer.findUnique.mockResolvedValue(existing);
-      prisma.customer.update.mockResolvedValue(updated);
+      prisma.customer.findUnique.mockResolvedValue(asMock(existing));
+      prisma.customer.update.mockResolvedValue(asMock(updated));
 
       const res = await request(app)
         .post('/api/customers')
@@ -107,8 +109,8 @@ describe('Customer Domain API', () => {
         { id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-AAAAAAAA', totalSpend: 100, lastVisit: null, createdAt: new Date(), updatedAt: new Date(), _count: { sales: 2 }, sales: [] },
         { id: 2, phone: '9876543211', name: 'Priya', customerBarcode: 'CUST-BBBBBBBB', totalSpend: 200, lastVisit: null, createdAt: new Date(), updatedAt: new Date(), _count: { sales: 5 }, sales: [] },
       ];
-      prisma.customer.findMany.mockResolvedValue(mockCustomers);
-      prisma.customer.count.mockResolvedValue(2);
+      prisma.customer.findMany.mockResolvedValue(asMock(mockCustomers));
+      prisma.customer.count.mockResolvedValue(asMock(2));
 
       const res = await request(app).get('/api/customers');
 
@@ -118,8 +120,8 @@ describe('Customer Domain API', () => {
     });
 
     it('filters by search query', async () => {
-      prisma.customer.findMany.mockResolvedValue([]);
-      prisma.customer.count.mockResolvedValue(0);
+      prisma.customer.findMany.mockResolvedValue(asMock([]));
+      prisma.customer.count.mockResolvedValue(asMock(0));
 
       const res = await request(app).get('/api/customers?search=Ravi&page=1&limit=10');
 
@@ -136,10 +138,10 @@ describe('Customer Domain API', () => {
 
   describe('GET /api/customers/:id', () => {
     it('returns customer by id', async () => {
-      prisma.customer.findUnique.mockResolvedValue({
+      prisma.customer.findUnique.mockResolvedValue(asMock({
         id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-AAAAAAAA',
         totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date(),
-      });
+      }));
 
       const res = await request(app).get('/api/customers/1');
 
@@ -162,8 +164,8 @@ describe('Customer Domain API', () => {
     it('updates customer name', async () => {
       const existing = { id: 1, phone: '9876543210', name: 'Old Name', customerBarcode: 'CUST-AAAAAAAA', totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date() };
       const updated = { ...existing, name: 'New Name' };
-      prisma.customer.findUnique.mockResolvedValue(existing);
-      prisma.customer.update.mockResolvedValue(updated);
+      prisma.customer.findUnique.mockResolvedValue(asMock(existing));
+      prisma.customer.update.mockResolvedValue(asMock(updated));
 
       const res = await request(app)
         .put('/api/customers/1')
@@ -178,8 +180,8 @@ describe('Customer Domain API', () => {
       const otherCustomer = { id: 2, phone: '9999999999', name: 'Other', customerBarcode: 'CUST-ZZZZZZZZ', totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date() };
 
       prisma.customer.findUnique
-        .mockResolvedValueOnce(customer)
-        .mockResolvedValueOnce(otherCustomer);
+        .mockResolvedValueOnce(asMock(customer))
+        .mockResolvedValueOnce(asMock(otherCustomer));
 
       const res = await request(app)
         .put('/api/customers/1')
@@ -193,10 +195,10 @@ describe('Customer Domain API', () => {
 
   describe('GET /api/customers/barcode/:barcode', () => {
     it('returns customer by barcode', async () => {
-      prisma.customer.findUnique.mockResolvedValue({
+      prisma.customer.findUnique.mockResolvedValue(asMock({
         id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-ABCD1234',
         totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date(),
-      });
+      }));
 
       const res = await request(app).get('/api/customers/barcode/CUST-ABCD1234');
 
@@ -223,10 +225,10 @@ describe('Customer Domain API', () => {
 
   describe('GET /api/customers/phone/:phone', () => {
     it('returns customer by phone', async () => {
-      prisma.customer.findUnique.mockResolvedValue({
+      prisma.customer.findUnique.mockResolvedValue(asMock({
         id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-ABCD1234',
         totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date(),
-      });
+      }));
 
       const res = await request(app).get('/api/customers/phone/9876543210');
 
@@ -247,11 +249,11 @@ describe('Customer Domain API', () => {
 
   describe('GET /api/customers/:id/history', () => {
     it('returns purchase history for a known customer', async () => {
-      prisma.customer.findUnique.mockResolvedValue({
+      prisma.customer.findUnique.mockResolvedValue(asMock({
         id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-ABCD1234',
         totalSpend: 500, lastVisit: new Date(), createdAt: new Date(), updatedAt: new Date(),
-      });
-      prisma.sale.findMany.mockResolvedValue([
+      }));
+      prisma.sale.findMany.mockResolvedValue(asMock([
         {
           id: 10,
           totalAmount: 250,
@@ -262,7 +264,7 @@ describe('Customer Domain API', () => {
           createdAt: new Date(),
           items: [],
         },
-      ]);
+      ]));
 
       const res = await request(app).get('/api/customers/1/history');
 

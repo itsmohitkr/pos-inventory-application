@@ -1,18 +1,15 @@
 module.exports = {
     testEnvironment: 'node',
-    setupFilesAfterEnv: ['<rootDir>/tests/setup/prisma-mock.js'],
+    setupFilesAfterEnv: ['<rootDir>/tests/setup/prisma-mock.ts'],
     clearMocks: true,
     moduleDirectories: ['node_modules', 'src'],
 
-    // Tests stay .js while the source is converted — they are the net that
-    // verifies the migration, so they change last. This transform lets those
-    // .js tests require .ts source files.
     transform: {
         '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json', isolatedModules: true }],
     },
     moduleFileExtensions: ['ts', 'js', 'json', 'node'],
 
-    testMatch: ['**/tests/domains/**/*.test.js'],
+    testMatch: ['**/tests/domains/**/*.test.ts'],
     collectCoverageFrom: ['src/domains/**/*.{js,ts}'],
     coverageDirectory: 'coverage',
 };

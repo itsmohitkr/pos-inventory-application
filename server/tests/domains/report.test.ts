@@ -1,6 +1,8 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const prisma = require('../../src/config/prisma');
+import request from 'supertest';
+import app = require('../../src/app');
+import { getMockPrisma, asMock } from '../setup/prisma-mock';
+
+const prisma = getMockPrisma();
 
 describe('Report Domain API', () => {
     beforeEach(() => {
@@ -10,7 +12,7 @@ describe('Report Domain API', () => {
     describe('GET /api/reports', () => {
         it('should aggregate date-ranged sales report', async () => {
             // sale.findMany with deep includes
-            prisma.sale.findMany.mockResolvedValue([
+            prisma.sale.findMany.mockResolvedValue(asMock([
                 {
                     id: 1,
                     discount: 0,
@@ -26,11 +28,11 @@ describe('Report Domain API', () => {
                         }
                     ]
                 }
-            ]);
+            ]));
             // expense, purchase, looseSale findMany
-            prisma.expense.findMany.mockResolvedValue([{ amount: 20 }]);
-            prisma.purchase.findMany.mockResolvedValue([{ totalAmount: 50 }]);
-            prisma.looseSale.findMany.mockResolvedValue([{ price: 10 }]);
+            prisma.expense.findMany.mockResolvedValue(asMock([{ amount: 20 }]));
+            prisma.purchase.findMany.mockResolvedValue(asMock([{ totalAmount: 50 }]));
+            prisma.looseSale.findMany.mockResolvedValue(asMock([{ price: 10 }]));
 
             const res = await request(app).get('/api/reports?startDate=2023-01-01&endDate=2023-12-31');
 
@@ -75,10 +77,10 @@ describe('Report Domain API', () => {
         const EXPECTED_PROFIT = 12;
 
         it('nets out returned quantity and both discounts in the summary report', async () => {
-            prisma.sale.findMany.mockResolvedValue([saleFixture()]);
-            prisma.expense.findMany.mockResolvedValue([]);
-            prisma.purchase.findMany.mockResolvedValue([]);
-            prisma.looseSale.findMany.mockResolvedValue([]);
+            prisma.sale.findMany.mockResolvedValue(asMock([saleFixture()]));
+            prisma.expense.findMany.mockResolvedValue(asMock([]));
+            prisma.purchase.findMany.mockResolvedValue(asMock([]));
+            prisma.looseSale.findMany.mockResolvedValue(asMock([]));
 
             const res = await request(app).get('/api/reports');
 
@@ -93,8 +95,8 @@ describe('Report Domain API', () => {
         });
 
         it('reports the same figures in the monthly view', async () => {
-            prisma.sale.findMany.mockResolvedValue([saleFixture()]);
-            prisma.looseSale.findMany.mockResolvedValue([]);
+            prisma.sale.findMany.mockResolvedValue(asMock([saleFixture()]));
+            prisma.looseSale.findMany.mockResolvedValue(asMock([]));
 
             const res = await request(app).get('/api/reports/monthly?year=2024');
 
@@ -108,8 +110,8 @@ describe('Report Domain API', () => {
         });
 
         it('reports the same figures in the daily view', async () => {
-            prisma.sale.findMany.mockResolvedValue([saleFixture()]);
-            prisma.looseSale.findMany.mockResolvedValue([]);
+            prisma.sale.findMany.mockResolvedValue(asMock([saleFixture()]));
+            prisma.looseSale.findMany.mockResolvedValue(asMock([]));
 
             const res = await request(app).get('/api/reports/daily?year=2024&month=2');
 
@@ -123,10 +125,10 @@ describe('Report Domain API', () => {
         it('treats a fully returned sale as zero revenue, discount still applied', async () => {
             const fullyReturned = saleFixture();
             fullyReturned.items[0].returnedQuantity = 2; // all returned
-            prisma.sale.findMany.mockResolvedValue([fullyReturned]);
-            prisma.expense.findMany.mockResolvedValue([]);
-            prisma.purchase.findMany.mockResolvedValue([]);
-            prisma.looseSale.findMany.mockResolvedValue([]);
+            prisma.sale.findMany.mockResolvedValue(asMock([fullyReturned]));
+            prisma.expense.findMany.mockResolvedValue(asMock([]));
+            prisma.purchase.findMany.mockResolvedValue(asMock([]));
+            prisma.looseSale.findMany.mockResolvedValue(asMock([]));
 
             const res = await request(app).get('/api/reports');
 
@@ -139,7 +141,7 @@ describe('Report Domain API', () => {
 
     describe('GET /api/reports/low-stock', () => {
         it('should return products below their low stock threshold', async () => {
-            prisma.product.findMany.mockResolvedValue([
+            prisma.product.findMany.mockResolvedValue(asMock([
                 {
                     id: 1,
                     name: 'Low Cola',
@@ -147,7 +149,7 @@ describe('Report Domain API', () => {
                     lowStockThreshold: 10,
                     batches: [{ quantity: 3, mrp: 50 }]
                 }
-            ]);
+            ]));
 
             const res = await request(app).get('/api/reports/low-stock');
 
@@ -161,14 +163,19 @@ describe('Report Domain API', () => {
 
     describe('GET /api/reports/top-selling', () => {
         it('should return top products by quantity sold', async () => {
-            // saleItem.groupBy returns array keyed by batchId
-            prisma.saleItem.groupBy.mockResolvedValue([
+            // saleItem.groupBy returns array keyed by batchId.
+            // `groupBy`'s real signature is a heavily-overloaded conditional
+            // type (its shape depends on the `by`/`orderBy` args), which
+            // jest-mock-extended's DeepMockProxy cannot turn into a plain jest
+            // mock function type — hence the cast through `jest.Mock` here
+            // rather than the usual direct `.mockResolvedValue(...)`.
+            (prisma.saleItem.groupBy as unknown as jest.Mock).mockResolvedValue(asMock([
                 { batchId: 10, _sum: { quantity: 100 } }
-            ]);
+            ]));
             // batch.findMany maps batchId -> productId
-            prisma.batch.findMany.mockResolvedValue([
+            prisma.batch.findMany.mockResolvedValue(asMock([
                 { id: 10, productId: 1 }
-            ]);
+            ]));
 
             const res = await request(app).get('/api/reports/top-selling');
 
