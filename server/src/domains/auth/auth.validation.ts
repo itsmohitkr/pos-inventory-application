@@ -1,9 +1,16 @@
-import { z, id, str } from '../../shared/middleware/zodHelpers';
+import {
+  z,
+  id,
+  str,
+  idParamSchema,
+  atLeastOneField,
+  AT_LEAST_ONE_FIELD_MESSAGE,
+} from '../../shared/middleware/zodHelpers';
 
 const ROLES = ['admin', 'cashier', 'salesman'] as const;
 const STATUSES = ['active', 'inactive'] as const;
 
-const userIdParamSchema = z.object({ id: id() });
+const userIdParamSchema = idParamSchema();
 
 const profileQuerySchema = z.object({ userId: id() });
 
@@ -25,8 +32,8 @@ const updateUserBodySchema = z
     status: z.enum(STATUSES).optional(),
     password: z.string().min(1).max(255).optional(),
   })
-  .refine((v) => Object.keys(v).length >= 1, {
-    message: 'at least one field is required',
+  .refine(atLeastOneField, {
+    message: AT_LEAST_ONE_FIELD_MESSAGE,
   });
 
 const changePasswordBodySchema = z.object({

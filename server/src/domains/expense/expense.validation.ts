@@ -1,12 +1,18 @@
-import { z, id, num, str } from '../../shared/middleware/zodHelpers';
+import {
+  z,
+  str,
+  idParamSchema,
+  dateRangeShape,
+  moneyValue,
+  paymentBodySchema as paymentBodySchemaFactory,
+  atLeastOneField,
+  AT_LEAST_ONE_FIELD_MESSAGE,
+} from '../../shared/middleware/zodHelpers';
 
-const moneyValue = () => num().min(0);
-
-const expenseIdParamSchema = z.object({ id: id() });
+const expenseIdParamSchema = idParamSchema();
 
 const expenseQuerySchema = z.looseObject({
-  startDate: z.union([z.coerce.date(), str()]).optional(),
-  endDate: z.union([z.coerce.date(), str()]).optional(),
+  ...dateRangeShape(),
   category: str().nullable().optional(),
 });
 
@@ -37,16 +43,11 @@ const expenseUpdateBodySchema = z
   // Prisma as a null write to a required field.
   paymentStatus: str().optional(),
   })
-  .refine((v) => Object.keys(v).length >= 1, {
-    message: 'at least one field is required',
+  .refine(atLeastOneField, {
+    message: AT_LEAST_ONE_FIELD_MESSAGE,
   });
 
-const paymentBodySchema = z.object({
-  amount: moneyValue(),
-  date: z.union([z.coerce.date(), str().min(1)]).optional(),
-  note: z.string().nullable().optional(),
-  paymentMethod: str().nullable().optional(),
-});
+const paymentBodySchema = paymentBodySchemaFactory();
 
 /**
  * Service input types derived from the schemas above, so the validated shape

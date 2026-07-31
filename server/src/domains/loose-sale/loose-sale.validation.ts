@@ -1,7 +1,7 @@
-import { z, id, num, str } from '../../shared/middleware/zodHelpers';
+import { z, num, str, numericId, dateRangeShape } from '../../shared/middleware/zodHelpers';
 
 const looseSaleIdParamSchema = z.object({
-  id: z.union([id(), str().regex(/^\d+$/)]),
+  id: numericId(),
 });
 
 const createLooseSaleBodySchema = z.object({
@@ -9,10 +9,7 @@ const createLooseSaleBodySchema = z.object({
   price: num().positive(),
 });
 
-const looseSalesReportQuerySchema = z.object({
-  startDate: z.union([z.coerce.date(), str()]).optional(),
-  endDate: z.union([z.coerce.date(), str()]).optional(),
-});
+const looseSalesReportQuerySchema = z.object({ ...dateRangeShape() });
 
 /**
  * Service input types derived from the schemas above, so the validated shape

@@ -1,5 +1,7 @@
 import prisma = require('../../config/prisma');
 import type { Prisma, Sale, SaleItem } from '@prisma/client';
+import { dateRangeWhere } from '../../shared/utils/dateUtils';
+import { saleItemsInclude } from '../sale/sale.service';
 
 /** Optional ISO date bounds shared by every report query. */
 interface DateRangeFilter {
@@ -58,35 +60,14 @@ const calculateSaleTotals = (sale: ReportSale) => {
 const getReports = async ({ startDate, endDate }: DateRangeFilter) => {
   // Reused for both sales and loose sales — both filter on createdAt.
   const where: Prisma.SaleWhereInput & Prisma.LooseSaleWhereInput = {};
-  if (startDate || endDate) {
-    where.createdAt = {};
-    if (startDate) where.createdAt.gte = new Date(startDate);
-    if (endDate) where.createdAt.lte = new Date(endDate);
-  }
+  const createdAtRange = dateRangeWhere(startDate, endDate);
+  if (createdAtRange) where.createdAt = createdAtRange;
 
   const sales = await prisma.sale.findMany({
     where,
     include: {
       customer: true,
-      items: {
-        include: {
-          batch: {
-            select: {
-              id: true,
-              batchCode: true,
-              expiryDate: true,
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  barcode: true,
-                  category: true,
-                },
-              },
-            },
-          },
-        },
-      },
+      items: saleItemsInclude,
     },
     orderBy: {
       createdAt: 'desc',
@@ -138,11 +119,8 @@ const getReports = async ({ startDate, endDate }: DateRangeFilter) => {
   // Fetch Expenses and Purchases for the same period
   // Reused for both expenses and purchases — both filter on date.
   const expenseWhere: Prisma.ExpenseWhereInput & Prisma.PurchaseWhereInput = {};
-  if (startDate || endDate) {
-    expenseWhere.date = {};
-    if (startDate) expenseWhere.date.gte = new Date(startDate);
-    if (endDate) expenseWhere.date.lte = new Date(endDate);
-  }
+  const expenseDateRange = dateRangeWhere(startDate, endDate);
+  if (expenseDateRange) expenseWhere.date = expenseDateRange;
 
   const [expenses, purchases, looseSales] = await Promise.all([
     prisma.expense.findMany({ where: expenseWhere }),
@@ -175,11 +153,8 @@ const getReports = async ({ startDate, endDate }: DateRangeFilter) => {
 
 const getExpiryReport = async ({ startDate, endDate }: DateRangeFilter) => {
   const where: Prisma.BatchWhereInput = {};
-  if (startDate || endDate) {
-    where.expiryDate = {};
-    if (startDate) where.expiryDate.gte = new Date(startDate);
-    if (endDate) where.expiryDate.lte = new Date(endDate);
-  }
+  const expiryDateRange = dateRangeWhere(startDate, endDate);
+  if (expiryDateRange) where.expiryDate = expiryDateRange;
 
   const batches = await prisma.batch.findMany({
     where: {

@@ -57,4 +57,43 @@ export const nullableStr = () => z.string().trim().nullable();
  */
 export const looseObject = () => z.looseObject({});
 
+/** The `{ id }` route-param shape, identical across every domain's id-param schema. */
+export const idParamSchema = () => z.object({ id: id() });
+
+/**
+ * An id that may arrive as a coerced number or a numeric string — used for
+ * nested body/item ids (e.g. a product_id inside a batch payload), not route
+ * params, where `id()` alone is enough.
+ */
+export const numericId = () => z.union([id(), str().regex(/^\d+$/)]);
+
+/**
+ * The startDate/endDate query-param pair accepted by every date-range
+ * report or list endpoint. Spread into the enclosing object schema, e.g.
+ * `z.object({ ...dateRangeShape(), category: str().optional() })`.
+ */
+export const dateRangeShape = () => ({
+  startDate: z.union([z.coerce.date(), str()]).optional(),
+  endDate: z.union([z.coerce.date(), str()]).optional(),
+});
+
+/** Joi.number().min(0) — a non-negative monetary amount. */
+export const moneyValue = () => num().min(0);
+
+/** The amount/date/note/paymentMethod shape shared by every "record a payment" endpoint. */
+export const paymentBodySchema = () =>
+  z.object({
+    amount: moneyValue(),
+    date: z.union([z.coerce.date(), str().min(1)]).optional(),
+    note: z.string().nullable().optional(),
+    paymentMethod: str().nullable().optional(),
+  });
+
+/**
+ * Joi's `.min(1)` on an all-optional object — refuses an empty update body.
+ * Use as `.refine(atLeastOneField, { message: AT_LEAST_ONE_FIELD_MESSAGE })`.
+ */
+export const atLeastOneField = (value: object): boolean => Object.keys(value).length >= 1;
+export const AT_LEAST_ONE_FIELD_MESSAGE = 'at least one field is required';
+
 export { z };

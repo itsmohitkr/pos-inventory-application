@@ -1,8 +1,6 @@
-import { z, id, str } from '../../shared/middleware/zodHelpers';
+import { z, id, str, idParamSchema } from '../../shared/middleware/zodHelpers';
 
-const categoryIdParamSchema = z.object({
-  id: id(),
-});
+const categoryIdParamSchema = idParamSchema();
 
 const createCategoryBodySchema = z.object({
   name: str().min(1).max(120),

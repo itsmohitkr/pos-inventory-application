@@ -117,4 +117,29 @@ const getDateRange = (
   return { start: start.toISOString(), end: end.toISOString() };
 };
 
-export { getDateRange };
+/** Appends the current time-of-day to a date-only string, e.g. from a date input. */
+const getDateWithCurrentTime = (dateString?: string | Date | null): Date => {
+  if (!dateString) return new Date();
+  const dateObj = new Date(dateString);
+  const now = new Date();
+  dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+  return dateObj;
+};
+
+/**
+ * Builds a Prisma `{ gte, lte }` filter from optional start/end bounds.
+ * Returns undefined when neither bound is given, so a `where.field = ...`
+ * assignment can be skipped rather than set to an empty object.
+ */
+const dateRangeWhere = (
+  start?: string | Date | null,
+  end?: string | Date | null
+): { gte?: Date; lte?: Date } | undefined => {
+  if (!start && !end) return undefined;
+  const range: { gte?: Date; lte?: Date } = {};
+  if (start) range.gte = new Date(start);
+  if (end) range.lte = new Date(end);
+  return range;
+};
+
+export { getDateRange, getDateWithCurrentTime, dateRangeWhere };

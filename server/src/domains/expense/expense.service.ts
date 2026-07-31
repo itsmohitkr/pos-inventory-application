@@ -7,15 +7,8 @@ import type {
 import prisma = require('../../config/prisma');
 import type { Prisma } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
-
-// Helper to append current time to a date string (YYYY-MM-DD)
-const getDateWithCurrentTime = (dateString?: string | Date | null): Date => {
-  if (!dateString) return new Date();
-  const dateObj = new Date(dateString);
-  const now = new Date();
-  dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
-  return dateObj;
-};
+import { getDateWithCurrentTime, dateRangeWhere } from '../../shared/utils/dateUtils';
+import { derivePaymentStatus } from '../../shared/utils/paymentStatus';
 
 const createExpense = async (data: CreateExpenseInput) => {
   const { amount, category, description, date, paidAmount, paymentMethod } = data;
@@ -25,10 +18,7 @@ const createExpense = async (data: CreateExpenseInput) => {
   const parsedAmount = amount || 0;
   const parsedPaidAmount = paidAmount || 0;
 
-  // Derived status
-  let initialPaymentStatus = 'Paid';
-  if (parsedPaidAmount < parsedAmount && parsedPaidAmount > 0) initialPaymentStatus = 'Due';
-  if (parsedPaidAmount === 0 && parsedAmount > 0) initialPaymentStatus = 'Unpaid';
+  const initialPaymentStatus = derivePaymentStatus(parsedAmount, parsedPaidAmount);
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const expense = await tx.expense.create({
@@ -70,11 +60,8 @@ const getExpenses = async (filters: ExpenseFilters = {}) => {
   const { startDate, endDate, category } = filters;
 
   const where: Prisma.ExpenseWhereInput = {};
-  if (startDate || endDate) {
-    where.date = {};
-    if (startDate) where.date.gte = new Date(startDate);
-    if (endDate) where.date.lte = new Date(endDate);
-  }
+  const dateRange = dateRangeWhere(startDate, endDate);
+  if (dateRange) where.date = dateRange;
   if (category && category !== 'All') {
     where.category = category;
   }
@@ -89,10 +76,7 @@ const getExpenses = async (filters: ExpenseFilters = {}) => {
   return expenses.map((e) => {
     const totalPaid = e.payments.reduce((sum, p) => sum + p.amount, 0);
     const dueAmount = Math.max(0, e.amount - totalPaid);
-    let currentStatus = e.paymentStatus;
-    if (dueAmount <= 0) currentStatus = 'Paid';
-    else if (totalPaid > 0 && dueAmount > 0) currentStatus = 'Due';
-    else if (totalPaid === 0) currentStatus = 'Unpaid';
+    const currentStatus = derivePaymentStatus(e.amount, totalPaid);
 
     return { ...e, totalPaid, dueAmount, paymentStatus: currentStatus };
   });
@@ -135,12 +119,7 @@ const syncExpenseStatus = async (expenseId: number, tx?: Prisma.TransactionClien
   }
 
   const totalPaid = expense.payments.reduce((sum, p) => sum + p.amount, 0);
-  let newStatus = 'Unpaid';
-  if (totalPaid >= expense.amount) {
-    newStatus = 'Paid';
-  } else if (totalPaid > 0) {
-    newStatus = 'Due';
-  }
+  const newStatus = derivePaymentStatus(expense.amount, totalPaid);
 
   await (tx || prisma).expense.update({
     where: { id: expense.id },

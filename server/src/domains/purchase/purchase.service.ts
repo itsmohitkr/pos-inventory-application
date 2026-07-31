@@ -2,27 +2,14 @@ import { StatusCodes } from 'http-status-codes';
 import prisma = require('../../config/prisma');
 import type { Prisma } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
+import { getDateWithCurrentTime, dateRangeWhere } from '../../shared/utils/dateUtils';
+import { derivePaymentStatus } from '../../shared/utils/paymentStatus';
+import { toId } from '../../shared/utils/idUtils';
 import type {
   CreatePurchaseInput,
   PurchasePaymentInput,
   UpdatePurchaseInput,
 } from './purchase.validation';
-
-/**
- * Item ids arrive as a coerced number or a string (the schema accepts both);
- * Prisma needs the number.
- */
-const toId = (value: string | number): number =>
-  typeof value === 'number' ? value : parseInt(value, 10);
-
-// Helper to append current time to a date string (YYYY-MM-DD)
-const getDateWithCurrentTime = (dateString?: string | Date | null): Date => {
-  if (!dateString) return new Date();
-  const dateObj = new Date(dateString);
-  const now = new Date();
-  dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
-  return dateObj;
-};
 
 
 /** Purchase with the relations every read in this service includes. */
@@ -50,10 +37,7 @@ const createPurchase = async (data: CreatePurchaseInput) => {
   const parsedTotalAmount = totalAmount || 0;
   const parsedPaidAmount = paidAmount || 0;
 
-  // Derived status
-  let initialPaymentStatus = 'Paid';
-  if (parsedPaidAmount < parsedTotalAmount && parsedPaidAmount > 0) initialPaymentStatus = 'Due';
-  if (parsedPaidAmount === 0 && parsedTotalAmount > 0) initialPaymentStatus = 'Unpaid';
+  const initialPaymentStatus = derivePaymentStatus(parsedTotalAmount, parsedPaidAmount);
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Assembled from form values, then cast to Prisma's input at the call
@@ -121,11 +105,8 @@ const getPurchases = async (filters: PurchaseFilters = {}) => {
   const { startDate, endDate, vendor } = filters;
 
   const where: Prisma.PurchaseWhereInput = {};
-  if (startDate || endDate) {
-    where.date = {};
-    if (startDate) where.date.gte = new Date(startDate);
-    if (endDate) where.date.lte = new Date(endDate);
-  }
+  const dateRange = dateRangeWhere(startDate, endDate);
+  if (dateRange) where.date = dateRange;
   if (vendor) {
     where.vendor = { contains: vendor };
   }
@@ -140,10 +121,7 @@ const getPurchases = async (filters: PurchaseFilters = {}) => {
   return purchases.map((p) => {
     const totalPaid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
     const dueAmount = Math.max(0, p.totalAmount - totalPaid);
-    let currentStatus = p.paymentStatus;
-    if (dueAmount <= 0) currentStatus = 'Paid';
-    else if (totalPaid > 0 && dueAmount > 0) currentStatus = 'Due';
-    else if (totalPaid === 0) currentStatus = 'Unpaid';
+    const currentStatus = derivePaymentStatus(p.totalAmount, totalPaid);
 
     return {
       ...p,
@@ -291,12 +269,7 @@ const syncPurchaseStatus = async (purchaseId: number, tx: Prisma.TransactionClie
   }
 
   const totalPaid = purchase.payments.reduce((sum, p) => sum + p.amount, 0);
-  let newStatus = 'Unpaid';
-  if (totalPaid >= purchase.totalAmount) {
-    newStatus = 'Paid';
-  } else if (totalPaid > 0) {
-    newStatus = 'Due';
-  }
+  const newStatus = derivePaymentStatus(purchase.totalAmount, totalPaid);
 
   await tx.purchase.update({
     where: { id: purchase.id },
@@ -330,6 +303,10 @@ const addPayment = async (purchaseId: number, paymentData: PurchasePaymentInput)
       });
     }
 
+    // NOTE: intentionally not derivePaymentStatus/syncPurchaseStatus — unlike
+    // those, this never resolves to 'Unpaid' (a $0 payment on an unpaid
+    // purchase lands here as 'Due', not 'Unpaid'). Pre-existing behavior,
+    // left as-is rather than silently changed by a DRY pass.
     const totalPaid = purchase.payments.reduce((sum, p) => sum + p.amount, 0);
     if (totalPaid >= purchase.totalAmount) {
       await tx.purchase.update({

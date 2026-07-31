@@ -1,6 +1,4 @@
-import { z, id, int, num, str, bool } from '../../shared/middleware/zodHelpers';
-
-const numericId = z.union([id(), str().regex(/^\d+$/)]);
+import { z, int, num, str, bool, numericId } from '../../shared/middleware/zodHelpers';
 
 /**
  * Form-style values: a number, or a string (including empty) because the client
@@ -11,8 +9,8 @@ const numericValue = z.union([num().min(0), z.string().trim(), z.null()]);
 const integerValue = z.union([int().min(0), z.string().trim(), z.null()]);
 const dateValue = z.union([z.coerce.date(), z.string().trim(), z.null()]);
 
-const productIdParamSchema = z.object({ id: numericId });
-const batchIdParamSchema = z.object({ id: numericId });
+const productIdParamSchema = z.object({ id: numericId() });
+const batchIdParamSchema = z.object({ id: numericId() });
 const barcodeParamSchema = z.object({ barcode: str().min(1) });
 
 const productQuerySchema = z.object({
@@ -64,7 +62,7 @@ const createProductBodySchema = z.looseObject({
 
 const addBatchBodySchema = z.looseObject({
   ...batchFields,
-  product_id: numericId,
+  product_id: numericId(),
   batch_code: str().nullable().optional(),
   quantity: integerValue,
   cost_price: numericValue.optional(),

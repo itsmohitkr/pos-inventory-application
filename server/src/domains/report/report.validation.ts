@@ -1,9 +1,6 @@
-import { z, int, str } from '../../shared/middleware/zodHelpers';
+import { z, int, dateRangeShape } from '../../shared/middleware/zodHelpers';
 
-const dateRangeQuerySchema = z.object({
-  startDate: z.union([z.coerce.date(), str()]).optional(),
-  endDate: z.union([z.coerce.date(), str()]).optional(),
-});
+const dateRangeQuerySchema = z.object({ ...dateRangeShape() });
 
 const monthlySalesQuerySchema = z.object({
   year: int().min(2000).max(2100).optional(),

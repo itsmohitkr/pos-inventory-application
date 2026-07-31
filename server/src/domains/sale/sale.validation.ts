@@ -1,8 +1,15 @@
-import { z, id, int, num, str, bool, looseObject } from '../../shared/middleware/zodHelpers';
+import {
+  z,
+  id,
+  int,
+  num,
+  str,
+  bool,
+  looseObject,
+  idParamSchema,
+} from '../../shared/middleware/zodHelpers';
 
-const saleIdParamSchema = z.object({
-  id: id(),
-});
+const saleIdParamSchema = idParamSchema();
 
 const saleItemSchema = z.object({
   batch_id: z.union([id(), str().min(1)]),

@@ -81,27 +81,11 @@ const ensureCategoriesFromProducts = async () => {
 
   // 2. Fetch all existing categories once to build a path map
   const existingCategories = await prisma.category.findMany();
-  const byId = new Map<number, Category>();
-  existingCategories.forEach((c) => byId.set(c.id, c));
+  const pathMap = buildPathMap(existingCategories);
 
-  // Helper to get full path for a category ID
-  const getPath = (catId: number | null, cache = new Map<number, string>()): string => {
-    if (!catId) return '';
-    const cached = cache.get(catId);
-    if (cached !== undefined) return cached;
-    const cat = byId.get(catId);
-    if (!cat) return '';
-    const parentPath = getPath(cat.parentId, cache);
-    const fullPath = parentPath ? `${parentPath}/${cat.name}` : cat.name;
-    cache.set(catId, fullPath);
-    return fullPath;
-  };
-
-  const pathCache = new Map<number, string>();
   const existingPaths = new Map<string, number>(); // path -> id
   existingCategories.forEach((c) => {
-    const p = getPath(c.id, pathCache);
-    existingPaths.set(p, c.id);
+    existingPaths.set(pathMap.get(c.id) || c.name, c.id);
   });
 
   // 3. Process each distinct category string from products
@@ -131,8 +115,6 @@ const ensureCategoriesFromProducts = async () => {
         const newId: number = created.id;
         parentId = newId;
         existingPaths.set(currentPath, newId);
-        // Also add to byId for getPath consistency if needed (though existingPaths is enough for this loop)
-        byId.set(parentId, created);
       }
     }
   }

@@ -360,4 +360,5 @@ export {
   processSale,
   getSaleById,
   processReturn,
+  saleItemsInclude,
 };

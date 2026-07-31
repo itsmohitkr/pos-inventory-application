@@ -1,13 +1,11 @@
-import { z, id, num, str, bool } from '../../shared/middleware/zodHelpers';
+import { z, num, str, bool, numericId } from '../../shared/middleware/zodHelpers';
 
-const numericId = z.union([id(), str().regex(/^\d+$/)]);
+const promotionIdParamSchema = z.object({ id: numericId() });
 
-const promotionIdParamSchema = z.object({ id: numericId });
-
-const productIdParamSchema = z.object({ productId: numericId });
+const productIdParamSchema = z.object({ productId: numericId() });
 
 const promotionItemSchema = z.object({
-  productId: numericId,
+  productId: numericId(),
   // NOT optional: PromotionItem.promoPrice is a non-nullable Float column
   // with no default. The previous schema allowed submitting
   // discountPercentage alone (Joi's `.or()`), but nothing ever computed a

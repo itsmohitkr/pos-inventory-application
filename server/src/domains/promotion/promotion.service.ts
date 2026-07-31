@@ -1,13 +1,7 @@
 import prisma = require('../../config/prisma');
 import type { Prisma } from '@prisma/client';
+import { toId } from '../../shared/utils/idUtils';
 import type { PromotionInput } from './promotion.validation';
-
-/**
- * Ids arrive as a coerced number or a digit string (the `numericId` schema);
- * Prisma needs the number.
- */
-const toId = (value: string | number): number =>
-  typeof value === 'number' ? value : parseInt(value, 10);
 
 /**
  * Create a new promotion with items

@@ -1,8 +1,6 @@
-import { z, id, str } from '../../shared/middleware/zodHelpers';
+import { z, str, idParamSchema } from '../../shared/middleware/zodHelpers';
 
-const customerIdParamSchema = z.object({
-  id: id(),
-});
+const customerIdParamSchema = idParamSchema();
 
 const barcodeParamSchema = z.object({
   barcode: z.string().regex(/^CUST-[A-Z0-9]{8}$/),
