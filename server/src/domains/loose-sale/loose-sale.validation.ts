@@ -1,20 +1,22 @@
 import { z, num, str, numericId, dateRangeShape } from '../../shared/middleware/zodHelpers';
 
-const looseSaleIdParamSchema = z.object({
-  id: numericId(),
-});
-
-const createLooseSaleBodySchema = z.object({
-  itemName: str().nullable().optional(),
-  price: num().positive('Price must be greater than zero'),
-});
-
-const looseSalesReportQuerySchema = z.object({ ...dateRangeShape() });
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
-export const CreateLooseSaleSchema = { body: createLooseSaleBodySchema };
-export const GetLooseSalesReportSchema = { query: looseSalesReportQuerySchema };
-export const DeleteLooseSaleSchema = { params: looseSaleIdParamSchema };
+export const CreateLooseSaleSchema = {
+  body: z.object({
+    itemName: str().nullable().optional(),
+    price: num().positive('Price must be greater than zero'),
+  }),
+};
+
+export const GetLooseSalesReportSchema = {
+  query: z.object({ ...dateRangeShape() }),
+};
+
+export const DeleteLooseSaleSchema = {
+  params: z.object({
+    id: numericId(),
+  }),
+};
 
 /**
  * Service input types derived from the schemas above, so the validated shape

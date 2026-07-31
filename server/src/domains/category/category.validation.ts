@@ -1,19 +1,23 @@
 import { z, id, str, idParamSchema } from '../../shared/middleware/zodHelpers';
 
+/** Shared by UpdateCategory and DeleteCategory. */
 const categoryIdParamSchema = idParamSchema();
 
-const createCategoryBodySchema = z.object({
-  name: str().min(1, 'Category name is required').max(120, 'Category name is too long'),
-  parentId: z.union([id(), z.null(), z.string()]).optional(),
-});
-
-const updateCategoryBodySchema = z.object({
-  name: str().min(1, 'Category name is required').max(120, 'Category name is too long'),
-});
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
-export const CreateCategorySchema = { body: createCategoryBodySchema };
-export const UpdateCategorySchema = { params: categoryIdParamSchema, body: updateCategoryBodySchema };
+export const CreateCategorySchema = {
+  body: z.object({
+    name: str().min(1, 'Category name is required').max(120, 'Category name is too long'),
+    parentId: z.union([id(), z.null(), z.string()]).optional(),
+  }),
+};
+
+export const UpdateCategorySchema = {
+  params: categoryIdParamSchema,
+  body: z.object({
+    name: str().min(1, 'Category name is required').max(120, 'Category name is too long'),
+  }),
+};
+
 export const DeleteCategorySchema = { params: categoryIdParamSchema };
 
 /**

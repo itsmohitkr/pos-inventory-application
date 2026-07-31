@@ -11,12 +11,8 @@ import {
   AT_LEAST_ONE_FIELD_MESSAGE,
 } from '../../shared/middleware/zodHelpers';
 
+/** Shared by UpdatePurchase, DeletePurchase, AddPayment, UpdatePayment, DeletePayment. */
 const purchaseIdParamSchema = idParamSchema();
-
-const purchaseQuerySchema = z.looseObject({
-  ...dateRangeShape(),
-  vendor: str().nullable().optional(),
-});
 
 const purchaseItemSchema = z.object({
   productId: z.union([id(), str().min(1, 'Product is required')]),
@@ -25,6 +21,7 @@ const purchaseItemSchema = z.object({
   costPrice: moneyValue().optional(),
 });
 
+/** Shared by CreatePurchase and UpdatePurchase — only totalAmount's optionality differs. */
 const purchaseFields = {
   vendor: z.string().nullable().optional(),
   date: z.union([z.coerce.date(), str().min(1, 'Date is required')]).optional(),
@@ -38,23 +35,33 @@ const purchaseFields = {
   items: z.array(purchaseItemSchema).optional(),
 };
 
-const purchaseBodySchema = z.object({
-  ...purchaseFields,
-  totalAmount: moneyValue(),
-});
-
-const purchaseUpdateBodySchema = z
-  .object({ ...purchaseFields, totalAmount: moneyValue().optional() })
-  .refine(atLeastOneField, {
-    message: AT_LEAST_ONE_FIELD_MESSAGE,
-  });
-
+/** Shared by AddPayment and UpdatePayment. */
 const paymentBodySchema = paymentBodySchemaFactory();
 
 /** One grouped schema per router route, named after the controller handler it validates for. */
-export const CreatePurchaseSchema = { body: purchaseBodySchema };
-export const GetPurchasesSchema = { query: purchaseQuerySchema };
-export const UpdatePurchaseSchema = { params: purchaseIdParamSchema, body: purchaseUpdateBodySchema };
+export const CreatePurchaseSchema = {
+  body: z.object({
+    ...purchaseFields,
+    totalAmount: moneyValue(),
+  }),
+};
+
+export const GetPurchasesSchema = {
+  query: z.looseObject({
+    ...dateRangeShape(),
+    vendor: str().nullable().optional(),
+  }),
+};
+
+export const UpdatePurchaseSchema = {
+  params: purchaseIdParamSchema,
+  body: z
+    .object({ ...purchaseFields, totalAmount: moneyValue().optional() })
+    .refine(atLeastOneField, {
+      message: AT_LEAST_ONE_FIELD_MESSAGE,
+    }),
+};
+
 export const DeletePurchaseSchema = { params: purchaseIdParamSchema };
 export const AddPaymentSchema = { params: purchaseIdParamSchema, body: paymentBodySchema };
 export const UpdatePaymentSchema = { params: purchaseIdParamSchema, body: paymentBodySchema };

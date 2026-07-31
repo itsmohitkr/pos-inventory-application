@@ -9,50 +9,56 @@ import {
   AT_LEAST_ONE_FIELD_MESSAGE,
 } from '../../shared/middleware/zodHelpers';
 
+/** Shared by UpdateExpense, DeleteExpense, AddPayment, UpdatePayment, DeletePayment. */
 const expenseIdParamSchema = idParamSchema();
 
-const expenseQuerySchema = z.looseObject({
-  ...dateRangeShape(),
-  category: str().nullable().optional(),
-});
+/** Shared by AddPayment and UpdatePayment. */
+const paymentBodySchema = paymentBodySchemaFactory();
 
-const expenseBodySchema = z.object({
-  amount: moneyValue(),
-  category: str().min(1, 'Category is required').max(120, 'Category is too long'),
-  description: z.string().nullable().optional(),
-  date: z.union([z.coerce.date(), str().min(1, 'Date is required')]).optional(),
-  paidAmount: moneyValue().optional(),
-  paymentMethod: str().nullable().optional(),
-  // NOT nullable: Expense.paymentStatus is a non-nullable String column with a
-  // default. A `null` here previously passed validation and would have reached
-  // Prisma as a null write to a required field.
-  paymentStatus: str().optional(),
-});
-
-// Joi's .min(1) on an all-optional object — at least one field must be present.
-const expenseUpdateBodySchema = z
-  .object({
-    amount: moneyValue().optional(),
-    category: str().min(1, 'Category is required').max(120, 'Category is too long').optional(),
+/** One grouped schema per router route, named after the controller handler it validates for. */
+export const CreateExpenseSchema = {
+  body: z.object({
+    amount: moneyValue(),
+    category: str().min(1, 'Category is required').max(120, 'Category is too long'),
     description: z.string().nullable().optional(),
     date: z.union([z.coerce.date(), str().min(1, 'Date is required')]).optional(),
     paidAmount: moneyValue().optional(),
     paymentMethod: str().nullable().optional(),
     // NOT nullable: Expense.paymentStatus is a non-nullable String column with a
-  // default. A `null` here previously passed validation and would have reached
-  // Prisma as a null write to a required field.
-  paymentStatus: str().optional(),
-  })
-  .refine(atLeastOneField, {
-    message: AT_LEAST_ONE_FIELD_MESSAGE,
-  });
+    // default. A `null` here previously passed validation and would have reached
+    // Prisma as a null write to a required field.
+    paymentStatus: str().optional(),
+  }),
+};
 
-const paymentBodySchema = paymentBodySchemaFactory();
+export const GetExpensesSchema = {
+  query: z.looseObject({
+    ...dateRangeShape(),
+    category: str().nullable().optional(),
+  }),
+};
 
-/** One grouped schema per router route, named after the controller handler it validates for. */
-export const CreateExpenseSchema = { body: expenseBodySchema };
-export const GetExpensesSchema = { query: expenseQuerySchema };
-export const UpdateExpenseSchema = { params: expenseIdParamSchema, body: expenseUpdateBodySchema };
+export const UpdateExpenseSchema = {
+  params: expenseIdParamSchema,
+  // Joi's .min(1) on an all-optional object — at least one field must be present.
+  body: z
+    .object({
+      amount: moneyValue().optional(),
+      category: str().min(1, 'Category is required').max(120, 'Category is too long').optional(),
+      description: z.string().nullable().optional(),
+      date: z.union([z.coerce.date(), str().min(1, 'Date is required')]).optional(),
+      paidAmount: moneyValue().optional(),
+      paymentMethod: str().nullable().optional(),
+      // NOT nullable: Expense.paymentStatus is a non-nullable String column with a
+      // default. A `null` here previously passed validation and would have reached
+      // Prisma as a null write to a required field.
+      paymentStatus: str().optional(),
+    })
+    .refine(atLeastOneField, {
+      message: AT_LEAST_ONE_FIELD_MESSAGE,
+    }),
+};
+
 export const DeleteExpenseSchema = { params: expenseIdParamSchema };
 export const AddPaymentSchema = { params: expenseIdParamSchema, body: paymentBodySchema };
 export const UpdatePaymentSchema = { params: expenseIdParamSchema, body: paymentBodySchema };
