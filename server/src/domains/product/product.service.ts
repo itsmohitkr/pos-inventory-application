@@ -1,8 +1,9 @@
 import { StatusCodes } from 'http-status-codes';
 import prisma = require('../../config/prisma');
 import type { Batch, Prisma } from '@prisma/client';
-import { createHttpError } from '../../shared/error/appError';
+import { createHttpError, AppError } from '../../shared/error/appError';
 import { getDateRange } from '../../shared/utils/dateUtils';
+import { getErrorMessage } from '../../shared/utils/errorMessage';
 import categoryService = require('../category/category.service');
 import logger = require('../../shared/utils/logger');
 import type { CreateProductInput, UpdateProductInput } from './product.validation';
@@ -428,7 +429,7 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
 
   const normalized = products.map((product) => {
     // Find the best active promo price
-    let promoPrice = null;
+    let promoPrice: number | null = null;
     if (product.promotions && product.promotions.length > 0) {
       let lowest = Infinity;
       product.promotions.forEach((pItem) => {
@@ -1000,7 +1001,7 @@ const exportProducts = async () => {
     },
   });
 
-  const csvRows = [];
+  const csvRows: string[] = [];
   csvRows.push(
     'name,barcode,category,quantity,mrp,cost_price,selling_price,wholesale_price,wholesale_min_qty,wholesale_enabled,batch_code,expiry_date'
   );
@@ -1158,10 +1159,11 @@ const parseImportRows = async (
         try {
           await _validateBarcodesUniqueness(prisma, trimmedBarcode);
         } catch (error) {
-          if (error.message.startsWith('BARCODE_CONFLICT:')) {
+          const message = getErrorMessage(error);
+          if (message.startsWith('BARCODE_CONFLICT:')) {
             errors.push({
               line: lineNumber,
-              message: error.message.replace('BARCODE_CONFLICT: ', ''),
+              message: message.replace('BARCODE_CONFLICT: ', ''),
             });
             failedCount++;
             continue;
@@ -1198,7 +1200,7 @@ const parseImportRows = async (
       });
       importedCount++;
     } catch (error) {
-      errors.push({ line: lineNumber, message: error.message });
+      errors.push({ line: lineNumber, message: getErrorMessage(error) });
       failedCount++;
     }
   }
@@ -1276,7 +1278,7 @@ const importProducts = async (csvData: string) => {
 };
 
 const validateBarcodes = async (barcodes: string[]): Promise<string[]> => {
-  const existingBarcodes = [];
+  const existingBarcodes: string[] = [];
 
   // Get all products with barcodes
   const allProducts = await prisma.product.findMany({
@@ -1531,8 +1533,9 @@ const bulkCreateProducts = async (products: BulkProductInput[]) => {
         results.count++;
       } catch (error) {
         // If any product fails, we roll back the entire transaction by throwing
-        const message = `Error at item ${i + 1} (${prodData.name || 'Unknown'}): ${error.message}`;
-        throw createHttpError(error.statusCode || StatusCodes.BAD_REQUEST, message, {
+        const message = `Error at item ${i + 1} (${prodData.name || 'Unknown'}): ${getErrorMessage(error)}`;
+        const statusCode = error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST;
+        throw createHttpError(statusCode, message, {
           error: message,
         });
       }

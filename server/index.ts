@@ -20,6 +20,7 @@ import {
   MIGRATIONS_DIR,
   getPrismaCliPath,
 } from './src/config/paths';
+import { getErrorMessage } from './src/shared/utils/errorMessage';
 
 const PORT = process.env.PORT || 5001;
 const BOOT_START = Date.now();
@@ -73,7 +74,7 @@ async function backupDatabase(logger: Logger) {
     await fs.promises.copyFile(dbPath, backupPath);
     logger.info({ backupPath }, '[BOOT] Database backed up before migrations');
   } catch (err) {
-    logger.warn({ err: err.message }, '[BOOT] Could not create database backup');
+    logger.warn({ err: getErrorMessage(err) }, '[BOOT] Could not create database backup');
   }
 }
 
@@ -120,7 +121,7 @@ async function checkMigrationStatus(prisma: PrismaClient, logger: Logger) {
         return { skipped: true, pending: [] };
       }
     } catch (err) {
-      logger.warn({ err: err.message }, '[BOOT] Could not read migration cache');
+      logger.warn({ err: getErrorMessage(err) }, '[BOOT] Could not read migration cache');
     }
   }
 
@@ -143,7 +144,7 @@ async function checkMigrationStatus(prisma: PrismaClient, logger: Logger) {
       try {
         fs.writeFileSync(cachePath, latest);
       } catch (err) {
-        logger.warn({ err: err.message }, '[BOOT] Could not write migration cache');
+        logger.warn({ err: getErrorMessage(err) }, '[BOOT] Could not write migration cache');
       }
     }
     return { skipped: true, pending: [] };
@@ -175,7 +176,8 @@ async function runPrismaMigrationsSubprocess(logger: Logger) {
     );
     logger.info('[BOOT MIGRATION] migrate deploy succeeded');
   } catch (deployError) {
-    const errorMsg = deployError.stderr || deployError.stdout || deployError.message || '';
+    const execErr = deployError as { stderr?: string; stdout?: string; message?: string };
+    const errorMsg = execErr.stderr || execErr.stdout || execErr.message || '';
     if (!errorMsg.includes('P3005')) throw deployError;
 
     // P3005: schema is non-empty but _prisma_migrations is missing. Baseline
@@ -231,7 +233,7 @@ async function ensureMigrationsApplied(prisma: PrismaClient, logger: Logger) {
     try {
       fs.writeFileSync(cachePath, latest);
     } catch (err) {
-      logger.warn({ err: err.message }, '[BOOT] Could not write migration cache');
+      logger.warn({ err: getErrorMessage(err) }, '[BOOT] Could not write migration cache');
     }
   }
   tlog('Migrations applied');
@@ -252,7 +254,7 @@ async function clearBarcodesOnDeletedProducts(prisma: PrismaClient, logger: Logg
       logger.info(`[BOOT] Cleared barcodes on ${updated.count} soft-deleted product(s)`);
     }
   } catch (err) {
-    logger.warn({ err: err.message }, '[BOOT] clearBarcodesOnDeletedProducts failed (non-fatal)');
+    logger.warn({ err: getErrorMessage(err) }, '[BOOT] clearBarcodesOnDeletedProducts failed (non-fatal)');
   }
 }
 
@@ -274,7 +276,7 @@ async function migratePasswordsToHash(prisma: PrismaClient, logger: Logger) {
     }
     logger.info('[BOOT] Password migration complete.');
   } catch (err) {
-    logger.warn({ err: err.message }, '[BOOT] Password migration failed (non-fatal)');
+    logger.warn({ err: getErrorMessage(err) }, '[BOOT] Password migration failed (non-fatal)');
   }
 }
 
@@ -305,7 +307,7 @@ async function seedDefaults(prisma: PrismaClient, logger: Logger) {
   });
   const has = new Set(existing.map((s) => s.key));
 
-  const writes = [];
+  const writes: Promise<unknown>[] = [];
   if (!has.has('posShopName'))
     writes.push(settingService.updateSetting('posShopName', 'My Shop'));
   if (!has.has('posReceiptSettings'))
@@ -433,7 +435,7 @@ async function main() {
       migratePasswordsToHash(prisma, logger).catch(() => {});
 
     } catch (err) {
-      systemError = err;
+      systemError = err instanceof Error ? err : new Error(getErrorMessage(err));
       console.error('[BOOT FATAL BACKGROUND]', err);
       sendSplashMsg('Initialization failed!');
     }

@@ -97,8 +97,22 @@ const processSale = async ({
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     let totalAmount = 0;
-    const saleItemsData = [];
-    const movementData = [];
+    const saleItemsData: {
+      batchId: number;
+      quantity: number;
+      sellingPrice: number;
+      costPrice: number;
+      mrp: number;
+      isWholesale: boolean;
+      isFree: boolean;
+    }[] = [];
+    const movementData: {
+      productId: number;
+      batchId: number;
+      type: string;
+      quantity: number;
+      note: string;
+    }[] = [];
 
     // 1. Fetch all batches and products in one go to validate and get basic info
     // batch_id is typed string | number by the schema, but every downstream

@@ -96,7 +96,7 @@ async function seed() {
     for (let s = 0; s < salesCount; s++) {
       // Each sale has 1-4 items
       const itemCount = Math.floor(Math.random() * 4) + 1;
-      const saleItems = [];
+      const saleItems: { batchId: number; quantity: number; sellingPrice: number; costPrice: number; mrp: number }[] = [];
       let totalAmount = 0;
 
       for (let i = 0; i < itemCount; i++) {

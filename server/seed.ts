@@ -1072,8 +1072,17 @@ const generateMrp = (category: SeedCategory) => {
   return Math.round(value / 5) * 5;
 };
 
+interface GeneratedProduct {
+  name: string;
+  barcode: string;
+  category: SeedCategory;
+  mrp: number;
+  sp: number;
+  cp: number;
+}
+
 const generateProducts = (count: number, startBarcode: number) => {
-  const products = [];
+  const products: GeneratedProduct[] = [];
   let barcodeCounter = startBarcode;
 
   for (let i = 0; i < count; i += 1) {

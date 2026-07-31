@@ -4,6 +4,7 @@ import prisma = require('../../config/prisma');
 import type { Prisma, User } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 import logger = require('../../shared/utils/logger');
+import { getErrorMessage } from '../../shared/utils/errorMessage';
 import { DEFAULT_RECEIPT_SETTINGS } from '../../config/constants';
 import { issueToken } from './adminTokens';
 import type {
@@ -259,7 +260,7 @@ const wipeDatabase = async ({ username, password }: WipeDatabaseInput) => {
       try {
         await (tx as Record<string, any>)[tableName].deleteMany({});
       } catch (error) {
-        logger.warn({ tableName, error: error.message }, 'Could not wipe table');
+        logger.warn({ tableName, error: getErrorMessage(error) }, 'Could not wipe table');
       }
     };
 
@@ -280,7 +281,7 @@ const wipeDatabase = async ({ username, password }: WipeDatabaseInput) => {
       await tx.category.deleteMany({ where: { parentId: { not: null } } });
       await tx.category.deleteMany({});
     } catch (error) {
-      logger.warn({ error: error.message }, 'Could not wipe table category');
+      logger.warn({ error: getErrorMessage(error) }, 'Could not wipe table category');
     }
 
     try {
@@ -290,7 +291,7 @@ const wipeDatabase = async ({ username, password }: WipeDatabaseInput) => {
         },
       });
     } catch (error) {
-      logger.warn({ error: error.message }, 'Could not wipe users');
+      logger.warn({ error: getErrorMessage(error) }, 'Could not wipe users');
     }
   });
 
@@ -305,7 +306,7 @@ const verifyAdmin = async ({ password }: VerifyAdminInput) => {
     },
   });
 
-  let foundAdmin = null;
+  let foundAdmin: User | null = null;
   for (const admin of adminUsers) {
     const isValid = isHashed(admin.password)
       ? await bcrypt.compare(password, admin.password)
