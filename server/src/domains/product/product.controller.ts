@@ -4,11 +4,11 @@ import productService = require('./product.service');
 import { createHttpError } from '../../shared/error/appError';
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
-import { paramStr, paramValue, queryStr, queryStrOr } from '../../shared/utils/requestParams';
+import { paramStr, paramValue, queryStr, queryStrOr, queryCount } from '../../shared/utils/requestParams';
 
 const getAllProducts = async (req: Request, res: Response) => {
-  const page = queryStrOr(req.query.page, '1');
-  const pageSize = queryStrOr(req.query.pageSize, '25');
+  const page = queryCount(req.query.page, 1);
+  const pageSize = queryCount(req.query.pageSize, 25);
   const search = queryStrOr(req.query.search, '');
   const category = queryStrOr(req.query.category, 'all');
   const sortBy = queryStrOr(req.query.sortBy, 'name');
@@ -23,8 +23,8 @@ const getAllProducts = async (req: Request, res: Response) => {
   }
 
   const result = await productService.getAllProducts({
-    page: Number(page),
-    pageSize: Number(pageSize),
+    page,
+    pageSize,
     search,
     category,
     sortBy,
@@ -37,8 +37,8 @@ const getAllProducts = async (req: Request, res: Response) => {
     {
       data: result.items,
       pagination: {
-        page: Number(page),
-        pageSize: Number(pageSize),
+        page,
+        pageSize,
         total: result.total,
       },
     },
@@ -65,11 +65,6 @@ const getProductSummary = async (req: Request, res: Response) => {
 const getProductById = async (req: Request, res: Response) => {
   const id = paramValue(req.params.id);
   const result = await productService.getProductById(id);
-  if (!result) {
-    throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
-      error: 'Product not found',
-    });
-  }
 
   return sendSuccessResponse(
     res,
@@ -85,11 +80,6 @@ const getProductById = async (req: Request, res: Response) => {
 const getProductByBarcode = async (req: Request, res: Response) => {
   const barcode = paramStr(req.params.barcode);
   const result = await productService.getProductByBarcode(barcode);
-  if (!result) {
-    throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
-      error: 'Product not found',
-    });
-  }
 
   return sendSuccessResponse(res, StatusCodes.OK, result, 'Product fetched successfully', {
     format: 'merge',

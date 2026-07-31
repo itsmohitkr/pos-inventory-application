@@ -1,5 +1,7 @@
+import { StatusCodes } from 'http-status-codes';
 import prisma = require('../../config/prisma');
 import type { Prisma } from '@prisma/client';
+import { createHttpError } from '../../shared/error/appError';
 import { toId } from '../../shared/utils/idUtils';
 import type { PromotionInput } from './promotion.validation';
 
@@ -114,7 +116,11 @@ const getProductPricingOptions = async (productId: string | number) => {
     },
   });
 
-  if (!product) return null;
+  if (!product) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
+      error: 'Product not found',
+    });
+  }
 
   // Optional chaining rather than a `|| {}` fallback: the empty object
   // erased the Batch type. Runtime behaviour is identical — the `|| 0`

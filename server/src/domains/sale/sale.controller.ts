@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import saleService = require('./sale.service');
-import { createHttpError } from '../../shared/error/appError';
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
 import { paramValue } from '../../shared/utils/requestParams';
@@ -20,9 +19,6 @@ const processSale = async (req: Request, res: Response) => {
 const getSaleById = async (req: Request, res: Response) => {
   const id = paramValue(req.params.id);
   const sale = await saleService.getSaleById(id);
-  if (!sale) {
-    throw createHttpError(StatusCodes.NOT_FOUND, 'Sale not found', { error: 'Sale not found' });
-  }
 
   return sendSuccessResponse(res, StatusCodes.OK, sale, 'Sale fetched successfully', {
     format: 'merge',

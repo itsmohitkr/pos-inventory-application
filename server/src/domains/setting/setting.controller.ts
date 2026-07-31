@@ -10,15 +10,8 @@ const getAllSettings = async (_req: Request, res: Response) => {
 };
 
 const updateSettings = async (req: Request, res: Response) => {
-  const { key, value, settings } = req.body;
-
-  if (settings && typeof settings === 'object' && Object.keys(settings).length > 0) {
-    await settingService.updateMultipleSettings(settings);
-    return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Settings updated successfully');
-  }
-
-  await settingService.updateSetting(key, value);
-  return sendSuccessResponse(res, StatusCodes.OK, undefined, `Setting ${key} updated successfully`);
+  const message = await settingService.updateSettingsRequest(req.body);
+  return sendSuccessResponse(res, StatusCodes.OK, undefined, message);
 };
 
 export = {

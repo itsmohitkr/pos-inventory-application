@@ -31,15 +31,10 @@ const getLooseSalesReport = async (req: Request, res: Response) => {
 const deleteLooseSale = async (req: Request, res: Response) => {
   const id = paramValue(req.params.id);
   await looseSaleService.deleteLooseSale(id);
-  return sendSuccessResponse(
-    res,
-    StatusCodes.OK,
-    { message: 'Loose sale deleted successfully' },
-    'Loose sale deleted successfully',
-    {
-      format: 'raw',
-    }
-  );
+  const message = 'Loose sale deleted successfully';
+  return sendSuccessResponse(res, StatusCodes.OK, { message }, message, {
+    format: 'raw',
+  });
 };
 export = {
   createLooseSale: asyncHandler(createLooseSale),

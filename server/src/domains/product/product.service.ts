@@ -539,7 +539,11 @@ const getProductById = async (id: number | string) => {
       },
     },
   });
-  if (!product) return null;
+  if (!product) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
+      error: 'Product not found',
+    });
+  }
 
   const total_stock = product.batches.reduce((sum, b) => sum + b.quantity, 0);
   const total_cost = product.batches.reduce((sum, b) => sum + b.costPrice * b.quantity, 0);
@@ -556,7 +560,11 @@ const getProductById = async (id: number | string) => {
 
 const getProductByBarcode = async (barcode: string) => {
   const normalizedBarcode = normalizeSearch(barcode);
-  if (!normalizedBarcode) return null;
+  if (!normalizedBarcode) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
+      error: 'Product not found',
+    });
+  }
   // Support multi-barcode search: find product where barcode matches exactly
   // or is part of a pipe-separated list (e.g., "123|456|789")
   const products = await prisma.product.findMany({
@@ -577,7 +585,11 @@ const getProductByBarcode = async (barcode: string) => {
     },
   });
 
-  if (!products || products.length === 0) return null;
+  if (!products || products.length === 0) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
+      error: 'Product not found',
+    });
+  }
 
   const product = products[0]; // Take first match if multiple
   const { batches, ...productData } = product;

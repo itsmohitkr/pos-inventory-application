@@ -257,13 +257,19 @@ const processSale = async ({
   });
 };
 
-const getSaleById = async (id: number | string): Promise<SaleWithItems | null> => {
-  return await prisma.sale.findUnique({
+const getSaleById = async (id: number | string): Promise<SaleWithItems> => {
+  const sale = await prisma.sale.findUnique({
     where: { id: parseInt(String(id)) },
     include: {
       items: saleItemsInclude,
     },
   });
+
+  if (!sale) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Sale not found', { error: 'Sale not found' });
+  }
+
+  return sale;
 };
 
 interface ReturnItemInput {

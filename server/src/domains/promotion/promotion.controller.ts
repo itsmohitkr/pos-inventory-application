@@ -2,7 +2,6 @@ import type { Request, Response } from 'express';
 import { paramValue } from '../../shared/utils/requestParams';
 import { StatusCodes } from 'http-status-codes';
 import promotionService = require('./promotion.service');
-import { createHttpError } from '../../shared/error/appError';
 import asyncHandler = require('../../shared/error/asyncHandler');
 import { sendSuccessResponse } from '../../shared/utils/helper/responseHelpers';
 
@@ -22,11 +21,6 @@ const getAllPromotions = async (_req: Request, res: Response) => {
 
 const getProductPricingOptions = async (req: Request, res: Response) => {
   const options = await promotionService.getProductPricingOptions(paramValue(req.params.productId));
-  if (!options) {
-    throw createHttpError(StatusCodes.NOT_FOUND, 'Product not found', {
-      error: 'Product not found',
-    });
-  }
 
   return sendSuccessResponse(
     res,
@@ -41,15 +35,10 @@ const getProductPricingOptions = async (req: Request, res: Response) => {
 
 const deletePromotion = async (req: Request, res: Response) => {
   await promotionService.deletePromotion(paramValue(req.params.id));
-  return sendSuccessResponse(
-    res,
-    StatusCodes.OK,
-    { message: 'Promotion deleted successfully' },
-    'Promotion deleted successfully',
-    {
-      format: 'raw',
-    }
-  );
+  const message = 'Promotion deleted successfully';
+  return sendSuccessResponse(res, StatusCodes.OK, { message }, message, {
+    format: 'raw',
+  });
 };
 
 const updatePromotion = async (req: Request, res: Response) => {

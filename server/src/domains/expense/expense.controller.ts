@@ -59,15 +59,10 @@ const updatePayment = async (req: Request, res: Response) => {
 
 const deletePayment = async (req: Request, res: Response) => {
   await expenseService.deletePayment(paramInt(req.params.id));
-  return sendSuccessResponse(
-    res,
-    StatusCodes.OK,
-    { message: 'Payment deleted successfully' },
-    'Payment deleted successfully',
-    {
-      format: 'raw',
-    }
-  );
+  const message = 'Payment deleted successfully';
+  return sendSuccessResponse(res, StatusCodes.OK, { message }, message, {
+    format: 'raw',
+  });
 };
 export = {
   createExpense: asyncHandler(createExpense),

@@ -14,4 +14,10 @@ const bulkSettingsSchema = z.object({
 
 const updateSettingsBodySchema = z.union([bulkSettingsSchema, keyValueSettingsSchema]);
 
+/**
+ * Service input type derived from the schema above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type UpdateSettingsInput = z.infer<typeof updateSettingsBodySchema>;
+
 export { updateSettingsBodySchema };

@@ -27,15 +27,10 @@ const getPurchases = async (req: Request, res: Response) => {
 
 const deletePurchase = async (req: Request, res: Response) => {
   await purchaseService.deletePurchase(paramInt(req.params.id));
-  return sendSuccessResponse(
-    res,
-    StatusCodes.OK,
-    { message: 'Purchase deleted successfully' },
-    'Purchase deleted successfully',
-    {
-      format: 'raw',
-    }
-  );
+  const message = 'Purchase deleted successfully';
+  return sendSuccessResponse(res, StatusCodes.OK, { message }, message, {
+    format: 'raw',
+  });
 };
 
 const updatePurchase = async (req: Request, res: Response) => {
@@ -73,15 +68,10 @@ const updatePayment = async (req: Request, res: Response) => {
 
 const deletePayment = async (req: Request, res: Response) => {
   await purchaseService.deletePayment(paramInt(req.params.id));
-  return sendSuccessResponse(
-    res,
-    StatusCodes.OK,
-    { message: 'Payment deleted successfully' },
-    'Payment deleted successfully',
-    {
-      format: 'raw',
-    }
-  );
+  const message = 'Payment deleted successfully';
+  return sendSuccessResponse(res, StatusCodes.OK, { message }, message, {
+    format: 'raw',
+  });
 };
 export = {
   createPurchase: asyncHandler(createPurchase),

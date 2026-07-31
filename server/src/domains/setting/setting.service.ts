@@ -1,4 +1,5 @@
 import prisma = require('../../config/prisma');
+import type { UpdateSettingsInput } from './setting.validation';
 
 /**
  * Settings are stored as TEXT and JSON-parsed on read, falling back to the raw
@@ -48,9 +49,27 @@ const updateMultipleSettings = async (settingsMap: SettingsMap) => {
   return Promise.all(updates);
 };
 
+/**
+ * Handles the two shapes `updateSettingsBodySchema` accepts: a bulk
+ * `{ settings: {...} }` map, or a single `{ key, value }` pair. Returns the
+ * message the controller responds with, so the two call paths stay
+ * distinguishable to the client without the controller inspecting the body.
+ */
+const updateSettingsRequest = async (input: UpdateSettingsInput): Promise<string> => {
+  if ('settings' in input && input.settings && Object.keys(input.settings).length > 0) {
+    await updateMultipleSettings(input.settings);
+    return 'Settings updated successfully';
+  }
+
+  const { key, value } = input as { key: string; value: unknown };
+  await updateSetting(key, value);
+  return `Setting ${key} updated successfully`;
+};
+
 export {
   getAllSettings,
   getSettingByKey,
   updateSetting,
   updateMultipleSettings,
+  updateSettingsRequest,
 };
