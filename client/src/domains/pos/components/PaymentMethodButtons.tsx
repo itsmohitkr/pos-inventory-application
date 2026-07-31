@@ -26,9 +26,9 @@ const getIconForMethod = (methodId: string) => {
 };
 
 interface PaymentMethodButtonsProps {
-  availableMethods?: PaymentMethod[];
+  availableMethods: PaymentMethod[];
   selectedPaymentMethod?: PaymentMethod | null;
-  onSelectPaymentMethod?: (method: PaymentMethod) => void;
+  onSelectPaymentMethod: (method: PaymentMethod) => void;
   cartEmpty?: boolean;
 }
 

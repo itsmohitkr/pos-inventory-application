@@ -13,8 +13,8 @@ export const usePOSLayout = () => {
   const [showPromoGifts, setShowPromoGifts] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
 
-  const searchBarRef = useRef(null);
-  const refocusTimerRef = useRef(null);
+  const searchBarRef = useRef<{ focus: () => void } | null>(null);
+  const refocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Resizing logic
   const startResizing = useCallback((e: React.MouseEvent) => {

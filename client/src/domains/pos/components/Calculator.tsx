@@ -39,7 +39,7 @@ const Calculator = ({ open, onClose }: { open: boolean; onClose: () => void }) =
       expression
         .split(/[+\-*/]/)
         .pop()
-        .includes('.')
+        ?.includes('.')
     ) {
       return;
     }

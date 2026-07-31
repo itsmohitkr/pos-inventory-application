@@ -192,14 +192,14 @@ const CartTable = ({
                           <Chip
                             label="WHOLESALE OFFER"
                             size="small"
-                            variant={item.quantity >= item.wholesaleMinQty ? 'filled' : 'outlined'}
+                            variant={item.quantity >= (item.wholesaleMinQty ?? Infinity) ? 'filled' : 'outlined'}
                             sx={{
                               height: 22,
                               fontSize: '0.7rem',
                               fontWeight: 900,
                               bgcolor:
-                                item.quantity >= item.wholesaleMinQty ? '#f59e0b' : 'transparent',
-                              color: item.quantity >= item.wholesaleMinQty ? 'white' : '#f59e0b',
+                                item.quantity >= (item.wholesaleMinQty ?? Infinity) ? '#f59e0b' : 'transparent',
+                              color: item.quantity >= (item.wholesaleMinQty ?? Infinity) ? 'white' : '#f59e0b',
                               borderColor: '#f59e0b',
                               borderWidth: 1.5,
                               '& .MuiChip-label': { px: 1 },
@@ -215,14 +215,14 @@ const CartTable = ({
                           variant="caption"
                           sx={{
                             color:
-                              item.quantity >= item.wholesaleMinQty ? '#f59e0b' : 'text.secondary',
+                              item.quantity >= (item.wholesaleMinQty ?? Infinity) ? '#f59e0b' : 'text.secondary',
                             fontWeight: 700,
                             fontSize: '0.75rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 0.5,
                             bgcolor:
-                              item.quantity >= item.wholesaleMinQty
+                              item.quantity >= (item.wholesaleMinQty ?? Infinity)
                                 ? 'rgba(245, 158, 11, 0.1)'
                                 : 'transparent',
                             px: 1,

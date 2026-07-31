@@ -18,18 +18,14 @@ import {
 } from '@/domains/pos/components/posSearchBarUtils';
 
 interface POSSearchBarProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  products?: any[];
-  searchQuery?: string;
-  onSearchInputChange?: (value: string) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSelectProduct?: (product: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filterOptions?: (options: any[], state: { inputValue: string }) => any[];
+  products: Product[];
+  searchQuery: string;
+  onSearchInputChange: (value: string) => void;
+  onSelectProduct: (product: Product) => void;
+  filterOptions: (options: Product[], state: { inputValue: string }) => Product[];
   onLooseSale?: () => void;
   looseSaleEnabled?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onCustomerBarcode?: (query: any) => any;
+  onCustomerBarcode?: (query: string) => void;
 }
 
 const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
@@ -46,8 +42,8 @@ const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
     }: POSSearchBarProps,
     ref
   ) => {
-    const inputRef = useRef(null);
-    const highlightedOptionRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const highlightedOptionRef = useRef<Product | null>(null);
     const ignoreNextChangeRef = useRef(false);
     const [animating, setAnimating] = React.useState(false);
     const [typewriterBarcode, setTypewriterBarcode] = React.useState('');
@@ -278,8 +274,9 @@ const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
                       )}
                     </Box>
                     <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                      {option.batches.map((b: Batch) => {
-                        const isPromoActive = option.isOnSale && option.promoPrice < b.sellingPrice;
+                      {(option.batches || []).map((b: Batch) => {
+                        const isPromoActive =
+                          option.isOnSale && option.promoPrice != null && option.promoPrice < b.sellingPrice;
                         return (
                           <Box key={b.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             {isPromoActive && (

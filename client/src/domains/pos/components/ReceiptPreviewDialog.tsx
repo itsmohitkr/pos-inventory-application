@@ -10,7 +10,7 @@ interface ReceiptPreviewDialogProps {
   onClose: () => void;
   /** The sale rendered in the preview; also the sample sale on the settings screen. */
   lastSale?: ReceiptSale | null;
-  receiptSettings?: ReceiptSettings | null;
+  receiptSettings: ReceiptSettings;
   /** Toggles a boolean setting by key. */
   onSettingChange: (field: string) => void;
   /** Sets a text setting, e.g. the custom header. */
@@ -21,7 +21,7 @@ interface ReceiptPreviewDialogProps {
   showPrint?: boolean;
   showShopNameField?: boolean;
   saveLabel?: string;
-  shopMetadata?: ShopMetadata | null;
+  shopMetadata: ShopMetadata;
   printers?: PrinterInfo[];
   defaultPrinter?: string | null;
   customerFeatureEnabled?: boolean;

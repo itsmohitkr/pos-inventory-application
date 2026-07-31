@@ -44,10 +44,10 @@ const POSPrintContainer = ({
   >
     <div id="thermal-receipt-print">
       {lastSale && (
-        <Receipt 
-          sale={lastSale} 
-          settings={receiptSettings} 
-          shopMetadata={shopMetadata} 
+        <Receipt
+          sale={lastSale}
+          settings={receiptSettings ?? undefined}
+          shopMetadata={shopMetadata ?? undefined}
           customerFeatureEnabled={customerFeatureEnabled}
         />
       )}

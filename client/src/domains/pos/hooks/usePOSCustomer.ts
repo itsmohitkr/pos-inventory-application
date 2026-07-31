@@ -40,9 +40,9 @@ export const usePOSCustomer = ({ showNotification }: UsePOSCustomerArgs) => {
     setIsLoadingCustomer(true);
     try {
       const res = await customerService.findOrCreate(phone.trim());
-      const { customer } = res;
+      const customer = res.customer ?? null;
       setActiveCustomer(customer);
-      showNotification(`Customer: ${customer.name || customer.phone}`);
+      if (customer) showNotification(`Customer: ${customer.name || customer.phone}`);
       return customer;
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'pos-customer-lookup' } });
@@ -82,7 +82,7 @@ export const usePOSCustomer = ({ showNotification }: UsePOSCustomerArgs) => {
   const selectCustomer = useCallback((customer: Customer | null) => {
     setActiveCustomer(customer);
     setSearchResults([]);
-    showNotification(`Customer: ${customer.name || customer.phone}`);
+    if (customer) showNotification(`Customer: ${customer.name || customer.phone}`);
   }, [showNotification]);
 
   const detachCustomer = useCallback(() => {
@@ -100,9 +100,9 @@ export const usePOSCustomer = ({ showNotification }: UsePOSCustomerArgs) => {
     setIsLoadingCustomer(true);
     try {
       const res = await customerService.findOrCreate(phone.trim(), name?.trim());
-      const { customer } = res;
+      const customer = res.customer ?? null;
       setActiveCustomer(customer);
-      showNotification(`Customer Saved: ${customer.name || customer.phone}`);
+      if (customer) showNotification(`Customer Saved: ${customer.name || customer.phone}`);
       return customer;
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'pos-customer-register' } });

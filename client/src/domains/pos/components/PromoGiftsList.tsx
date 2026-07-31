@@ -85,7 +85,7 @@ const PromoGiftsList = ({
           const minCost = activeConfig.minCostPrice || 0;
           const maxCost =
             activeConfig.maxCostPrice !== null ? activeConfig.maxCostPrice : profitLimit;
-          const bestBatch = product.batches.find(
+          const bestBatch = (product.batches || []).find(
             (b) => b.costPrice >= minCost && b.costPrice <= maxCost && b.quantity > 0
           );
           const isSelected = cart.find((item) => item.isFree && item.product_id === product.id);

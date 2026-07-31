@@ -111,10 +111,15 @@ export const usePOSTabs = () => {
         const newQuantity = existing ? existing.quantity + 1 : 1;
 
         const getPrice = (qty: number): number => {
-          if (batch.wholesaleEnabled && batch.wholesaleMinQty && qty >= batch.wholesaleMinQty) {
+          if (
+            batch.wholesaleEnabled &&
+            batch.wholesaleMinQty &&
+            qty >= batch.wholesaleMinQty &&
+            batch.wholesalePrice != null
+          ) {
             return batch.wholesalePrice;
           }
-          if (product.isOnSale && product.promoPrice < batch.sellingPrice) {
+          if (product.isOnSale && product.promoPrice != null && product.promoPrice < batch.sellingPrice) {
             return product.promoPrice;
           }
           return batch.sellingPrice;
@@ -145,7 +150,7 @@ export const usePOSTabs = () => {
             wholesaleEnabled: batch.wholesaleEnabled,
             wholesalePrice: batch.wholesalePrice,
             wholesaleMinQty: batch.wholesaleMinQty,
-            isOnSale: product.isOnSale && product.promoPrice < batch.sellingPrice,
+            isOnSale: !!(product.isOnSale && product.promoPrice != null && product.promoPrice < batch.sellingPrice),
             promoPrice: product.promoPrice,
             costPrice: batch.costPrice,
             isFree: false,
@@ -174,9 +179,14 @@ export const usePOSTabs = () => {
             if (newQty < 1) return item;
 
             let newPrice = item.sellingPrice;
-            if (item.wholesaleEnabled && item.wholesaleMinQty && newQty >= item.wholesaleMinQty) {
+            if (
+              item.wholesaleEnabled &&
+              item.wholesaleMinQty &&
+              newQty >= item.wholesaleMinQty &&
+              item.wholesalePrice != null
+            ) {
               newPrice = item.wholesalePrice;
-            } else if (item.isOnSale) {
+            } else if (item.isOnSale && item.promoPrice != null) {
               newPrice = item.promoPrice;
             }
 
@@ -197,9 +207,14 @@ export const usePOSTabs = () => {
           if (item.batch_id === batchId) {
             if (item.isFree) return item;
             let newPrice = item.sellingPrice;
-            if (item.wholesaleEnabled && item.wholesaleMinQty && quantity >= item.wholesaleMinQty) {
+            if (
+              item.wholesaleEnabled &&
+              item.wholesaleMinQty &&
+              quantity >= item.wholesaleMinQty &&
+              item.wholesalePrice != null
+            ) {
               newPrice = item.wholesalePrice;
-            } else if (item.isOnSale) {
+            } else if (item.isOnSale && item.promoPrice != null) {
               newPrice = item.promoPrice;
             }
             return { ...item, quantity, price: newPrice };

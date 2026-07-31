@@ -123,11 +123,11 @@ export const usePOSSale = ({
       });
       clearCustomerOnSale?.();
 
-      if (receiptSettings.directPrint) {
+      if (receiptSettings?.directPrint) {
         const printer =
           receiptSettings.printerType ||
           defaultPrinter ||
-          (printers.find((p: PrinterInfo) => p.isDefault) || printers[0])?.name;
+          ((printers || []).find((p: PrinterInfo) => p.isDefault) || (printers || [])[0])?.name;
         if (window.electron) {
           if (!printer) {
             showError('No printer configured. Go to Settings → Receipt Settings to select a printer.');
@@ -157,11 +157,11 @@ export const usePOSSale = ({
 
   const handlePrintLastReceipt = useCallback(async () => {
     if (lastSale) {
-      if (receiptSettings.directPrint) {
+      if (receiptSettings?.directPrint) {
         const printer =
           receiptSettings.printerType ||
           defaultPrinter ||
-          (printers.find((p: PrinterInfo) => p.isDefault) || printers[0])?.name;
+          ((printers || []).find((p: PrinterInfo) => p.isDefault) || (printers || [])[0])?.name;
         if (window.electron) {
           if (!printer) {
             showError('No printer configured. Go to Settings → Receipt Settings to select a printer.');

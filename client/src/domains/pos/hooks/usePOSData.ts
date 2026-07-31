@@ -38,7 +38,8 @@ export const usePOSData = (propReceiptSettings?: any, propShopMetadata?: any) =>
 
   const [currentUser] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('posCurrentUser'));
+      const stored = localStorage.getItem('posCurrentUser');
+      return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }

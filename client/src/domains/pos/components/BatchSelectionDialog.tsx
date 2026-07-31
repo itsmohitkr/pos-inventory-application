@@ -29,7 +29,7 @@ const BatchSelectionDialog = ({
 }: BatchSelectionDialogProps) => {
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [keyboardEnabled, setKeyboardEnabled] = useState(false);
-  const listRef = useRef(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
   const isPriceMode = scannedProduct?.mode === 'price';
   const title = isPriceMode
     ? `Select MRP for ${scannedProduct?.product.name}`
@@ -115,7 +115,7 @@ const BatchSelectionDialog = ({
             return (
               <ListItemButton
                 key={batch.id}
-                onClick={() => onSelectBatch(scannedProduct.product, batch)}
+                onClick={() => scannedProduct && onSelectBatch(scannedProduct.product, batch)}
                 selected={isFocused}
                 sx={{
                   backgroundColor: isExpired

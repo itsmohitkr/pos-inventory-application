@@ -43,7 +43,8 @@ const DEFAULT_RECEIPT_SETTINGS = {
 const getStoredReceiptSettings = () => {
   try {
     const shopName = localStorage.getItem(STORAGE_KEYS.shopName) || 'My Shop';
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.receipt));
+    const rawStored = localStorage.getItem(STORAGE_KEYS.receipt);
+    const stored = rawStored ? JSON.parse(rawStored) : null;
 
     return {
       ...DEFAULT_RECEIPT_SETTINGS,

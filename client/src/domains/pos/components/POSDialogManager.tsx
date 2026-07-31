@@ -23,11 +23,11 @@ interface POSDialogManagerProps {
   showReceipt: boolean;
   setShowReceipt: (show: boolean) => void;
   lastSale?: ReceiptSale | null;
-  receiptSettings?: ReceiptSettings | null;
+  receiptSettings: ReceiptSettings;
   handleSettingChange: (field: string) => void;
   handleTextSettingChange: (field: string, value: unknown) => void;
   currentUser?: AuthUser | null;
-  shopMetadata?: ShopMetadata | null;
+  shopMetadata: ShopMetadata;
   printers?: PrinterInfo[];
   defaultPrinter?: string | null;
 
@@ -137,6 +137,7 @@ const POSDialogManager = ({
         refocus();
       }}
       onConfirm={(qty) => {
+        if (!manualQuantityItem) return;
         handleSetQuantity(manualQuantityItem.batch_id, qty);
         setManualQuantityItem(null);
         refocus();
