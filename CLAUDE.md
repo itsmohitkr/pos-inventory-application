@@ -344,20 +344,25 @@ Set automatically by `desktop/main.js` at runtime. For standalone server develop
 ## TypeScript strictness — current state
 
 Deliberate, not half-finished. Both `server/tsconfig.json` and
-`client/tsconfig.json` now set `strict: true` outright (the full strict
-family). Server crossed the line first; client followed once its 54
+`client/tsconfig.json` now set `strict: true` and `allowJs: false` outright
+(the full strict family, and no more untyped `.js` in the checked source
+tree). Server crossed the line first; client followed once its 54
 strict-mode errors were fixed. Flags are set per-package rather than in
 `tsconfig.base.json` because the base is shared with `desktop/`, which has
-not been assessed, and because a flag can only be turned on for a package
-once that package's count reaches zero.
+not been assessed and still needs `.js`/`.ts` coexistence, and because a
+flag can only be turned on for a package once that package's count reaches
+zero. Test files (`.test.js`/`.test.jsx`/`.js` under `tests/`) still exist —
+`allowJs: false` doesn't error on them; tsc just excludes them from the
+checked program, and Jest/Vitest transform them independently of this
+config. They convert to TypeScript last (see below), on purpose.
 
-Everything else is off, with the work measured rather than guessed:
+Everything measured, not guessed:
 
 | Flag | Server | Client | State |
 |---|---|---|---|
 | `strict` (all flags) | 0 | 0 | **on** (both) |
 | explicit return types | ~174 | ~192 | rule not enabled |
-| `allowJs` | — | — | still `true` |
+| `allowJs` | — | — | **off** (both) |
 
 Re-measure with, e.g., `cd client && npx tsc --noEmit --strict`.
 

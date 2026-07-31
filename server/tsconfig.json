@@ -10,11 +10,13 @@
     "prisma/schema.prisma, so the same code resolves correctly whether it runs",
     "from src/ or from dist/.",
     "",
-    "strict, noImplicitAny and strictNullChecks are enabled here rather than",
-    "in tsconfig.base.json: the client has not cleared strict yet, so flipping",
-    "it in the shared base would break that package. A per-package override",
-    "is how each flag advances one package at a time — it cannot be scoped to a",
-    "folder within a package."
+    "strict and allowJs:false are enabled here rather than in tsconfig.base.json:",
+    "desktop/ has not been converted yet, so flipping either in the shared base",
+    "would break that package. A per-package override is how each flag advances",
+    "one package at a time — it cannot be scoped to a folder within a package.",
+    "allowJs:false is safe because 'tests' is excluded above (its .js files are",
+    "converted separately, see server/jest.config.js) and no other .js file is",
+    "matched by 'include'."
   ],
   "compilerOptions": {
     "module": "node16",
@@ -22,7 +24,8 @@
     "outDir": "./dist",
     "rootDir": ".",
     "types": ["node", "jest"],
-    "strict": true
+    "strict": true,
+    "allowJs": false
   },
   "include": ["index.ts", "seed.ts", "src/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "dist", "tests", "prisma", "coverage"]

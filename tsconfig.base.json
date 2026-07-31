@@ -3,13 +3,15 @@
   "//": [
     "Shared TypeScript settings for client/, server/, and desktop/.",
     "",
-    "MIGRATION STATE: loose on purpose. allowJs lets .js and .ts coexist so the",
-    "codebase is never in a half-converted broken state, and strict is off so",
-    "converted files do not have to satisfy strict null checks on day one.",
+    "MIGRATION STATE: allowJs/strict stay loose here because desktop/ has not",
+    "been assessed and still needs .js/.ts coexistence. client/ and server/",
+    "each override allowJs:false and strict:true in their own tsconfig once",
+    "their source tree (excluding test files, converted separately) was fully",
+    "TypeScript and strict-clean — see each package's tsconfig comment and",
+    "CLAUDE.md's TypeScript strictness table.",
     "",
-    "Strict flags are enabled one at a time in Phase 8, once conversion is done.",
-    "Do NOT flip strict:true here mid-migration — it turns every unconverted",
-    "boundary into an error at once."
+    "Do NOT flip strict:true or allowJs:false here until desktop/ is converted",
+    "— it would turn every unconverted boundary into an error at once."
   ],
   "compilerOptions": {
     "target": "ES2022",
