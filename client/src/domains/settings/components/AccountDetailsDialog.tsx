@@ -76,7 +76,9 @@ const AccountDetailsDialog = ({
   const [shopEmail, setShopEmail] = useState(shopMetadata.shopEmail);
   const [shopGST, setShopGST] = useState(shopMetadata.shopGST);
   const [logoUrl, setLogoUrl] = useState(shopMetadata.shopLogo);
-  const [updateStatus, setUpdateStatus] = useState(null);
+  const [updateStatus, setUpdateStatus] = useState<
+    'checking' | 'available' | 'downloading' | 'downloaded' | 'error' | 'latest' | null
+  >(null);
   const [updateMessage, setUpdateMessage] = useState('');
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [appMetadata, setAppMetadata] = useState({ version: 'Unknown', lastUpdate: 'Unknown' });
@@ -127,9 +129,10 @@ const AccountDetailsDialog = ({
   }, [shopName, shopMetadata]);
 
   useEffect(() => {
-    if (window.electron && window.electron.ipcRenderer) {
+    const electron = window.electron;
+    if (electron && electron.ipcRenderer) {
       // Fetch metadata
-      window.electron.ipcRenderer
+      electron.ipcRenderer
         .invoke<{ version: string; lastUpdate: string }>(IPC.GET_APP_METADATA)
         .then((data) => {
           setAppMetadata(data);
@@ -156,18 +159,18 @@ const AccountDetailsDialog = ({
         setDownloadProgress(Math.round(percent));
       };
 
-      window.electron.ipcRenderer.on(IPC.UPDATE_AVAILABLE, onAvailable);
-      window.electron.ipcRenderer.on(IPC.UPDATE_DOWNLOADED, onDownloaded);
-      window.electron.ipcRenderer.on(IPC.UPDATE_ERROR, onError);
-      window.electron.ipcRenderer.on(IPC.UPDATE_NOT_AVAILABLE, onNotAvailable);
-      window.electron.ipcRenderer.on(IPC.DOWNLOAD_PROGRESS, onProgress);
+      electron.ipcRenderer.on(IPC.UPDATE_AVAILABLE, onAvailable);
+      electron.ipcRenderer.on(IPC.UPDATE_DOWNLOADED, onDownloaded);
+      electron.ipcRenderer.on(IPC.UPDATE_ERROR, onError);
+      electron.ipcRenderer.on(IPC.UPDATE_NOT_AVAILABLE, onNotAvailable);
+      electron.ipcRenderer.on(IPC.DOWNLOAD_PROGRESS, onProgress);
 
       return () => {
-        window.electron.ipcRenderer.off(IPC.UPDATE_AVAILABLE, onAvailable);
-        window.electron.ipcRenderer.off(IPC.UPDATE_DOWNLOADED, onDownloaded);
-        window.electron.ipcRenderer.off(IPC.UPDATE_ERROR, onError);
-        window.electron.ipcRenderer.off(IPC.UPDATE_NOT_AVAILABLE, onNotAvailable);
-        window.electron.ipcRenderer.off(IPC.DOWNLOAD_PROGRESS, onProgress);
+        electron.ipcRenderer.off(IPC.UPDATE_AVAILABLE, onAvailable);
+        electron.ipcRenderer.off(IPC.UPDATE_DOWNLOADED, onDownloaded);
+        electron.ipcRenderer.off(IPC.UPDATE_ERROR, onError);
+        electron.ipcRenderer.off(IPC.UPDATE_NOT_AVAILABLE, onNotAvailable);
+        electron.ipcRenderer.off(IPC.DOWNLOAD_PROGRESS, onProgress);
       };
     }
   }, []);
@@ -275,6 +278,11 @@ const AccountDetailsDialog = ({
     }
     if (wipeConfirmPhrase !== 'WIPE ALL DATA') {
       showError('Please type the confirmation phrase exactly as shown');
+      return;
+    }
+
+    if (!currentUser) {
+      showError('No active session');
       return;
     }
 
@@ -408,7 +416,7 @@ const AccountDetailsDialog = ({
               setShopEmail={setShopEmail}
               setShopGST={setShopGST}
               setLogoUrl={setLogoUrl}
-              updateStatus={updateStatus}
+              updateStatus={updateStatus ?? undefined}
               updateMessage={updateMessage}
               downloadProgress={downloadProgress}
               appMetadata={appMetadata}

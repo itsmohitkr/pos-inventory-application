@@ -92,8 +92,8 @@ const SettingsMenu = ({
         </ListItemIcon>
         <ListItemText>Change Password</ListItemText>
       </MenuItem>
-      {!currentUser.originalRole && currentUser.role !== 'admin' && <Divider />}
-      {!currentUser.originalRole && currentUser.role !== 'admin' && (
+      {!currentUser?.originalRole && currentUser?.role !== 'admin' && <Divider />}
+      {!currentUser?.originalRole && currentUser?.role !== 'admin' && (
         <MenuItem
           onClick={() => {
             onAdminLogin();
