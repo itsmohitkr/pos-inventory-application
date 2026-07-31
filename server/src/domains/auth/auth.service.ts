@@ -344,99 +344,116 @@ const verifyAdmin = async ({ password }: VerifyAdminInput) => {
 
 const ONBOARDING_VERSION = 1;
 
-const completeOnboarding = async ({
-  shopName,
-  address,
-  phone,
-  phone2,
-  email,
-  gst,
-  logo,
-  adminPassword,
-}: CompleteOnboardingInput) => {
-  const hashed = await bcrypt.hash(adminPassword, SALT_ROUNDS);
+/**
+ * This endpoint resets the admin password and is unauthenticated, because it
+ * must be callable before any admin exists to authenticate against.
+ *
+ * Without this guard it stays callable forever: any local caller — a cashier
+ * using the app's own devtools — could POST here and take over the owner's
+ * admin account, defeating the admin/cashier separation the rest of the app
+ * relies on (admin elevation, wipe-database, user management).
+ *
+ * Must run inside the same transaction as the writes below it, so two
+ * concurrent calls cannot both pass it.
+ */
+const assertNotOnboarded = async (tx: Prisma.TransactionClient) => {
+  const alreadyOnboarded = await tx.setting.findUnique({
+    where: { key: 'onboardingVersion' },
+  });
+  if (alreadyOnboarded) {
+    throw createHttpError(
+      StatusCodes.FORBIDDEN,
+      'Onboarding has already been completed',
+      { error: 'Onboarding has already been completed' }
+    );
+  }
+};
+
+const upsertShop = async (
+  tx: Prisma.TransactionClient,
+  shop: Pick<CompleteOnboardingInput, 'shopName' | 'address' | 'phone' | 'phone2' | 'email' | 'gst' | 'logo'>
+) => {
+  const { shopName, address, phone, phone2, email, gst, logo } = shop;
+  const existing = await tx.shop.findFirst();
+  const data = { name: shopName, address, phone, phone2, email, gst, logo };
+  if (existing) {
+    await tx.shop.update({ where: { id: existing.id }, data });
+  } else {
+    await tx.shop.create({ data });
+  }
+};
+
+const resetAdminPassword = async (tx: Prisma.TransactionClient, hashedPassword: string) => {
+  const admin = await tx.user.findFirst({ where: { role: 'admin' } });
+  if (!admin) {
+    throw createHttpError(StatusCodes.INTERNAL_SERVER_ERROR, 'No admin user found');
+  }
+  await tx.user.update({ where: { id: admin.id }, data: { password: hashedPassword } });
+
+  await tx.setting.upsert({
+    where: { key: 'onboardingVersion' },
+    create: { key: 'onboardingVersion', value: String(ONBOARDING_VERSION) },
+    update: { value: String(ONBOARDING_VERSION) },
+  });
+};
+
+/** Syncs the flat metadata Setting keys AccountDetailsDialog and the receipt read directly. */
+const syncShopMetadataSettings = async (
+  tx: Prisma.TransactionClient,
+  shop: Pick<CompleteOnboardingInput, 'shopName' | 'address' | 'phone' | 'phone2' | 'email' | 'gst'>
+) => {
+  const { shopName, address, phone, phone2, email, gst } = shop;
+  const metadataUpserts = [
+    { key: 'posShopName', value: shopName },
+    { key: 'shopAddress', value: address || '' },
+    { key: 'shopMobile', value: phone || '' },
+    { key: 'shopMobile2', value: phone2 || '' },
+    { key: 'shopEmail', value: email || '' },
+    { key: 'shopGST', value: gst || '' },
+  ].map(({ key, value }) =>
+    tx.setting.upsert({
+      where: { key },
+      create: { key, value },
+      update: { value },
+    })
+  );
+  await Promise.all(metadataUpserts);
+};
+
+/** Seeds posReceiptSettings, preserving any existing customisations. */
+const seedReceiptSettings = async (
+  tx: Prisma.TransactionClient,
+  shop: Pick<CompleteOnboardingInput, 'shopName' | 'address'>
+) => {
+  const { shopName, address } = shop;
+  const existingReceiptSetting = await tx.setting.findUnique({
+    where: { key: 'posReceiptSettings' },
+  });
+  const existingReceipt = existingReceiptSetting
+    ? JSON.parse(existingReceiptSetting.value)
+    : {};
+  const updatedReceipt = {
+    ...DEFAULT_RECEIPT_SETTINGS,
+    ...existingReceipt,
+    customShopName: shopName,
+    ...(address ? { customHeader: address } : {}),
+  };
+  await tx.setting.upsert({
+    where: { key: 'posReceiptSettings' },
+    create: { key: 'posReceiptSettings', value: JSON.stringify(updatedReceipt) },
+    update: { value: JSON.stringify(updatedReceipt) },
+  });
+};
+
+const completeOnboarding = async (input: CompleteOnboardingInput) => {
+  const hashed = await bcrypt.hash(input.adminPassword, SALT_ROUNDS);
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // This endpoint resets the admin password and is unauthenticated, because
-    // it must be callable before any admin exists to authenticate against.
-    //
-    // Without this guard it stays callable forever: any local caller — a
-    // cashier using the app's own devtools — could POST here and take over the
-    // owner's admin account, defeating the admin/cashier separation the rest
-    // of the app relies on (admin elevation, wipe-database, user management).
-    //
-    // The check runs inside the same transaction as the write, so two
-    // concurrent calls cannot both pass it.
-    const alreadyOnboarded = await tx.setting.findUnique({
-      where: { key: 'onboardingVersion' },
-    });
-    if (alreadyOnboarded) {
-      throw createHttpError(
-        StatusCodes.FORBIDDEN,
-        'Onboarding has already been completed',
-        { error: 'Onboarding has already been completed' }
-      );
-    }
-
-    const existing = await tx.shop.findFirst();
-    if (existing) {
-      await tx.shop.update({
-        where: { id: existing.id },
-        data: { name: shopName, address, phone, phone2, email, gst, logo },
-      });
-    } else {
-      await tx.shop.create({
-        data: { name: shopName, address, phone, phone2, email, gst, logo },
-      });
-    }
-
-    const admin = await tx.user.findFirst({ where: { role: 'admin' } });
-    if (!admin) {
-      throw createHttpError(StatusCodes.INTERNAL_SERVER_ERROR, 'No admin user found');
-    }
-    await tx.user.update({ where: { id: admin.id }, data: { password: hashed } });
-
-    await tx.setting.upsert({
-      where: { key: 'onboardingVersion' },
-      create: { key: 'onboardingVersion', value: String(ONBOARDING_VERSION) },
-      update: { value: String(ONBOARDING_VERSION) },
-    });
-
-    // Sync flat metadata Setting keys so AccountDetailsDialog and receipt read them immediately
-    const metadataUpserts = [
-      { key: 'posShopName', value: shopName },
-      { key: 'shopAddress', value: address || '' },
-      { key: 'shopMobile', value: phone || '' },
-      { key: 'shopMobile2', value: phone2 || '' },
-      { key: 'shopEmail', value: email || '' },
-      { key: 'shopGST', value: gst || '' },
-    ].map(({ key, value }) =>
-      tx.setting.upsert({
-        where: { key },
-        create: { key, value },
-        update: { value },
-      })
-    );
-    await Promise.all(metadataUpserts);
-
-    // Seed posReceiptSettings — preserve any existing customisations, update name + address
-    const existingReceiptSetting = await tx.setting.findUnique({
-      where: { key: 'posReceiptSettings' },
-    });
-    const existingReceipt = existingReceiptSetting
-      ? JSON.parse(existingReceiptSetting.value)
-      : {};
-    const updatedReceipt = {
-      ...DEFAULT_RECEIPT_SETTINGS,
-      ...existingReceipt,
-      customShopName: shopName,
-      ...(address ? { customHeader: address } : {}),
-    };
-    await tx.setting.upsert({
-      where: { key: 'posReceiptSettings' },
-      create: { key: 'posReceiptSettings', value: JSON.stringify(updatedReceipt) },
-      update: { value: JSON.stringify(updatedReceipt) },
-    });
+    await assertNotOnboarded(tx);
+    await upsertShop(tx, input);
+    await resetAdminPassword(tx, hashed);
+    await syncShopMetadataSettings(tx, input);
+    await seedReceiptSettings(tx, input);
   });
 };
 

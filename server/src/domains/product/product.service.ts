@@ -602,6 +602,64 @@ const getProductByBarcode = async (barcode: string) => {
   };
 };
 
+/**
+ * Fields createOrUpdateProduct and bulkCreateProducts both read from an
+ * initial-batch payload — structurally compatible with both callers'
+ * (nominally different) initialBatch types.
+ */
+interface InitialBatchPricingInput {
+  mrp?: number | string | null;
+  cost_price?: number | string | null;
+  selling_price?: number | string | null;
+  batch_code?: string | null;
+  wholesaleEnabled?: boolean;
+  wholesalePrice?: number | string | null;
+  wholesaleMinQty?: number | string | null;
+  expiryDate?: string | Date | null;
+}
+
+/**
+ * Parses and validates the pricing/batch-code portion of an initial-batch
+ * payload — the part createOrUpdateProduct and bulkCreateProducts compute
+ * identically. Quantity is deliberately excluded: createOrUpdateProduct
+ * validates it with validateQuantity and bulkCreateProducts does not, so
+ * each caller still parses/validates quantity itself.
+ */
+const parseInitialBatchPricing = (
+  initialBatch: InitialBatchPricingInput,
+  batchTrackingEnabled: boolean
+) => {
+  const { mrp, cost_price, selling_price, batch_code, expiryDate } = initialBatch;
+  const mrpValue = parseFloat(String(mrp)) || 0;
+  const costValue = parseFloat(String(cost_price)) || 0;
+  const sellingValue = parseFloat(String(selling_price)) || 0;
+  validatePricing({
+    mrp: mrpValue,
+    costPrice: costValue,
+    sellingPrice: sellingValue,
+  });
+
+  // Auto-generate batch code if empty (only for batch tracking enabled products)
+  const finalBatchCode =
+    batchTrackingEnabled && (!batch_code || !batch_code.trim())
+      ? generateBatchCode()
+      : batch_code || null;
+
+  return {
+    mrpValue,
+    costValue,
+    sellingValue,
+    finalBatchCode,
+    wholesalePrice: initialBatch.wholesalePrice
+      ? parseFloat(String(initialBatch.wholesalePrice))
+      : null,
+    wholesaleMinQty: initialBatch.wholesaleMinQty
+      ? parseInt(String(initialBatch.wholesaleMinQty))
+      : null,
+    expiryDateValue: expiryDate ? new Date(expiryDate) : null,
+  };
+};
+
 const createOrUpdateProduct = async ({
   name,
   barcode,
@@ -632,42 +690,24 @@ const createOrUpdateProduct = async ({
     });
 
     if (initialBatch) {
-      const { quantity, mrp, cost_price, selling_price, batch_code, expiryDate } = initialBatch;
-      const qtyToAdd = parseInt(String(quantity)) || 0;
+      const qtyToAdd = parseInt(String(initialBatch.quantity)) || 0;
       validateQuantity(qtyToAdd);
-      const mrpValue = parseFloat(String(mrp)) || 0;
-      const costValue = parseFloat(String(cost_price)) || 0;
-      const sellingValue = parseFloat(String(selling_price)) || 0;
-      validatePricing({
-        mrp: mrpValue,
-        costPrice: costValue,
-        sellingPrice: sellingValue,
-      });
-
-      // Auto-generate batch code if empty (only for batch tracking enabled products)
-      const finalBatchCode =
-        product.batchTrackingEnabled && (!batch_code || !batch_code.trim())
-          ? generateBatchCode()
-          : batch_code || null;
+      const parsed = parseInitialBatchPricing(initialBatch, product.batchTrackingEnabled);
 
       // The product was just created above, so it has no batches yet — both the
       // tracked and untracked flows create the product's first batch here, with
       // identical data. Only `finalBatchCode` differs, resolved above.
       await createBatchWithMovement(tx, {
         productId: product.id,
-        batchCode: finalBatchCode,
+        batchCode: parsed.finalBatchCode,
         quantity: qtyToAdd,
-        mrp: mrpValue,
-        costPrice: costValue,
-        sellingPrice: sellingValue,
+        mrp: parsed.mrpValue,
+        costPrice: parsed.costValue,
+        sellingPrice: parsed.sellingValue,
         wholesaleEnabled: initialBatch.wholesaleEnabled === true,
-        wholesalePrice: initialBatch.wholesalePrice
-          ? parseFloat(String(initialBatch.wholesalePrice))
-          : null,
-        wholesaleMinQty: initialBatch.wholesaleMinQty
-          ? parseInt(String(initialBatch.wholesaleMinQty))
-          : null,
-        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        wholesalePrice: parsed.wholesalePrice,
+        wholesaleMinQty: parsed.wholesaleMinQty,
+        expiryDate: parsed.expiryDateValue,
         note: 'Initial stock',
       });
     }
@@ -1008,22 +1048,39 @@ const exportProducts = async () => {
   return csvRows.join('\n');
 };
 
-const importProducts = async (csvData: string) => {
+/** One parsed CSV row, ready to be written by persistImportedProducts. */
+interface ParsedImportRow {
+  name: string;
+  barcode: string | null;
+  category: string | null;
+  batchTrackingEnabled: boolean;
+  qty: number;
+  mrpVal: number;
+  costVal: number;
+  sellingVal: number;
+  wholesaleEnabled: boolean;
+  wholesalePrice: number | null;
+  wholesaleMinQty: number | null;
+  batch_code?: string;
+  expiry_date?: string;
+}
+
+interface ImportError {
+  line: number;
+  message: string;
+}
+
+/** Parsing/validation only — no writes. Bad rows are collected as errors, not thrown. */
+const parseImportRows = async (
+  csvData: string
+): Promise<{ rows: ParsedImportRow[]; errors: ImportError[]; importedCount: number; failedCount: number }> => {
   const lines = csvData.split('\n').filter((line) => line.trim());
   const headerValues = parseCSVLine(lines[0]);
   const headers = headerValues.map((h) => h.trim().toLowerCase());
 
-  const results: {
-    success: boolean;
-    imported: number;
-    failed: number;
-    errors: { line: number; message: string }[];
-  } = {
-    success: false,
-    imported: 0,
-    failed: 0,
-    errors: [],
-  };
+  const errors: ImportError[] = [];
+  let importedCount = 0;
+  let failedCount = 0;
 
   // Fetch all existing barcodes ONCE at the beginning (optimization)
   const existingProducts = await prisma.product.findMany({
@@ -1043,22 +1100,6 @@ const importProducts = async (csvData: string) => {
   const csvBarcodes = new Set();
 
   // Prepare all product and batch data in memory first
-  /** One parsed CSV row, ready to be written in the transaction below. */
-  interface ParsedImportRow {
-    name: string;
-    barcode: string | null;
-    category: string | null;
-    batchTrackingEnabled: boolean;
-    qty: number;
-    mrpVal: number;
-    costVal: number;
-    sellingVal: number;
-    wholesaleEnabled: boolean;
-    wholesalePrice: number | null;
-    wholesaleMinQty: number | null;
-    batch_code?: string;
-    expiry_date?: string;
-  }
   const productsToCreate: ParsedImportRow[] = [];
 
   for (let i = 1; i < lines.length; i++) {
@@ -1097,8 +1138,8 @@ const importProducts = async (csvData: string) => {
       } = row;
 
       if (!name || !name.trim()) {
-        results.errors.push({ line: lineNumber, message: 'Missing name' });
-        results.failed++;
+        errors.push({ line: lineNumber, message: 'Missing name' });
+        failedCount++;
         continue;
       }
 
@@ -1118,22 +1159,22 @@ const importProducts = async (csvData: string) => {
           await _validateBarcodesUniqueness(prisma, trimmedBarcode);
         } catch (error) {
           if (error.message.startsWith('BARCODE_CONFLICT:')) {
-            results.errors.push({
+            errors.push({
               line: lineNumber,
               message: error.message.replace('BARCODE_CONFLICT: ', ''),
             });
-            results.failed++;
+            failedCount++;
             continue;
           }
           throw error;
         }
 
         if (csvBarcodes.has(lowerBarcode)) {
-          results.errors.push({
+          errors.push({
             line: lineNumber,
             message: 'Duplicate barcode in CSV',
           });
-          results.failed++;
+          failedCount++;
           continue;
         }
         csvBarcodes.add(lowerBarcode);
@@ -1155,33 +1196,20 @@ const importProducts = async (csvData: string) => {
         batch_code,
         expiry_date,
       });
-      results.imported++;
+      importedCount++;
     } catch (error) {
-      results.errors.push({ line: lineNumber, message: error.message });
-      results.failed++;
+      errors.push({ line: lineNumber, message: error.message });
+      failedCount++;
     }
   }
 
-  // If no products to create and no errors (e.g. empty file or just header), treat as error
-  if (productsToCreate.length === 0 && results.failed === 0) {
-    results.success = false;
-    results.errors.push({
-      line: 0,
-      message: 'No valid products found in file',
-    });
-    return results;
-  }
+  return { rows: productsToCreate, errors, importedCount, failedCount };
+};
 
-  // If any errors, discard all
-  if (results.failed > 0) {
-    results.success = false;
-    results.imported = 0;
-    return results;
-  }
-
-  // All rows valid, perform atomic import
+/** Writes all parsed rows atomically, then kicks off the (fire-and-forget) category sync. */
+const persistImportedProducts = async (rows: ParsedImportRow[]): Promise<void> => {
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    for (const prod of productsToCreate) {
+    for (const prod of rows) {
       const product = await tx.product.create({
         data: {
           name: prod.name,
@@ -1208,6 +1236,40 @@ const importProducts = async (csvData: string) => {
   categoryService
     .ensureCategoriesFromProducts()
     .catch((err) => logger.error({ err: err.message }, 'Category sync error'));
+};
+
+const importProducts = async (csvData: string) => {
+  const { rows, errors, importedCount, failedCount } = await parseImportRows(csvData);
+
+  const results: {
+    success: boolean;
+    imported: number;
+    failed: number;
+    errors: ImportError[];
+  } = {
+    success: false,
+    imported: importedCount,
+    failed: failedCount,
+    errors,
+  };
+
+  // If no products to create and no errors (e.g. empty file or just header), treat as error
+  if (rows.length === 0 && failedCount === 0) {
+    results.errors.push({
+      line: 0,
+      message: 'No valid products found in file',
+    });
+    return results;
+  }
+
+  // If any errors, discard all
+  if (failedCount > 0) {
+    results.imported = 0;
+    return results;
+  }
+
+  // All rows valid, perform atomic import
+  await persistImportedProducts(rows);
 
   results.success = true;
   return results;
@@ -1448,38 +1510,20 @@ const bulkCreateProducts = async (products: BulkProductInput[]) => {
         });
 
         if (initialBatch) {
-          const { quantity, mrp, cost_price, selling_price, batch_code, expiryDate } = initialBatch;
-          const qtyToAdd = parseInt(String(quantity)) || 0;
-          const mrpValue = parseFloat(String(mrp)) || 0;
-          const costValue = parseFloat(String(cost_price)) || 0;
-          const sellingValue = parseFloat(String(selling_price)) || 0;
-
-          validatePricing({
-            mrp: mrpValue,
-            costPrice: costValue,
-            sellingPrice: sellingValue,
-          });
-
-          const finalBatchCode =
-            product.batchTrackingEnabled && (!batch_code || !batch_code.trim())
-              ? generateBatchCode()
-              : batch_code || null;
+          const qtyToAdd = parseInt(String(initialBatch.quantity)) || 0;
+          const parsed = parseInitialBatchPricing(initialBatch, product.batchTrackingEnabled);
 
           await createBatchWithMovement(tx, {
             productId: product.id,
-            batchCode: finalBatchCode,
+            batchCode: parsed.finalBatchCode,
             quantity: qtyToAdd,
-            mrp: mrpValue,
-            costPrice: costValue,
-            sellingPrice: sellingValue,
+            mrp: parsed.mrpValue,
+            costPrice: parsed.costValue,
+            sellingPrice: parsed.sellingValue,
             wholesaleEnabled: initialBatch.wholesaleEnabled === true,
-            wholesalePrice: initialBatch.wholesalePrice
-              ? parseFloat(String(initialBatch.wholesalePrice))
-              : null,
-            wholesaleMinQty: initialBatch.wholesaleMinQty
-              ? parseInt(String(initialBatch.wholesaleMinQty))
-              : null,
-            expiryDate: expiryDate ? new Date(expiryDate) : null,
+            wholesalePrice: parsed.wholesalePrice,
+            wholesaleMinQty: parsed.wholesaleMinQty,
+            expiryDate: parsed.expiryDateValue,
             note: 'Bulk Initial stock',
             skipMovementWhenZero: true,
           });
