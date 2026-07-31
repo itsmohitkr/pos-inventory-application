@@ -345,16 +345,37 @@ Set automatically by `desktop/main.js` at runtime. For standalone server develop
 
 Deliberate, not half-finished. Both `server/tsconfig.json` and
 `client/tsconfig.json` now set `strict: true` and `allowJs: false` outright
-(the full strict family, and no more untyped `.js` in the checked source
-tree). Server crossed the line first; client followed once its 54
-strict-mode errors were fixed. Flags are set per-package rather than in
-`tsconfig.base.json` because the base is shared with `desktop/`, which has
-not been assessed and still needs `.js`/`.ts` coexistence, and because a
-flag can only be turned on for a package once that package's count reaches
-zero. Test files (`.test.js`/`.test.jsx`/`.js` under `tests/`) still exist —
-`allowJs: false` doesn't error on them; tsc just excludes them from the
-checked program, and Jest/Vitest transform them independently of this
-config. They convert to TypeScript last (see below), on purpose.
+(the full strict family, and no more untyped `.js` anywhere in either
+package — source or tests). Server crossed the line first; client followed
+once its 54 strict-mode errors were fixed. Flags are set per-package rather
+than in `tsconfig.base.json` because the base is shared with `desktop/`,
+which has not been assessed and still needs `.js`/`.ts` coexistence, and
+because a flag can only be turned on for a package once that package's
+count reaches zero.
+
+Test files converted last, once source was fully clean — they are the net
+that verifies the migration, so they had to keep passing throughout:
+- Server: all 14 files under `server/tests/` (13 Jest domain suites +
+  `tests/setup/prisma-mock.ts`) are now `.ts`. `server/tsconfig.json`
+  includes `tests/**/*` so `tsc --noEmit` enforces strict mode on them too;
+  a separate `server/tsconfig.build.json` (excludes `tests/`) is what
+  `npm run build`/`npm run dev` actually use, so test files never land in
+  `dist/`.
+- Client: all 9 Vitest unit test files and all 38 Playwright E2E files
+  (spec + support/page-object files) are now `.ts`/`.tsx`. E2E type-checks
+  under a separate `client/tsconfig.e2e.json` (Node/Playwright types
+  conflict with the browser-facing main config) rather than the main
+  `client/tsconfig.json`.
+
+Converting the tests under `strict` surfaced real bugs beyond missing
+annotations, the same pattern seen converting source: a mistyped Prisma
+mock delegate (`purchase.test.ts` mocked a nonexistent `prisma.payment`
+instead of `prisma.purchasePayment` — invisible in JS because
+`jest-mock-extended`'s `mockDeep` proxy auto-mocks any property access, real
+or not), two client source bugs in date-range and response-envelope null
+handling (`saleHistoryDateUtils.ts`, `responseGuards.ts`) that strict typing
+on their *tests* exposed, and one dead E2E helper calling a Playwright API
+that never existed (`.getByTypography(...)`).
 
 Everything measured, not guessed:
 
