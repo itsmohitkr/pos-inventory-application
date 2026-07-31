@@ -43,11 +43,9 @@ describe('Product Domain API', () => {
                 .post('/api/products')
                 .send({
                     name: 'Chips',
-                    sku: 'CHP-123',
+                    category: 'Snacks',
                     barcode: '1234567890',
-                    basePrice: 50,
-                    initialStock: 100,
-                    costPrice: 30
+                    initialBatch: { quantity: 100, cost_price: 30, selling_price: 45, mrp: 50 },
                 });
 
             // Product creation via Prisma transaction logic returns 200 OK wrapper
@@ -55,6 +53,16 @@ describe('Product Domain API', () => {
             expect(res.body.success).toBe(true);
             expect(res.body.id).toBe(2);
             expect(prisma.$transaction).toHaveBeenCalled();
+        });
+
+        it('should reject product creation when required fields are missing', async () => {
+            const res = await request(app)
+                .post('/api/products')
+                .send({
+                    name: 'Incomplete Product',
+                });
+
+            expect(res.status).toBe(400);
         });
     });
 
@@ -161,6 +169,8 @@ describe('Product Domain API', () => {
                 .post('/api/products')
                 .send({
                     name: 'Chips',
+                    category: 'Snacks',
+                    barcode: '1234567890',
                     initialBatch: { quantity: 5, mrp: 100, cost_price: 40, selling_price: 60 },
                 });
 

@@ -3,11 +3,19 @@ import prisma = require('../../config/prisma');
 import type { Prisma } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 import settingService = require('../setting/setting.service');
+import categorySaleService = require('../category-sale/category-sale.service');
 import type { ProcessSaleInput } from './sale.validation';
 
 /**
- * Fetches all effective promotion prices for a list of product IDs at a given date.
- * Returns a Map where key is productId and value is the lowest promo price.
+ * Fetches all effective item-level promotion prices for a list of product IDs
+ * at a given date. Returns a Map where key is productId and value is the
+ * lowest promo price.
+ *
+ * Category-sale discounts are handled separately, in the per-item loop in
+ * processSale, because they are a percentage off a specific BATCH's MRP —
+ * unlike a promotion's promoPrice, which is a flat price per product. Doing
+ * that math here would require guessing which batch a product's price should
+ * be based on, before we know which batch is actually being sold.
  */
 const getBulkEffectivePromoPrices = async (
   tx: Prisma.TransactionClient,
@@ -42,6 +50,26 @@ const getBulkEffectivePromoPrices = async (
   });
 
   return priceMap;
+};
+
+/**
+ * Category-sale price for the specific batch being sold, or null if no active
+ * category sale applies. Priced off `batch.mrp` — the MRP of the batch
+ * actually in the cart — never a different batch of the same product.
+ */
+const getCategorySalePrice = (
+  batch: { productId: number; mrp: number; product: { category: string | null } | null },
+  activeCategorySalesMap: Map<string, { discountPercentage: number; excludedProductIds: Set<number> }>
+): number | null => {
+  const category = batch.product?.category;
+  if (!category) return null;
+
+  const catSale = activeCategorySalesMap.get(category.toLowerCase().trim());
+  if (!catSale || catSale.discountPercentage <= 0) return null;
+  if (catSale.excludedProductIds.has(batch.productId)) return null;
+  if (batch.mrp <= 0) return null;
+
+  return Math.round(batch.mrp * (1 - catSale.discountPercentage / 100) * 100) / 100;
 };
 
 /**
@@ -128,8 +156,9 @@ const processSale = async ({
     const batchMap = new Map(batches.map((b) => [b.id, b]));
     const productIds = [...new Set(batches.map((b) => b.productId))];
 
-    // 2. Fetch all promotions in one go for all unique product IDs
+    // 2. Fetch all promotions and active category sales in one go
     const promoMap = await getBulkEffectivePromoPrices(tx, productIds);
+    const activeCategorySalesMap = await categorySaleService.getActiveCategorySalesMap(tx);
 
     for (const item of items) {
       const batchId = Number(item.batch_id);
@@ -159,8 +188,15 @@ const processSale = async ({
         data: { quantity: { decrement: item.quantity } },
       });
 
-      // Promotion Lookup from bulk map
+      // Promotion lookup from bulk map, plus the category-sale price for THIS
+      // batch specifically (priced off batch.mrp, not a different batch of
+      // the same product — see getCategorySalePrice).
       const promoPrice = promoMap.get(batch.productId) || null;
+      const categorySalePrice = getCategorySalePrice(batch, activeCategorySalesMap);
+      const bestDiscountPrice =
+        promoPrice !== null && categorySalePrice !== null
+          ? Math.min(promoPrice, categorySalePrice)
+          : promoPrice ?? categorySalePrice;
 
       // Determine effective price
       let effectivePrice = batch.sellingPrice;
@@ -187,9 +223,9 @@ const processSale = async ({
         if (isWholesaleItem) {
           effectivePrice = batch.wholesalePrice as number;
         }
-        // 2. Check Promotion
-        else if (promoPrice !== null && promoPrice < batch.sellingPrice) {
-          effectivePrice = promoPrice;
+        // 2. Check Promotion / category sale — whichever gives the lower price
+        else if (bestDiscountPrice !== null && bestDiscountPrice < batch.sellingPrice) {
+          effectivePrice = bestDiscountPrice;
         }
       }
 

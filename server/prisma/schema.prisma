@@ -186,6 +186,23 @@ model PromotionItem {
   @@index([productId])
 }
 
+model CategorySale {
+  id                 Int       @id @default(autoincrement())
+  name               String
+  category           String
+  discountPercentage Float
+  isIndefinite       Boolean   @default(false)
+  startDate          DateTime?
+  endDate            DateTime?
+  status             String    @default("draft")
+  excludedProductIds String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([category])
+  @@index([status])
+}
+
 model Setting {
   id        Int      @id @default(autoincrement())
   key       String   @unique

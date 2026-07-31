@@ -80,3 +80,50 @@ export interface PromoSettings {
   sortBySales?: string;
   maxGiftsToShow?: number;
 }
+
+export type CategorySaleComputedStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'expired';
+
+export interface CategorySale {
+  id: number;
+  name: string;
+  category: string;
+  discountPercentage: number;
+  isIndefinite: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  status: 'draft' | 'active' | 'paused';
+  excludedProductIds?: number[];
+  computedStatus: CategorySaleComputedStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CategorySaleInput {
+  name: string;
+  category: string;
+  discountPercentage: number;
+  isIndefinite: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+  status?: 'draft' | 'active' | 'paused';
+  excludedProductIds?: number[];
+}
+
+export interface CategorySaleProductPreview {
+  id: number;
+  name: string;
+  barcode: string | null;
+  mrp: number;
+  costPrice: number;
+  vendorDiscountAmount: number;
+  vendorDiscountPercentage: number;
+  currentSellingPrice: number;
+  currentCustomerDiscountAmount: number;
+  currentCustomerDiscountPercentage: number;
+  regularProfitAmount: number;
+  regularProfitMargin: number;
+  discountPercentage: number;
+  newSellingPrice: number;
+  profitAmount: number;
+  profitMargin: number;
+}

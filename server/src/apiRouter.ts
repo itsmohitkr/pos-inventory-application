@@ -15,6 +15,7 @@ router.use(lazyLoad('../../domains/loose-sale/loose-sale.router'));
 router.use(lazyLoad('../../domains/promotion/promotion.router'));
 router.use('/expenses', lazyLoad('../../domains/expense/expense.router'));
 router.use('/purchases', lazyLoad('../../domains/purchase/purchase.router'));
+router.use('/category-sales', lazyLoad('../../domains/category-sale/category-sale.router'));
 router.use('/settings', lazyLoad('../../domains/setting/setting.router'));
 router.use('/customers', lazyLoad('../../domains/customer/customer.router'));
 

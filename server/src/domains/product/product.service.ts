@@ -5,6 +5,7 @@ import { createHttpError, AppError } from '../../shared/error/appError';
 import { getDateRange } from '../../shared/utils/dateUtils';
 import { getErrorMessage } from '../../shared/utils/errorMessage';
 import categoryService = require('../category/category.service');
+import categorySaleService = require('../category-sale/category-sale.service');
 import logger = require('../../shared/utils/logger');
 import type { CreateProductInput, UpdateProductInput } from './product.validation';
 
@@ -406,6 +407,9 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
     category === 'all' || category === 'uncategorized'
       ? baseWhere
       : buildWhereFilter({ search, category });
+
+  const activeCategorySalesMap = await categorySaleService.getActiveCategorySalesMap();
+
   const products = await prisma.product.findMany({
     where,
     include: {
@@ -440,9 +444,29 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
       if (lowest !== Infinity) promoPrice = lowest;
     }
 
+    // Factor active category sale discount
+    const normCategory = normalizeCategory(product.category);
+    if (normCategory) {
+      const catKey = normCategory.toLowerCase().trim();
+      const catSale = activeCategorySalesMap.get(catKey);
+      if (catSale && catSale.discountPercentage > 0 && !catSale.excludedProductIds.has(product.id)) {
+        const latestBatch = product.batches[0];
+        const mrp = latestBatch?.mrp ?? 0;
+        const sellingPrice = latestBatch?.sellingPrice ?? 0;
+        const basePrice = mrp > 0 ? mrp : sellingPrice;
+        if (basePrice > 0) {
+          const categorySalePrice =
+            Math.round(basePrice * (1 - catSale.discountPercentage / 100) * 100) / 100;
+          if (promoPrice === null || categorySalePrice < promoPrice) {
+            promoPrice = categorySalePrice;
+          }
+        }
+      }
+    }
+
     return {
       ...product,
-      category: normalizeCategory(product.category),
+      category: normCategory,
       total_stock: product.batches.reduce((sum, batch) => sum + batch.quantity, 0),
       promoPrice,
       isOnSale: promoPrice !== null,
@@ -670,6 +694,35 @@ const createOrUpdateProduct = async ({
   lowStockWarningEnabled,
   lowStockThreshold,
 }: CreateProductInput) => {
+  // name/category/barcode/initialBatch presence is already enforced by
+  // CreateProductSchema (required string min-length + a non-optional
+  // initialBatch object) at the router boundary — no need to recheck it here.
+  // The numeric checks below are NOT duplicated by that schema: mrp/cost_price
+  // /selling_price/quantity are typed as a string|number union there (to
+  // accept raw form-input text), so Zod never validates they parse to a
+  // valid, non-negative number, or that sellingPrice falls between cost and
+  // MRP. This is the only place that business rule is enforced.
+  const mrp = Number(initialBatch.mrp);
+  const costPrice = Number(initialBatch.cost_price);
+  const sellingPrice = Number(initialBatch.selling_price);
+  const quantity = Number(initialBatch.quantity);
+
+  if (isNaN(mrp) || mrp < 0) {
+    throw createHttpError(400, 'MRP is required and must be 0 or greater');
+  }
+  if (isNaN(costPrice) || costPrice < 0) {
+    throw createHttpError(400, 'Cost price is required and must be 0 or greater');
+  }
+  if (isNaN(sellingPrice) || sellingPrice < 0) {
+    throw createHttpError(400, 'Selling price is required and must be 0 or greater');
+  }
+  if (sellingPrice < costPrice || sellingPrice > mrp) {
+    throw createHttpError(400, 'Selling price must be between Cost Price and MRP');
+  }
+  if (isNaN(quantity) || quantity < 0) {
+    throw createHttpError(400, 'Quantity is required and must be 0 or greater');
+  }
+
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Support multi-barcode: validate each barcode uniqueness
     if (barcode && barcode.trim()) {

@@ -15,8 +15,23 @@ import prismaModule = require('../../src/config/prisma');
 // type-checks in test files.
 const prisma = prismaModule as unknown as DeepMockProxy<PrismaClient>;
 
+(prisma as any).categorySale = {
+    create: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+};
+
 beforeEach(() => {
     mockReset(prisma);
+    (prisma as any).categorySale = {
+        create: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+    };
 });
 
 /** Typed accessor for the mocked Prisma client, for use in .test.ts files. */

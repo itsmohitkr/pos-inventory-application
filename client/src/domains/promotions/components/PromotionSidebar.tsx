@@ -74,6 +74,28 @@ const PromotionSidebar = ({ activeTab, onChangeTab }: PromotionSidebarProps) => 
       >
         Scheduled Sales
       </Button>
+      <Button
+        fullWidth
+        onClick={() => onChangeTab('category-sales')}
+        sx={{
+          justifyContent: 'flex-start',
+          py: 1.5,
+          px: 2,
+          borderRadius: '10px',
+          bgcolor: activeTab === 'category-sales' ? '#0f172a' : 'transparent',
+          color: activeTab === 'category-sales' ? '#ffffff' : '#475569',
+          fontWeight: 800,
+          textTransform: 'none',
+          '&:hover': { 
+            bgcolor: activeTab === 'category-sales' ? '#1e293b' : '#f1f5f9',
+            color: activeTab === 'category-sales' ? '#ffffff' : '#0f172a'
+          },
+          transition: 'all 0.2s ease'
+        }}
+        startIcon={<CalendarIcon sx={{ color: activeTab === 'category-sales' ? '#ffffff' : '#94a3b8' }} />}
+      >
+        Category Sales
+      </Button>
     </Box>
   </Paper>
 );

@@ -6,6 +6,8 @@ import type {
   PromotionFormState,
   PromoSettings,
   PromoThresholdConfig,
+  CategorySale,
+  CategorySaleInput,
 } from '@/domains/promotions/types';
 import type { CategoryNode, Product } from '@/shared/types/models';
 import * as Sentry from '@sentry/react';
@@ -14,11 +16,14 @@ import { Box, Container, Paper, Typography, Snackbar, Alert, Stack } from '@mui/
 import inventoryService from '@/shared/api/inventoryService';
 import posService from '@/shared/api/posService';
 import settingsService from '@/shared/api/settingsService';
+import categorySaleService from '@/shared/api/categorySaleService';
 import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
 import PromotionSidebar from '@/domains/promotions/components/PromotionSidebar';
 import ThresholdSettingsPanel from '@/domains/promotions/components/ThresholdSettingsPanel';
 import ScheduledSalesPanel from '@/domains/promotions/components/ScheduledSalesPanel';
 import PromotionFormDialog from '@/domains/promotions/components/PromotionFormDialog';
+import CategorySalesPanel from '@/domains/promotions/components/CategorySalesPanel';
+import CategorySaleFormDialog from '@/domains/promotions/components/CategorySaleFormDialog';
 
 /**
  * Promotion form state. Spread directly into the create/update payload, so
@@ -30,12 +35,17 @@ import PromotionFormDialog from '@/domains/promotions/components/PromotionFormDi
  */
 const PromotionManagement = () => {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [categorySales, setCategorySales] = useState<CategorySale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('threshold');
+
+  // Category Sale state
+  const [openCategorySaleDialog, setOpenCategorySaleDialog] = useState(false);
+  const [categorySaleToEdit, setCategorySaleToEdit] = useState<CategorySale | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<PromotionFormState>({
@@ -60,6 +70,65 @@ const PromotionManagement = () => {
     message: string;
     severity: AlertColor;
   }>({ open: false, message: '', severity: 'success' });
+
+  async function fetchCategorySales() {
+    try {
+      const data = await categorySaleService.fetchCategorySales();
+      setCategorySales(data);
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'fetch-category-sales' } });
+      console.error('Failed to fetch category sales:', error);
+    }
+  }
+
+  useEffect(() => {
+    fetchCategorySales();
+  }, []);
+
+  const handleCreateCategorySale = async (saleInput: CategorySaleInput) => {
+    if (categorySaleToEdit) {
+      await categorySaleService.updateCategorySale(categorySaleToEdit.id, saleInput);
+      setSnackbar({
+        open: true,
+        message: 'Category sale updated successfully',
+        severity: 'success',
+      });
+    } else {
+      await categorySaleService.createCategorySale(saleInput);
+      setSnackbar({
+        open: true,
+        message: 'Category sale created successfully',
+        severity: 'success',
+      });
+    }
+    fetchCategorySales();
+  };
+
+  const handleToggleCategorySaleStatus = async (id: number, newStatus: 'active' | 'paused') => {
+    try {
+      await categorySaleService.toggleCategorySaleStatus(id, newStatus);
+      setSnackbar({
+        open: true,
+        message: `Category sale ${newStatus === 'active' ? 'resumed' : 'paused'}`,
+        severity: 'success',
+      });
+      fetchCategorySales();
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'toggle-category-sale-status' } });
+      setSnackbar({ open: true, message: 'Failed to update sale status', severity: 'error' });
+    }
+  };
+
+  const handleDeleteCategorySale = async (id: number) => {
+    try {
+      await categorySaleService.deleteCategorySale(id);
+      setSnackbar({ open: true, message: 'Category sale deleted', severity: 'success' });
+      fetchCategorySales();
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'delete-category-sale' } });
+      setSnackbar({ open: true, message: 'Failed to delete category sale', severity: 'error' });
+    }
+  };
 
   async function fetchCategories() {
     try {
@@ -460,6 +529,22 @@ const PromotionManagement = () => {
               isPromotionActive={isPromotionActive}
             />
           )}
+
+          {activeTab === 'category-sales' && (
+            <CategorySalesPanel
+              sales={categorySales}
+              onCreate={() => {
+                setCategorySaleToEdit(null);
+                setOpenCategorySaleDialog(true);
+              }}
+              onEdit={(sale) => {
+                setCategorySaleToEdit(sale);
+                setOpenCategorySaleDialog(true);
+              }}
+              onDelete={handleDeleteCategorySale}
+              onToggleStatus={handleToggleCategorySaleStatus}
+            />
+          )}
         </Box>
       </Box>
 
@@ -478,6 +563,17 @@ const PromotionManagement = () => {
         onAddItem={handleAddItem}
         onRemoveItem={handleRemoveItem}
         onSubmit={handleSubmit}
+      />
+
+      <CategorySaleFormDialog
+        open={openCategorySaleDialog}
+        onClose={() => {
+          setOpenCategorySaleDialog(false);
+          setCategorySaleToEdit(null);
+        }}
+        onSave={handleCreateCategorySale}
+        categories={categories}
+        saleToEdit={categorySaleToEdit}
       />
 
       <Snackbar

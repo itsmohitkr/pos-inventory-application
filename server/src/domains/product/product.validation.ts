@@ -42,20 +42,19 @@ export const GetAllProductsSchema = {
 export const CreateProductSchema = {
   body: z.looseObject({
     name: str().min(1, 'Product name is required').max(255, 'Product name is too long'),
-    barcode: str().nullable().optional(),
-    category: str().nullable().optional(),
+    barcode: str().min(1, 'At least one barcode is required'),
+    category: str().min(1, 'Category is required'),
     enableBatchTracking: bool().optional(),
     lowStockWarningEnabled: bool().optional(),
     lowStockThreshold: integerValue.optional(),
-    initialBatch: z
-      .looseObject({
-        ...batchFields,
-        quantity: integerValue.optional(),
-        cost_price: numericValue.optional(),
-        selling_price: numericValue.optional(),
-        batch_code: str().nullable().optional(),
-      })
-      .optional(),
+    initialBatch: z.looseObject({
+      ...batchFields,
+      quantity: integerValue,
+      cost_price: numericValue,
+      selling_price: numericValue,
+      mrp: numericValue,
+      batch_code: str().nullable().optional(),
+    }),
   }),
 };
 
