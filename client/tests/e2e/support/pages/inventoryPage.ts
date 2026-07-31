@@ -1,10 +1,22 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-export const createInventoryPage = (page) => {
+interface NewProductFields {
+  name: string;
+  category: string;
+  quantity: number | string;
+  mrp: number | string;
+  costPrice: number | string;
+  sellingPrice: number | string;
+  lowStockThreshold?: number | string;
+  expiryDate?: string;
+}
+
+export const createInventoryPage = (page: Page) => {
   const addProductButton = page.getByRole('button', { name: 'Add Product' });
   const detailPanel = page.getByTestId('inventory-detail-panel');
 
-  const getProductRow = (productName) => page.locator('tr', { hasText: productName }).first();
+  const getProductRow = (productName: string | RegExp) =>
+    page.locator('tr', { hasText: productName }).first();
 
   return {
     goto: async () => {
@@ -16,10 +28,10 @@ export const createInventoryPage = (page) => {
       await expect(page).toHaveURL(/#\/inventory/);
       await expect(addProductButton).toBeVisible();
     },
-    expectProductVisible: async (productName) => {
+    expectProductVisible: async (productName: string) => {
       await expect(page.getByRole('cell', { name: new RegExp(productName, 'i') })).toBeVisible();
     },
-    expectProductStock: async (productName, stock) => {
+    expectProductStock: async (productName: string, stock: number | string) => {
       const row = getProductRow(new RegExp(productName, 'i'));
       await expect(row.getByRole('cell', { name: stock.toString(), exact: true })).toBeVisible();
     },
@@ -27,7 +39,16 @@ export const createInventoryPage = (page) => {
       await addProductButton.click();
       await expect(page.getByText('Add New Product')).toBeVisible();
     },
-    submitNewProduct: async ({ name, category, quantity, mrp, costPrice, sellingPrice, lowStockThreshold, expiryDate }) => {
+    submitNewProduct: async ({
+      name,
+      category,
+      quantity,
+      mrp,
+      costPrice,
+      sellingPrice,
+      lowStockThreshold,
+      expiryDate,
+    }: NewProductFields) => {
       // Tab 0: Product Details
       await page.getByLabel('Product Name').fill(name);
       await page.getByLabel('Category').fill(category);
@@ -66,12 +87,12 @@ export const createInventoryPage = (page) => {
 
       await page.getByRole('button', { name: 'Add Product' }).last().click();
     },
-    acknowledgeSuccessDialog: async (message) => {
+    acknowledgeSuccessDialog: async (message: string) => {
       const successDialog = page.getByRole('dialog');
       await expect(successDialog.getByText(message)).toBeVisible();
       await successDialog.getByRole('button', { name: 'OK' }).click();
     },
-    openEditProductForm: async (productName) => {
+    openEditProductForm: async (productName: string) => {
       // Close detail panel if open to prevent interception
       const closeBtn = detailPanel.getByRole('button', { name: 'Close' });
       if (await closeBtn.isVisible()) {
@@ -81,17 +102,17 @@ export const createInventoryPage = (page) => {
       await row.getByRole('button', { name: 'Edit Product' }).click();
       await expect(page.getByRole('dialog', { name: 'Edit Product Information' })).toBeVisible();
     },
-    saveEditedProductName: async (newName) => {
+    saveEditedProductName: async (newName: string) => {
       const editDialog = page.getByRole('dialog', { name: 'Edit Product Information' });
       await editDialog.getByLabel('Product Name').fill(newName);
       await editDialog.getByRole('button', { name: 'Save Product' }).click();
       await expect(editDialog).not.toBeVisible();
     },
-    selectProduct: async (productName) => {
+    selectProduct: async (productName: string) => {
       await getProductRow(new RegExp(productName, 'i')).click();
       await expect(detailPanel).toContainText(new RegExp(productName, 'i'));
     },
-    deleteProduct: async (productName) => {
+    deleteProduct: async (productName: string) => {
       // Close detail panel if open to prevent interception
       const closeBtn = detailPanel.getByRole('button', { name: 'Close' });
       if (await closeBtn.isVisible()) {
@@ -107,40 +128,40 @@ export const createInventoryPage = (page) => {
         page.getByRole('button', { name: 'Yes' }).click(),
       ]);
     },
-    openQuickInventoryForProduct: async (productName) => {
+    openQuickInventoryForProduct: async (productName: string) => {
       await expect(detailPanel).toContainText(new RegExp(productName, 'i'));
       await detailPanel.locator('[data-testid^="inventory-quick-stock-"]').first().click();
       await expect(page.getByRole('dialog', { name: 'Quick Inventory' })).toBeVisible();
     },
-    addStockInQuickInventory: async (quantity) => {
+    addStockInQuickInventory: async (quantity: number | string) => {
       const quickDialog = page.getByRole('dialog', { name: 'Quick Inventory' });
       await quickDialog.getByLabel('Add quantity').fill(String(quantity));
       await quickDialog.getByRole('button', { name: 'Update' }).click();
       await expect(page.getByText('Stock updated')).toBeVisible();
       await expect(quickDialog).not.toBeVisible({ timeout: 3000 });
     },
-    expectSelectedProductTotalStock: async (quantity) => {
+    expectSelectedProductTotalStock: async (quantity: number | string) => {
       await expect(page.getByTestId('inventory-detail-total-stock')).toHaveText(String(quantity));
     },
-    expectProductNotVisible: async (productName) => {
+    expectProductNotVisible: async (productName: string) => {
       await expect(page.locator('tr', { hasText: new RegExp(productName, 'i') })).toHaveCount(0);
     },
-    addCategory: async (categoryName) => {
+    addCategory: async (categoryName: string) => {
       await page.getByTitle('Add category').click();
       const dialog = page.getByRole('dialog', { name: 'Add Category' });
       await dialog.getByLabel('Category name').fill(categoryName);
       await dialog.getByRole('button', { name: 'Add' }).click();
       await expect(dialog).not.toBeVisible();
     },
-    selectCategory: async (categoryName) => {
+    selectCategory: async (categoryName: string) => {
       await page.getByRole('button', { name: new RegExp(categoryName, 'i') }).click();
     },
-    deleteCategory: async (categoryName) => {
+    deleteCategory: async (categoryName: string) => {
       const categoryButton = page.getByRole('button', { name: new RegExp(categoryName, 'i') });
       await categoryButton.click({ button: 'right' });
       await page.getByRole('menuitem', { name: 'Delete category' }).click();
     },
-    expectCategoryVisible: async (categoryName) => {
+    expectCategoryVisible: async (categoryName: string) => {
       await expect(page.getByRole('button', { name: new RegExp(categoryName, 'i') })).toBeVisible();
     },
   };

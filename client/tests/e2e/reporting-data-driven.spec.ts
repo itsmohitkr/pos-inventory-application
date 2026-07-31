@@ -5,9 +5,9 @@ import { createReportsPage } from './support/pages/reportsPage';
 import { loginAsAdmin, clearBrowserStorage, installMockApi } from './support/testHelpers';
 
 test.describe('Reporting Data Integrity', () => {
-  let posPage;
-  let inventoryPage;
-  let reportsPage;
+  let posPage: ReturnType<typeof createPosPage>;
+  let inventoryPage: ReturnType<typeof createInventoryPage>;
+  let reportsPage: ReturnType<typeof createReportsPage>;
 
   test.beforeEach(async ({ page }) => {
     await installMockApi(page);

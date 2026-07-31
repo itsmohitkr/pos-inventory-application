@@ -3,15 +3,14 @@
  *
  * Usage:
  *   cd client
- *   PERF=1 npx playwright test tests/e2e/perf-inventory.spec.js --project=chromium --reporter=list
+ *   PERF=1 npx playwright test tests/e2e/perf-inventory.spec.ts --project=chromium --reporter=list
  *
  * By default this spec is skipped so it does not affect the normal test suite.
  * Set PERF=1 to run it.  All API calls are mocked so no server is required.
  * A simulated 80 ms API delay per call models a realistic LAN backend.
  */
 
-// @ts-check
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type Route } from '@playwright/test';
 import process from 'node:process';
 import { adminUserFixture, settingsFixture } from './support/mockFixtures';
 
@@ -21,42 +20,36 @@ const MOCK_API_DELAY_MS = 80; // simulated backend latency per call
 const RUNS = 3; // repeat each interaction and take the median
 const CATEGORIES = ['Beverages', 'Snacks', 'Dairy', 'Bakery', 'Personal Care', 'Household'];
 
-/**
- * @typedef {Object} ProductBatch
- * @property {number} id
- * @property {string} batchCode
- * @property {string} batchNumber
- * @property {number} quantity
- * @property {number} costPrice
- * @property {number} sellingPrice
- * @property {number} mrp
- * @property {string | null} expiryDate
- */
+interface ProductBatch {
+  id: number;
+  batchCode: string;
+  batchNumber: string;
+  quantity: number;
+  costPrice: number;
+  sellingPrice: number;
+  mrp: number;
+  expiryDate: string | null;
+}
 
-/**
- * @typedef {Object} Product
- * @property {number} id
- * @property {string} name
- * @property {string} barcode
- * @property {string} category
- * @property {boolean} batchTrackingEnabled
- * @property {boolean} lowStockWarningEnabled
- * @property {number} lowStockThreshold
- * @property {number} total_stock
- * @property {number} totalQuantity
- * @property {number} costPrice
- * @property {number} sellingPrice
- * @property {number} mrp
- * @property {boolean} isDeleted
- * @property {ProductBatch[]} batches
- */
+interface Product {
+  id: number;
+  name: string;
+  barcode: string;
+  category: string;
+  batchTrackingEnabled: boolean;
+  lowStockWarningEnabled: boolean;
+  lowStockThreshold: number;
+  total_stock: number;
+  totalQuantity: number;
+  costPrice: number;
+  sellingPrice: number;
+  mrp: number;
+  isDeleted: boolean;
+  batches: ProductBatch[];
+}
 
 // ─── data generators ───────────────────────────────────────────────────────
-/**
- * @param {number} count 
- * @returns {Product[]}
- */
-function generateProducts(count) {
+function generateProducts(count: number): Product[] {
   return Array.from({ length: count }, (_, i) => {
     const id = i + 1;
     const category = CATEGORIES[i % CATEGORIES.length];
@@ -94,14 +87,19 @@ function generateProducts(count) {
   });
 }
 
-/**
- * @param {Product[]} products 
- */
-function buildSummary(products) {
-  /** @type {Record<string, number>} */
-  const cats = {};
+function buildSummary(products: Product[]) {
+  const cats: Record<string, number> = {};
   const totals = products.reduce(
-    (/** @type {{ productCount: number, totalQty: number, totalCost: number, totalSelling: number, totalMrp: number }} */ acc, p) => {
+    (
+      acc: {
+        productCount: number;
+        totalQty: number;
+        totalCost: number;
+        totalSelling: number;
+        totalMrp: number;
+      },
+      p
+    ) => {
       cats[p.category] = (cats[p.category] || 0) + 1;
       return {
         productCount: acc.productCount + 1,
@@ -126,27 +124,18 @@ function buildCategoryTree() {
 }
 
 // ─── mock API installer ─────────────────────────────────────────────────────
-/**
- * @param {import('@playwright/test').Page} page 
- * @param {Product[]} products 
- */
-async function installPerfMock(page, products) {
+async function installPerfMock(page: Page, products: Product[]) {
   const summary = buildSummary(products);
   const catTree = buildCategoryTree();
-  /** @type {Map<number, Product>} */
   const productMap = new Map(products.map((p) => [p.id, p]));
-  const delay = (/** @type {number} */ ms) => new Promise((r) => setTimeout(r, ms));
+  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  await page.route('**/*', async (route) => {
+  await page.route('**/*', async (route: Route) => {
     const req = route.request();
     const method = req.method();
     const path = new URL(req.url()).pathname;
 
-    /**
-     * @param {any} body 
-     * @param {number} [status] 
-     */
-    const json = async (body, status = 200) => {
+    const json = async (body: unknown, status = 200) => {
       await delay(MOCK_API_DELAY_MS);
       await route.fulfill({
         status,
@@ -175,24 +164,17 @@ async function installPerfMock(page, products) {
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────
-/**
- * @param {number[]} arr 
- */
-function median(arr) {
+function median(arr: number[]): number {
   const s = [...arr].sort((a, b) => a - b);
   return s[Math.floor(s.length / 2)];
 }
 
-/**
- * @typedef {Object} PerfResult
- * @property {string} label
- * @property {number[]} times
- */
+interface PerfResult {
+  label: string;
+  times: number[];
+}
 
-/**
- * @param {PerfResult[]} results 
- */
-function printReport(results) {
+function printReport(results: PerfResult[]) {
   const COL_LABEL = 42;
   const line = '─'.repeat(COL_LABEL + 28);
   const rows = results.map(({ label, times }) => {
@@ -255,12 +237,11 @@ test('inventory interaction timings', async ({ page }) => {
   const resetButton = page.getByRole('button', { name: /Reset/i });
   const posBar = page.locator('input[placeholder*="name, barcode or price"]').first();
 
-  /** @type {PerfResult[]} */
-  const results = [];
+  const results: PerfResult[] = [];
 
   // ── 1. Inventory tab load ──────────────────────────────────────────────
   {
-    const times = [];
+    const times: number[] = [];
     for (let r = 0; r < RUNS; r++) {
       await posLink.click();
       await expect(posBar).toBeVisible({ timeout: 10_000 });
@@ -282,7 +263,7 @@ test('inventory interaction timings', async ({ page }) => {
     }
     await expect(firstRow).toBeVisible();
 
-    const times = [];
+    const times: number[] = [];
     for (let r = 0; r < RUNS; r++) {
       const t0 = Date.now();
       await firstRow.click({ force: true });
@@ -301,7 +282,7 @@ test('inventory interaction timings', async ({ page }) => {
     await expect(firstRow).toBeVisible();
     const searchInput = page.locator('input[placeholder*="Search name"]');
     const clearBtn = page.locator('svg[data-testid="ClearIcon"]').locator('..').locator('..').first();
-    const times = [];
+    const times: number[] = [];
 
     for (let r = 0; r < RUNS; r++) {
       if (await clearBtn.isVisible()) await clearBtn.click();
@@ -326,7 +307,7 @@ test('inventory interaction timings', async ({ page }) => {
     await allCatBtn.click();
     await expect(firstRow).toBeVisible({ timeout: 5_000 });
 
-    const times = [];
+    const times: number[] = [];
     for (let r = 0; r < RUNS; r++) {
       const t0 = Date.now();
       await bevBtn.click();
@@ -345,7 +326,7 @@ test('inventory interaction timings', async ({ page }) => {
     await inventoryLink.click();
     await expect(firstRow).toBeVisible({ timeout: 20_000 });
 
-    const times = [];
+    const times: number[] = [];
     for (let r = 0; r < RUNS; r++) {
       const t0 = Date.now();
       await posLink.click();
@@ -368,7 +349,7 @@ test('inventory interaction timings', async ({ page }) => {
       await expect(posBar).toBeVisible({ timeout: 10_000 });
     }
 
-    const times = [];
+    const times: number[] = [];
     for (let r = 0; r < RUNS; r++) {
       const t0 = Date.now();
       await inventoryLink.click();

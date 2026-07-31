@@ -1,7 +1,8 @@
+import type { Page, Route } from '@playwright/test';
 import { adminUserFixture } from './mockFixtures';
 import { createMockState } from './mockState';
 
-const jsonResponse = async (route, body, status = 200) => {
+const jsonResponse = async (route: Route, body: unknown, status = 200) => {
   await route.fulfill({
     status,
     contentType: 'application/json',
@@ -9,11 +10,17 @@ const jsonResponse = async (route, body, status = 200) => {
   });
 };
 
-const notFound = async (route, message) => {
+const notFound = async (route: Route, message: string) => {
   await jsonResponse(route, { error: message }, 404);
 };
 
-export const installMockApi = async (page) => {
+// Every call site below only reaches `.pop()` after a `path.startsWith(...)`
+// check has already matched a `/segment/<id>` route, so the final segment is
+// always present — this just gives that guarantee a name instead of an
+// `as string` at each of the ~15 call sites.
+const lastSegment = (path: string): string => path.split('/').pop() as string;
+
+export const installMockApi = async (page: Page) => {
   const state = createMockState();
 
   await page.route('**/*', async (route) => {
@@ -57,13 +64,13 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/auth/users/') && method === 'PUT') {
-      const userId = path.split('/').pop();
+      const userId = lastSegment(path);
       await jsonResponse(route, state.updateUser(userId, request.postDataJSON()));
       return;
     }
 
     if (path.startsWith('/api/auth/users/') && method === 'DELETE') {
-      const userId = path.split('/').pop();
+      const userId = lastSegment(path);
       await jsonResponse(route, { success: state.deleteUser(userId) });
       return;
     }
@@ -79,7 +86,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/products/') && method === 'PUT') {
-      const productId = path.split('/').pop();
+      const productId = lastSegment(path);
       const updated = state.updateProduct(productId, request.postDataJSON());
       if (!updated) {
         await notFound(route, 'Product not found');
@@ -90,7 +97,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/products/') && method === 'DELETE') {
-      const productId = path.split('/').pop();
+      const productId = lastSegment(path);
       const removed = state.deleteProduct(productId);
       if (!removed) {
         await notFound(route, 'Product not found');
@@ -111,7 +118,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/products/id/') && method === 'GET') {
-      const product = state.getProductById(path.split('/').pop());
+      const product = state.getProductById(lastSegment(path));
       if (!product) {
         await notFound(route, 'Product not found');
         return;
@@ -121,7 +128,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/products/') && method === 'GET') {
-      const key = decodeURIComponent(path.split('/').pop());
+      const key = decodeURIComponent(lastSegment(path));
       const product = state.getProductByBarcode(key) || state.getProductById(key);
       if (!product) {
         await notFound(route, 'Product not found');
@@ -132,7 +139,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/batches/') && method === 'PUT') {
-      const batchId = path.split('/').pop();
+      const batchId = lastSegment(path);
       const updated = state.updateBatch(batchId, request.postDataJSON());
       if (!updated) {
         await notFound(route, 'Batch not found');
@@ -149,7 +156,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/sale/') && method === 'GET') {
-      const sale = state.getSaleById(path.split('/').pop());
+      const sale = state.getSaleById(lastSegment(path));
       if (!sale) {
         await notFound(route, 'Sale not found');
         return;
@@ -159,7 +166,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.endsWith('/return') && path.startsWith('/api/sale/') && method === 'POST') {
-      const saleId = path.split('/')[3];
+      const saleId = path.split('/')[3] as string;
       const refundResult = state.processRefund(saleId, request.postDataJSON()?.items || []);
       if (!refundResult) {
         await notFound(route, 'Sale not found');
@@ -221,7 +228,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/expenses/') && method === 'PUT') {
-      const expenseId = path.split('/').pop();
+      const expenseId = lastSegment(path);
       const updated = state.updateExpense(expenseId, request.postDataJSON());
       if (!updated) {
         await notFound(route, 'Expense not found');
@@ -232,7 +239,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/expenses/') && method === 'DELETE') {
-      const expenseId = path.split('/').pop();
+      const expenseId = lastSegment(path);
       const removed = state.deleteExpense(expenseId);
       if (!removed) {
         await notFound(route, 'Expense not found');
@@ -253,7 +260,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/purchases/') && method === 'PUT') {
-      const purchaseId = path.split('/').pop();
+      const purchaseId = lastSegment(path);
       const updated = state.updatePurchase(purchaseId, request.postDataJSON());
       if (!updated) {
         await notFound(route, 'Purchase not found');
@@ -264,7 +271,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/purchases/') && method === 'DELETE') {
-      const purchaseId = path.split('/').pop();
+      const purchaseId = lastSegment(path);
       const removed = state.deletePurchase(purchaseId);
       if (!removed) {
         await notFound(route, 'Purchase not found');
@@ -285,7 +292,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/promotions/') && method === 'PUT') {
-      const promotionId = path.split('/').pop();
+      const promotionId = lastSegment(path);
       const updated = state.updatePromotion(promotionId, request.postDataJSON());
       if (!updated) {
         await notFound(route, 'Promotion not found');
@@ -301,7 +308,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/customers/') && path.endsWith('/history') && method === 'GET') {
-      const customerId = path.split('/')[3];
+      const customerId = path.split('/')[3] as string;
       const history = state.getCustomerHistory(customerId);
       if (!history) {
         await notFound(route, 'Customer not found');
@@ -312,7 +319,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/customers/') && method === 'GET') {
-      const customer = state.getCustomerById(path.split('/').pop());
+      const customer = state.getCustomerById(lastSegment(path));
       if (!customer) {
         await notFound(route, 'Customer not found');
         return;
@@ -322,7 +329,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/customers/') && method === 'PUT') {
-      const customerId = path.split('/').pop();
+      const customerId = lastSegment(path);
       const updated = state.updateCustomer(customerId, request.postDataJSON());
       if (!updated) {
         await notFound(route, 'Customer not found');
@@ -333,7 +340,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/promotions/') && method === 'DELETE') {
-      const promotionId = path.split('/').pop();
+      const promotionId = lastSegment(path);
       const removed = state.deletePromotion(promotionId);
       if (!removed) {
         await notFound(route, 'Promotion not found');
@@ -344,7 +351,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/loose-sales/') && method === 'DELETE') {
-      const saleId = path.split('/').pop();
+      const saleId = lastSegment(path);
       const removed = state.deleteLooseSale(saleId);
       if (!removed) {
         await notFound(route, 'Loose sale not found');
@@ -355,7 +362,7 @@ export const installMockApi = async (page) => {
     }
 
     if (path.startsWith('/api/promotions/product-options/') && method === 'GET') {
-      const product = state.getProductById(path.split('/').pop());
+      const product = state.getProductById(lastSegment(path));
       await jsonResponse(route, {
         mrp: product?.batches?.[0]?.mrp || 110,
         costPrice: product?.costPrice || 78,

@@ -1,6 +1,6 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-export const createExpensesPage = (page) => {
+export const createExpensesPage = (page: Page) => {
   const pageTitle = page.getByRole('heading', { name: 'Expenses & Purchases' });
 
   return {
@@ -16,7 +16,15 @@ export const createExpensesPage = (page) => {
       await expect(page.getByRole('tab', { name: 'Inventory Purchases' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Add Expense' })).toBeVisible();
     },
-    createExpense: async ({ amount, category, description }) => {
+    createExpense: async ({
+      amount,
+      category,
+      description,
+    }: {
+      amount: number | string;
+      category: string;
+      description: string;
+    }) => {
       await page.getByRole('button', { name: 'Add Expense' }).click();
       const dialog = page.getByRole('dialog');
       await expect(dialog.getByText('Add New Expense')).toBeVisible();
@@ -29,7 +37,15 @@ export const createExpensesPage = (page) => {
     openPurchasesTab: async () => {
       await page.getByRole('tab', { name: 'Inventory Purchases' }).click();
     },
-    createPurchase: async ({ vendor, totalAmount, note }) => {
+    createPurchase: async ({
+      vendor,
+      totalAmount,
+      note,
+    }: {
+      vendor: string;
+      totalAmount: number | string;
+      note: string;
+    }) => {
       await page.getByRole('button', { name: 'Log Purchase' }).click();
       const dialog = page.getByRole('dialog');
       await expect(dialog.getByText('Log Inventory Purchase')).toBeVisible();
@@ -39,20 +55,20 @@ export const createExpensesPage = (page) => {
       await dialog.getByRole('button', { name: 'Record' }).click();
       await expect(dialog).not.toBeVisible();
     },
-    deleteExpense: async (description) => {
+    deleteExpense: async (description: string) => {
       const row = page.locator('tr', { hasText: description }).first();
       await row.getByRole('button', { name: 'Delete' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
     },
-    deletePurchase: async (vendor) => {
+    deletePurchase: async (vendor: string) => {
       const row = page.locator('tr', { hasText: vendor }).first();
       await row.getByRole('button', { name: 'Delete' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
     },
-    expectRowVisible: async (text) => {
+    expectRowVisible: async (text: string) => {
       await expect(page.locator('tr', { hasText: text }).first()).toBeVisible();
     },
-    expectRowNotVisible: async (text) => {
+    expectRowNotVisible: async (text: string) => {
       await expect(page.locator('tr', { hasText: text })).toHaveCount(0);
     },
   };

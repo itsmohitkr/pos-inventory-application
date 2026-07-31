@@ -1,8 +1,13 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-export const collectRuntimeFailures = (page) => {
-  const pageErrors = [];
-  const failedApiResponses = [];
+export interface RuntimeFailures {
+  pageErrors: string[];
+  failedApiResponses: string[];
+}
+
+export const collectRuntimeFailures = (page: Page): RuntimeFailures => {
+  const pageErrors: string[] = [];
+  const failedApiResponses: string[] = [];
 
   page.on('pageerror', (error) => {
     pageErrors.push(error.message);
@@ -17,7 +22,7 @@ export const collectRuntimeFailures = (page) => {
   return { pageErrors, failedApiResponses };
 };
 
-export const expectHealthyPage = async (page, failures) => {
+export const expectHealthyPage = async (page: Page, failures: RuntimeFailures) => {
   await expect(page.getByText('Something Went Wrong')).toHaveCount(0);
   expect(failures.failedApiResponses, failures.failedApiResponses.join('\n')).toEqual([]);
   expect(failures.pageErrors, failures.pageErrors.join('\n')).toEqual([]);

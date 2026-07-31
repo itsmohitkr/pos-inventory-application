@@ -1,6 +1,6 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-export const createReportsPage = (page) => {
+export const createReportsPage = (page: Page) => {
   return {
     goto: async () => {
       await page.getByRole('link', { name: 'Reports' }).click();
@@ -13,10 +13,10 @@ export const createReportsPage = (page) => {
       // 'Cash Flow Report' is a button in the sidebar
       await expect(page.getByRole('button', { name: 'Cash Flow Report' })).toBeVisible();
     },
-    expectReportRow: async (text) => {
+    expectReportRow: async (text: string) => {
       await expect(page.locator('tr', { hasText: text }).first()).toBeVisible();
     },
-    selectDateRange: async (startDate, endDate) => {
+    selectDateRange: async (startDate: string, endDate: string) => {
       // Date inputs only render when the "Custom" timeframe is selected.
       // MUI Select doesn't use a standard label association, so use the
       // same text-ancestor pattern as setTimeframe.
@@ -28,10 +28,10 @@ export const createReportsPage = (page) => {
       await page.locator('input[type="date"]').last().fill(endDate);
       await page.getByRole('button', { name: 'Apply' }).click();
     },
-    selectReport: async (label) => {
+    selectReport: async (label: string) => {
       await page.getByRole('button', { name: label }).click();
     },
-    setTimeframe: async (label) => {
+    setTimeframe: async (label: string) => {
       // Find the combobox that is near the "Time Frame" text
       await page.getByText('Time Frame').locator('..').getByRole('combobox').click();
       await page.getByRole('option', { name: label }).click();

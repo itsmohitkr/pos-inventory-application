@@ -15,7 +15,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:full": "playwright test --project=chromium --project=firefox --project=webkit",
     "test:ci": "npm run lint && npm run build && npm run test:unit && npm run test:e2e:full",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:e2e": "tsc -p tsconfig.e2e.json"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

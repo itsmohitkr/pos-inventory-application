@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
+import type { AxiosResponse } from 'axios';
 import OnboardingWizard from './OnboardingWizard';
 
 vi.mock('@/shared/api/authService', () => ({
@@ -18,6 +19,11 @@ vi.mock('@/shared/api/settingsService', () => ({
 }));
 
 import authService from '@/shared/api/authService';
+
+// vi.mock above replaces the real module with jest-fn stubs, but the static
+// import type is still the real service's — vi.mocked() gives back the mock's
+// call-tracking API (mockResolvedValue/mockRejectedValue) without an `any` cast.
+const mockedCompleteOnboarding = vi.mocked(authService.completeOnboarding);
 
 describe('OnboardingWizard', () => {
   const onComplete = vi.fn();
@@ -62,7 +68,9 @@ describe('OnboardingWizard', () => {
   });
 
   it('calls completeOnboarding and onComplete on successful submit', async () => {
-    authService.completeOnboarding.mockResolvedValue({});
+    // Only `data` is read by the component; the rest of AxiosResponse is irrelevant to this test,
+    // matching the partial-cast pattern already used in shared/api/api.ts.
+    mockedCompleteOnboarding.mockResolvedValue({ data: {} } as AxiosResponse);
 
     const { container } = render(<OnboardingWizard onComplete={onComplete} />);
     fireEvent.change(screen.getByLabelText(/Shop Name/i), { target: { value: 'My Shop' } });
@@ -88,7 +96,7 @@ describe('OnboardingWizard', () => {
   });
 
   it('shows error alert when API call fails', async () => {
-    authService.completeOnboarding.mockRejectedValue({
+    mockedCompleteOnboarding.mockRejectedValue({
       response: { data: { message: 'Server error' } },
     });
 

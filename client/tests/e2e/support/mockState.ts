@@ -12,10 +12,21 @@ import {
   customersFixture,
 } from './mockFixtures';
 
+/**
+ * This is a hand-rolled fake backend over route interception, not production
+ * code — every record shape mirrors whatever mockFixtures.ts happens to
+ * contain plus whatever a spec's payload happens to send. Modelling each
+ * entity precisely would just re-describe the fixtures a second time with no
+ * safety benefit (nothing here is called from typed application code).
+ * `any`/`Record<string, any>` are used deliberately throughout this module,
+ * same rationale as the documented escape hatches in shared/api/*.ts.
+ */
+type MockRecord = Record<string, any>;
+type Id = string | number;
 
-const clone = (value) => JSON.parse(JSON.stringify(value));
+const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
-const buildSummary = (products) => {
+const buildSummary = (products: MockRecord[]) => {
   const totals = products.reduce(
     (accumulator, product) => {
       const productQuantity = Number(product.totalQuantity || 0);
@@ -40,7 +51,7 @@ const buildSummary = (products) => {
     }
   );
 
-  const categoryCounts = products.reduce((accumulator, product) => {
+  const categoryCounts = products.reduce((accumulator: Record<string, number>, product) => {
     const category = product.category || 'Uncategorized';
     accumulator[category] = (accumulator[category] || 0) + 1;
     return accumulator;
@@ -54,9 +65,9 @@ const buildSummary = (products) => {
   };
 };
 
-const buildCategoryTree = (products) => {
+const buildCategoryTree = (products: MockRecord[]) => {
   const uniqueCategories = [
-    ...new Set(products.map((product) => product.category).filter(Boolean)),
+    ...new Set(products.map((product) => product.category as string).filter(Boolean)),
   ];
 
   return uniqueCategories.map((category) => ({
@@ -67,16 +78,16 @@ const buildCategoryTree = (products) => {
   }));
 };
 
-const toNumeric = (value, fallback = 0) => {
+const toNumeric = (value: unknown, fallback = 0): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const ensureUiShape = (product) => ({
+const ensureUiShape = (product: MockRecord): MockRecord => ({
   ...product,
   totalQuantity: toNumeric(product.totalQuantity, toNumeric(product.total_stock, 0)),
   total_stock: toNumeric(product.total_stock, toNumeric(product.totalQuantity, 0)),
-  batches: (product.batches || []).map((batch) => ({
+  batches: (product.batches || []).map((batch: MockRecord) => ({
     ...batch,
     batchNumber: batch.batchNumber || batch.batchCode || null,
     batchCode: batch.batchCode || batch.batchNumber || null,
@@ -87,9 +98,9 @@ const ensureUiShape = (product) => ({
   })),
 });
 
-const recalculateProductTotals = (product) => {
+const recalculateProductTotals = (product: MockRecord) => {
   const totalStock = (product.batches || []).reduce(
-    (sum, batch) => sum + toNumeric(batch.quantity, 0),
+    (sum: number, batch: MockRecord) => sum + toNumeric(batch.quantity, 0),
     0
   );
   product.totalQuantity = totalStock;
@@ -97,7 +108,24 @@ const recalculateProductTotals = (product) => {
 };
 
 export const createMockState = () => {
-  const state = {
+  const state: {
+    products: MockRecord[];
+    promotions: MockRecord[];
+    expenses: MockRecord[];
+    purchases: MockRecord[];
+    looseSales: MockRecord[];
+    settings: MockRecord;
+    periodicReport: MockRecord;
+    monthlyReport: MockRecord[];
+    dailyReport: MockRecord[];
+    sales: MockRecord[];
+    customers: MockRecord[];
+    users: MockRecord[];
+    nextSaleId: number;
+    nextCustomerId: number;
+    nextSaleItemId: number;
+    nextLooseSaleId: number;
+  } = {
     products: clone(inventoryProductsFixture).map(ensureUiShape),
     promotions: clone(promotionsFixture),
     expenses: clone(expensesFixture),
@@ -128,10 +156,10 @@ export const createMockState = () => {
     p.isDeleted = false;
   });
 
-  const findProductAndBatchByBatchId = (batchId) => {
+  const findProductAndBatchByBatchId = (batchId: Id) => {
     for (const product of state.products) {
       const batch = (product.batches || []).find(
-        (candidate) => String(candidate.id) === String(batchId)
+        (candidate: MockRecord) => String(candidate.id) === String(batchId)
       );
       if (batch) {
         return { product, batch };
@@ -140,24 +168,25 @@ export const createMockState = () => {
     return null;
   };
 
-  const getProductByIdInternal = (productId) =>
+  const getProductByIdInternal = (productId: Id) =>
     state.products.find(
       (item) => String(item.id) === String(productId) && item.isDeleted === false
     ) || null;
 
-  const getProductByBarcodeInternal = (barcode) =>
+  const getProductByBarcodeInternal = (barcode: string) =>
     state.products.find(
       (item) =>
-        item.isDeleted === false && item.barcode?.split('|').some((entry) => entry === barcode)
+        item.isDeleted === false &&
+        item.barcode?.split('|').some((entry: string) => entry === barcode)
     ) || null;
 
   return {
     getProducts: () => state.products.filter((p) => !p.isDeleted),
     getProductSummary: () => buildSummary(state.products.filter((p) => !p.isDeleted)),
     getCategoryTree: () => buildCategoryTree(state.products.filter((p) => !p.isDeleted)),
-    getProductById: (productId) => getProductByIdInternal(productId),
-    getProductByBarcode: (barcode) => getProductByBarcodeInternal(barcode),
-    createProduct: (payload) => {
+    getProductById: (productId: Id) => getProductByIdInternal(productId),
+    getProductByBarcode: (barcode: string) => getProductByBarcodeInternal(barcode),
+    createProduct: (payload: MockRecord) => {
       const nextId = Math.max(0, ...state.products.map((product) => Number(product.id) || 0)) + 1;
       const quantity = Number(payload.initialBatch?.quantity || 0);
       const mrp = Number(payload.initialBatch?.mrp || 0);
@@ -192,7 +221,7 @@ export const createMockState = () => {
       state.products.push(newProduct);
       return newProduct;
     },
-    updateProduct: (id, payload) => {
+    updateProduct: (id: Id, payload: MockRecord) => {
       const product = getProductByIdInternal(id);
       if (!product) return null;
 
@@ -205,14 +234,14 @@ export const createMockState = () => {
       product.lowStockThreshold = payload.lowStockThreshold ?? product.lowStockThreshold;
       return product;
     },
-    deleteProduct: (id) => {
+    deleteProduct: (id: Id) => {
       const product = state.products.find((p) => String(p.id) === String(id));
       if (!product) return false;
       product.isDeleted = true;
       product.deletedAt = new Date().toISOString();
       return true;
     },
-    updateBatch: (id, payload) => {
+    updateBatch: (id: Id, payload: MockRecord) => {
       const match = findProductAndBatchByBatchId(id);
       if (!match) return null;
 
@@ -224,8 +253,8 @@ export const createMockState = () => {
       recalculateProductTotals(product);
       return batch;
     },
-    processSale: (payload) => {
-      const rawItems = payload.items || [];
+    processSale: (payload: MockRecord) => {
+      const rawItems: MockRecord[] = payload.items || [];
       const saleItems = rawItems
         .map((item) => {
           const match = findProductAndBatchByBatchId(item.batch_id);
@@ -258,7 +287,7 @@ export const createMockState = () => {
             },
           };
         })
-        .filter(Boolean);
+        .filter((item): item is NonNullable<typeof item> => item !== null);
 
       const saleId = state.nextSaleId++;
       const totalAmount = saleItems.reduce(
@@ -291,8 +320,9 @@ export const createMockState = () => {
       return { saleId, sale };
     },
 
-    getSaleById: (saleId) => state.sales.find((sale) => String(sale.id) === String(saleId)) || null,
-    processRefund: (saleId, items) => {
+    getSaleById: (saleId: Id) =>
+      state.sales.find((sale) => String(sale.id) === String(saleId)) || null,
+    processRefund: (saleId: Id, items: MockRecord[]) => {
       const sale = state.sales.find((entry) => String(entry.id) === String(saleId));
       if (!sale) return null;
 
@@ -329,8 +359,8 @@ export const createMockState = () => {
       return { success: true, sale };
     },
     getCustomers: () => state.customers,
-    getCustomerById: (id) => state.customers.find(c => String(c.id) === String(id)) || null,
-    getCustomerHistory: (id) => {
+    getCustomerById: (id: Id) => state.customers.find(c => String(c.id) === String(id)) || null,
+    getCustomerHistory: (id: Id) => {
       const customer = state.customers.find(c => String(c.id) === String(id));
       if (!customer) return null;
       return {
@@ -338,7 +368,7 @@ export const createMockState = () => {
         sales: state.sales.filter(s => String(s.customerId) === String(id))
       };
     },
-    updateCustomer: (id, payload) => {
+    updateCustomer: (id: Id, payload: MockRecord) => {
       const customer = state.customers.find(c => String(c.id) === String(id));
       if (!customer) return null;
       customer.name = payload.name ?? customer.name;
@@ -347,20 +377,20 @@ export const createMockState = () => {
     },
 
     getPromotions: () => state.promotions,
-    updatePromotion: (id, payload) => {
+    updatePromotion: (id: Id, payload: MockRecord) => {
       const promotion = state.promotions.find((item) => String(item.id) === String(id));
       if (!promotion) return null;
       Object.assign(promotion, payload);
       return promotion;
     },
-    deletePromotion: (id) => {
+    deletePromotion: (id: Id) => {
       const before = state.promotions.length;
       state.promotions = state.promotions.filter(
         (promotion) => String(promotion.id) !== String(id)
       );
       return before !== state.promotions.length;
     },
-    createPromotion: (payload) => {
+    createPromotion: (payload: MockRecord) => {
       const nextId =
         Math.max(0, ...state.promotions.map((promotion) => Number(promotion.id) || 0)) + 1;
       const newPromotion = {
@@ -374,7 +404,7 @@ export const createMockState = () => {
       return newPromotion;
     },
     getSettings: () => ({ data: state.settings }),
-    updateSettings: (payload) => {
+    updateSettings: (payload: MockRecord) => {
       if (payload?.settings) {
         Object.entries(payload.settings).forEach(([key, value]) => {
           state.settings[key] = value;
@@ -385,7 +415,7 @@ export const createMockState = () => {
       return { success: true, data: state.settings };
     },
     getExpenses: () => state.expenses,
-    createExpense: (payload) => {
+    createExpense: (payload: MockRecord) => {
       const nextId = Math.max(0, ...state.expenses.map((expense) => Number(expense.id) || 0)) + 1;
       const amount = toNumeric(payload.amount, 0);
       const paidAmount = toNumeric(payload.paidAmount, 0);
@@ -404,7 +434,7 @@ export const createMockState = () => {
       state.expenses.unshift(expense);
       return expense;
     },
-    updateExpense: (id, payload) => {
+    updateExpense: (id: Id, payload: MockRecord) => {
       const expense = state.expenses.find((item) => String(item.id) === String(id));
       if (!expense) return null;
       expense.amount =
@@ -415,13 +445,13 @@ export const createMockState = () => {
       expense.paymentMethod = payload.paymentMethod ?? expense.paymentMethod;
       return expense;
     },
-    deleteExpense: (id) => {
+    deleteExpense: (id: Id) => {
       const before = state.expenses.length;
       state.expenses = state.expenses.filter((expense) => String(expense.id) !== String(id));
       return before !== state.expenses.length;
     },
     getPurchases: () => state.purchases,
-    createPurchase: (payload) => {
+    createPurchase: (payload: MockRecord) => {
       const nextId =
         Math.max(0, ...state.purchases.map((purchase) => Number(purchase.id) || 0)) + 1;
       const totalAmount = toNumeric(payload.totalAmount, 0);
@@ -443,7 +473,7 @@ export const createMockState = () => {
       state.purchases.unshift(purchase);
       return purchase;
     },
-    updatePurchase: (id, payload) => {
+    updatePurchase: (id: Id, payload: MockRecord) => {
       const purchase = state.purchases.find((item) => String(item.id) === String(id));
       if (!purchase) return null;
       purchase.vendor = payload.vendor ?? purchase.vendor;
@@ -452,13 +482,13 @@ export const createMockState = () => {
       purchase.items = payload.items ?? purchase.items;
       return purchase;
     },
-    deletePurchase: (id) => {
+    deletePurchase: (id: Id) => {
       const before = state.purchases.length;
       state.purchases = state.purchases.filter((purchase) => String(purchase.id) !== String(id));
       return before !== state.purchases.length;
     },
     getLooseSales: () => state.looseSales,
-    createLooseSale: (payload) => {
+    createLooseSale: (payload: MockRecord) => {
       const nextId = state.nextLooseSaleId++;
       const sale = {
         id: nextId,
@@ -469,7 +499,7 @@ export const createMockState = () => {
       state.looseSales.push(sale);
       return sale;
     },
-    deleteLooseSale: (id) => {
+    deleteLooseSale: (id: Id) => {
       const before = state.looseSales.length;
       state.looseSales = state.looseSales.filter((sale) => String(sale.id) !== String(id));
       return before !== state.looseSales.length;
@@ -482,29 +512,29 @@ export const createMockState = () => {
       purchases: state.purchases,
     }),
     getUsers: () => state.users,
-    createUser: (user) => {
+    createUser: (user: MockRecord) => {
       const newUser = { id: Date.now(), ...user, status: 'active' };
       state.users.push(newUser);
       return newUser;
     },
-    updateUser: (id, userData) => {
+    updateUser: (id: Id, userData: MockRecord) => {
       const index = state.users.findIndex(u => String(u.id) === String(id));
       if (index === -1) return null;
       state.users[index] = { ...state.users[index], ...userData };
       return state.users[index];
     },
-    deleteUser: (id) => {
+    deleteUser: (id: Id) => {
       state.users = state.users.filter(u => String(u.id) !== String(id));
       return true;
     },
     getLowStockReport: () => {
       return state.products.filter(p => !p.isDeleted && p.totalQuantity <= (p.lowStockThreshold || 2));
     },
-    getExpiryReport: ({ startDate, endDate }) => {
+    getExpiryReport: ({ startDate, endDate }: { startDate?: string; endDate?: string }) => {
       const start = startDate ? new Date(startDate) : null;
       const end = endDate ? new Date(endDate) : null;
-      
-      const expiringBatches = [];
+
+      const expiringBatches: MockRecord[] = [];
       state.products.forEach(product => {
         if (product.isDeleted) return;
         product.batches.forEach(batch => {

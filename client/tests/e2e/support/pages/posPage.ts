@@ -1,6 +1,6 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-export const createPosPage = (page) => {
+export const createPosPage = (page: Page) => {
   const productSearchInput = page.getByRole('combobox', { name: 'Scan Barcode or Search Item' });
   const payButton = page.getByRole('button', { name: /Pay\s*\[F10\]/ });
 
@@ -13,7 +13,7 @@ export const createPosPage = (page) => {
     expectLoaded: async () => {
       await expect(productSearchInput).toBeVisible();
     },
-    addItemToCartBySearch: async (query) => {
+    addItemToCartBySearch: async (query: string) => {
       await productSearchInput.fill(query);
       const listbox = page.getByRole('listbox');
       await expect(listbox).toBeVisible({ timeout: 5000 });
@@ -23,7 +23,7 @@ export const createPosPage = (page) => {
       // Wait for state update after selection animation and API calls
       await page.waitForTimeout(1000);
     },
-    applyDiscount: async (amount) => {
+    applyDiscount: async (amount: number | string) => {
       await page.getByPlaceholder('0.00').click();
       const numpad = page.getByRole('dialog', { name: 'Extra Discount' });
       await expect(numpad).toBeVisible();
@@ -39,7 +39,7 @@ export const createPosPage = (page) => {
       await page.getByRole('button', { name: /LOOSE SALE/i }).click();
       await expect(page.getByRole('dialog', { name: /Loose Sale/i })).toBeVisible();
     },
-    addLooseItem: async (name, price) => {
+    addLooseItem: async (name: string, price: number | string) => {
       await page.getByRole('button', { name: /LOOSE SALE/i }).click();
       const dialog = page.getByRole('dialog', { name: /Loose Sale/i });
       await expect(dialog).toBeVisible();
@@ -56,7 +56,7 @@ export const createPosPage = (page) => {
     addTab: async () => {
       await page.getByRole('button', { name: 'Add Tab' }).click();
     },
-    switchTab: async (index) => {
+    switchTab: async (index: number) => {
       await page.getByRole('tab').nth(index).click();
     },
     completeSale: async () => {
@@ -65,15 +65,15 @@ export const createPosPage = (page) => {
     expectSaleCompleted: async () => {
       await expect(page.getByText('Sale Completed Successfully!')).toBeVisible();
     },
-    expectNetPayable: async (amount) => {
+    expectNetPayable: async (amount: number) => {
       const netPayable = page.getByTestId('pos-net-payable');
       await expect(netPayable).toContainText(amount.toFixed(2));
     },
-    expectSubtotal: async (amount) => {
+    expectSubtotal: async (amount: number) => {
       const subtotal = page.getByTestId('pos-subtotal');
       await expect(subtotal).toContainText(amount.toFixed(2));
     },
-    updateItemQuantity: async (productName, quantity) => {
+    updateItemQuantity: async (productName: string, quantity: number | string) => {
       const row = page.getByRole('row', { name: new RegExp(productName, 'i') });
       const qtyCell = row.getByRole('cell').nth(2); // Qty column
       await qtyCell.click();

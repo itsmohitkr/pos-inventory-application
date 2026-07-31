@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 const PRIMARY_NAV_LINKS = [
   'POS',
@@ -11,7 +11,7 @@ const PRIMARY_NAV_LINKS = [
   'Dashboard',
 ];
 
-export const createAppShellPage = (page) => {
+export const createAppShellPage = (page: Page) => {
   const settingsButton = page.getByLabel('Settings');
 
   return {
@@ -21,7 +21,7 @@ export const createAppShellPage = (page) => {
       }
       await expect(settingsButton).toBeVisible();
     },
-    navigateTo: async (linkName) => {
+    navigateTo: async (linkName: string) => {
       await page.getByRole('link', { name: linkName }).click();
     },
     openSettingsDialog: async () => {

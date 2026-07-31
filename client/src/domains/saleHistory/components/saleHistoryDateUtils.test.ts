@@ -53,8 +53,10 @@ describe('saleHistoryDateUtils', () => {
 
     it('returns inclusive ISO strings for valid dates', () => {
       const range = buildInclusiveSaleHistoryRange('2026-04-01', '2026-04-30');
-      const startDate = new Date(range.start);
-      const endDate = new Date(range.end);
+      // Non-null: both dates are valid literals above, so the null branch cannot fire.
+      expect(range).not.toBeNull();
+      const startDate = new Date(range!.start);
+      const endDate = new Date(range!.end);
 
       expect(startDate.getFullYear()).toBe(2026);
       expect(startDate.getMonth()).toBe(3);

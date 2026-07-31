@@ -1,6 +1,6 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-export const createPromotionsPage = (page) => {
+export const createPromotionsPage = (page: Page) => {
   const thresholdPanelTitle = page.getByText('Order Threshold Promotions');
 
   return {
@@ -27,7 +27,7 @@ export const createPromotionsPage = (page) => {
       await expect(saleDialog.getByText('Schedule New Sale Event')).toBeVisible();
       return saleDialog;
     },
-    submitSaleEvent: async ({ name, productSearch }) => {
+    submitSaleEvent: async ({ name, productSearch }: { name: string; productSearch: string }) => {
       const saleDialog = page.getByRole('dialog');
       await saleDialog.getByLabel('Sale Name').fill(name);
       await saleDialog.getByLabel('Search Product').fill(productSearch);
@@ -38,7 +38,7 @@ export const createPromotionsPage = (page) => {
       await saleDialog.getByRole('button', { name: 'Publish Sale' }).click();
       await expect(saleDialog).not.toBeVisible();
     },
-    addThresholdRow: async (threshold) => {
+    addThresholdRow: async (threshold: number | string) => {
       await page.getByPlaceholder('Order Total (₹)').fill(String(threshold));
       await page.getByRole('button', { name: 'Add Rule' }).click();
       await expect(page.getByText(`₹${threshold}`)).toBeVisible();
@@ -46,7 +46,7 @@ export const createPromotionsPage = (page) => {
     saveThresholdSettings: async () => {
       await page.getByRole('button', { name: 'Save Configuration' }).click();
     },
-    editSaleEventName: async (currentName, nextName) => {
+    editSaleEventName: async (currentName: string, nextName: string) => {
       const row = page.locator('tr', { hasText: currentName }).first();
       await row.getByRole('button').nth(0).click();
       const saleDialog = page.getByRole('dialog');
@@ -55,15 +55,15 @@ export const createPromotionsPage = (page) => {
       await saleDialog.getByRole('button', { name: 'Publish Sale' }).click();
       await expect(saleDialog).not.toBeVisible();
     },
-    deleteSaleEvent: async (saleName) => {
+    deleteSaleEvent: async (saleName: string) => {
       page.once('dialog', (dialog) => dialog.accept());
       const row = page.locator('tr', { hasText: saleName }).first();
       await row.getByRole('button').nth(1).click();
     },
-    expectSaleVisible: async (saleName) => {
+    expectSaleVisible: async (saleName: string) => {
       await expect(page.getByText(saleName)).toBeVisible();
     },
-    expectSaleNotVisible: async (saleName) => {
+    expectSaleNotVisible: async (saleName: string) => {
       await expect(page.locator('tr', { hasText: saleName })).toHaveCount(0);
     },
   };

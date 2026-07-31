@@ -1,6 +1,14 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-export const createSettingsPage = (page) => {
+interface ShopMetadataFields {
+  name?: string;
+  mobile?: string;
+  address?: string;
+  email?: string;
+  gst?: string;
+}
+
+export const createSettingsPage = (page: Page) => {
   const dialog = page.locator('[role="dialog"]').filter({
     has: page.getByRole('tab', { name: 'Payment' }),
   });
@@ -14,7 +22,7 @@ export const createSettingsPage = (page) => {
       await dialog.getByRole('tab', { name: 'Payment' }).click();
       await expect(dialog.getByRole('heading', { name: 'Payment Settings' })).toBeVisible();
     },
-    togglePaymentMethod: async (label) => {
+    togglePaymentMethod: async (label: string) => {
       await dialog.getByRole('checkbox', { name: new RegExp(label, 'i') }).click();
       const successDialog = page.locator('[role="dialog"]').filter({
         has: page.getByText('Success', { exact: true }),
@@ -23,7 +31,7 @@ export const createSettingsPage = (page) => {
         await successDialog.getByRole('button', { name: 'OK' }).click();
       }
     },
-    expectPaymentMethodChecked: async (label, checked) => {
+    expectPaymentMethodChecked: async (label: string, checked: boolean) => {
       const checkbox = dialog.getByRole('checkbox', { name: new RegExp(label, 'i') });
       if (checked) {
         await expect(checkbox).toBeChecked();
@@ -31,7 +39,7 @@ export const createSettingsPage = (page) => {
         await expect(checkbox).not.toBeChecked();
       }
     },
-    addCustomMethod: async (label) => {
+    addCustomMethod: async (label: string) => {
       await dialog.getByRole('button', { name: 'Add Custom Method' }).click();
       await dialog.getByPlaceholder('Enter payment method name').fill(label);
       await dialog.getByRole('button', { name: 'Add' }).click();
@@ -47,7 +55,7 @@ export const createSettingsPage = (page) => {
       await dialog.getByRole('tab', { name: 'Account' }).click();
       await expect(dialog.getByRole('heading', { name: 'Shop Information' })).toBeVisible();
     },
-    updateShopMetadata: async ({ name, mobile, address, email, gst }) => {
+    updateShopMetadata: async ({ name, mobile, address, email, gst }: ShopMetadataFields) => {
       if (name) await dialog.getByLabel('Shop Name').fill(name);
       if (mobile) await dialog.getByLabel('Mobile Number 1').fill(mobile);
       if (email) await dialog.getByLabel('Email Address').fill(email);
@@ -63,7 +71,7 @@ export const createSettingsPage = (page) => {
         await successDialog.getByRole('button', { name: 'OK' }).click();
       }
     },
-    verifyShopMetadata: async ({ name, mobile, address, email, gst }) => {
+    verifyShopMetadata: async ({ name, mobile, address, email, gst }: ShopMetadataFields) => {
       if (name) await expect(dialog.getByLabel('Shop Name')).toHaveValue(name);
       if (mobile) await expect(dialog.getByLabel('Mobile Number 1')).toHaveValue(mobile);
       if (email) await expect(dialog.getByLabel('Email Address')).toHaveValue(email);

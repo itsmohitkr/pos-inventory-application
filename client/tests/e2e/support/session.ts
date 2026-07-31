@@ -1,6 +1,6 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-export const clearBrowserStorage = async (page) => {
+export const clearBrowserStorage = async (page: Page) => {
   // Ensure we are on the application's domain before clearing localStorage to avoid SecurityError
   if (page.url() === 'about:blank') {
     await page.goto('/');
@@ -15,7 +15,7 @@ export const clearBrowserStorage = async (page) => {
   });
 };
 
-export const loginAsAdmin = async (page) => {
+export const loginAsAdmin = async (page: Page) => {
   await page.goto('/');
   await expect(page.getByText('POS System Login')).toBeVisible();
   await page.getByLabel('Username').fill('admin');

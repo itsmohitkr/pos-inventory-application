@@ -7,11 +7,14 @@
     "strict and allowJs:false are enabled here rather than in",
     "tsconfig.base.json because the base is shared with desktop/, which has",
     "not been assessed. server/ sets the same flags in its own config.",
-    "allowJs:false is safe even though .test.js/.test.jsx files still exist",
-    "under src/ — 'include' matches them, but with allowJs off tsc silently",
-    "excludes .js/.jsx from the program instead of erroring, and Vitest",
-    "transforms them independently of this tsconfig. They stay .js until",
-    "converted separately — see CLAUDE.md."
+    "src/ is now fully .ts/.tsx, including its Vitest unit tests — allowJs:false",
+    "is a hard guarantee, not just a default, since there is nothing left under",
+    "src/ that needs the old silent-exclude behaviour.",
+    "",
+    "The E2E Playwright suite (tests/e2e/**) is intentionally NOT included",
+    "here: it runs under Node, not Vite, and needs @playwright/test's and",
+    "Node's ambient types, which would collide with this program's browser",
+    "types if merged into the same tsc run. It has its own tsconfig.e2e.json."
   ],
   "compilerOptions": {
     "target": "ES2022",
@@ -35,5 +38,5 @@
     "allowJs": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests-e2e"]
+  "exclude": ["node_modules", "dist", "tests/e2e"]
 }

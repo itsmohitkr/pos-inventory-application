@@ -68,7 +68,10 @@ export const getSaleHistoryRange = (type: string) => {
   };
 };
 
-export const buildInclusiveSaleHistoryRange = (startDate?: string, endDate?: string) => {
+export const buildInclusiveSaleHistoryRange = (
+  startDate?: string | null,
+  endDate?: string | null
+) => {
   if (!startDate || !endDate) return null;
 
   const [sy, sm, sd] = startDate.split('-').map(Number);

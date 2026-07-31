@@ -13,8 +13,14 @@
  * the single place that has to change.
  */
 
-/** A response that may arrive bare or wrapped in a `data` envelope. */
-type MaybeWrapped<T> = T | { data?: T } | null | undefined;
+/**
+ * A response that may arrive bare or wrapped in a `data` envelope. `data` is
+ * typed nullable, not just optional: these guards exist specifically to
+ * defend against malformed envelopes (e.g. `{ data: null }` from a handler
+ * that errored without populating it), so the type must admit the shape it
+ * defends against.
+ */
+type MaybeWrapped<T> = T | { data?: T | null } | null | undefined;
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
