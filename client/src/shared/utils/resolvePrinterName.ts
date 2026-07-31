@@ -12,17 +12,22 @@ export interface ResolvePrinterNameArgs {
 /**
  * Picks which printer a receipt should go to.
  *
- * Order: the user's saved printer (only if it is still present in the live
- * list) -> the system default -> the first printer flagged default -> the
- * first printer at all -> undefined when none exist.
+ * Order: the user's saved printer -> the system default -> the first printer
+ * flagged default -> the first printer at all -> undefined (which the main
+ * process treats as "use the OS default").
  *
- * The "still present in the live list" check is the important part. A saved
- * printer that has been renamed, unplugged, or removed would otherwise be
- * sent to the main process, which rejects unknown device names outright — so
- * without this the cashier gets a hard failure where falling back to the
- * default would have printed fine. This is shared precisely because three
- * call sites had drifted into three different versions of it, two of which
- * skipped the check.
+ * The saved printer is only overridden when we can *prove* it is gone, i.e.
+ * the live list is non-empty and does not contain it — a printer that has
+ * been renamed or unplugged would otherwise be sent to main, which rejects
+ * unknown device names outright, giving a hard failure where falling back
+ * would have printed fine.
+ *
+ * An EMPTY list is not proof of anything. Enumeration is async and can still
+ * be in flight on the first sale after launch, and it can fail outright on a
+ * busy spooler. Treating "empty" as "your printer is gone" would break
+ * machines where printing works today, so in that case the saved value is
+ * trusted and main gets the final say. This mirrors the original behaviour of
+ * the POS pay-and-print path, which trusted the saved printer unconditionally.
  *
  * Barcode and price-list printing deliberately do NOT use this: those keep
  * their own per-dialog printer choice in localStorage, which is a separate
@@ -34,10 +39,12 @@ export const resolvePrinterName = ({
   defaultPrinter = null,
 }: ResolvePrinterNameArgs): string | undefined => {
   const list = Array.isArray(printers) ? printers : [];
-  const saved = receiptSettings?.printerType;
+  const saved = typeof receiptSettings?.printerType === 'string' ? receiptSettings.printerType : '';
 
-  if (typeof saved === 'string' && saved && list.some((p) => p.name === saved)) {
-    return saved;
+  if (saved) {
+    // No list to check against -> trust it rather than silently dropping it.
+    if (list.length === 0) return saved;
+    if (list.some((p) => p.name === saved)) return saved;
   }
 
   return defaultPrinter || (list.find((p) => p.isDefault) || list[0])?.name;

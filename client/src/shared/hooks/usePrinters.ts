@@ -48,7 +48,13 @@ const fetchPrinters = async (retries = 3): Promise<PrinterList> => {
       return fetchPrinters(retries - 1);
     }
     Sentry.captureException(err, { tags: { feature: 'printers-fetch' } });
-    publish(EMPTY);
+    // Deliberately does NOT populate the cache. Caching a failure would pin
+    // an empty printer list for the rest of the process, so one bad
+    // enumeration at launch (busy spooler) would leave the barcode and
+    // price-list dialogs permanently printer-less — whereas before this
+    // cache existed they re-fetched on every open. Notify subscribers so the
+    // UI updates, but leave the cache unset so the next caller retries.
+    subscribers.forEach((notify) => notify(EMPTY));
     return EMPTY;
   }
 };

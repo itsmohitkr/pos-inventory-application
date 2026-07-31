@@ -101,15 +101,11 @@ const ReceiptPreviewDialog = ({
         window.print();
         return;
       }
+      // No hard "pick a printer first" guard here: an undefined name is a
+      // valid request that main turns into the OS default printer, and that
+      // is how this dialog has always worked. Adding a guard would block
+      // printing on machines that print fine today.
       const printerName = resolvePrinterName({ receiptSettings, printers, defaultPrinter });
-      if (!printerName) {
-        setSnackbar({
-          open: true,
-          message: 'No printer available. Go to Settings → Receipt Settings to select one.',
-          severity: 'error',
-        });
-        return;
-      }
       const result = await window.electron.ipcRenderer.invoke<PrintResult>(IPC.PRINT_MANUAL, {
         printerName,
       });

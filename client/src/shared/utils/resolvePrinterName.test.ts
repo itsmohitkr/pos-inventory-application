@@ -53,20 +53,34 @@ describe('resolvePrinterName', () => {
     ).toBe('Printer A');
   });
 
-  it('returns undefined when no printers are available', () => {
+  it('returns undefined when there is no saved printer and none available', () => {
     expect(
-      resolvePrinterName({ receiptSettings: { printerType: 'Anything' }, printers: [], defaultPrinter: null })
+      resolvePrinterName({ receiptSettings: {}, printers: [], defaultPrinter: null })
     ).toBeUndefined();
   });
 
-  it('ignores a saved printer when the list is empty rather than trusting it blindly', () => {
+  // Regression guard. Enumeration is async and can fail; an empty list means
+  // "we don't know", not "your printer is gone". Dropping the saved printer
+  // here would break machines that print fine today — the POS pay-and-print
+  // path historically trusted the saved value unconditionally.
+  it('trusts the saved printer when the list is empty (enumeration pending or failed)', () => {
     expect(
       resolvePrinterName({
         receiptSettings: { printerType: 'EPSON TM-T20' },
         printers: [],
         defaultPrinter: null,
       })
-    ).toBeUndefined();
+    ).toBe('EPSON TM-T20');
+  });
+
+  it('prefers the saved printer over the system default when the list is unknown', () => {
+    expect(
+      resolvePrinterName({
+        receiptSettings: { printerType: 'EPSON TM-T20' },
+        printers: [],
+        defaultPrinter: 'Some Other Printer',
+      })
+    ).toBe('EPSON TM-T20');
   });
 
   it('tolerates missing/nullish inputs', () => {

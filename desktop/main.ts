@@ -181,13 +181,22 @@ interface PrintResult {
  * How long to wait for Chromium's print callback before giving up.
  *
  * The callback fires when the job is handed to the OS spooler, not when ink
- * hits paper, so this is generous. It exists because the callback sometimes
- * never fires at all — see printWithTimeout.
+ * hits paper, so a healthy printer answers in well under a second. This is
+ * set deliberately long anyway: the only job of this timeout is to stop an
+ * indefinite hang (see printWithTimeout), and any finite value does that,
+ * whereas a value that is too short would report a false failure for a job
+ * that actually printed — on a busy Windows spooler with a large label batch
+ * that is a real possibility. Cheap to be generous; expensive to be wrong.
  */
-const PRINT_TIMEOUT_MS = 30_000;
+const PRINT_TIMEOUT_MS = 60_000;
 
-/** Guard for BrowserWindow.loadURL, which can also hang on a bad payload. */
-const PRINT_LOAD_TIMEOUT_MS = 15_000;
+/**
+ * Guard for BrowserWindow.loadURL, which can also hang on a bad payload.
+ * Generous for the same reason as PRINT_TIMEOUT_MS: parsing a large batch of
+ * inlined SVG labels is legitimately slow on modest hardware, and a premature
+ * abort would fail a job that was about to succeed.
+ */
+const PRINT_LOAD_TIMEOUT_MS = 30_000;
 
 // Descriptive-string matches come FIRST because that is what Electron actually
 // passes. Verified against the pinned Electron (40.4.0) by calling print()
@@ -398,9 +407,15 @@ interface PrintHtmlContentRequest {
  * Chromium refuses to navigate to a data: URL beyond roughly 2 MB.
  * Percent-encoding inflates markup 1.5-3x, so a large batch of inlined SVG
  * barcodes can cross that line — which would otherwise surface as a silent
- * blank page rather than an error. Guard below the real limit for headroom.
+ * blank page rather than an error.
+ *
+ * Set just under the real cliff rather than comfortably below it. This guard
+ * exists to turn an unexplained blank page into a clear message, NOT to
+ * impose a new batch limit: a threshold with generous headroom would reject
+ * large label runs that print correctly today. Anything over this is going to
+ * fail in Chromium anyway.
  */
-const MAX_PRINT_DATA_URL_BYTES = 1_500_000;
+const MAX_PRINT_DATA_URL_BYTES = 1_950_000;
 
 const PRINT_PARTITION = 'print-isolated';
 let printSessionConfigured = false;

@@ -44,32 +44,33 @@ const BarcodePrintDialog = ({ open, onClose, product }: BarcodePrintDialogProps)
 
   React.useEffect(() => {
     if (!open) return;
-    const loadSettings = async () => {
-      if (window.electron) {
-        // Shared cache: avoids re-hitting the OS spooler every time this
-        // dialog opens, and inherits its retry-with-backoff.
-        const { printers: list } = await loadPrinters();
-        setPrinters(list);
+    // Saved settings are restored FIRST and synchronously: they come from
+    // localStorage and must never wait on the OS spooler. The shared printer
+    // fetch retries with backoff, so awaiting it here would leave the user's
+    // saved layout unapplied for seconds whenever enumeration is slow.
+    const savedStr = localStorage.getItem('barcodePrinterSettings');
+    if (savedStr) {
+      try {
+        const saved = JSON.parse(savedStr);
+        if (saved.printMethod) setPrintMethod(saved.printMethod);
+        if (saved.paperSize) setPaperSize(saved.paperSize);
+        if (saved.selectedPrinter) setSelectedPrinter(saved.selectedPrinter);
+        if (saved.margins) setMargins(saved.margins);
+        if (saved.spacing) setSpacing(saved.spacing);
+        if (saved.contentOptions) setContentOptions(saved.contentOptions);
+        if (saved.textAlign) setTextAlign(saved.textAlign);
+        if (saved.shopName) setShopName(saved.shopName);
+        if (saved.customDimensions) setCustomDimensions(saved.customDimensions);
+      } catch {
+        console.error('Failed to parse barcode settings');
       }
-      const savedStr = localStorage.getItem('barcodePrinterSettings');
-      if (savedStr) {
-        try {
-          const saved = JSON.parse(savedStr);
-          if (saved.printMethod) setPrintMethod(saved.printMethod);
-          if (saved.paperSize) setPaperSize(saved.paperSize);
-          if (saved.selectedPrinter) setSelectedPrinter(saved.selectedPrinter);
-          if (saved.margins) setMargins(saved.margins);
-          if (saved.spacing) setSpacing(saved.spacing);
-          if (saved.contentOptions) setContentOptions(saved.contentOptions);
-          if (saved.textAlign) setTextAlign(saved.textAlign);
-          if (saved.shopName) setShopName(saved.shopName);
-          if (saved.customDimensions) setCustomDimensions(saved.customDimensions);
-        } catch {
-          console.error('Failed to parse barcode settings');
-        }
-      }
-    };
-    loadSettings();
+    }
+
+    if (window.electron) {
+      // Shared cache: avoids re-hitting the OS spooler every time this dialog
+      // opens, and inherits its retry-with-backoff.
+      loadPrinters().then(({ printers: list }) => setPrinters(list));
+    }
   }, [open]);
 
   React.useEffect(() => {
