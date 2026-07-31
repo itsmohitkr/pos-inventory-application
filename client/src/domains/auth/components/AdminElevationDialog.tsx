@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -7,8 +7,10 @@ import {
   Typography,
   TextField,
   Button,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
-import { Lock as LockIcon } from '@mui/icons-material';
+import { Lock as LockIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 
 interface AdminElevationDialogProps {
   open: boolean;
@@ -28,6 +30,8 @@ const AdminElevationDialog = ({
   adminLoginError,
   onAdminLogin,
 }: AdminElevationDialogProps) => {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <Dialog
       open={open}
@@ -52,7 +56,7 @@ const AdminElevationDialog = ({
         <TextField
           autoFocus
           label="Admin Password"
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           fullWidth
           size="small"
           value={adminPassword}
@@ -61,6 +65,21 @@ const AdminElevationDialog = ({
             if (e.key === 'Enter') {
               onAdminLogin();
             }
+          }}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="toggle password visibility"
+                  onClick={() => setShowPassword((show) => !show)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  edge="end"
+                  size="small"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
           }}
         />
       </DialogContent>

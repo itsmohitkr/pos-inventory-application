@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { AuthUser } from '@/shared/types/auth';
-import { Alert, Box, TextField, Typography } from '@mui/material';
-import { Warning as WarningIcon } from '@mui/icons-material';
+import { Alert, Box, TextField, Typography, IconButton, InputAdornment } from '@mui/material';
+import { Warning as WarningIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 
 const CONFIRM_PHRASE = 'WIPE ALL DATA';
 
@@ -19,6 +19,7 @@ const WipeDatabaseConfirmation = ({
   confirmPhrase, setConfirmPhrase,
   currentUser,
 }: WipeDatabaseConfirmationProps) => {
+  const [showPassword, setShowPassword] = useState(false);
   const phraseCorrect = confirmPhrase === CONFIRM_PHRASE;
 
   return (
@@ -47,7 +48,7 @@ const WipeDatabaseConfirmation = ({
 
       <TextField
         label="Admin Password"
-        type="password"
+        type={showPassword ? 'text' : 'password'}
         fullWidth
         value={wipePassword}
         onChange={(e) => setWipePassword(e.target.value)}
@@ -55,6 +56,20 @@ const WipeDatabaseConfirmation = ({
         error={wipePassword.length > 0 && wipePassword.length < 4}
         helperText={wipePassword.length > 0 && wipePassword.length < 4 ? 'Password too short' : ''}
         sx={{ mb: 2 }}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="toggle wipe password visibility"
+                onClick={() => setShowPassword((show) => !show)}
+                onMouseDown={(e) => e.preventDefault()}
+                edge="end"
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
 
       <Typography variant="body2" sx={{ mb: 1 }}>

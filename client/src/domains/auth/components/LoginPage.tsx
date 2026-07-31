@@ -9,7 +9,10 @@ import {
   Box,
   Alert,
   CircularProgress,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import trovixLogo from '@/assets/trovix.png';
 import settingsService from '@/shared/api/settingsService';
 import { getApiErrorMessage } from '@/shared/api/api';
@@ -18,6 +21,7 @@ import type { AuthUser } from '@/shared/types/auth';
 const LoginPage = ({ onLogin }: { onLogin: (user: AuthUser) => void }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -93,11 +97,25 @@ const LoginPage = ({ onLogin }: { onLogin: (user: AuthUser) => void }) => {
             />
             <TextField
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               fullWidth
               disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={() => setShowPassword((show) => !show)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <Button
               type="submit"

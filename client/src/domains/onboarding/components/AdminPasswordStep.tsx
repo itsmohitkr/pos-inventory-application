@@ -1,5 +1,6 @@
-import React from 'react';
-import { Stack, TextField, Typography, LinearProgress, Box } from '@mui/material';
+import React, { useState } from 'react';
+import { Stack, TextField, Typography, LinearProgress, Box, IconButton, InputAdornment } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import type { PasswordFields } from './useOnboarding';
 
 function PasswordStrength({ password }: { password: string }) {
@@ -27,6 +28,8 @@ interface AdminPasswordStepProps {
 }
 
 export default function AdminPasswordStep({ fields, onChange }: AdminPasswordStepProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const mismatch = fields.confirmPassword.length > 0 && fields.adminPassword !== fields.confirmPassword;
 
   return (
@@ -38,21 +41,49 @@ export default function AdminPasswordStep({ fields, onChange }: AdminPasswordSte
         label="New Admin Password"
         value={fields.adminPassword}
         onChange={onChange('adminPassword')}
-        type="password"
+        type={showPassword ? 'text' : 'password'}
         required
         fullWidth
         autoFocus
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="toggle password visibility"
+                onClick={() => setShowPassword((show) => !show)}
+                onMouseDown={(e) => e.preventDefault()}
+                edge="end"
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
       <PasswordStrength password={fields.adminPassword} />
       <TextField
         label="Confirm Password"
         value={fields.confirmPassword}
         onChange={onChange('confirmPassword')}
-        type="password"
+        type={showConfirmPassword ? 'text' : 'password'}
         required
         fullWidth
         error={mismatch}
         helperText={mismatch ? 'Passwords do not match' : ''}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="toggle confirmation password visibility"
+                onClick={() => setShowConfirmPassword((show) => !show)}
+                onMouseDown={(e) => e.preventDefault()}
+                edge="end"
+              >
+                {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
     </Stack>
   );
