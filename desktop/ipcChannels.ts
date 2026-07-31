@@ -1,8 +1,8 @@
 // Single source of truth for all IPC channel names.
-// Import this in main.js (CommonJS) and mirror the same strings in
-// client/src/shared/ipcChannels.js (ES module) so a typo in one place
+// Import this in main.ts (compiles to CommonJS) and mirror the same strings in
+// client/src/shared/ipcChannels.ts (ES module) so a typo in one place
 // never silently breaks the other.
-module.exports = {
+const IPC = {
   // Printer
   GET_PRINTERS: 'get-printers',
   PRINT_MANUAL: 'print-manual',
@@ -31,4 +31,6 @@ module.exports = {
   // Splash screen (main → splash renderer)
   SPLASH_STATUS: 'splash-status',
   SPLASH_VERSION: 'splash-version',
-};
+} as const;
+
+export = IPC;

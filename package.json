@@ -2,13 +2,13 @@
   "name": "trovix",
   "version": "1.0.1",
   "description": "Trovix \u2014 POS for any shop",
-  "main": "desktop/main.js",
+  "main": "desktop/dist/main.js",
   "homepage": "./",
   "author": "Trovix <support@trovix.app>",
   "license": "ISC",
   "scripts": {
-    "electron-dev": "npm run server-build && concurrently \"npm run client-dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron-build": "npm run sync-version && npm run server-build && npm run client-build && npm run electron-pack",
+    "electron-dev": "npm run desktop-build && npm run server-build && concurrently \"npm run client-dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron-build": "npm run sync-version && npm run desktop-build && npm run server-build && npm run client-build && npm run electron-pack",
     "electron-pack": "electron-builder --publish never",
     "electron-publish": "npm run sync-version && electron-builder --publish always",
     "sync-version": "node scripts/sync-version.js",
@@ -20,7 +20,8 @@
     "format:check": "prettier . --check",
     "typecheck": "tsc -p desktop --noEmit",
     "typecheck:all": "npm run typecheck && npm --prefix server run typecheck && npm --prefix client run typecheck",
-    "server-build": "npm --prefix server run build"
+    "server-build": "npm --prefix server run build",
+    "desktop-build": "tsc -p desktop/tsconfig.build.json"
   },
   "keywords": [],
   "devDependencies": {
@@ -48,7 +49,8 @@
     "asar": true,
     "afterPack": "./scripts/post-build.js",
     "files": [
-      "desktop/**/*",
+      "desktop/dist/**/*",
+      "desktop/splash/**/*",
       "client/dist/**/*",
       "server/dist/**/*",
       "server/prisma/**/*",

@@ -1,5 +1,5 @@
 // Electron and core imports FIRST
-const {
+import {
   app,
   BrowserWindow,
   ipcMain,
@@ -8,31 +8,32 @@ const {
   screen,
   shell,
   webContents,
-} = require('electron');
+} from 'electron';
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
-const Sentry = require("@sentry/electron/main");
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.join(__dirname, '../../server/.env') });
+import * as Sentry from '@sentry/electron/main';
 
 if (process.env.SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     release: `trovix@${app.getVersion()}`,
-    environment: process.env.NODE_ENV || "production",
+    environment: process.env.NODE_ENV || 'production',
   });
 }
 
-const { autoUpdater } = require('electron-updater');
-const fs = require('fs');
-const os = require('os');
-const url = require('url');
-const net = require('net');
-const http = require('http');
-const IPC = require('./ipcChannels');
+import { autoUpdater } from 'electron-updater';
+import fs from 'fs';
+import os from 'os';
+import url from 'url';
+import net from 'net';
+import http from 'http';
+import IPC = require('./ipcChannels');
 
 // Catch any unhandled error in the main process so the app never silently disappears.
 // Log to file and show a dialog so the user knows something went wrong.
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', (err: Error) => {
   const msg = `[${new Date().toISOString()}] [FATAL] uncaughtException: ${err.stack || err.message}\n`;
   try { logStream.write(msg); } catch (_) { }
   console.error('[FATAL] uncaughtException:', err);
@@ -44,7 +45,7 @@ process.on('uncaughtException', (err) => {
   } catch (_) { }
 });
 
-process.on('unhandledRejection', (reason) => {
+process.on('unhandledRejection', (reason: unknown) => {
   const msg = `[${new Date().toISOString()}] [FATAL] unhandledRejection: ${reason}\n`;
   try { logStream.write(msg); } catch (_) { }
   console.error('[FATAL] unhandledRejection:', reason);
@@ -86,11 +87,19 @@ ipcMain.handle('get-printers', async () => {
   return await mainWindow.webContents.getPrintersAsync();
 });
 
+interface ApiBridgeRequest {
+  method?: string;
+  url: string;
+  body?: unknown;
+  params?: Record<string, unknown>;
+  headers?: Record<string, string>;
+}
+
 // Generic IPC bridge: forwards any renderer API call to the in-process Express
 // server via a loopback HTTP request. All middleware (helmet, rate-limit, Joi
 // validation, pino logging, error handler) fires normally.
 // Only used in production — the dev renderer uses Vite's axios HTTP proxy.
-ipcMain.handle('api-bridge', (_event, { method = 'GET', url, body, params, headers = {} }) => {
+ipcMain.handle('api-bridge', (_event, { method = 'GET', url, body, params, headers = {} }: ApiBridgeRequest) => {
   return new Promise((resolve) => {
     let fullPath = url;
     if (params && Object.keys(params).length > 0) {
@@ -108,7 +117,7 @@ ipcMain.handle('api-bridge', (_event, { method = 'GET', url, body, params, heade
     // custom adapter. Avoid double-encoding: if body is already a string, use it
     // directly; if it's an object (non-standard path), stringify it ourselves.
     const bodyStr = body == null ? null : typeof body === 'string' ? body : JSON.stringify(body);
-    const reqHeaders = {
+    const reqHeaders: Record<string, string | number> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
       ...headers,
@@ -127,7 +136,7 @@ ipcMain.handle('api-bridge', (_event, { method = 'GET', url, body, params, heade
     };
 
     const httpReq = http.request(options, (res) => {
-      const chunks = [];
+      const chunks: Buffer[] = [];
       res.on('data', (chunk) => chunks.push(chunk));
       res.on('end', () => {
         const raw = Buffer.concat(chunks).toString();
@@ -154,7 +163,7 @@ ipcMain.handle('api-bridge', (_event, { method = 'GET', url, body, params, heade
 
 // Maps Chromium's internal print result codes to user-readable messages.
 // Source: chromium/src/printing/print_job.h PrintResult enum
-const PRINT_ERROR_MESSAGES = {
+const PRINT_ERROR_MESSAGES: Record<number, string> = {
   1: 'Print job failed. Check that the printer is turned on and has paper.',
   2: 'Invalid printer settings. Try selecting the printer again in Receipt Settings.',
   3: 'Print was cancelled.',
@@ -163,7 +172,7 @@ const PRINT_ERROR_MESSAGES = {
   6: 'File system error during printing.',
 };
 
-function describePrintError(failureReason) {
+function describePrintError(failureReason: string | undefined | null): string {
   if (!failureReason) return 'Unknown print error';
   const codeMatch = String(failureReason).match(/Error code:\s*(\d+)/i);
   if (codeMatch) {
@@ -173,7 +182,11 @@ function describePrintError(failureReason) {
   return failureReason;
 }
 
-ipcMain.handle('print-manual', async (_event, { printerName }) => {
+interface PrintManualRequest {
+  printerName?: string;
+}
+
+ipcMain.handle('print-manual', async (_event, { printerName }: PrintManualRequest) => {
   if (!mainWindow) return { success: false, error: 'App window not ready' };
   console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
 
@@ -191,13 +204,13 @@ ipcMain.handle('print-manual', async (_event, { printerName }) => {
         };
       }
     } catch (err) {
-      console.warn('[PRINT] Could not validate printer list:', err.message);
+      console.warn('[PRINT] Could not validate printer list:', err instanceof Error ? err.message : err);
     }
   }
 
   return new Promise((resolve) => {
     // silent: true — no OS print dialog, no interruption to the cashier flow
-    mainWindow.webContents.print(
+    mainWindow!.webContents.print(
       {
         silent: true,
         deviceName: printerName || undefined,
@@ -220,8 +233,14 @@ ipcMain.handle('print-manual', async (_event, { printerName }) => {
   });
 });
 
-ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize }) => {
-  let printWindow;
+interface PrintHtmlContentRequest {
+  html: string;
+  printerName?: string;
+  pageSize?: { widthMicrons?: number; heightMicrons?: number };
+}
+
+ipcMain.handle('print-html-content', async (_event, { html, printerName, pageSize }: PrintHtmlContentRequest) => {
+  let printWindow: BrowserWindow | undefined;
 
   try {
     if (!html || typeof html !== 'string') {
@@ -243,7 +262,7 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
     await printWindow.loadURL(htmlUrl);
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    const printOptions = {
+    const printOptions: Electron.WebContentsPrintOptions & { pageSize?: { width: number; height: number } } = {
       silent: true,
       deviceName: printerName || undefined,
       printBackground: true,
@@ -259,8 +278,8 @@ ipcMain.handle('print-html-content', async (event, { html, printerName, pageSize
       };
     }
 
-    const result = await new Promise((resolve) => {
-      printWindow.webContents.print(printOptions, (success, failureReason) => {
+    const result = await new Promise<{ success: boolean; failureReason?: string }>((resolve) => {
+      printWindow!.webContents.print(printOptions, (success, failureReason) => {
         resolve({ success, failureReason });
       });
     });
@@ -309,7 +328,7 @@ const isDev = !app.isPackaged;
 // -------------------------------------------------------------------------
 // ONE-TIME MIGRATION LOGIC
 // -------------------------------------------------------------------------
-function handleDataMigration() {
+function handleDataMigration(): void {
   try {
     const appData = app.getPath('appData');
     const oldAppDataPath = path.join(appData, 'Bachat Bazaar');
@@ -325,12 +344,12 @@ function handleDataMigration() {
       console.log('[Migration] pos.db successfully migrated from Bachat Bazaar to Trovix');
     }
   } catch (err) {
-    console.error('[Migration] Non-fatal migration error:', err.message);
+    console.error('[Migration] Non-fatal migration error:', err instanceof Error ? err.message : err);
   }
 }
 
-let mainWindow;
-let serverProcess;
+let mainWindow: BrowserWindow | null;
+let serverProcess: unknown;
 const SERVER_PORT = 5001;
 
 // -------------------------------------------------------------------------
@@ -345,7 +364,7 @@ const logStream = fs.createWriteStream(logFile, { flags: 'a' });
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 
-console.log = (...args) => {
+console.log = (...args: unknown[]) => {
   const msg =
     `[${new Date().toISOString()}] [LOG] ` +
     args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') +
@@ -354,7 +373,7 @@ console.log = (...args) => {
   originalConsoleLog.apply(console, args);
 };
 
-console.error = (...args) => {
+console.error = (...args: unknown[]) => {
   const msg =
     `[${new Date().toISOString()}] [ERROR] ` +
     args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ') +
@@ -379,7 +398,7 @@ if (!fs.existsSync(appDataPath)) {
 }
 
 // Get file size helper
-const getFileSize = (filePath) => {
+const getFileSize = (filePath: string): number => {
   try {
     return fs.statSync(filePath).size;
   } catch (e) {
@@ -393,8 +412,11 @@ const shouldBootstrap = !fs.existsSync(dbFile) || getFileSize(dbFile) < 5 * 1024
 
 if (shouldBootstrap) {
   try {
+    // NOTE: this file compiles to desktop/dist/main.js, one directory deeper
+    // than the old desktop/main.js, so the dev-mode path needs an extra ".."
+    // to still land on the repo's server/prisma/pos.db.
     const bundledDbPath = isDev
-      ? path.join(__dirname, '../server/prisma/pos.db')
+      ? path.join(__dirname, '../../server/prisma/pos.db')
       : path.join(process.resourcesPath, 'app.asar.unpacked/server/prisma/pos.db');
 
     console.log('Database status: ' + (!fs.existsSync(dbFile) ? 'Missing' : 'Empty/Corrupt'));
@@ -429,8 +451,11 @@ process.env.DATABASE_URL =
 process.env.PRISMA_CLIENT_ENGINE_TYPE = 'library';
 
 // Explicitly set the path to the Prisma Query Engine binary for the packaged environment
+// NOTE: this file compiles to desktop/dist/main.js, one directory deeper than
+// the old desktop/main.js, so the dev-mode path needs an extra ".." to still
+// land on the repo's node_modules/.prisma/client.
 const engineDir = isDev
-  ? path.join(__dirname, '../node_modules/.prisma/client')
+  ? path.join(__dirname, '../../node_modules/.prisma/client')
   : path.join(process.resourcesPath, 'app.asar.unpacked/node_modules/.prisma/client');
 
 // Windows often uses .dll.node for the library engine, but we check both common names
@@ -443,7 +468,7 @@ const possibleEngineNames =
       'libquery_engine-darwin.dylib.node',         // legacy fallback
     ];
 
-let enginePath = null;
+let enginePath: string | null = null;
 for (const name of possibleEngineNames) {
   const p = path.join(engineDir, name);
   if (fs.existsSync(p)) {
@@ -464,11 +489,14 @@ console.log('DATABASE_URL:', process.env.DATABASE_URL);
 console.log('Prisma Engine Path set to:', process.env.PRISMA_QUERY_ENGINE_LIBRARY || 'default');
 console.log('---------------------------------------------------');
 
-let splashWindow;
+let splashWindow: BrowserWindow | undefined;
 
-const createWindow = () => {
+const createWindow = (): void => {
   // Use shop_logo.jpeg for app icon
-  const iconPath = path.join(__dirname, '../assets/shop_logo.jpeg');
+  // NOTE: this file compiles to desktop/dist/main.js, one directory deeper
+  // than the old desktop/main.js, so this needs an extra ".." to still land
+  // on the repo's assets/ folder.
+  const iconPath = path.join(__dirname, '../../assets/shop_logo.jpeg');
 
   // 1. Create Splash Window
   splashWindow = new BrowserWindow({
@@ -484,8 +512,12 @@ const createWindow = () => {
     },
   });
 
+  // NOTE: splash.html is a static asset that is NOT compiled — it stays at
+  // desktop/splash/splash.html (packaged alongside desktop/dist/**, not
+  // inside it). This file now lives one directory deeper (desktop/dist/),
+  // so the path needs an extra ".." to still reach desktop/splash/splash.html.
   const splashUrl = url.format({
-    pathname: path.join(__dirname, 'splash/splash.html'),
+    pathname: path.join(__dirname, '..', 'splash', 'splash.html'),
     protocol: 'file:',
     slashes: true,
   });
@@ -494,15 +526,15 @@ const createWindow = () => {
 
   splashWindow.webContents.on('did-finish-load', () => {
     console.log('Splash screen loaded successfully');
-    splashWindow.webContents.send(IPC.SPLASH_VERSION, app.getVersion());
+    splashWindow!.webContents.send(IPC.SPLASH_VERSION, app.getVersion());
   });
 
-  splashWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+  splashWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
     console.error(`Splash screen failed to load: ${errorCode} - ${errorDescription}`);
   });
 
   // 2. Create hidden Main Window
-  const windowConfig = {
+  const windowConfig: Electron.BrowserWindowConstructorOptions = {
     width: 1400,
     height: 900,
     minWidth: 1024,
@@ -511,6 +543,10 @@ const createWindow = () => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      // preload.js is the COMPILED output of preload.ts — Electron cannot
+      // load .ts directly. It compiles alongside main.js into the same
+      // desktop/dist/ directory, so this same-directory reference is
+      // unchanged from the original desktop/main.js.
       preload: path.join(__dirname, 'preload.js'),
       sandbox: true,
     },
@@ -532,10 +568,13 @@ const createWindow = () => {
   });
 
   // 3. Start Server then load Main Window
+  // NOTE: this file compiles to desktop/dist/main.js, one directory deeper
+  // than the old desktop/main.js, so the dev-mode path needs an extra ".."
+  // to still land on the repo's client/dist/index.html.
   const startUrl = isDev
     ? 'http://localhost:5173'
     : url.format({
-      pathname: path.resolve(__dirname, '../client/dist/index.html'),
+      pathname: path.resolve(__dirname, '../../client/dist/index.html'),
       protocol: 'file:',
       slashes: true,
     });
@@ -545,11 +584,11 @@ const createWindow = () => {
   let serverReady = false;
   let frontendReady = false;
 
-  const tryShowWindow = () => {
+  const tryShowWindow = (): void => {
     if (!serverReady || !frontendReady) return;
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
-    mainWindow.show();
-    mainWindow.focus();
+    mainWindow!.show();
+    mainWindow!.focus();
   };
 
   mainWindow.once('ready-to-show', () => {
@@ -558,7 +597,7 @@ const createWindow = () => {
   });
 
   // 4. Intercept simulated IPC for Splash Screen
-  process.send = (msg) => {
+  (process as unknown as { send: (msg: { type: string; message: string }) => void }).send = (msg) => {
     if (msg && msg.type === IPC.SPLASH_STATUS && splashWindow && !splashWindow.isDestroyed()) {
       splashWindow.webContents.send(IPC.SPLASH_STATUS, msg.message);
     }
@@ -586,7 +625,7 @@ const createWindow = () => {
     });
 };
 
-const checkPort = (port) => {
+const checkPort = (port: number): Promise<boolean> => {
   return new Promise((resolve) => {
     const socket = new net.Socket();
     const onError = () => {
@@ -603,7 +642,7 @@ const checkPort = (port) => {
   });
 };
 
-const waitForServer = async (port, timeout = 90000) => {
+const waitForServer = async (port: number, timeout = 90000): Promise<boolean> => {
   const start = Date.now();
   let attempts = 0;
   while (Date.now() - start < timeout) {
@@ -619,23 +658,33 @@ const waitForServer = async (port, timeout = 90000) => {
   return false;
 };
 
-const startServer = () => {
+const startServer = (): Promise<void> => {
   return new Promise(async (resolve, reject) => {
     try {
-      process.env.PORT = SERVER_PORT;
+      process.env.PORT = String(SERVER_PORT);
       process.env.NODE_ENV = isDev ? 'development' : 'production';
+      // NOTE: this file compiles to desktop/dist/main.js, one directory
+      // deeper than the old desktop/main.js, so the dev-mode path needs an
+      // extra ".." to still land on the repo's server/ directory.
       const serverDir = isDev
-        ? path.resolve(__dirname, '../server')
+        ? path.resolve(__dirname, '../../server')
         : path.resolve(process.resourcesPath, 'app.asar.unpacked/server');
 
+      // server-wrapper.js is the COMPILED output of server-wrapper.ts — it
+      // compiles alongside main.js into the same desktop/dist/ directory, so
+      // this same-directory reference is unchanged from the original
+      // desktop/main.js.
       const wrapperPath = path.resolve(__dirname, 'server-wrapper.js');
 
       // Change to server directory so relative paths work
       process.chdir(serverDir);
 
       // Add search paths for module resolution
+      // NOTE: this file compiles to desktop/dist/main.js, one directory
+      // deeper than the old desktop/main.js, so the repo-root node_modules
+      // path needs an extra ".." to still resolve correctly.
       module.paths.unshift(path.join(serverDir, 'node_modules'));
-      module.paths.unshift(path.join(__dirname, '../node_modules'));
+      module.paths.unshift(path.join(__dirname, '../../node_modules'));
 
       const alreadyOpen = await checkPort(SERVER_PORT);
       if (alreadyOpen) {
@@ -660,7 +709,7 @@ const startServer = () => {
   });
 };
 
-const stopServer = () => {
+const stopServer = (): void => {
   // Server is running within the Electron process, no need to stop
   console.log('Server will be stopped when app closes');
 };
@@ -670,7 +719,7 @@ const stopServer = () => {
 app.on('ready', async () => {
   try {
     // Create Application Menu
-    const template = [
+    const template: Electron.MenuItemConstructorOptions[] = [
       {
         label: 'File',
         submenu: [{ role: 'quit' }],
@@ -695,8 +744,8 @@ app.on('ready', async () => {
           { role: 'minimize' },
           { role: 'zoom' },
           ...(process.platform === 'darwin'
-            ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }]
-            : [{ role: 'close' }]),
+            ? [{ type: 'separator' as const }, { role: 'front' as const }, { type: 'separator' as const }, { role: 'window' as const }]
+            : [{ role: 'close' as const }]),
         ],
       },
       {
@@ -705,7 +754,7 @@ app.on('ready', async () => {
           {
             label: 'Wipe App Data (Restart Required)',
             click: async () => {
-              const choice = dialog.showMessageBoxSync(mainWindow, {
+              const choice = dialog.showMessageBoxSync(mainWindow!, {
                 type: 'warning',
                 buttons: ['Cancel', 'Wipe Data'],
                 defaultId: 0,
@@ -735,7 +784,7 @@ app.on('ready', async () => {
                       fs.rmSync(fullPath, { recursive: true, force: true });
                       console.log(`Deleted: ${fullPath}`);
                     } catch (e) {
-                      console.error(`Could not delete ${file}:`, e.message);
+                      console.error(`Could not delete ${file}:`, e instanceof Error ? e.message : e);
                     }
                   }
 
@@ -743,9 +792,10 @@ app.on('ready', async () => {
                   app.relaunch();
                   app.exit(0);
                 } catch (err) {
+                  const message = err instanceof Error ? err.message : String(err);
                   dialog.showErrorBox(
                     'Wipe Failed',
-                    `A critical error occurred: ${err.message}\n\nPlease try manually deleting the folder: ${appDataPath}`
+                    `A critical error occurred: ${message}\n\nPlease try manually deleting the folder: ${appDataPath}`
                   );
                 }
               }
@@ -779,11 +829,11 @@ ${(() => {
                     }
                     return 'No log file found.';
                   } catch (e) {
-                    return 'Error reading logs: ' + e.message;
+                    return 'Error reading logs: ' + (e instanceof Error ? e.message : String(e));
                   }
                 })()}
               `.trim();
-              dialog.showMessageBoxSync(mainWindow, {
+              dialog.showMessageBoxSync(mainWindow!, {
                 type: 'info',
                 title: 'System Diagnostic',
                 message: 'Trovix Diagnostics',
@@ -836,7 +886,7 @@ ${(() => {
     }
   } catch (error) {
     console.error('Failed to start application:', error);
-    const message = error.message || error.toString();
+    const message = error instanceof Error ? error.message : String(error);
     dialog.showErrorBox(
       'Server Error',
       `Failed to start the application server.\n\nDetails: ${message}\n\nPlease check the console logs for more information.`
