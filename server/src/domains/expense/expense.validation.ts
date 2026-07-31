@@ -49,22 +49,6 @@ const expenseUpdateBodySchema = z
 
 const paymentBodySchema = paymentBodySchemaFactory();
 
-/**
- * Service input types derived from the schemas above, so the validated shape
- * and the type the service declares cannot drift apart.
- */
-export type CreateExpenseInput = z.infer<typeof expenseBodySchema>;
-export type UpdateExpenseInput = z.infer<typeof expenseUpdateBodySchema>;
-export type ExpensePaymentInput = z.infer<typeof paymentBodySchema>;
-
-export {
-  expenseIdParamSchema,
-  expenseQuerySchema,
-  expenseBodySchema,
-  expenseUpdateBodySchema,
-  paymentBodySchema,
-};
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
 export const CreateExpenseSchema = { body: expenseBodySchema };
 export const GetExpensesSchema = { query: expenseQuerySchema };
@@ -73,3 +57,11 @@ export const DeleteExpenseSchema = { params: expenseIdParamSchema };
 export const AddPaymentSchema = { params: expenseIdParamSchema, body: paymentBodySchema };
 export const UpdatePaymentSchema = { params: expenseIdParamSchema, body: paymentBodySchema };
 export const DeletePaymentSchema = { params: expenseIdParamSchema };
+
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type CreateExpenseInput = z.infer<typeof CreateExpenseSchema.body>;
+export type UpdateExpenseInput = z.infer<typeof UpdateExpenseSchema.body>;
+export type ExpensePaymentInput = z.infer<typeof AddPaymentSchema.body>;

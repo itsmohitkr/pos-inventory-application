@@ -94,34 +94,6 @@ const bulkCreateProductsBodySchema = z.object({
   products: z.array(z.looseObject({})).min(1),
 });
 
-/**
- * Service input types derived from the schemas above, so the validated shape
- * and the type the service declares cannot drift apart.
- *
- * These schemas are `looseObject` (Joi's `.unknown(true)`), so the inferred
- * types carry an index signature for the passthrough keys.
- */
-export type CreateProductInput = z.infer<typeof createProductBodySchema>;
-export type UpdateProductInput = z.infer<typeof updateProductBodySchema>;
-export type AddBatchInput = z.infer<typeof addBatchBodySchema>;
-export type UpdateBatchInput = z.infer<typeof updateBatchBodySchema>;
-export type BulkCreateProductsInput = z.infer<typeof bulkCreateProductsBodySchema>;
-
-export {
-  productIdParamSchema,
-  batchIdParamSchema,
-  barcodeParamSchema,
-  productQuerySchema,
-  productSummaryQuerySchema,
-  productHistoryQuerySchema,
-  createProductBodySchema,
-  addBatchBodySchema,
-  updateProductBodySchema,
-  updateBatchBodySchema,
-  validateBarcodesBodySchema,
-  bulkCreateProductsBodySchema,
-};
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
 export const GetAllProductsSchema = { query: productQuerySchema };
 export const CreateProductSchema = { body: createProductBodySchema };
@@ -136,3 +108,16 @@ export const DeleteProductSchema = { params: productIdParamSchema };
 export const AddBatchSchema = { body: addBatchBodySchema };
 export const UpdateBatchSchema = { params: batchIdParamSchema, body: updateBatchBodySchema };
 export const DeleteBatchSchema = { params: batchIdParamSchema };
+
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ *
+ * These schemas are `looseObject` (Joi's `.unknown(true)`), so the inferred
+ * types carry an index signature for the passthrough keys.
+ */
+export type CreateProductInput = z.infer<typeof CreateProductSchema.body>;
+export type UpdateProductInput = z.infer<typeof UpdateProductSchema.body>;
+export type AddBatchInput = z.infer<typeof AddBatchSchema.body>;
+export type UpdateBatchInput = z.infer<typeof UpdateBatchSchema.body>;
+export type BulkCreateProductsInput = z.infer<typeof BulkCreateProductsSchema.body>;

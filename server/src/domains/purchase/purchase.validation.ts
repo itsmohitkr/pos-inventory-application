@@ -51,22 +51,6 @@ const purchaseUpdateBodySchema = z
 
 const paymentBodySchema = paymentBodySchemaFactory();
 
-/**
- * Service input types derived from the schemas above, so the validated shape
- * and the type the service declares cannot drift apart.
- */
-export type CreatePurchaseInput = z.infer<typeof purchaseBodySchema>;
-export type UpdatePurchaseInput = z.infer<typeof purchaseUpdateBodySchema>;
-export type PurchasePaymentInput = z.infer<typeof paymentBodySchema>;
-
-export {
-  purchaseIdParamSchema,
-  purchaseQuerySchema,
-  purchaseBodySchema,
-  purchaseUpdateBodySchema,
-  paymentBodySchema,
-};
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
 export const CreatePurchaseSchema = { body: purchaseBodySchema };
 export const GetPurchasesSchema = { query: purchaseQuerySchema };
@@ -75,3 +59,11 @@ export const DeletePurchaseSchema = { params: purchaseIdParamSchema };
 export const AddPaymentSchema = { params: purchaseIdParamSchema, body: paymentBodySchema };
 export const UpdatePaymentSchema = { params: purchaseIdParamSchema, body: paymentBodySchema };
 export const DeletePaymentSchema = { params: purchaseIdParamSchema };
+
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type CreatePurchaseInput = z.infer<typeof CreatePurchaseSchema.body>;
+export type UpdatePurchaseInput = z.infer<typeof UpdatePurchaseSchema.body>;
+export type PurchasePaymentInput = z.infer<typeof AddPaymentSchema.body>;

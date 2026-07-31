@@ -41,17 +41,15 @@ const processReturnBodySchema = z.object({
     .min(1),
 });
 
-/**
- * Service input types derived from the schemas above, so the validated shape
- * and the type the service declares cannot drift apart.
- */
-export type ProcessSaleInput = z.infer<typeof processSaleBodySchema>;
-export type ProcessReturnInput = z.infer<typeof processReturnBodySchema>;
-export type SaleItemInput = z.infer<typeof saleItemSchema>;
-
-export { saleIdParamSchema, processSaleBodySchema, processReturnBodySchema };
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
 export const ProcessSaleSchema = { body: processSaleBodySchema };
 export const GetSaleByIdSchema = { params: saleIdParamSchema };
 export const ProcessReturnSchema = { params: saleIdParamSchema, body: processReturnBodySchema };
+
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type ProcessSaleInput = z.infer<typeof ProcessSaleSchema.body>;
+export type ProcessReturnInput = z.infer<typeof ProcessReturnSchema.body>;
+export type SaleItemInput = z.infer<typeof saleItemSchema>;

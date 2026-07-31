@@ -11,8 +11,6 @@ const dailySalesQuerySchema = z.object({
   month: int().min(0).max(11).optional(),
 });
 
-export { dateRangeQuerySchema, monthlySalesQuerySchema, dailySalesQuerySchema };
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
 export const GetReportsSchema = { query: dateRangeQuerySchema };
 export const GetExpiryReportSchema = { query: dateRangeQuerySchema };

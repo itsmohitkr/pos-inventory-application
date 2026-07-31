@@ -66,30 +66,6 @@ const wipeDatabaseBodySchema = z.object({
   }),
 });
 
-/**
- * Service input types derived from the schemas above, so the validated shape
- * and the type the service declares cannot drift apart.
- */
-export type LoginInput = z.infer<typeof loginBodySchema>;
-export type CreateUserInput = z.infer<typeof createUserBodySchema>;
-export type UpdateUserInput = z.infer<typeof updateUserBodySchema>;
-export type ChangePasswordInput = z.infer<typeof changePasswordBodySchema>;
-export type VerifyAdminInput = z.infer<typeof verifyAdminBodySchema>;
-export type WipeDatabaseInput = z.infer<typeof wipeDatabaseBodySchema>;
-export type CompleteOnboardingInput = z.infer<typeof completeOnboardingBodySchema>;
-
-export {
-  userIdParamSchema,
-  profileQuerySchema,
-  loginBodySchema,
-  createUserBodySchema,
-  updateUserBodySchema,
-  changePasswordBodySchema,
-  verifyAdminBodySchema,
-  wipeDatabaseBodySchema,
-  completeOnboardingBodySchema,
-};
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
 export const LoginSchema = { body: loginBodySchema };
 export const GetProfileSchema = { query: profileQuerySchema };
@@ -100,3 +76,15 @@ export const ChangePasswordSchema = { params: userIdParamSchema, body: changePas
 export const WipeDatabaseSchema = { body: wipeDatabaseBodySchema };
 export const VerifyAdminSchema = { body: verifyAdminBodySchema };
 export const CompleteOnboardingSchema = { body: completeOnboardingBodySchema };
+
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type LoginInput = z.infer<typeof LoginSchema.body>;
+export type CreateUserInput = z.infer<typeof CreateUserSchema.body>;
+export type UpdateUserInput = z.infer<typeof UpdateUserSchema.body>;
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema.body>;
+export type VerifyAdminInput = z.infer<typeof VerifyAdminSchema.body>;
+export type WipeDatabaseInput = z.infer<typeof WipeDatabaseSchema.body>;
+export type CompleteOnboardingInput = z.infer<typeof CompleteOnboardingSchema.body>;

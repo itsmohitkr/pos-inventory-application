@@ -24,17 +24,15 @@ const promotionBodySchema = z.object({
   isActive: bool().optional(),
 });
 
-/**
- * Service input type derived from the schema above, so the validated shape and
- * the type the service declares cannot drift apart.
- */
-export type PromotionInput = z.infer<typeof promotionBodySchema>;
-
-export { promotionIdParamSchema, productIdParamSchema, promotionBodySchema };
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
 export const CreatePromotionSchema = { body: promotionBodySchema };
 export const UpdatePromotionSchema = { params: promotionIdParamSchema, body: promotionBodySchema };
 export const DeletePromotionSchema = { params: promotionIdParamSchema };
 export const GetProductPricingOptionsSchema = { params: productIdParamSchema };
 export const GetEffectivePromoPriceSchema = { params: productIdParamSchema };
+
+/**
+ * Service input type derived from the schema above, so the validated shape and
+ * the type the service declares cannot drift apart.
+ */
+export type PromotionInput = z.infer<typeof CreatePromotionSchema.body>;

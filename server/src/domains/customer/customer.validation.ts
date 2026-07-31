@@ -20,21 +20,6 @@ const updateCustomerBodySchema = z.object({
   name: str().max(100).nullable().optional(),
 });
 
-/**
- * Service input types derived from the schemas above, so the validated shape
- * and the type the service declares cannot drift apart.
- */
-export type FindOrCreateCustomerInput = z.infer<typeof findOrCreateBodySchema>;
-export type UpdateCustomerInput = z.infer<typeof updateCustomerBodySchema>;
-
-export {
-  customerIdParamSchema,
-  barcodeParamSchema,
-  phoneParamSchema,
-  findOrCreateBodySchema,
-  updateCustomerBodySchema,
-};
-
 /** One grouped schema per router route, named after the controller handler it validates for. */
 export const FindOrCreateSchema = { body: findOrCreateBodySchema };
 export const GetByBarcodeSchema = { params: barcodeParamSchema };
@@ -42,3 +27,10 @@ export const GetByPhoneSchema = { params: phoneParamSchema };
 export const GetCustomerByIdSchema = { params: customerIdParamSchema };
 export const UpdateCustomerSchema = { params: customerIdParamSchema, body: updateCustomerBodySchema };
 export const GetPurchaseHistorySchema = { params: customerIdParamSchema };
+
+/**
+ * Service input types derived from the schemas above, so the validated shape
+ * and the type the service declares cannot drift apart.
+ */
+export type FindOrCreateCustomerInput = z.infer<typeof FindOrCreateSchema.body>;
+export type UpdateCustomerInput = z.infer<typeof UpdateCustomerSchema.body>;
