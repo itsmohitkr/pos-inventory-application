@@ -12,15 +12,15 @@ const promotionItemSchema = z.object({
   // promoPrice from it in that case — the client always sends an explicit
   // promoPrice, and no test exercises the percentage-only path.
   // discountPercentage is stored alongside it for display only.
-  promoPrice: num().min(0),
-  discountPercentage: num().min(0).max(100).optional(),
+  promoPrice: num().min(0, 'Promo price must be zero or greater'),
+  discountPercentage: num().min(0, 'Discount must be zero or greater').max(100, 'Discount cannot exceed 100%').optional(),
 });
 
 const promotionBodySchema = z.object({
-  name: str().min(1).max(150),
-  startDate: z.union([z.coerce.date(), str().min(1)]),
-  endDate: z.union([z.coerce.date(), str().min(1)]),
-  items: z.array(promotionItemSchema).min(1),
+  name: str().min(1, 'Promotion name is required').max(150, 'Promotion name is too long'),
+  startDate: z.union([z.coerce.date(), str().min(1, 'Start date is required')]),
+  endDate: z.union([z.coerce.date(), str().min(1, 'End date is required')]),
+  items: z.array(promotionItemSchema).min(1, 'At least one product is required'),
   isActive: bool().optional(),
 });
 

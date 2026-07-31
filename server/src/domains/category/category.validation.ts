@@ -3,12 +3,12 @@ import { z, id, str, idParamSchema } from '../../shared/middleware/zodHelpers';
 const categoryIdParamSchema = idParamSchema();
 
 const createCategoryBodySchema = z.object({
-  name: str().min(1).max(120),
+  name: str().min(1, 'Category name is required').max(120, 'Category name is too long'),
   parentId: z.union([id(), z.null(), z.string()]).optional(),
 });
 
 const updateCategoryBodySchema = z.object({
-  name: str().min(1).max(120),
+  name: str().min(1, 'Category name is required').max(120, 'Category name is too long'),
 });
 
 /** One grouped schema per router route, named after the controller handler it validates for. */

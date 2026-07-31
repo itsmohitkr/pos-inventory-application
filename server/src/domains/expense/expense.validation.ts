@@ -18,9 +18,9 @@ const expenseQuerySchema = z.looseObject({
 
 const expenseBodySchema = z.object({
   amount: moneyValue(),
-  category: str().min(1).max(120),
+  category: str().min(1, 'Category is required').max(120, 'Category is too long'),
   description: z.string().nullable().optional(),
-  date: z.union([z.coerce.date(), str().min(1)]).optional(),
+  date: z.union([z.coerce.date(), str().min(1, 'Date is required')]).optional(),
   paidAmount: moneyValue().optional(),
   paymentMethod: str().nullable().optional(),
   // NOT nullable: Expense.paymentStatus is a non-nullable String column with a
@@ -33,9 +33,9 @@ const expenseBodySchema = z.object({
 const expenseUpdateBodySchema = z
   .object({
     amount: moneyValue().optional(),
-    category: str().min(1).max(120).optional(),
+    category: str().min(1, 'Category is required').max(120, 'Category is too long').optional(),
     description: z.string().nullable().optional(),
-    date: z.union([z.coerce.date(), str().min(1)]).optional(),
+    date: z.union([z.coerce.date(), str().min(1, 'Date is required')]).optional(),
     paidAmount: moneyValue().optional(),
     paymentMethod: str().nullable().optional(),
     // NOT nullable: Expense.paymentStatus is a non-nullable String column with a

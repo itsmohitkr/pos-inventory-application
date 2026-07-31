@@ -19,15 +19,15 @@ const purchaseQuerySchema = z.looseObject({
 });
 
 const purchaseItemSchema = z.object({
-  productId: z.union([id(), str().min(1)]),
+  productId: z.union([id(), str().min(1, 'Product is required')]),
   batchId: z.union([id(), str(), z.null()]).optional(),
-  quantity: int().min(0),
+  quantity: int().min(0, 'Quantity must be zero or greater'),
   costPrice: moneyValue().optional(),
 });
 
 const purchaseFields = {
   vendor: z.string().nullable().optional(),
-  date: z.union([z.coerce.date(), str().min(1)]).optional(),
+  date: z.union([z.coerce.date(), str().min(1, 'Date is required')]).optional(),
   note: z.string().nullable().optional(),
   paidAmount: moneyValue().optional(),
   paymentMethod: str().nullable().optional(),

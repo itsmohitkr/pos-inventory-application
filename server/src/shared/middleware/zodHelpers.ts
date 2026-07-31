@@ -17,13 +17,18 @@ import { z } from 'zod';
  */
 
 /** Joi.number() with convert:true — accepts 42 or "42". */
-export const num = () => z.coerce.number();
+export const num = () => z.coerce.number({ error: 'Must be a valid number' });
 
 /** Joi.number().integer() */
-export const int = () => z.coerce.number().int();
+export const int = () =>
+  z.coerce.number({ error: 'Must be a valid number' }).int('Must be a whole number');
 
 /** Joi.number().integer().positive() — the common id shape. */
-export const id = () => z.coerce.number().int().positive();
+export const id = () =>
+  z.coerce
+    .number({ error: 'Must be a valid number' })
+    .int('Must be a whole number')
+    .positive('Must be a positive number');
 
 /**
  * Joi.boolean() with convert:true.
@@ -40,16 +45,16 @@ export const bool = () =>
   ]);
 
 /** Joi.date().iso() with convert:true — accepts a Date or an ISO string. */
-export const date = () => z.coerce.date();
+export const date = () => z.coerce.date({ error: 'Must be a valid date' });
 
 /** Joi.string().trim() */
-export const str = () => z.string().trim();
+export const str = () => z.string({ error: 'Must be text' }).trim();
 
 /**
  * Joi's `.allow('', null)` — permits empty string and null alongside the type.
  * Combine with `.optional()` where Joi also had `.optional()`.
  */
-export const nullableStr = () => z.string().trim().nullable();
+export const nullableStr = () => z.string({ error: 'Must be text' }).trim().nullable();
 
 /**
  * Joi.object().unknown(true) — keeps unrecognised keys instead of stripping
@@ -65,7 +70,8 @@ export const idParamSchema = () => z.object({ id: id() });
  * nested body/item ids (e.g. a product_id inside a batch payload), not route
  * params, where `id()` alone is enough.
  */
-export const numericId = () => z.union([id(), str().regex(/^\d+$/)]);
+export const numericId = () =>
+  z.union([id(), str().regex(/^\d+$/, 'Must be a positive number')]);
 
 /**
  * The startDate/endDate query-param pair accepted by every date-range
@@ -78,13 +84,13 @@ export const dateRangeShape = () => ({
 });
 
 /** Joi.number().min(0) — a non-negative monetary amount. */
-export const moneyValue = () => num().min(0);
+export const moneyValue = () => num().min(0, 'Amount must be zero or greater');
 
 /** The amount/date/note/paymentMethod shape shared by every "record a payment" endpoint. */
 export const paymentBodySchema = () =>
   z.object({
     amount: moneyValue(),
-    date: z.union([z.coerce.date(), str().min(1)]).optional(),
+    date: z.union([z.coerce.date(), str().min(1, 'Date is required')]).optional(),
     note: z.string().nullable().optional(),
     paymentMethod: str().nullable().optional(),
   });

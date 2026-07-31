@@ -1,7 +1,7 @@
 import { z, str } from '../../shared/middleware/zodHelpers';
 
 const keyValueSettingsSchema = z.object({
-  key: str().min(1),
+  key: str().min(1, 'Setting key is required'),
   value: z.any(),
 });
 

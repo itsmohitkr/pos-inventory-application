@@ -15,51 +15,51 @@ const userIdParamSchema = idParamSchema();
 const profileQuerySchema = z.object({ userId: id() });
 
 const loginBodySchema = z.object({
-  username: str().min(1).max(100),
-  password: z.string().min(1).max(255),
+  username: str().min(1, 'Username is required').max(100, 'Username is too long'),
+  password: z.string().min(1, 'Password is required').max(255, 'Password is too long'),
 });
 
 const createUserBodySchema = z.object({
-  username: str().min(1).max(100),
-  password: z.string().min(8).max(255),
-  role: z.enum(ROLES).optional(),
+  username: str().min(1, 'Username is required').max(100, 'Username is too long'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(255, 'Password is too long'),
+  role: z.enum(ROLES, { error: 'Role must be admin, cashier, or salesman' }).optional(),
 });
 
 // Joi's .min(1) on an all-optional object — at least one field must be present.
 const updateUserBodySchema = z
   .object({
-    role: z.enum(ROLES).optional(),
-    status: z.enum(STATUSES).optional(),
-    password: z.string().min(1).max(255).optional(),
+    role: z.enum(ROLES, { error: 'Role must be admin, cashier, or salesman' }).optional(),
+    status: z.enum(STATUSES, { error: 'Status must be active or inactive' }).optional(),
+    password: z.string().min(1, 'Password is required').max(255, 'Password is too long').optional(),
   })
   .refine(atLeastOneField, {
     message: AT_LEAST_ONE_FIELD_MESSAGE,
   });
 
 const changePasswordBodySchema = z.object({
-  oldPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(255),
+  oldPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters').max(255, 'New password is too long'),
 });
 
 const completeOnboardingBodySchema = z.object({
-  shopName: z.string().min(1).max(100),
-  address: z.string().max(255).optional(),
-  phone: z.string().max(20).optional(),
-  phone2: z.string().max(20).optional(),
+  shopName: z.string().min(1, 'Shop name is required').max(100, 'Shop name is too long'),
+  address: z.string().max(255, 'Address is too long').optional(),
+  phone: z.string().max(20, 'Phone number is too long').optional(),
+  phone2: z.string().max(20, 'Phone number is too long').optional(),
   // Joi.string().email().allow('') — an empty string must still pass.
-  email: z.union([z.email(), z.literal('')]).optional(),
-  gst: z.string().max(20).optional(),
+  email: z.union([z.email('Invalid email address'), z.literal('')]).optional(),
+  gst: z.string().max(20, 'GST number is too long').optional(),
   logo: z.string().optional(),
-  adminPassword: z.string().min(8).max(255),
+  adminPassword: z.string().min(8, 'Admin password must be at least 8 characters').max(255, 'Admin password is too long'),
 });
 
 const verifyAdminBodySchema = z.object({
-  password: z.string().min(1),
+  password: z.string().min(1, 'Password is required'),
 });
 
 const wipeDatabaseBodySchema = z.object({
-  username: str().min(1),
-  password: z.string().min(1).max(255),
+  username: str().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required').max(255, 'Password is too long'),
   // The exact phrase is enforced server-side so the UI check cannot be bypassed.
   confirmPhrase: z.literal('WIPE ALL DATA', {
     message: 'Confirmation phrase must be exactly WIPE ALL DATA',

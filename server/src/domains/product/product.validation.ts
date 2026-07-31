@@ -5,22 +5,22 @@ import { z, int, num, str, bool, numericId } from '../../shared/middleware/zodHe
  * sends raw text-input values. Mirrors Joi's
  * `alternatives().try(number, string.allow('', null))`.
  */
-const numericValue = z.union([num().min(0), z.string().trim(), z.null()]);
-const integerValue = z.union([int().min(0), z.string().trim(), z.null()]);
+const numericValue = z.union([num().min(0, 'Must be zero or greater'), z.string().trim(), z.null()]);
+const integerValue = z.union([int().min(0, 'Must be zero or greater'), z.string().trim(), z.null()]);
 const dateValue = z.union([z.coerce.date(), z.string().trim(), z.null()]);
 
 const productIdParamSchema = z.object({ id: numericId() });
 const batchIdParamSchema = z.object({ id: numericId() });
-const barcodeParamSchema = z.object({ barcode: str().min(1) });
+const barcodeParamSchema = z.object({ barcode: str().min(1, 'Barcode is required') });
 
 const productQuerySchema = z.object({
-  page: int().min(1).optional(),
-  pageSize: int().min(1).max(10000).optional(),
+  page: int().min(1, 'Page must be at least 1').optional(),
+  pageSize: int().min(1, 'Page size must be at least 1').max(10000, 'Page size is too large').optional(),
   search: z.string().optional(),
   category: z.string().optional(),
   sortBy: str().optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
-  includeBatches: z.enum(['true', 'false']).optional(),
+  sortOrder: z.enum(['asc', 'desc'], { error: 'Sort order must be asc or desc' }).optional(),
+  includeBatches: z.enum(['true', 'false'], { error: 'includeBatches must be true or false' }).optional(),
 });
 
 const productSummaryQuerySchema = z.looseObject({
@@ -51,7 +51,7 @@ const initialBatchSchema = z.looseObject({
 });
 
 const createProductBodySchema = z.looseObject({
-  name: str().min(1).max(255),
+  name: str().min(1, 'Product name is required').max(255, 'Product name is too long'),
   barcode: str().nullable().optional(),
   category: str().nullable().optional(),
   enableBatchTracking: bool().optional(),
@@ -70,7 +70,7 @@ const addBatchBodySchema = z.looseObject({
 });
 
 const updateProductBodySchema = z.looseObject({
-  name: str().min(1).max(255).optional(),
+  name: str().min(1, 'Product name is required').max(255, 'Product name is too long').optional(),
   barcode: str().nullable().optional(),
   category: str().nullable().optional(),
   batchTrackingEnabled: bool().optional(),
@@ -87,11 +87,11 @@ const updateBatchBodySchema = z.looseObject({
 });
 
 const validateBarcodesBodySchema = z.object({
-  barcodes: z.array(str().min(1)).min(1),
+  barcodes: z.array(str().min(1, 'Barcode is required')).min(1, 'At least one barcode is required'),
 });
 
 const bulkCreateProductsBodySchema = z.object({
-  products: z.array(z.looseObject({})).min(1),
+  products: z.array(z.looseObject({})).min(1, 'At least one product is required'),
 });
 
 /** One grouped schema per router route, named after the controller handler it validates for. */

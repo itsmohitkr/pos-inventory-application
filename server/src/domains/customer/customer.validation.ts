@@ -3,21 +3,21 @@ import { z, str, idParamSchema } from '../../shared/middleware/zodHelpers';
 const customerIdParamSchema = idParamSchema();
 
 const barcodeParamSchema = z.object({
-  barcode: z.string().regex(/^CUST-[A-Z0-9]{8}$/),
+  barcode: z.string().regex(/^CUST-[A-Z0-9]{8}$/, 'Invalid customer barcode'),
 });
 
 const phoneParamSchema = z.object({
-  phone: z.string().min(7).max(15),
+  phone: z.string().min(7, 'Phone number is too short').max(15, 'Phone number is too long'),
 });
 
 const findOrCreateBodySchema = z.object({
-  phone: z.string().min(7).max(15),
-  name: str().max(100).nullable().optional(),
+  phone: z.string().min(7, 'Phone number is too short').max(15, 'Phone number is too long'),
+  name: str().max(100, 'Name is too long').nullable().optional(),
 });
 
 const updateCustomerBodySchema = z.object({
-  phone: z.string().min(7).max(15).optional(),
-  name: str().max(100).nullable().optional(),
+  phone: z.string().min(7, 'Phone number is too short').max(15, 'Phone number is too long').optional(),
+  name: str().max(100, 'Name is too long').nullable().optional(),
 });
 
 /** One grouped schema per router route, named after the controller handler it validates for. */

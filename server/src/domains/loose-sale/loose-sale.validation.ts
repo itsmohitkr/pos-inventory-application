@@ -6,7 +6,7 @@ const looseSaleIdParamSchema = z.object({
 
 const createLooseSaleBodySchema = z.object({
   itemName: str().nullable().optional(),
-  price: num().positive(),
+  price: num().positive('Price must be greater than zero'),
 });
 
 const looseSalesReportQuerySchema = z.object({ ...dateRangeShape() });
