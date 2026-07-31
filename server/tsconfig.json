@@ -26,6 +26,6 @@
     "noImplicitAny": true,
     "strictNullChecks": true
   },
-  "include": ["index.ts", "seed.ts", "src/**/*"],
+  "include": ["index.ts", "seed.ts", "src/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "dist", "tests", "prisma", "coverage"]
 }

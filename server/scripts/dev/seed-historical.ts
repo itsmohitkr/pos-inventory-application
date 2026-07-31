@@ -1,38 +1,48 @@
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
 const categories = [
-  'Staples', 'Dairy', 'Snacks', 'Biscuits', 'Beverages', 'Juices', 
-  'Water', 'Personal Care', 'Household', 'Chocolates', 'Baby Care', 
-  'Chips', 'Oil', 'Spices'
+  'Staples', 'Dairy', 'Snacks', 'Biscuits', 'Beverages', 'Juices',
+  'Water', 'Personal Care', 'Household', 'Chocolates', 'Baby Care',
+  'Chips', 'Oil', 'Spices',
 ];
 
 const brands = [
-  'Tata', 'Amul', 'Britannia', 'Nestle', 'Dabur', 'Haldiram', 'ITC', 
-  'Godrej', 'Patanjali', 'Parle', 'Aashirvaad', 'Hindustan Unilever'
+  'Tata', 'Amul', 'Britannia', 'Nestle', 'Dabur', 'Haldiram', 'ITC',
+  'Godrej', 'Patanjali', 'Parle', 'Aashirvaad', 'Hindustan Unilever',
 ];
 
-const productNames = {
-  'Staples': ['Rice', 'Sugar', 'Atta', 'Dal', 'Poha', 'Salt'],
-  'Dairy': ['Milk', 'Butter', 'Cheese', 'Ghee', 'Paneer'],
-  'Snacks': ['Maggi', 'Bhujia', 'Namkeen', 'Pasta'],
-  'Beverages': ['Tea', 'Coffee', 'Bournvita', 'Coke', 'Pepsi'],
+const productNames: Record<string, string[]> = {
+  Staples: ['Rice', 'Sugar', 'Atta', 'Dal', 'Poha', 'Salt'],
+  Dairy: ['Milk', 'Butter', 'Cheese', 'Ghee', 'Paneer'],
+  Snacks: ['Maggi', 'Bhujia', 'Namkeen', 'Pasta'],
+  Beverages: ['Tea', 'Coffee', 'Bournvita', 'Coke', 'Pepsi'],
   'Personal Care': ['Soap', 'Shampoo', 'Toothpaste', 'Face Wash'],
-  'Household': ['Detergent', 'Dishwash', 'Floor Cleaner', 'Lizol'],
+  Household: ['Detergent', 'Dishwash', 'Floor Cleaner', 'Lizol'],
 };
+
+interface SeededProduct {
+  id: number;
+  batchId: number;
+  cp: number;
+  sp: number;
+  mrp: number;
+}
 
 async function seed() {
   console.log('🚀 Starting Historical Data Seed...');
 
   // 1. Create Products & Batches
   console.log('📦 Creating Products & Batches...');
-  const products = [];
+  const products: SeededProduct[] = [];
   for (let i = 0; i < 150; i++) {
     const category = categories[Math.floor(Math.random() * categories.length)];
     const brand = brands[Math.floor(Math.random() * brands.length)];
-    const type = (productNames[category] || ['Item'])[Math.floor(Math.random() * (productNames[category]?.length || 1))];
+    const names = productNames[category] || ['Item'];
+    const type = names[Math.floor(Math.random() * names.length)];
     const name = `${brand} ${type} ${Math.floor(Math.random() * 500) + 50}g`;
-    
+
     const p = await prisma.product.create({
       data: {
         name,
@@ -40,17 +50,17 @@ async function seed() {
         category,
         lowStockThreshold: 10,
         lowStockWarningEnabled: true,
-      }
+      },
     });
 
     // Create a batch for each product
     const isLowStock = Math.random() < 0.15; // 15% chance of low stock
     const isExpiring = Math.random() < 0.15; // 15% chance of expiring soon/expired
-    
+
     let quantity = Math.floor(Math.random() * 100) + 20;
     if (isLowStock) quantity = Math.floor(Math.random() * 8) + 1;
 
-    let expiryDate = null;
+    let expiryDate: Date | null = null;
     if (isExpiring) {
       const days = Math.floor(Math.random() * 120) - 60; // -60 to +60 days
       expiryDate = new Date();
@@ -70,7 +80,7 @@ async function seed() {
         costPrice: cp,
         sellingPrice: sp,
         expiryDate,
-      }
+      },
     });
     products.push({ id: p.id, batchId: batch.id, cp, sp, mrp });
   }
@@ -80,7 +90,7 @@ async function seed() {
   for (let d = 0; d < 180; d++) {
     const date = new Date();
     date.setDate(date.getDate() - d);
-    
+
     // 5 to 15 sales per day
     const salesCount = Math.floor(Math.random() * 10) + 5;
     for (let s = 0; s < salesCount; s++) {
@@ -97,7 +107,7 @@ async function seed() {
           quantity: qty,
           sellingPrice: p.sp,
           costPrice: p.cp,
-          mrp: p.mrp
+          mrp: p.mrp,
         });
         totalAmount += p.sp * qty;
       }
@@ -108,9 +118,9 @@ async function seed() {
           paymentMethod: ['Cash', 'UPI', 'Card'][Math.floor(Math.random() * 3)],
           createdAt: date,
           items: {
-            create: saleItems
-          }
-        }
+            create: saleItems,
+          },
+        },
       });
     }
 
@@ -122,8 +132,8 @@ async function seed() {
           data: {
             itemName: ['Plastic Bag', 'Open Container', 'Service Fee'][Math.floor(Math.random() * 3)],
             price: Math.floor(Math.random() * 50) + 5,
-            createdAt: date
-          }
+            createdAt: date,
+          },
         });
       }
     }
@@ -135,30 +145,30 @@ async function seed() {
           amount: 15000,
           category: 'Rent',
           description: 'Monthly Shop Rent',
-          date: date,
-          paymentMethod: 'Cash'
-        }
+          date,
+          paymentMethod: 'Cash',
+        },
       });
       await prisma.expense.create({
         data: {
           amount: Math.floor(Math.random() * 2000) + 1500,
           category: 'Electricity',
           description: 'Electricity Bill',
-          date: date,
-          paymentMethod: 'UPI'
-        }
+          date,
+          paymentMethod: 'UPI',
+        },
       });
     }
 
     if (d % 7 === 0) { // Weekly Maintenance
-       await prisma.expense.create({
+      await prisma.expense.create({
         data: {
           amount: Math.floor(Math.random() * 500) + 200,
           category: 'Maintenance',
           description: 'Weekly cleaning and repairs',
-          date: date,
-          paymentMethod: 'Cash'
-        }
+          date,
+          paymentMethod: 'Cash',
+        },
       });
     }
 
@@ -169,9 +179,9 @@ async function seed() {
         data: {
           vendor: ['Local Distributor', 'Main Wholesaler', 'Direct Brand'][Math.floor(Math.random() * 3)],
           totalAmount: purchaseAmount,
-          date: date,
-          paymentMethod: 'UPI'
-        }
+          date,
+          paymentMethod: 'UPI',
+        },
       });
     }
   }
@@ -180,7 +190,7 @@ async function seed() {
 }
 
 seed()
-  .catch((e) => {
+  .catch((e: unknown) => {
     console.error(e);
     process.exit(1);
   })

@@ -32,8 +32,8 @@ import { createRoot } from 'react-dom/client';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import { HashRouter } from 'react-router-dom';
 import '@/index.css';
-import App from '@/App.jsx';
-import theme from '@/theme.js';
+import App from '@/App';
+import theme from '@/theme';
 import GlobalErrorBoundary from '@/shared/components/GlobalErrorBoundary';
 
 // In production (Electron build), axios baseURL is handled in src/api.js

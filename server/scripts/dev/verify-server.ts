@@ -1,4 +1,4 @@
-const http = require('http');
+import http = require('http');
 
 const options = {
   hostname: 'localhost',
@@ -22,7 +22,7 @@ const req = http.request(options, (res) => {
   });
 });
 
-req.on('error', (e) => {
+req.on('error', (e: Error) => {
   console.error(`problem with request: ${e.message}`);
 });
 

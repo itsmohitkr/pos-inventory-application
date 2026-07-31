@@ -8,7 +8,7 @@ module.exports = {
     // verifies the migration, so they change last. This transform lets those
     // .js tests require .ts source files.
     transform: {
-        '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }],
+        '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json', isolatedModules: true }],
     },
     moduleFileExtensions: ['ts', 'js', 'json', 'node'],
 
