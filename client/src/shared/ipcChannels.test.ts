@@ -5,12 +5,12 @@ import path from 'path';
 
 import { IPC } from './ipcChannels';
 
-// desktop/ipcChannels.js is CommonJS and lives outside the Vite root, so it is
-// parsed from source rather than imported. This keeps the test independent of
-// bundler/module-interop behaviour.
+// desktop/ipcChannels.ts uses `export =` (CommonJS) and lives outside the Vite
+// root, so it is parsed from source rather than imported. This keeps the test
+// independent of bundler/module-interop behaviour.
 const desktopChannelsPath = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../../desktop/ipcChannels.js'
+  '../../../desktop/ipcChannels.ts'
 );
 
 const parseDesktopChannels = () => {

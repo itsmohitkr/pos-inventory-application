@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
+import { loadPrinters } from '@/shared/hooks/usePrinters';
 import settingsService from '@/shared/api/settingsService';
 import {
   STORAGE_KEYS as RECEIPT_STORAGE_KEYS,
@@ -175,27 +176,22 @@ export const useSettings = (showError?: (message: string) => void) => {
     return () => window.removeEventListener('pos-ui-zoom-updated', handleZoomUpdated);
   }, []);
 
-  const refreshPrinters = useCallback(async function runFetch(retries = 3) {
-    try {
-      const printerList = await window.electron?.ipcRenderer.invoke('get-printers');
-      const list = Array.isArray(printerList) ? printerList : [];
-      setPrinters(list);
-      const defaultP = list.find((p) => p.isDefault);
-      if (defaultP) setDefaultPrinter(defaultP.name);
-    } catch (err) {
-      if (retries === 0) Sentry.captureException(err, { tags: { feature: 'printers-fetch' } });
-      console.error('Failed to get printers:', err);
-      if (retries > 0) {
-        setTimeout(() => runFetch(retries - 1), 2000);
-      } else {
-        setPrinters([]);
-      }
-    }
+  // Retry-with-backoff and error reporting now live in the shared cache
+  // (shared/hooks/usePrinters.ts) so the barcode and price-list dialogs get
+  // the same behaviour instead of each re-enumerating on open.
+  const applyPrinters = useCallback(async (force: boolean) => {
+    const { printers: list, defaultPrinter: fallback } = await loadPrinters(force);
+    setPrinters(list);
+    if (fallback) setDefaultPrinter(fallback);
   }, []);
 
+  /** User-initiated: forces a re-enumeration so a newly-connected printer shows up. */
+  const refreshPrinters = useCallback(() => applyPrinters(true), [applyPrinters]);
+
   useEffect(() => {
-    if (window.electron) refreshPrinters();
-  }, [refreshPrinters]);
+    // Not forced — first caller populates the cache, later ones reuse it.
+    if (window.electron) applyPrinters(false);
+  }, [applyPrinters]);
 
   const handleShopMetadataChange = async (newData: ShopMetadataPatch) => {
     if (newData.shopName !== undefined) {

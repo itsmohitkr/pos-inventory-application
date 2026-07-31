@@ -23,7 +23,8 @@ interface PriceListConfigurationPanelProps {
   selectedPrinter: string;
   setSelectedPrinter: (name: string) => void;
   printers: PrinterInfo[];
-  fetchPrinters: () => void;
+  /** `true` forces a re-enumeration, bypassing the shared printer cache. */
+  fetchPrinters: (force?: boolean) => void;
   /** 'a4' | 'thermal'. */
   paperType: string;
   handlePaperTypeChange: (event: { target: { value: string } }) => void;
@@ -227,7 +228,7 @@ const PriceListConfigurationPanel = ({
                   ))}
                 </Select>
               </FormControl>
-              <IconButton onClick={fetchPrinters} title="Refresh printers">
+              <IconButton onClick={() => fetchPrinters(true)} title="Refresh printers">
                 <RefreshIcon />
               </IconButton>
             </Box>

@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon, Print as PrintIcon } from '@mui/icons-material';
 import { DEFAULT_SIZES } from '@/domains/inventory/components/barcodeSizePresets';
+import { loadPrinters } from '@/shared/hooks/usePrinters';
 import BarcodeSettingsPanel from '@/domains/inventory/components/BarcodeSettingsPanel';
 import BarcodePreviewGrid from '@/domains/inventory/components/BarcodePreviewGrid';
 
@@ -32,6 +33,7 @@ const BarcodePrintDialog = ({ open, onClose, product }: BarcodePrintDialogProps)
   const [printers, setPrinters] = useState<PrinterInfo[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [isPrinting, setIsPrinting] = useState(false);
   const [margins, setMargins] = useState({ top: 10, right: 10, bottom: 10, left: 10 });
   const [spacing, setSpacing] = useState({ horizontal: 2, vertical: 2 });
   const [contentOptions, setContentOptions] = useState({
@@ -44,13 +46,10 @@ const BarcodePrintDialog = ({ open, onClose, product }: BarcodePrintDialogProps)
     if (!open) return;
     const loadSettings = async () => {
       if (window.electron) {
-        try {
-          const list = await window.electron.ipcRenderer.invoke('get-printers');
-          if (list && Array.isArray(list)) setPrinters(list);
-        } catch (e) {
-          Sentry.captureException(e, { tags: { feature: 'barcode-print-load-printers' } });
-          console.error('Failed to load printers:', e);
-        }
+        // Shared cache: avoids re-hitting the OS spooler every time this
+        // dialog opens, and inherits its retry-with-backoff.
+        const { printers: list } = await loadPrinters();
+        setPrinters(list);
       }
       const savedStr = localStorage.getItem('barcodePrinterSettings');
       if (savedStr) {
@@ -95,7 +94,14 @@ const BarcodePrintDialog = ({ open, onClose, product }: BarcodePrintDialogProps)
 
   // IPC print call — must stay here per arch constraints
   const handlePrint = async () => {
+    // Guard against a double-tap. Beyond queueing duplicate jobs, overlapping
+    // runs would clobber each other's is-printing-labels window: the earlier
+    // run's removal timer can strip the class while a later job is still
+    // capturing, leaving the app UI visible on the printed label.
+    if (isPrinting) return;
+
     if (window.electron?.ipcRenderer) {
+      setIsPrinting(true);
       try {
         document.body.classList.add('is-printing-labels');
         await new Promise((r) => setTimeout(r, 100));
@@ -115,7 +121,10 @@ const BarcodePrintDialog = ({ open, onClose, product }: BarcodePrintDialogProps)
         console.error('Direct print failed:', error);
         setSnackbar({ open: true, message: 'Direct printing failed. Check printer connection.', severity: 'error' });
       } finally {
-        setTimeout(() => document.body.classList.remove('is-printing-labels'), 500);
+        setTimeout(() => {
+          document.body.classList.remove('is-printing-labels');
+          setIsPrinting(false);
+        }, 500);
       }
       return;
     }
@@ -208,7 +217,7 @@ const BarcodePrintDialog = ({ open, onClose, product }: BarcodePrintDialogProps)
         <Button onClick={onClose} variant="outlined">Cancel</Button>
         <Button
           onClick={handlePrint} variant="contained" startIcon={<PrintIcon />}
-          disabled={!product || !product.barcode}
+          disabled={!product || !product.barcode || isPrinting}
           sx={{ bgcolor: '#1f8a5b', '&:hover': { bgcolor: '#166d47' } }}
         >
           Print Barcodes

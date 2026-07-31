@@ -68,6 +68,20 @@ export const buildPriceListPrintableHtml = ({
       <html>
         <head>
           <meta charset="utf-8" />
+          <!--
+            This markup is assembled from database values (product names,
+            prices) via outerHTML and is never sanitised, so a crafted product
+            name could otherwise smuggle in a remote <img>/<script> that
+            beacons out when the label sheet renders. Everything here is
+            self-contained — inline styles and inline SVG barcodes — so the
+            policy can deny all network origins outright. The main process
+            also blocks non-data: requests at the session level; this is the
+            second layer.
+          -->
+          <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:;"
+          />
           <title>Price List Labels</title>
           <style>
             @media print {

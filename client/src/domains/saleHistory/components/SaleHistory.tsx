@@ -31,6 +31,7 @@ import { getSaleHistoryRange, buildInclusiveSaleHistoryRange } from '@/domains/s
 import { calculateSaleStats } from '@/domains/saleHistory/components/saleHistoryStats';
 import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
 import { IPC } from '@/shared/ipcChannels';
+import { resolvePrinterName } from '@/shared/utils/resolvePrinterName';
 
 const SaleHistory = ({
   receiptSettings,
@@ -50,6 +51,7 @@ const SaleHistory = ({
     startDate: '',
     endDate: '',
   });
+  const [isPrinting, setIsPrinting] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [refundSale, setRefundSale] = useState<ReportSale | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -168,16 +170,21 @@ const SaleHistory = ({
   };
 
   const handlePrintReceipt = async (sale: ReportSale) => {
+    // Guard against a double-tap queueing two silent jobs.
+    if (isPrinting) return;
+
     flushSync(() => {
       setSelectedSale(sale);
     });
 
-    if (receiptSettings?.directPrint && window.electron) {
-      const rawPrinter = receiptSettings?.printerType;
-      const isValidPrinter = rawPrinter && printers.some((p) => p.name === rawPrinter);
-      const printer = isValidPrinter
-        ? rawPrinter
-        : defaultPrinter || (printers.find((p) => p.isDefault) || printers[0])?.name;
+    if (!receiptSettings?.directPrint || !window.electron) {
+      window.print();
+      return;
+    }
+
+    setIsPrinting(true);
+    try {
+      const printer = resolvePrinterName({ receiptSettings, printers, defaultPrinter });
       if (!printer) {
         showError?.('No printer configured. Go to Settings → Receipt Settings to select a printer.');
         return;
@@ -187,10 +194,12 @@ const SaleHistory = ({
         error?: string;
       }>(IPC.PRINT_MANUAL, { printerName: printer });
       if (!result?.success) {
-        showError?.(`Print failed: ${result?.error || 'Unknown error'}. Check that the printer is on and connected.`);
+        showError?.(`Print failed: ${result?.error || 'Unknown error'} Check that the printer is on and connected.`);
       }
-    } else {
-      window.print();
+    } catch (error) {
+      showError?.(`Print failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsPrinting(false);
     }
   };
 

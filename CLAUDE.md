@@ -196,12 +196,48 @@ User clicks Pay & Print / Print Label
 For barcode labels specifically, `document.body.classList.add('is-printing-labels')` must fire **before** the invoke so `@media print` CSS hides everything except `.printable-area`. The 100 ms setTimeout in `BarcodePrintDialog.jsx` is intentional.
 
 **IPC/print code location rule:** `ipcRenderer.invoke` calls for printing must never be moved out of their current file:
-- Receipt print (Pay & Print / Last Receipt) → `usePOSSale.js` (`handlePayAndPrint`, `handlePrintLastReceipt`)
-- Receipt print (Sales History) → `SaleHistory.jsx` (`handlePrintReceipt`)
-- Barcode label print → `BarcodePrintDialog.jsx` (`handlePrint`)
-- Price list print → `PriceListPanel.jsx` (`handlePrint`)
+- Receipt print (Pay & Print / Last Receipt) → `usePOSSale.ts` (`handlePayAndPrint`, `handlePrintLastReceipt`)
+- Receipt print (Sales History) → `SaleHistory.tsx` (`handlePrintReceipt`)
+- Receipt print (Bill Preview dialog) → `ReceiptPreviewDialog.tsx` (`printPreview`)
+- Barcode label print → `BarcodePrintDialog.tsx` (`handlePrint`)
+- Price list print → `PriceListPanel.tsx` (`handlePrint`)
+
+The rule constrains the **invoke**, not the logic around it. Pure helpers may
+and should be shared — printer *resolution* lives in
+`client/src/shared/utils/resolvePrinterName.ts` and the cached `get-printers`
+call lives in `client/src/shared/hooks/usePrinters.ts`. What must stay in the
+component is the `invoke` itself, so the `is-printing-*` class timing stays
+next to the call it gates.
+
+**Printer resolution is shared, and validates against the live list.** Use
+`resolvePrinterName({ receiptSettings, printers, defaultPrinter })` for
+receipts: saved printer (only if still present in the live list) → system
+default → first `isDefault` → first available. The list check matters — a
+renamed or unplugged printer sent to main is rejected as an unknown device,
+so skipping it turns a recoverable situation into a hard failure. Barcode and
+price-list printing deliberately do *not* use this: they keep their own
+per-dialog printer choice in `localStorage`.
+
+**Both print handlers return `{ success, error }` and never throw.** Callers
+must check `result.success`; a rejected `invoke` means something unexpected,
+not an ordinary print failure. `get-printers` likewise always resolves to an
+array. This uniformity is load-bearing — the handlers previously disagreed
+(one returned, one threw, one did both) and callers each guessed differently.
+
+**A print failure is not a payment failure.** In `handlePayAndPrint` the sale
+commits *before* printing, so the print block has its own `try/catch`. Never
+let a print error reach the outer handler: a cashier told "Payment failed"
+for a committed sale will re-ring it and double-charge the customer. Print
+failure messages must say the sale was saved and point at Sale History.
 
 **Critical:** Always use `ipcRenderer.invoke()` (not `ipcRenderer.send()`) for `print-manual`. The Electron main process registers the handler with `ipcMain.handle()`, which only responds to `invoke` — `send` silently does nothing.
+
+**Print jobs are guarded by a 30 s timeout** (`printWithTimeout` in
+`desktop/main.ts`). Chromium's print callback does not always fire — a stalled
+spooler can swallow it — and without the guard the renderer's `await invoke`
+never settles, leaving `isPaying` stuck `true` and the Pay button disabled
+until restart. Do not remove it, and keep new print paths going through that
+helper.
 
 ### Double-payment guard
 `POS.jsx` uses an `isPaying` state flag set at the top of both `handlePay` and `handlePayAndPrint` and cleared in `finally`. The flag is propagated to `TransactionPanel → TransactionActionButtons` to disable the Pay button during an in-flight transaction. Never remove this guard — rapid double-taps would create duplicate sales.
@@ -469,7 +505,9 @@ Two conventions worth keeping if this is taken further:
 - **Server binds to 127.0.0.1** — `app.listen(PORT, '127.0.0.1', ...)` in `server/index.js`. Do not change to `0.0.0.0` or remove the host argument. A localhost-only guard middleware in `app.js` enforces this as a second layer.
 - **No JWT/session middleware** — because the server is localhost-only, API routes rely on UI-enforced auth. If the server ever needs to be network-accessible, add authentication middleware before exposing any routes.
 - **Print CSS** — receipt printing forces `color: #000000 !important` and `-webkit-print-color-adjust: exact` on all elements. Do not add colour-dependent logic to receipt rendering. Use camelCase for CSS-in-JS properties (`WebkitPrintColorAdjust`, not `'-webkit-print-color-adjust'`).
-- **IPC print location** — `ipcRenderer.invoke` for `print-manual` and `print-html-content` must stay in the component files listed above. Moving them breaks the `is-printing-labels` / `is-printing-price-labels` CSS class timing that hides the UI during print capture.
+- **IPC print location** — `ipcRenderer.invoke` for `print-manual` and `print-html-content` must stay in the component files listed above. Moving them breaks the `is-printing-labels` / `is-printing-price-labels` CSS class timing that hides the UI during print capture. Pure helpers (printer resolution, the cached printer list) are shared on purpose — it is the invoke that is pinned.
+- **Print error strings are Electron-version-specific** — `describePrintError` in `desktop/main.ts` matches the descriptive strings Electron passes to the print callback (verified on 40.4.0: `"Invalid deviceName provided"`, `"No printers available on the network"`). It does *not* rely on the older `Error code: N` form, which that version never emits. If Electron is upgraded, re-probe the real strings and update the patterns, or users silently fall back to a generic message.
+- **The print window is network-isolated** — `print-html-content` renders unsanitised database-derived HTML, so its `BrowserWindow` uses a dedicated `print-isolated` session partition with a `webRequest` block on every non-`data:` URL, plus a CSP in the template. Do not move that block onto the default session (it would break auto-update) and do not drop the partition.
 - **waitForServer timeout** — set to 90 s in `desktop/main.ts` to cover the full Prisma migration + `app.listen()` cycle. Do not reduce this below the longest expected migration time.
 - **MUI v6 Grid** — use `<Grid size={{ xs: n, md: m }}>` syntax. The deprecated `item`, `xs`, `md` props have been removed. Fractional grid sizes are not supported; round to the nearest integer.
 - **axios params serializer** — the axios instance has a known incompatibility with ISO date strings in `params` objects in certain Vite-bundled environments. Build query strings with native `URLSearchParams` and append them to the URL directly (see `dashboardService.js`).

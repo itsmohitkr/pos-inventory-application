@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
 import { getApiErrorMessage } from '@/shared/api/api';
+import { resolvePrinterName } from '@/shared/utils/resolvePrinterName';
 import { IPC } from '@/shared/ipcChannels';
 import type { CartItem, PaymentMethod, ReceiptSale } from '@/domains/pos/types';
 import type { Customer } from '@/shared/api/customerService';
@@ -48,6 +49,7 @@ export const usePOSSale = ({
 }: UsePOSSaleArgs) => {
   const [lastSale, setLastSale] = useState<ReceiptSale | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  const [isPrintingReceipt, setIsPrintingReceipt] = useState(false);
 
   const handlePay = useCallback(async (
     selectedPaymentMethod?: PaymentMethod | null,
@@ -124,22 +126,34 @@ export const usePOSSale = ({
       });
       clearCustomerOnSale?.();
 
+      // The sale is committed from here on. Printing gets its own try/catch so
+      // a print failure can never fall through to the outer "Payment failed"
+      // handler below — a cashier told the payment failed for a sale that
+      // actually succeeded will re-ring it, double-charging the customer.
       if (receiptSettings?.directPrint) {
-        const printer =
-          receiptSettings.printerType ||
-          defaultPrinter ||
-          ((printers || []).find((p: PrinterInfo) => p.isDefault) || (printers || [])[0])?.name;
-        if (window.electron) {
-          if (!printer) {
-            showError('No printer configured. Go to Settings → Receipt Settings to select a printer.');
-          } else {
-            const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer });
-            if (!result?.success) {
-              showError(`Print failed: ${result?.error || 'Unknown error'}. Check that the printer is on and connected.`);
+        try {
+          const printer = resolvePrinterName({ receiptSettings, printers, defaultPrinter });
+          if (window.electron) {
+            if (!printer) {
+              showError(
+                'Sale saved, but no printer is configured. Go to Settings → Receipt Settings to select one, then reprint from Sale History.'
+              );
+            } else {
+              const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer });
+              if (!result?.success) {
+                showError(
+                  `Print failed: ${result?.error || 'Unknown error'} The sale was saved — reprint it from Sale History.`
+                );
+              }
             }
+          } else {
+            window.print();
           }
-        } else {
-          window.print();
+        } catch (printError) {
+          Sentry.captureException(printError, { tags: { feature: 'pos-print-after-sale' } });
+          console.error(printError);
+          const printMsg = printError instanceof Error ? printError.message : String(printError);
+          showError(`Print failed: ${printMsg}. The sale was saved — reprint it from Sale History.`);
         }
       } else {
         setShowReceipt(true);
@@ -157,32 +171,41 @@ export const usePOSSale = ({
   }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError, activeCustomer, clearCustomerOnSale]);
 
   const handlePrintLastReceipt = useCallback(async () => {
-    if (lastSale) {
-      if (receiptSettings?.directPrint) {
-        const printer =
-          receiptSettings.printerType ||
-          defaultPrinter ||
-          ((printers || []).find((p: PrinterInfo) => p.isDefault) || (printers || [])[0])?.name;
-        if (window.electron) {
-          if (!printer) {
-            showError('No printer configured. Go to Settings → Receipt Settings to select a printer.');
-          } else {
-            const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer });
-            if (!result?.success) {
-              showError(`Print failed: ${result?.error || 'Unknown error'}. Check that the printer is on and connected.`);
-            }
-          }
-        } else {
-          window.print();
-        }
-      } else setShowReceipt(true);
+    if (!lastSale) return;
+    if (!receiptSettings?.directPrint) {
+      setShowReceipt(true);
+      return;
     }
-  }, [lastSale, receiptSettings, defaultPrinter, printers, setShowReceipt, showError]);
+    // Guard against a double-tap queueing two silent jobs.
+    if (isPrintingReceipt) return;
+    setIsPrintingReceipt(true);
+    try {
+      const printer = resolvePrinterName({ receiptSettings, printers, defaultPrinter });
+      if (window.electron) {
+        if (!printer) {
+          showError('No printer configured. Go to Settings → Receipt Settings to select a printer.');
+        } else {
+          const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer });
+          if (!result?.success) {
+            showError(`Print failed: ${result?.error || 'Unknown error'} Check that the printer is on and connected.`);
+          }
+        }
+      } else {
+        window.print();
+      }
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'pos-print-last-receipt' } });
+      showError(`Print failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsPrintingReceipt(false);
+    }
+  }, [lastSale, receiptSettings, defaultPrinter, printers, setShowReceipt, showError, isPrintingReceipt]);
 
   return {
     lastSale,
     setLastSale,
     isPaying,
+    isPrintingReceipt,
     handlePay,
     handlePayAndPrint,
     handlePrintLastReceipt,

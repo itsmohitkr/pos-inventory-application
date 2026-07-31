@@ -1,4 +1,3 @@
-import type { PrinterInfo } from '@/domains/settings/hooks/useSettings';
 export const RECEIPT_VISIBILITY_FIELDS = [
   'shopName',
   'header',
@@ -21,33 +20,12 @@ export interface PrintResult {
   error?: string;
 }
 
-export const resolvePrinterName = ({
-  receiptSettings,
-  printers = [],
-  defaultPrinter = null,
-}: Record<string, any>): string | null => {
-  const rawPrinter = receiptSettings?.printerType;
-  const hasPrinters = Array.isArray(printers) && printers.length > 0;
-  const isValidPrinter = hasPrinters && rawPrinter && printers.some((p: PrinterInfo) => p.name === rawPrinter);
-
-  if (isValidPrinter) return rawPrinter;
-
-  return defaultPrinter || (printers.find((p: PrinterInfo) => p.isDefault) || printers[0])?.name;
-};
-
-export const handleManualPrint = async ({
-  receiptSettings,
-  printers,
-  defaultPrinter,
-}: Record<string, any>): Promise<PrintResult | undefined> => {
-  if (receiptSettings?.directPrint && window.electron) {
-    const printer = resolvePrinterName({ receiptSettings, printers, defaultPrinter });
-    return window.electron.ipcRenderer.invoke('print-manual', { printerName: printer });
-  }
-
-  window.print();
-  return { success: true };
-};
+// NOTE: printer resolution now lives in shared/utils/resolvePrinterName.ts —
+// three call sites had drifted into three different versions of it. The
+// `print-manual` invoke that used to sit here has moved into
+// ReceiptPreviewDialog.tsx: per CLAUDE.md, print invokes belong in their
+// component so the `is-printing-*` class timing stays next to the call. Only
+// the pure resolution logic is shared.
 
 export const fetchPrintersForPreview = async () => {
   if (!window.electron) {

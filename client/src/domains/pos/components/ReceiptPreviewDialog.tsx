@@ -58,9 +58,11 @@ import Receipt from '@/domains/pos/components/Receipt';
 import {
   fetchPrintersForPreview,
   handleEnterKeySaveOrClose,
-  handleManualPrint,
   RECEIPT_VISIBILITY_FIELDS,
 } from '@/domains/pos/components/receiptPreviewDialogUtils';
+import type { PrintResult } from '@/domains/pos/components/receiptPreviewDialogUtils';
+import { resolvePrinterName } from '@/shared/utils/resolvePrinterName';
+import { IPC } from '@/shared/ipcChannels';
 
 const ReceiptPreviewDialog = ({
   open,
@@ -80,9 +82,53 @@ const ReceiptPreviewDialog = ({
   customerFeatureEnabled = true,
 }: ReceiptPreviewDialogProps) => {
   const [snackbar, setSnackbar] = React.useState({ open: false, message: '', severity: 'info' });
+  const [isPrinting, setIsPrinting] = React.useState(false);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     handleEnterKeySaveOrClose({ event, onSave, onClose });
+  };
+
+  /**
+   * IPC print call — kept in this component rather than a utils module so the
+   * invoke stays next to the UI state it gates (see CLAUDE.md). The in-flight
+   * guard stops a double-tap queueing two silent jobs.
+   */
+  const printPreview = async () => {
+    if (isPrinting) return;
+    setIsPrinting(true);
+    try {
+      if (!receiptSettings?.directPrint || !window.electron) {
+        window.print();
+        return;
+      }
+      const printerName = resolvePrinterName({ receiptSettings, printers, defaultPrinter });
+      if (!printerName) {
+        setSnackbar({
+          open: true,
+          message: 'No printer available. Go to Settings → Receipt Settings to select one.',
+          severity: 'error',
+        });
+        return;
+      }
+      const result = await window.electron.ipcRenderer.invoke<PrintResult>(IPC.PRINT_MANUAL, {
+        printerName,
+      });
+      if (!result?.success) {
+        setSnackbar({
+          open: true,
+          message: `Print failed: ${result?.error || 'Unknown error'}`,
+          severity: 'error',
+        });
+      }
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Print failed: ${error instanceof Error ? error.message : String(error)}`,
+        severity: 'error',
+      });
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
   return (
@@ -474,15 +520,7 @@ const ReceiptPreviewDialog = ({
           <Button variant="outlined" onClick={onClose}>
             Close
           </Button>
-          <Button
-            variant="outlined"
-            onClick={async () => {
-              const result = await handleManualPrint({ receiptSettings, printers, defaultPrinter });
-              if (result && !result.success) {
-                setSnackbar({ open: true, message: `Print failed: ${result.error || 'Unknown error'}`, severity: 'error' });
-              }
-            }}
-          >
+          <Button variant="outlined" onClick={printPreview} disabled={isPrinting}>
             Print Test Page
           </Button>
         </Box>
@@ -496,12 +534,8 @@ const ReceiptPreviewDialog = ({
             variant="contained"
             color="primary"
             startIcon={<PrintIcon />}
-            onClick={async () => {
-              const result = await handleManualPrint({ receiptSettings, printers, defaultPrinter });
-              if (result && !result.success) {
-                setSnackbar({ open: true, message: `Print failed: ${result.error || 'Unknown error'}`, severity: 'error' });
-              }
-            }}
+            onClick={printPreview}
+            disabled={isPrinting}
           >
             Print Receipt
           </Button>

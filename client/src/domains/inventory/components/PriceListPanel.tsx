@@ -25,6 +25,8 @@ const PriceListPanel = ({ open, onClose }: PriceListPanelProps) => {
 
   // IPC print call must stay in this file
   const handlePrint = async () => {
+    // Guard against a double-tap queueing two jobs.
+    if (pl.isPrinting) return;
     pl.setPrintError('');
     if (!pl.previewLabels.length) {
       const message = 'Select at least one product and quantity before printing.';
@@ -40,6 +42,7 @@ const PriceListPanel = ({ open, onClose }: PriceListPanelProps) => {
         pl.setPrintNotice({ open: true, message, severity: 'error' });
         return;
       }
+      pl.setIsPrinting(true);
       try {
         const html = buildPriceListPrintableHtml({
           previewRoot: pl.previewRef.current,
@@ -62,11 +65,24 @@ const PriceListPanel = ({ open, onClose }: PriceListPanelProps) => {
             }
           : undefined;
 
-        await window.electron.ipcRenderer.invoke('print-html-content', {
+        // print-html-content returns {success,error} — it used to throw, so
+        // this success notice fired unconditionally and the specific message
+        // main builds ("printer offline, go reselect it") was thrown away.
+        const result = await window.electron.ipcRenderer.invoke<{
+          success?: boolean;
+          error?: string;
+        }>('print-html-content', {
           html,
           printerName: pl.selectedPrinter || undefined,
           pageSize: thermalPageSize,
         });
+
+        if (!result?.success) {
+          const message = result?.error || 'Direct printing failed. Please check printer connection.';
+          pl.setPrintError(message);
+          pl.setPrintNotice({ open: true, message, severity: 'error' });
+          return;
+        }
 
         pl.setPrintNotice({
           open: true,
@@ -76,18 +92,27 @@ const PriceListPanel = ({ open, onClose }: PriceListPanelProps) => {
       } catch (error) {
         Sentry.captureException(error, { tags: { feature: 'price-list-print' } });
         console.error('Direct print failed:', error);
-        const message = 'Direct printing failed. Please check printer connection.';
+        const message =
+          error instanceof Error ? error.message : 'Direct printing failed. Please check printer connection.';
         pl.setPrintError(message);
         pl.setPrintNotice({ open: true, message, severity: 'error' });
+      } finally {
+        pl.setIsPrinting(false);
       }
       return;
     }
 
-    // Fallback for browser
+    // Fallback for browser. The class removal is in a finally because a
+    // synchronous throw from window.print() (blocked by the browser) would
+    // otherwise leave `is-printing-price-labels` on <body> permanently,
+    // hiding the whole app on every later print.
     document.body.classList.add('is-printing-price-labels');
     setTimeout(() => {
-      window.print();
-      setTimeout(() => document.body.classList.remove('is-printing-price-labels'), 500);
+      try {
+        window.print();
+      } finally {
+        setTimeout(() => document.body.classList.remove('is-printing-price-labels'), 500);
+      }
     }, 50);
   };
 
@@ -187,8 +212,14 @@ const PriceListPanel = ({ open, onClose }: PriceListPanelProps) => {
 
       <DialogActions className="no-print" sx={{ px: 2, py: 1.5, borderTop: '1px solid #e5e7eb', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
         <Button variant="outlined" onClick={onClose}>Close</Button>
-        <Button variant="contained" color="primary" startIcon={<PrintIcon />} onClick={handlePrint}>
-          Print Labels
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<PrintIcon />}
+          onClick={handlePrint}
+          disabled={pl.isPrinting}
+        >
+          {pl.isPrinting ? 'Printing…' : 'Print Labels'}
         </Button>
       </DialogActions>
 
