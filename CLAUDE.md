@@ -343,34 +343,39 @@ Set automatically by `desktop/main.js` at runtime. For standalone server develop
 
 ## TypeScript strictness — current state
 
-Deliberate, not half-finished. `noImplicitAny` is **enabled and enforced** in
-both `server/tsconfig.json` and `client/tsconfig.json`. `strictNullChecks` is
-additionally **enabled and enforced on the server only** — new server code
-cannot introduce an unguarded null/undefined dereference. Both flags are set
-per-package rather than in `tsconfig.base.json` because the base is shared
-with `desktop/`, which has not been assessed, and because a flag can only be
-turned on for a package once that package's count reaches zero.
+Deliberate, not half-finished. `noImplicitAny` and `strictNullChecks` are both
+**enabled and enforced** in `server/tsconfig.json` and `client/tsconfig.json`
+— new code on either side cannot introduce an implicit `any` or an unguarded
+null/undefined dereference. Both flags are set per-package rather than in
+`tsconfig.base.json` because the base is shared with `desktop/`, which has
+not been assessed, and because a flag can only be turned on for a package
+once that package's count reaches zero.
 
 Everything else is off, with the work measured rather than guessed:
 
 | Flag | Server | Client | State |
 |---|---|---|---|
 | `noImplicitAny` | 0 | 0 | **on** (both) |
-| `strictNullChecks` | 0 | 230 | **on** (server only) |
+| `strictNullChecks` | 0 | 0 | **on** (both) |
 | `strict` (all flags) | 18 | 284 | off |
 | explicit return types | ~174 | ~192 | rule not enabled |
 | `allowJs` | — | — | still `true` |
 
 Re-measure with, e.g., `cd client && npx tsc --noEmit --strictNullChecks`.
 
-`strictNullChecks` on the server found four real bugs, not just missing
-annotations — see the git history on `purchase.service.ts` /
-`expense.service.ts` (a `findUnique` result used without a null guard),
+`strictNullChecks` found real bugs on both sides, not just missing
+annotations. Server (see git history on `purchase.service.ts` /
+`expense.service.ts` — a `findUnique` result used without a null guard),
 `sale.service.ts` (a wholesale price of `null` could reach `totalAmount` as
 `NaN`), and `product.service.ts`'s `validatePricing` (a cleared wholesale
-price coerced to `0` in a comparison instead of skipping validation). This is
-why the flag is worth finishing on the client too, even though the count is
-larger there.
+price coerced to `0` in a comparison instead of skipping validation). Client:
+the same wholesale-price class of bug in `usePOSTabs.ts` (`addToCart` /
+`updateQuantity` / `handleSetQuantity` could set a cart item's `price` to
+`null` when `wholesalePrice` or `promoPrice` was unset despite the enabling
+flag being on), an Axios `GenericAbortSignal` whose `addEventListener` method
+is itself optional (`client/src/shared/api/api.ts`), and a `GlobalAppBar`
+countdown timer that used `=== null` and so missed `undefined`, reaching
+`seconds / 60` unguarded.
 
 Two conventions worth keeping if this is taken further:
 

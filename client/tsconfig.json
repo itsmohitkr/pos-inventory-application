@@ -4,10 +4,10 @@
     "Vite transpiles TS itself, so tsc is used only as a type checker (noEmit).",
     "`npm run typecheck` is the CI gate; `vite build` does not type-check.",
     "",
-    "noImplicitAny is enabled here rather than in tsconfig.base.json because the",
-    "base is shared with desktop/, which has not been assessed. server/ sets the",
-    "same flag in its own config. strict, strictNullChecks and allowJs are",
-    "deliberately still off — see CLAUDE.md for the measured counts."
+    "noImplicitAny and strictNullChecks are enabled here rather than in",
+    "tsconfig.base.json because the base is shared with desktop/, which has not",
+    "been assessed. server/ sets the same flags in its own config. strict and",
+    "allowJs are deliberately still off — see CLAUDE.md for the measured counts."
   ],
   "compilerOptions": {
     "target": "ES2022",
@@ -27,7 +27,8 @@
     "allowImportingTsExtensions": true,
     "types": ["vite/client", "vitest/globals"],
 
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "strictNullChecks": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests-e2e"]
