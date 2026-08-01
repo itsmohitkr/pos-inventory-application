@@ -24,7 +24,10 @@ export const createUsersPage = (page: Page) => {
     }) => {
       const addDialog = page.getByRole('dialog', { name: 'Add New User' });
       await addDialog.getByRole('textbox', { name: 'Username' }).fill(username);
-      await addDialog.getByLabel('Password').fill(password);
+      // exact: true — consistent with other password fields in this suite;
+      // a show/hide toggle's aria-label containing "password" would
+      // otherwise also match a substring search here.
+      await addDialog.getByLabel('Password', { exact: true }).fill(password);
       await addDialog.getByRole('combobox', { name: 'Role' }).click();
       await page.getByRole('option', { name: new RegExp(role, 'i') }).click();
       await addDialog.getByRole('button', { name: 'Add User' }).click();

@@ -226,7 +226,9 @@ test('inventory interaction timings', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('POS System Login')).toBeVisible();
   await page.getByLabel('Admin Username').fill('admin');
-  await page.getByLabel('Password').fill('admin123');
+  // exact: true — the show/hide toggle on this field has an aria-label
+  // containing "password" too, which a substring match would also resolve.
+  await page.getByLabel('Password', { exact: true }).fill('admin123');
   await page.getByRole('button', { name: 'Login as Admin' }).click();
 
   // common locators

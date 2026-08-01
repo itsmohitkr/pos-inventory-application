@@ -19,6 +19,8 @@ export const loginAsAdmin = async (page: Page) => {
   await page.goto('/');
   await expect(page.getByText('POS System Login')).toBeVisible();
   await page.getByLabel('Username').fill('admin');
-  await page.getByLabel('Password').fill('admin123');
+  // exact: true — the show/hide toggle on this field has an aria-label
+  // containing "password" too, which a substring match would also resolve.
+  await page.getByLabel('Password', { exact: true }).fill('admin123');
   await page.getByRole('button', { name: 'Log In' }).click();
 };
