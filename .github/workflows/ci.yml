@@ -29,14 +29,29 @@ jobs:
         run: cd server && npm ci
 
       # Server typecheck depends on @prisma/client's generated types (every
-      # domain service imports `Prisma`-derived types from it) — without this,
-      # npm ci alone doesn't reliably produce them in this environment, and
-      # every Prisma-touching file typechecks against a fallback `{}` shape
-      # instead of the real schema. build-release.yml already does this
-      # explicitly; ci.yml did not, which is exactly why this was missed
-      # until a PR that actually exercised full strict-mode typecheck.
+      # domain service imports `Prisma`-derived types from it). Two things
+      # have to both be true for that to work, not just "run generate":
+      #
+      # 1. `prisma`'s own postinstall (triggered by npm ci above) generates a
+      #    client into server/node_modules/.prisma from a stale/default schema
+      #    snapshot — a DIFFERENT copy from the one schema.prisma's custom
+      #    `output` actually targets (repo-root node_modules/.prisma). Node's
+      #    module resolution finds this nearer, stale copy first, so it has
+      #    to be removed or it silently shadows the correct one generated
+      #    below — confirmed by reproducing this in a fresh clone: adding the
+      #    generate step alone did NOT fix CI; only removing the stale copy
+      #    first did.
+      # 2. The correct client then has to actually be generated before any
+      #    tsc step (build or typecheck) runs, or every Prisma-touching file
+      #    typechecks against a fallback `{}` shape instead of the real
+      #    schema. build-release.yml already did this explicitly; ci.yml did
+      #    not, which is exactly why this was missed until a PR that actually
+      #    exercised full strict-mode typecheck on the server.
       - name: Generate Prisma Client
-        run: cd server && npx prisma generate
+        run: |
+          cd server
+          rm -rf node_modules/.prisma
+          npx prisma generate
 
       # 0. TYPE CHECKING
       # Gates the TypeScript migration. Passes trivially while the codebase is

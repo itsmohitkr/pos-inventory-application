@@ -28,13 +28,24 @@ jobs:
         working-directory: server
         run: npm ci
 
+      # `prisma`'s own postinstall (triggered by the npm ci above) generates a
+      # client into server/node_modules/.prisma using a stale/default schema
+      # snapshot — a SEPARATE copy from the one schema.prisma's custom
+      # `output` actually targets (repo-root node_modules/.prisma). Node's
+      # module resolution finds this nearer, stale copy first, so any tsc
+      # step (build or typecheck) run before this cleanup silently typechecks
+      # against a `{}`-shaped Prisma Client instead of the real schema.
+      # Removing it lets resolution correctly fall through to the client
+      # this step generates next.
+      - name: Generate Prisma Client
+        working-directory: server
+        run: |
+          rm -rf node_modules/.prisma
+          npx prisma generate
+
       - name: Build server
         working-directory: server
         run: npm run build
-
-      - name: Generate Prisma Client
-        working-directory: server
-        run: npx prisma generate
 
       - name: Validate Prisma Migrations
         working-directory: server
@@ -125,6 +136,14 @@ jobs:
         working-directory: server
         run: npm ci
 
+      # See the same step in quality-gate above — must run before any tsc
+      # step (build or typecheck), and before the stale server-local
+      # node_modules/.prisma npm ci creates gets a chance to shadow it.
+      - name: Generate Prisma Client
+        run: |
+          rm -rf server/node_modules/.prisma
+          npx prisma generate --schema=server/prisma/schema.prisma
+
       - name: Build client
         working-directory: client
         run: npx vite build
@@ -135,9 +154,6 @@ jobs:
 
       - name: Build desktop
         run: npm run desktop-build
-
-      - name: Generate Prisma Client
-        run: npx prisma generate --schema=server/prisma/schema.prisma
 
       - name: Package macOS installer
         run: npx electron-builder --mac --publish never
@@ -187,6 +203,15 @@ jobs:
         working-directory: server
         run: npm ci
 
+      # See the equivalent step in quality-gate/build-mac above for why this
+      # order matters and why the stale copy must be removed first —
+      # PowerShell syntax here since this job runs on windows-latest.
+      - name: Generate Prisma Client
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force server/node_modules/.prisma -ErrorAction SilentlyContinue
+          npx prisma generate --schema=server/prisma/schema.prisma
+
       - name: Build client
         working-directory: client
         run: npx vite build
@@ -197,9 +222,6 @@ jobs:
 
       - name: Build desktop
         run: npm run desktop-build
-
-      - name: Generate Prisma Client
-        run: npx prisma generate --schema=server/prisma/schema.prisma
 
       - name: Package Windows installer
         run: npx electron-builder --win --publish never
