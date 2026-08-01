@@ -14,9 +14,19 @@ export const collectRuntimeFailures = (page: Page): RuntimeFailures => {
   });
 
   page.on('response', (response) => {
-    if (response.url().includes('/api/') && response.status() >= 400) {
-      failedApiResponses.push(`${response.status()} ${response.url()}`);
-    }
+    if (!response.url().includes('/api/') || response.status() < 400) return;
+
+    // GET /api/products/:barcode is the barcode-uniqueness check (see
+    // useAddProductForm's addBarcode): a 404 there means "no existing
+    // product with this barcode", which is the expected, handled signal
+    // that a freshly generated barcode is safe to use — not an app error.
+    const isExpectedBarcodeUniquenessCheck =
+      response.status() === 404 &&
+      response.request().method() === 'GET' &&
+      /\/api\/products\/\d+$/.test(new URL(response.url()).pathname);
+    if (isExpectedBarcodeUniquenessCheck) return;
+
+    failedApiResponses.push(`${response.status()} ${response.url()}`);
   });
 
   return { pageErrors, failedApiResponses };

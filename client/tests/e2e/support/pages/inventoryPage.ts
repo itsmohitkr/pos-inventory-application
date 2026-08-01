@@ -54,6 +54,22 @@ export const createInventoryPage = (page: Page) => {
       // step navigation needed between them.
       await page.getByLabel('Product Name').fill(name);
       await page.getByLabel('Category').fill(category);
+
+      // Barcode is required server-side (CreateProductSchema). Generate one
+      // instead of hardcoding a value, matching how a cashier without a
+      // scanner uses this form. Waits for the actual barcode chip (a random
+      // 13-digit number) to render, since that's the real signal the async
+      // uniqueness check (addBarcode) succeeded — checking the input's
+      // enabled state instead would race the brief disabled-while-checking
+      // window and could pass before the check even started. Scoped to the
+      // drawer (an MUI Drawer, not a Dialog — it has no aria-labelledby, so
+      // it can only be matched by role, not by name), since other products'
+      // 13-digit barcodes are already visible in the table behind it and
+      // would otherwise match too.
+      const addProductDialog = page.getByRole('dialog');
+      await addProductDialog.getByRole('button', { name: 'Generate' }).click();
+      await expect(addProductDialog.getByText(/^\d{13}$/)).toBeVisible({ timeout: 5000 });
+
       await page.getByLabel('Quantity').fill(quantity.toString());
       await page.getByLabel('MRP').fill(mrp.toString());
       await page.getByLabel('Cost Price').fill(costPrice.toString());

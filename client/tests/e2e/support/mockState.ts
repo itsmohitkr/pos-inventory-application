@@ -98,6 +98,16 @@ const ensureUiShape = (product: MockRecord): MockRecord => ({
   })),
 });
 
+const computeCategorySaleStatus = (sale: MockRecord): string => {
+  if (sale.status === 'paused') return 'paused';
+  if (sale.status === 'draft') return 'draft';
+  if (sale.isIndefinite) return 'active';
+  const now = Date.now();
+  if (sale.startDate && now < new Date(sale.startDate).getTime()) return 'scheduled';
+  if (sale.endDate && now > new Date(sale.endDate).getTime()) return 'expired';
+  return 'active';
+};
+
 const recalculateProductTotals = (product: MockRecord) => {
   const totalStock = (product.batches || []).reduce(
     (sum: number, batch: MockRecord) => sum + toNumeric(batch.quantity, 0),
@@ -111,6 +121,7 @@ export const createMockState = () => {
   const state: {
     products: MockRecord[];
     promotions: MockRecord[];
+    categorySales: MockRecord[];
     expenses: MockRecord[];
     purchases: MockRecord[];
     looseSales: MockRecord[];
@@ -128,6 +139,7 @@ export const createMockState = () => {
   } = {
     products: clone(inventoryProductsFixture).map(ensureUiShape),
     promotions: clone(promotionsFixture),
+    categorySales: [],
     expenses: clone(expensesFixture),
     purchases: clone(purchasesFixture),
     looseSales: clone(looseSalesFixture),
@@ -403,6 +415,80 @@ export const createMockState = () => {
       state.promotions.push(newPromotion);
       return newPromotion;
     },
+    getCategorySales: () => state.categorySales,
+    getCategorySaleById: (id: Id) =>
+      state.categorySales.find((sale) => String(sale.id) === String(id)) || null,
+    createCategorySale: (payload: MockRecord) => {
+      const nextId =
+        Math.max(0, ...state.categorySales.map((sale) => Number(sale.id) || 0)) + 1;
+      const now = new Date().toISOString();
+      const newSale = {
+        id: nextId,
+        status: 'active',
+        excludedProductIds: [],
+        ...payload,
+        createdAt: now,
+        updatedAt: now,
+        computedStatus: computeCategorySaleStatus(payload),
+      };
+      state.categorySales.push(newSale);
+      return newSale;
+    },
+    updateCategorySale: (id: Id, payload: MockRecord) => {
+      const sale = state.categorySales.find((item) => String(item.id) === String(id));
+      if (!sale) return null;
+      Object.assign(sale, payload, { updatedAt: new Date().toISOString() });
+      sale.computedStatus = computeCategorySaleStatus(sale);
+      return sale;
+    },
+    toggleCategorySaleStatus: (id: Id, status: string) => {
+      const sale = state.categorySales.find((item) => String(item.id) === String(id));
+      if (!sale) return null;
+      sale.status = status;
+      sale.updatedAt = new Date().toISOString();
+      sale.computedStatus = computeCategorySaleStatus(sale);
+      return sale;
+    },
+    deleteCategorySale: (id: Id) => {
+      const before = state.categorySales.length;
+      state.categorySales = state.categorySales.filter(
+        (sale) => String(sale.id) !== String(id)
+      );
+      return before !== state.categorySales.length;
+    },
+    previewCategorySaleProducts: (category: string, discountPercentage: number) =>
+      state.products
+        .filter((product) => product.isDeleted === false && product.category === category)
+        .map((product) => {
+          const mrp = Number(product.batches?.[0]?.mrp || 0);
+          const costPrice = Number(product.costPrice || 0);
+          const currentSellingPrice = Number(product.sellingPrice || 0);
+          const newSellingPrice = Number((mrp * (1 - discountPercentage / 100)).toFixed(2));
+          return {
+            id: product.id,
+            name: product.name,
+            barcode: product.barcode || null,
+            mrp,
+            costPrice,
+            vendorDiscountAmount: 0,
+            vendorDiscountPercentage: 0,
+            currentSellingPrice,
+            currentCustomerDiscountAmount: Number((mrp - currentSellingPrice).toFixed(2)),
+            currentCustomerDiscountPercentage: mrp
+              ? Number((((mrp - currentSellingPrice) / mrp) * 100).toFixed(2))
+              : 0,
+            regularProfitAmount: Number((currentSellingPrice - costPrice).toFixed(2)),
+            regularProfitMargin: currentSellingPrice
+              ? Number((((currentSellingPrice - costPrice) / currentSellingPrice) * 100).toFixed(2))
+              : 0,
+            discountPercentage,
+            newSellingPrice,
+            profitAmount: Number((newSellingPrice - costPrice).toFixed(2)),
+            profitMargin: newSellingPrice
+              ? Number((((newSellingPrice - costPrice) / newSellingPrice) * 100).toFixed(2))
+              : 0,
+          };
+        }),
     getSettings: () => ({ data: state.settings }),
     updateSettings: (payload: MockRecord) => {
       if (payload?.settings) {

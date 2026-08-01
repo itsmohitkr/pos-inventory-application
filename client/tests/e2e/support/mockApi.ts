@@ -371,6 +371,57 @@ export const installMockApi = async (page: Page) => {
       return;
     }
 
+    if (path === '/api/category-sales/preview' && method === 'GET') {
+      const searchParams = new URL(request.url()).searchParams;
+      const category = searchParams.get('category') || '';
+      const discountPercentage = Number(searchParams.get('discountPercentage') || 0);
+      await jsonResponse(route, state.previewCategorySaleProducts(category, discountPercentage));
+      return;
+    }
+
+    if (path === '/api/category-sales' && method === 'GET') {
+      await jsonResponse(route, state.getCategorySales());
+      return;
+    }
+
+    if (path === '/api/category-sales' && method === 'POST') {
+      await jsonResponse(route, state.createCategorySale(request.postDataJSON()));
+      return;
+    }
+
+    if (path.match(/^\/api\/category-sales\/\d+\/status$/) && method === 'PATCH') {
+      const saleId = path.split('/')[3] as string;
+      const updated = state.toggleCategorySaleStatus(saleId, request.postDataJSON().status);
+      if (!updated) {
+        await notFound(route, 'Category sale not found');
+        return;
+      }
+      await jsonResponse(route, updated);
+      return;
+    }
+
+    if (path.startsWith('/api/category-sales/') && method === 'PUT') {
+      const saleId = lastSegment(path);
+      const updated = state.updateCategorySale(saleId, request.postDataJSON());
+      if (!updated) {
+        await notFound(route, 'Category sale not found');
+        return;
+      }
+      await jsonResponse(route, updated);
+      return;
+    }
+
+    if (path.startsWith('/api/category-sales/') && method === 'DELETE') {
+      const saleId = lastSegment(path);
+      const removed = state.deleteCategorySale(saleId);
+      if (!removed) {
+        await notFound(route, 'Category sale not found');
+        return;
+      }
+      await jsonResponse(route, { success: true });
+      return;
+    }
+
     if (method === 'GET') {
       await jsonResponse(route, { data: [] });
       return;
