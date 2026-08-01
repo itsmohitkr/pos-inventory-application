@@ -49,13 +49,11 @@ export const createInventoryPage = (page: Page) => {
       lowStockThreshold,
       expiryDate,
     }: NewProductFields) => {
-      // Tab 0: Product Details
+      // The form is a single scrollable page now (previously a 3-tab wizard
+      // with Next/Back navigation) — every field is already visible, no
+      // step navigation needed between them.
       await page.getByLabel('Product Name').fill(name);
       await page.getByLabel('Category').fill(category);
-      
-      // Navigate to Tab 1: Stock & Quantity
-      await page.getByRole('button', { name: 'Next' }).click();
-      
       await page.getByLabel('Quantity').fill(quantity.toString());
       await page.getByLabel('MRP').fill(mrp.toString());
       await page.getByLabel('Cost Price').fill(costPrice.toString());
@@ -70,9 +68,6 @@ export const createInventoryPage = (page: Page) => {
         await expect(expiryInput).toBeVisible({ timeout: 5000 });
         await expiryInput.fill(expiryDate);
       }
-
-      // Navigate to Tab 2: Settings
-      await page.getByRole('button', { name: 'Next' }).click();
 
       if (lowStockThreshold !== undefined) {
         const lowStockSwitch = page.getByLabel('Enable low stock warning');
