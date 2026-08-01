@@ -81,10 +81,6 @@ const PromotionManagement = () => {
     }
   }
 
-  useEffect(() => {
-    fetchCategorySales();
-  }, []);
-
   const handleCreateCategorySale = async (saleInput: CategorySaleInput) => {
     if (categorySaleToEdit) {
       await categorySaleService.updateCategorySale(categorySaleToEdit.id, saleInput);
@@ -270,6 +266,7 @@ const PromotionManagement = () => {
       fetchProducts();
       fetchPromoSettings();
       fetchCategories();
+      fetchCategorySales();
     });
 
     return () => window.cancelAnimationFrame(frame);
