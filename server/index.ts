@@ -34,8 +34,15 @@ tlog('server/index.js loaded');
 // ── IPC Helper for splash screen ──────────────────────────────────────────────
 // process.send is monkey-patched in desktop/main.js to forward to the splash.
 
-const sendSplashMsg = (msg: string) => {
-  if (process.send) process.send({ type: 'splash-status', message: msg });
+// `done: true` marks the two points where the background bootstrap settles
+// (success or failure) — desktop/main.ts uses this, not raw port-open, to
+// decide when it's safe to close the splash screen. Without it the main
+// window can appear before migrations/seeding/route-loading finish, and the
+// very first data fetch then sits blocked in gatingMiddleware for up to 30s
+// — which reads to a user as "the app is frozen," even though the splash
+// screen showing real progress was still available and closed too early.
+const sendSplashMsg = (msg: string, done = false) => {
+  if (process.send) process.send({ type: 'splash-status', message: msg, done });
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -429,7 +436,7 @@ async function main() {
       
       isSystemReady = true;
       tlog('System is ready');
-      sendSplashMsg('Ready!');
+      sendSplashMsg('Ready!', true);
 
       // Post-ready tasks
       migratePasswordsToHash(prisma, logger).catch(() => {});
@@ -437,7 +444,11 @@ async function main() {
     } catch (err) {
       systemError = err instanceof Error ? err : new Error(getErrorMessage(err));
       console.error('[BOOT FATAL BACKGROUND]', err);
-      sendSplashMsg('Initialization failed!');
+      // done: true even on failure — main.ts must not wait forever for a
+      // "ready" that will never come. It shows the window anyway; any API
+      // call then surfaces this error through gatingMiddleware as it does
+      // today, rather than the app appearing to hang before ever opening.
+      sendSplashMsg('Initialization failed!', true);
     }
   })();
 }

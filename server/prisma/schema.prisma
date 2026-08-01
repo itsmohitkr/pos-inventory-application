@@ -62,6 +62,7 @@ model Product {
   movements              StockMovement[]
 
   @@index([category])
+  @@index([isDeleted])
 }
 
 model Batch {

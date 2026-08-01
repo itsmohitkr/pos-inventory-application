@@ -807,13 +807,27 @@ const createWindow = (): void => {
       slashes: true,
     });
 
-  // Gate: show main window only when BOTH server is ready AND frontend is loaded.
-  // Both start in parallel so total wait = max(server_time, frontend_time) not the sum.
-  let serverReady = false;
+  // Gate: show main window only when BOTH the backend has actually finished
+  // booting AND frontend is loaded. Both start in parallel so total wait =
+  // max(server_time, frontend_time) not the sum.
+  //
+  // "Backend settled" is NOT the same as "port is open" — the express server
+  // starts listening almost immediately, well before migrations/seeding/
+  // route-loading finish (see server/index.ts's own [BOOT +Nms] trace). Prior
+  // to this, tryShowWindow() gated on the port opening alone, so the main
+  // window could appear before the backend was truly ready to serve
+  // requests — the first data fetch would then sit blocked in
+  // gatingMiddleware for up to 30s, which looks to a user like a frozen app
+  // rather than a still-loading one, even though the splash screen showing
+  // real progress was right there and got closed prematurely. `backendSettled`
+  // instead waits for the explicit done:true signal server/index.ts sends
+  // once bootstrap finishes — success or failure (see below) — so the splash
+  // stays up (with real status messages) for the entire real wait.
+  let backendSettled = false;
   let frontendReady = false;
 
   const tryShowWindow = (): void => {
-    if (!serverReady || !frontendReady) return;
+    if (!backendSettled || !frontendReady) return;
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
     mainWindow!.show();
     mainWindow!.focus();
@@ -825,9 +839,18 @@ const createWindow = (): void => {
   });
 
   // 4. Intercept simulated IPC for Splash Screen
-  (process as unknown as { send: (msg: { type: string; message: string }) => void }).send = (msg) => {
+  (process as unknown as { send: (msg: { type: string; message: string; done?: boolean }) => void }).send = (msg) => {
     if (msg && msg.type === IPC.SPLASH_STATUS && splashWindow && !splashWindow.isDestroyed()) {
       splashWindow.webContents.send(IPC.SPLASH_STATUS, msg.message);
+    }
+    // done is sent on both success ('Ready!') and failure ('Initialization
+    // failed!') — must not wait forever for a ready signal that will never
+    // arrive if bootstrap threw. Showing the window anyway on failure matches
+    // today's behavior: the error surfaces via gatingMiddleware on the first
+    // API call instead of the app looking like it never opened at all.
+    if (msg && msg.type === IPC.SPLASH_STATUS && msg.done) {
+      backendSettled = true;
+      tryShowWindow();
     }
   };
 
@@ -836,12 +859,7 @@ const createWindow = (): void => {
 
   startServer()
     .then(() => {
-      console.log('Server ready — waiting for frontend...');
-      serverReady = true;
-      if (splashWindow && !splashWindow.isDestroyed()) {
-        splashWindow.webContents.send(IPC.SPLASH_STATUS, 'Loading User Interface...');
-      }
-      tryShowWindow();
+      console.log('Server port open — waiting for backend bootstrap and frontend...');
     })
     .catch((err) => {
       console.error('Failed to start server:', err);
