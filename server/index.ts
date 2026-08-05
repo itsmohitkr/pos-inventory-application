@@ -16,11 +16,19 @@ import type { PrismaClient } from '@prisma/client';
 import type { Logger } from 'pino';
 import {
   SERVER_ROOT,
-  SCHEMA_PATH,
-  MIGRATIONS_DIR,
+  getSchemaPath,
+  getMigrationsDir,
   getPrismaCliPath,
 } from './src/config/paths';
 import { getErrorMessage } from './src/shared/utils/errorMessage';
+
+// Computed once, reused everywhere a path needs to know whether it's
+// resolving against a packaged app.asar or running from source. Must match
+// exactly how paths.ts's getSchemaPath/getMigrationsDir/getPrismaCliPath
+// expect to be called — see that module for why the distinction matters
+// (a subprocess spawn needs the real unpacked path, not a virtual asar one).
+const IS_PACKAGED =
+  process.env.NODE_ENV === 'production' || SERVER_ROOT.includes('app.asar');
 
 const PORT = process.env.PORT || 5001;
 const BOOT_START = Date.now();
@@ -59,7 +67,7 @@ function getMigrationCachePath() {
 }
 
 function getLatestMigrationFolder() {
-  const dir = MIGRATIONS_DIR;
+  const dir = getMigrationsDir(IS_PACKAGED);
   if (!fs.existsSync(dir)) return null;
   const folders = fs
     .readdirSync(dir, { withFileTypes: true })
@@ -134,7 +142,7 @@ async function checkMigrationStatus(prisma: PrismaClient, logger: Logger) {
 
   // Tier 2
   tlog('Migration cache miss — querying _prisma_migrations');
-  const migrationsDir = MIGRATIONS_DIR;
+  const migrationsDir = getMigrationsDir(IS_PACKAGED);
   const migrationFolders = fs
     .readdirSync(migrationsDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
@@ -167,12 +175,9 @@ async function runPrismaMigrationsSubprocess(logger: Logger) {
   const pEnv = { ...process.env };
   const nodeExecutable = process.execPath;
 
-  const isPackaged =
-    process.env.NODE_ENV === 'production' || SERVER_ROOT.includes('app.asar');
-
-  const prismaCliPath = getPrismaCliPath(isPackaged);
-  const schemaPath = SCHEMA_PATH;
-  if (isPackaged) {
+  const prismaCliPath = getPrismaCliPath(IS_PACKAGED);
+  const schemaPath = getSchemaPath(IS_PACKAGED);
+  if (IS_PACKAGED) {
     pEnv.ELECTRON_RUN_AS_NODE = '1';
   }
 
