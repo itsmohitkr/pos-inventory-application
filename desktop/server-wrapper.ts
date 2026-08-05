@@ -18,6 +18,23 @@ const desktopUnpackedPath = path.join(__dirname, '..', '..', '..', 'app.asar.unp
 // desktopUnpackedPath is computed but unused, same as in the original .js file.
 void desktopUnpackedPath;
 
+// The PACKED node_modules — everything except Prisma (Express, pino,
+// helmet, bcryptjs, dotenv, ...) lives here, inside app.asar, not unpacked.
+// Two ".." pops (not three) stay inside the archive: dist -> desktop ->
+// app.asar root, then into node_modules — see the unpackedNodeModules
+// comment above for why three pops are needed to escape the archive
+// entirely, versus two to stay inside it.
+//
+// Both the root and server node_modules are listed: npm hoists shared
+// dependencies (express, dotenv, pino, ...) to the root, but leaves
+// server-only ones (zod, @sentry/node, nodemon) in server/node_modules —
+// same split the pre-narrowing unpacked fallback never had to think about,
+// since both trees were unpacked wholesale back then. Module._resolveFilename
+// tries every entry in `paths` in order, so listing both here is enough;
+// no need for a separate try/catch per directory.
+const packedNodeModules = path.join(__dirname, '..', '..', 'node_modules');
+const packedServerNodeModules = path.join(__dirname, '..', '..', 'server', 'node_modules');
+
 console.log('Server wrapper starting...');
 console.log('Unpacked node_modules:', unpackedNodeModules);
 console.log('Server directory:', process.cwd());
@@ -97,12 +114,43 @@ ModuleInternal._resolveFilename = function (
   // here, and the first real build to actually exercise it stack-overflowed
   // on first boot — caught by smoke-mac/smoke-win, release correctly
   // skipped, nothing shipped.
-  const unpackedPath = originalResolve(request, parent, isMain, {
-    ...(typeof options === 'object' && options ? options : {}),
-    paths: [unpackedNodeModules],
+  const baseOptions = typeof options === 'object' && options ? options : {};
+  try {
+    const unpackedPath = originalResolve(request, parent, isMain, {
+      ...baseOptions,
+      paths: [unpackedNodeModules],
+    });
+    resolutionCache.set(cacheKey, unpackedPath);
+    return unpackedPath;
+  } catch (e) {
+    // Fall through to the packed tree below.
+  }
+
+  // 3. Fall back further to the PACKED node_modules, inside app.asar.
+  //
+  // This tier exists specifically for server/dist/**/* — it's unpacked (see
+  // the comment on the final require() below), so its own __dirname-based
+  // module resolution walks real, physical directories that never lead back
+  // into app.asar. A script that itself lives on real disk has no natural
+  // path back to a sibling package that stayed packed, even though nothing
+  // about resolving a plain JS module (as opposed to spawning a native
+  // binary, or process.chdir — the things that genuinely can't cross the
+  // packed/unpacked boundary) actually prevents it: Electron's
+  // asar-transparent fs patching still reads packed paths fine here, same
+  // as it does for schema.prisma and everything else this file already
+  // reads successfully from inside app.asar. Explicitly pointing
+  // originalResolve at the packed node_modules bridges that gap.
+  //
+  // Caught the hard way: v219 crashed with "Cannot find module 'dotenv'" —
+  // the first of what would have been a long tail of the same failure, one
+  // package at a time, for everything server/dist/index.js requires that
+  // isn't Prisma (Express, Joi, pino, helmet, bcryptjs, cors, ...).
+  const packedPath = originalResolve(request, parent, isMain, {
+    ...baseOptions,
+    paths: [packedNodeModules, packedServerNodeModules],
   });
-  resolutionCache.set(cacheKey, unpackedPath);
-  return unpackedPath;
+  resolutionCache.set(cacheKey, packedPath);
+  return packedPath;
 };
 
 // Now load and run the actual server
