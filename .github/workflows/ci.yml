@@ -53,6 +53,15 @@ jobs:
           rm -rf node_modules/.prisma
           npx prisma generate
 
+      # desktop/ipc/*.ts type-imports compiled server output directly
+      # (`typeof import('../../server/dist/src/...')`, see the IPC migration)
+      # so server/dist has to exist before "Typecheck Desktop" below runs, or
+      # every one of those type-only imports fails with TS2307. This was
+      # missed initially because a local `server/dist` from a prior manual
+      # build masked the gap — a truly fresh checkout has no dist/ at all.
+      - name: Build Server
+        run: cd server && npm run build
+
       # 0. TYPE CHECKING
       # Gates the TypeScript migration. Passes trivially while the codebase is
       # still JavaScript (allowJs + checkJs:false), and becomes a real gate as
