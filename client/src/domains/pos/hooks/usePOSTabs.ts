@@ -179,6 +179,12 @@ export const usePOSTabs = () => {
             if (newQty < 1) return item;
 
             let newPrice = item.sellingPrice;
+            // isOnSale must be recomputed alongside price, not carried over
+            // from when the item was added — otherwise bumping quantity into
+            // the wholesale tier leaves a stale isOnSale:true (from the
+            // original promo) even though wholesale now wins, which mislabels
+            // the wholesale discount as a "sale" saving in the cart/summary.
+            let newIsOnSale = false;
             if (
               item.wholesaleEnabled &&
               item.wholesaleMinQty &&
@@ -188,9 +194,10 @@ export const usePOSTabs = () => {
               newPrice = item.wholesalePrice;
             } else if (item.isOnSale && item.promoPrice != null) {
               newPrice = item.promoPrice;
+              newIsOnSale = true;
             }
 
-            return { ...item, quantity: newQty, price: newPrice };
+            return { ...item, quantity: newQty, price: newPrice, isOnSale: newIsOnSale };
           }
           return item;
         })
@@ -207,6 +214,9 @@ export const usePOSTabs = () => {
           if (item.batch_id === batchId) {
             if (item.isFree) return item;
             let newPrice = item.sellingPrice;
+            // Same fix as updateQuantity above — recompute isOnSale, don't
+            // carry over a stale value from when the item was added.
+            let newIsOnSale = false;
             if (
               item.wholesaleEnabled &&
               item.wholesaleMinQty &&
@@ -216,8 +226,9 @@ export const usePOSTabs = () => {
               newPrice = item.wholesalePrice;
             } else if (item.isOnSale && item.promoPrice != null) {
               newPrice = item.promoPrice;
+              newIsOnSale = true;
             }
-            return { ...item, quantity, price: newPrice };
+            return { ...item, quantity, price: newPrice, isOnSale: newIsOnSale };
           }
           return item;
         })
