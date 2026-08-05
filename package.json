@@ -63,6 +63,7 @@
       "!server/.env"
     ],
     "asarUnpack": [
+      "server/dist/**/*",
       "server/prisma/**/*",
       "server/prisma/migrations/**/*",
       "server/package.json",
