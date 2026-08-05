@@ -8,11 +8,11 @@ Electron desktop POS (Point of Sale) — "Where Retail Meets Intelligence". Pack
 
 ```
 /
-├── desktop/          Electron main process, preload, splash screen
-│   ├── main.js       App entry, IPC handlers, DB bootstrap, auto-update
-│   ├── preload.js    Context bridge — exposes ipcRenderer to renderer
-│   ├── ipcChannels.js  IPC channel name constants (single source of truth)
-│   └── server-wrapper.js  Loads the Express server inside Electron
+├── desktop/          Electron main process, preload, splash screen (TypeScript, compiles to desktop/dist/)
+│   ├── main.ts       App entry, IPC handlers, DB bootstrap, auto-update
+│   ├── preload.ts    Context bridge — exposes ipcRenderer to renderer
+│   ├── ipcChannels.ts  IPC channel name constants (single source of truth)
+│   └── server-wrapper.ts  Loads the Express server inside Electron
 ├── client/           React frontend (Vite)
 │   └── src/
 │       ├── domains/
@@ -99,7 +99,7 @@ Electron desktop POS (Point of Sale) — "Where Retail Meets Intelligence". Pack
 │           ├── components/              AppLayout, GlobalAppBar, CustomDialog, GlobalErrorBoundary
 │           ├── hooks/                   useCustomDialog, useSettings (shared)
 │           ├── utils/                   responseGuards, paymentSettings, refundStatus
-│           └── ipcChannels.js           ES module mirror of desktop/ipcChannels.js
+│           └── ipcChannels.js           ES module mirror of desktop/ipcChannels.ts
 ├── server/           Express API (runs inside Electron, port 5001)
 │   ├── index.js      Boot: migrations, DB backup, password migration, seed
 │   ├── seed.js       Default users (passwords bcrypt-hashed at seed time) + sample data
@@ -160,7 +160,7 @@ Push a `v*` tag (e.g. `git tag v1.2.0 && git push origin v1.2.0`). The `build-re
 ## Architecture
 
 ### Communication layers
-- **Renderer → Main (Electron IPC):** All IPC channel names are defined in `desktop/ipcChannels.js` (CommonJS) and mirrored in `client/src/shared/ipcChannels.js` (ES module). **Never use raw string literals for channel names.**
+- **Renderer → Main (Electron IPC):** All IPC channel names are defined in `desktop/ipcChannels.ts` (CommonJS) and mirrored in `client/src/shared/ipcChannels.ts` (ES module). **Never use raw string literals for channel names.**
 - **Renderer → Server:** REST API calls to `http://localhost:5001/api/*`
 - **Main → Server:** Server runs in the same Node.js process via `require(wrapperPath)`
 
@@ -196,12 +196,48 @@ User clicks Pay & Print / Print Label
 For barcode labels specifically, `document.body.classList.add('is-printing-labels')` must fire **before** the invoke so `@media print` CSS hides everything except `.printable-area`. The 100 ms setTimeout in `BarcodePrintDialog.jsx` is intentional.
 
 **IPC/print code location rule:** `ipcRenderer.invoke` calls for printing must never be moved out of their current file:
-- Receipt print (Pay & Print / Last Receipt) → `usePOSSale.js` (`handlePayAndPrint`, `handlePrintLastReceipt`)
-- Receipt print (Sales History) → `SaleHistory.jsx` (`handlePrintReceipt`)
-- Barcode label print → `BarcodePrintDialog.jsx` (`handlePrint`)
-- Price list print → `PriceListPanel.jsx` (`handlePrint`)
+- Receipt print (Pay & Print / Last Receipt) → `usePOSSale.ts` (`handlePayAndPrint`, `handlePrintLastReceipt`)
+- Receipt print (Sales History) → `SaleHistory.tsx` (`handlePrintReceipt`)
+- Receipt print (Bill Preview dialog) → `ReceiptPreviewDialog.tsx` (`printPreview`)
+- Barcode label print → `BarcodePrintDialog.tsx` (`handlePrint`)
+- Price list print → `PriceListPanel.tsx` (`handlePrint`)
+
+The rule constrains the **invoke**, not the logic around it. Pure helpers may
+and should be shared — printer *resolution* lives in
+`client/src/shared/utils/resolvePrinterName.ts` and the cached `get-printers`
+call lives in `client/src/shared/hooks/usePrinters.ts`. What must stay in the
+component is the `invoke` itself, so the `is-printing-*` class timing stays
+next to the call it gates.
+
+**Printer resolution is shared, and validates against the live list.** Use
+`resolvePrinterName({ receiptSettings, printers, defaultPrinter })` for
+receipts: saved printer (only if still present in the live list) → system
+default → first `isDefault` → first available. The list check matters — a
+renamed or unplugged printer sent to main is rejected as an unknown device,
+so skipping it turns a recoverable situation into a hard failure. Barcode and
+price-list printing deliberately do *not* use this: they keep their own
+per-dialog printer choice in `localStorage`.
+
+**Both print handlers return `{ success, error }` and never throw.** Callers
+must check `result.success`; a rejected `invoke` means something unexpected,
+not an ordinary print failure. `get-printers` likewise always resolves to an
+array. This uniformity is load-bearing — the handlers previously disagreed
+(one returned, one threw, one did both) and callers each guessed differently.
+
+**A print failure is not a payment failure.** In `handlePayAndPrint` the sale
+commits *before* printing, so the print block has its own `try/catch`. Never
+let a print error reach the outer handler: a cashier told "Payment failed"
+for a committed sale will re-ring it and double-charge the customer. Print
+failure messages must say the sale was saved and point at Sale History.
 
 **Critical:** Always use `ipcRenderer.invoke()` (not `ipcRenderer.send()`) for `print-manual`. The Electron main process registers the handler with `ipcMain.handle()`, which only responds to `invoke` — `send` silently does nothing.
+
+**Print jobs are guarded by a 30 s timeout** (`printWithTimeout` in
+`desktop/main.ts`). Chromium's print callback does not always fire — a stalled
+spooler can swallow it — and without the guard the renderer's `await invoke`
+never settles, leaving `isPaying` stuck `true` and the Pay button disabled
+until restart. Do not remove it, and keep new print paths going through that
+helper.
 
 ### Double-payment guard
 `POS.jsx` uses an `isPaying` state flag set at the top of both `handlePay` and `handlePayAndPrint` and cleared in `finally`. The flag is propagated to `TransactionPanel → TransactionActionButtons` to disable the Pay button during an in-flight transaction. Never remove this guard — rapid double-taps would create duplicate sales.
@@ -229,7 +265,7 @@ Receipt settings live in two places:
 
 ### Database bootstrap and migrations
 On every startup:
-1. `desktop/main.js` copies bundled `pos.db` to `~/{userData}/pos.db` if missing or <5 KB
+1. `desktop/main.ts` copies bundled `pos.db` to `~/{userData}/pos.db` if missing or <5 KB
 2. `DATABASE_URL` env var is set before the server starts
 3. `server/index.js` calls `backupDatabase()` → copies `pos.db` to `pos.db.bak`
 4. `runPrismaMigrations()` runs `prisma migrate deploy` (60 s timeout)
@@ -246,7 +282,7 @@ Settings → Account Details → Wipe Database requires **two** inputs before th
 The Joi schema (`auth.validation.js → wipeDatabaseBodySchema`) enforces `confirmPhrase` server-side, so the check cannot be bypassed by manipulating the UI.
 
 ### Crash prevention (main process)
-`desktop/main.js` registers `process.on('uncaughtException')` and `process.on('unhandledRejection')` at the top of the file. Both handlers write to the log file and show a `dialog.showErrorBox` to the user instead of silently crashing. `waitForServer` timeout is 90 s (covers the full migration + listen cycle). `server/index.js` registers `app.on('error')` to handle `EADDRINUSE` and other listen errors with a clean `process.exit(1)`.
+`desktop/main.ts` registers `process.on('uncaughtException')` and `process.on('unhandledRejection')` at the top of the file. Both handlers write to the log file and show a `dialog.showErrorBox` to the user instead of silently crashing. `waitForServer` timeout is 90 s (covers the full migration + listen cycle). `server/index.js` registers `app.on('error')` to handle `EADDRINUSE` and other listen errors with a clean `process.exit(1)`.
 
 ### Prisma engine in packaged builds
 The native Prisma query engine binary lives in `node_modules/.prisma/client/`. electron-builder skips dot-folders by default, so it is handled two ways:
@@ -254,7 +290,7 @@ The native Prisma query engine binary lives in `node_modules/.prisma/client/`. e
 - `extraFiles` copies `node_modules/.prisma` → `app.asar.unpacked/node_modules/.prisma`
 - `scripts/post-build.js` copies it again as a safety net
 
-`desktop/main.js` checks for the platform-specific binary filename in this order: `libquery_engine-darwin-arm64.dylib.node` (Apple Silicon), `libquery_engine-darwin-x64.dylib.node` (Intel Mac), `libquery_engine-darwin.dylib.node` (legacy), then Windows variants. If none is found it logs `CRITICAL: Prisma Query Engine not found` and shows an error dialog.
+`desktop/main.ts` checks for the platform-specific binary filename in this order: `libquery_engine-darwin-arm64.dylib.node` (Apple Silicon), `libquery_engine-darwin-x64.dylib.node` (Intel Mac), `libquery_engine-darwin.dylib.node` (legacy), then Windows variants. If none is found it logs `CRITICAL: Prisma Query Engine not found` and shows an error dialog.
 
 ---
 
@@ -292,9 +328,9 @@ Create `server/src/domains/<name>/` with four files:
 Use `asyncHandler` wrapper in controllers. Throw `createHttpError(status, message)` from services. Map Prisma errors via `toAppError`. Wrap multi-step DB operations in `prisma.$transaction()`.
 
 ### Adding a new IPC channel
-1. Add the constant to `desktop/ipcChannels.js`
-2. Add the same constant to `client/src/shared/ipcChannels.js`
-3. Register the handler in `desktop/main.js` with `ipcMain.handle` (not `ipcMain.on`) so the renderer always gets a response
+1. Add the constant to `desktop/ipcChannels.ts`
+2. Add the same constant to `client/src/shared/ipcChannels.ts`
+3. Register the handler in `desktop/main.ts` with `ipcMain.handle` (not `ipcMain.on`) so the renderer always gets a response
 4. Use `ipcRenderer.invoke` in the renderer (not `send`)
 
 ### Adding a new receipt setting field
@@ -328,16 +364,136 @@ When `updateProduct` is tested, mock `prisma.$transaction` with `mockImplementat
 
 ## Environment Variables
 
-Set automatically by `desktop/main.js` at runtime. For standalone server development, create `server/.env`:
+Set automatically by `desktop/main.ts` at runtime. For standalone server development, create `server/.env`:
 
 | Variable | Set by | Purpose |
 |---|---|---|
-| `DATABASE_URL` | `desktop/main.js` | Prisma SQLite path (`file:/path/to/pos.db`) |
-| `PRISMA_CLIENT_ENGINE_TYPE` | `desktop/main.js` | Must be `library` |
-| `PRISMA_QUERY_ENGINE_LIBRARY` | `desktop/main.js` | Absolute path to `.dylib.node` / `.dll.node` |
-| `PORT` | `desktop/main.js` | Express port (default 5001) |
-| `NODE_ENV` | `desktop/main.js` | `development` or `production` |
+| `DATABASE_URL` | `desktop/main.ts` | Prisma SQLite path (`file:/path/to/pos.db`) |
+| `PRISMA_CLIENT_ENGINE_TYPE` | `desktop/main.ts` | Must be `library` |
+| `PRISMA_QUERY_ENGINE_LIBRARY` | `desktop/main.ts` | Absolute path to `.dylib.node` / `.dll.node` |
+| `PORT` | `desktop/main.ts` | Express port (default 5001) |
+| `NODE_ENV` | `desktop/main.ts` | `development` or `production` |
 | `LOG_LEVEL` | optional | Pino log level (default `info`) |
+
+---
+
+## TypeScript strictness — current state
+
+Deliberate, not half-finished. Both `server/tsconfig.json` and
+`client/tsconfig.json` now set `strict: true` and `allowJs: false` outright
+(the full strict family, and no more untyped `.js` anywhere in either
+package — source or tests). Server crossed the line first; client followed
+once its 54 strict-mode errors were fixed. Flags are set per-package rather
+than in `tsconfig.base.json` because a flag can only be turned on for a
+package once that package's count reaches zero.
+
+`desktop/` is now TypeScript too (`main.ts`, `preload.ts`,
+`server-wrapper.ts`, `ipcChannels.ts`), but deliberately without `strict` —
+this was a mechanical, types-only conversion (no behavior change), not a
+strictness push, given the package has zero automated test coverage and
+holds the Prisma engine path resolution and Windows `DATABASE_URL`
+formatting. It still inherits `tsconfig.base.json`'s loose settings. Since
+Electron's main process is loaded via plain Node `require()`, not
+ts-node/tsx, `desktop/` now compiles to `desktop/dist/*.js` before
+`electron .` runs — `desktop/tsconfig.json` stays `noEmit: true` (used by
+the root `typecheck` script), and a new `desktop/tsconfig.build.json`
+(mirrors `server/tsconfig.build.json`'s split) does the actual emit via the
+new `desktop-build` npm script, wired in before both `electron-dev` and
+`electron-build`. Root `package.json`'s `"main"` now points at
+`desktop/dist/main.js`, and electron-builder's `files` ships
+`desktop/dist/**/*` + `desktop/splash/**/*` instead of raw `desktop/**/*`.
+Every `__dirname`-relative path in `main.ts`/`server-wrapper.ts` (splash
+screen, preload script, app icon, `server/.env`, the bundled `pos.db`
+template, the Prisma engine directory, `client/dist/index.html`) needed an
+extra `../` to account for `dist/` sitting one directory deeper — each is
+marked with a `NOTE` comment at the call site. Converting it surfaced one
+real bug: `server-wrapper.ts`'s unpacked-`node_modules` path calculation
+needed a third `..` for the same reason, or packaged-app module resolution
+would have silently pointed at the wrong directory. Verified via a full
+local `electron-dev` run and an unsigned `electron-pack` (macOS) — the
+Windows-specific `file:C:/path` format and `.dll.node` engine lookup are
+unchanged but still need verification on an actual Windows machine before
+this merges, since there is no Windows CI or test coverage for them.
+
+Test files converted last, once source was fully clean — they are the net
+that verifies the migration, so they had to keep passing throughout:
+- Server: all 14 files under `server/tests/` (13 Jest domain suites +
+  `tests/setup/prisma-mock.ts`) are now `.ts`. `server/tsconfig.json`
+  includes `tests/**/*` so `tsc --noEmit` enforces strict mode on them too;
+  a separate `server/tsconfig.build.json` (excludes `tests/`) is what
+  `npm run build`/`npm run dev` actually use, so test files never land in
+  `dist/`.
+- Client: all 9 Vitest unit test files and all 38 Playwright E2E files
+  (spec + support/page-object files) are now `.ts`/`.tsx`. E2E type-checks
+  under a separate `client/tsconfig.e2e.json` (Node/Playwright types
+  conflict with the browser-facing main config) rather than the main
+  `client/tsconfig.json`.
+
+Converting the tests under `strict` surfaced real bugs beyond missing
+annotations, the same pattern seen converting source: a mistyped Prisma
+mock delegate (`purchase.test.ts` mocked a nonexistent `prisma.payment`
+instead of `prisma.purchasePayment` — invisible in JS because
+`jest-mock-extended`'s `mockDeep` proxy auto-mocks any property access, real
+or not), two client source bugs in date-range and response-envelope null
+handling (`saleHistoryDateUtils.ts`, `responseGuards.ts`) that strict typing
+on their *tests* exposed, and one dead E2E helper calling a Playwright API
+that never existed (`.getByTypography(...)`).
+
+Everything measured, not guessed:
+
+| Flag | Server | Client | Desktop | State |
+|---|---|---|---|---|
+| `strict` (all flags) | 0 | 0 | not enabled | **on** (server + client only) |
+| explicit return types | ~174 | ~192 | not measured | rule not enabled |
+| `allowJs` | — | — | `true` (inherited) | **off** (server + client), still on for desktop |
+
+Re-measure with, e.g., `cd client && npx tsc --noEmit --strict`.
+
+`strict` on the server found two more real bugs beyond missing annotations:
+`useUnknownInCatchVariables` (part of `strict`) caught a handful of
+`catch (err) { ...err.message }` sites that would throw *inside* the error
+handler itself if something non-`Error` were ever thrown — see the new
+`shared/utils/errorMessage.ts` helper and its call sites. It also caught a
+few `const x = []` "evolving array" declarations whose inferred `never[]`
+type had been silently accepted; each now has an explicit element type.
+
+`strict` on the client was almost entirely the same `useUnknownInCatchVariables`
+pattern — dozens of `catch (err) { err.response?.data?.error || err.message }`
+sites across POS, inventory, auth, refund, and settings components, all now
+routed through the existing `getApiErrorMessage(error, fallback)` helper
+(`client/src/shared/api/api.ts`) instead of ad hoc property access; a few
+sites that needed the raw `.status`/`.response` (404/409 branching) cast
+through the existing `ApiError` interface instead. `AccountDetailsDialog.tsx`
+also had `strictFunctionTypes` catches on four Electron IPC listener
+callbacks, whose params are typed `unknown` by `IpcListener`
+(`client/src/types/electron.d.ts`) — fixed by widening the listener
+signatures and coercing (`String(msg)`, `Number(percent)`) at the call site
+rather than the channel type. The same evolving-array pattern as the server
+turned up too (`useBulkImport.ts`, `usePOSSearch.ts`).
+
+`strictNullChecks` found real bugs on both sides, not just missing
+annotations. Server (see git history on `purchase.service.ts` /
+`expense.service.ts` — a `findUnique` result used without a null guard),
+`sale.service.ts` (a wholesale price of `null` could reach `totalAmount` as
+`NaN`), and `product.service.ts`'s `validatePricing` (a cleared wholesale
+price coerced to `0` in a comparison instead of skipping validation). Client:
+the same wholesale-price class of bug in `usePOSTabs.ts` (`addToCart` /
+`updateQuantity` / `handleSetQuantity` could set a cart item's `price` to
+`null` when `wholesalePrice` or `promoPrice` was unset despite the enabling
+flag being on), an Axios `GenericAbortSignal` whose `addEventListener` method
+is itself optional (`client/src/shared/api/api.ts`), and a `GlobalAppBar`
+countdown timer that used `=== null` and so missed `undefined`, reaching
+`seconds / 60` unguarded.
+
+Two conventions worth keeping if this is taken further:
+
+- **Types are derived, not hand-written.** Server service inputs come from
+  `z.infer` of the domain's Zod schemas; query-result shapes come from Prisma
+  via `satisfies` + `GetPayload` (see `sale.service.ts`). Client API entities
+  live in `client/src/shared/types/models.ts` and mirror the server's include
+  shapes.
+- **Do not satisfy the compiler with `any`.** 15 documented escape hatches
+  remain; each carries a comment explaining why.
 
 ---
 
@@ -345,12 +501,14 @@ Set automatically by `desktop/main.js` at runtime. For standalone server develop
 
 - **SQLite only** — single file, no concurrent write processes. The server and the Electron main process must never open the DB simultaneously (server handles all DB access).
 - **Windows path** — `DATABASE_URL` uses `file:C:/path` (not `file:///C:/path`) on Windows. The forward-slash format is intentional. Do not change this.
-- **Spaces in AppData path** — handled by literal path formatting in `desktop/main.js`. Do not switch to `pathToFileURL`.
+- **Spaces in AppData path** — handled by literal path formatting in `desktop/main.ts`. Do not switch to `pathToFileURL`.
 - **Server binds to 127.0.0.1** — `app.listen(PORT, '127.0.0.1', ...)` in `server/index.js`. Do not change to `0.0.0.0` or remove the host argument. A localhost-only guard middleware in `app.js` enforces this as a second layer.
 - **No JWT/session middleware** — because the server is localhost-only, API routes rely on UI-enforced auth. If the server ever needs to be network-accessible, add authentication middleware before exposing any routes.
 - **Print CSS** — receipt printing forces `color: #000000 !important` and `-webkit-print-color-adjust: exact` on all elements. Do not add colour-dependent logic to receipt rendering. Use camelCase for CSS-in-JS properties (`WebkitPrintColorAdjust`, not `'-webkit-print-color-adjust'`).
-- **IPC print location** — `ipcRenderer.invoke` for `print-manual` and `print-html-content` must stay in the component files listed above. Moving them breaks the `is-printing-labels` / `is-printing-price-labels` CSS class timing that hides the UI during print capture.
-- **waitForServer timeout** — set to 90 s in `desktop/main.js` to cover the full Prisma migration + `app.listen()` cycle. Do not reduce this below the longest expected migration time.
+- **IPC print location** — `ipcRenderer.invoke` for `print-manual` and `print-html-content` must stay in the component files listed above. Moving them breaks the `is-printing-labels` / `is-printing-price-labels` CSS class timing that hides the UI during print capture. Pure helpers (printer resolution, the cached printer list) are shared on purpose — it is the invoke that is pinned.
+- **Print error strings are Electron-version-specific** — `describePrintError` in `desktop/main.ts` matches the descriptive strings Electron passes to the print callback (verified on 40.4.0: `"Invalid deviceName provided"`, `"No printers available on the network"`). It does *not* rely on the older `Error code: N` form, which that version never emits. If Electron is upgraded, re-probe the real strings and update the patterns, or users silently fall back to a generic message.
+- **The print window is network-isolated** — `print-html-content` renders unsanitised database-derived HTML, so its `BrowserWindow` uses a dedicated `print-isolated` session partition with a `webRequest` block on every non-`data:` URL, plus a CSP in the template. Do not move that block onto the default session (it would break auto-update) and do not drop the partition.
+- **waitForServer timeout** — set to 90 s in `desktop/main.ts` to cover the full Prisma migration + `app.listen()` cycle. Do not reduce this below the longest expected migration time.
 - **MUI v6 Grid** — use `<Grid size={{ xs: n, md: m }}>` syntax. The deprecated `item`, `xs`, `md` props have been removed. Fractional grid sizes are not supported; round to the nearest integer.
 - **axios params serializer** — the axios instance has a known incompatibility with ISO date strings in `params` objects in certain Vite-bundled environments. Build query strings with native `URLSearchParams` and append them to the URL directly (see `dashboardService.js`).
 - **server/node_modules must be bundled explicitly** — `server/node_modules/**/*` is listed in both `files` and `asarUnpack` in `package.json`. electron-builder does not automatically bundle nested node_modules directories the same way it handles the root one. The build workflow must run `npm ci` inside `server/` for these to exist at build time.

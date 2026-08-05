@@ -1,0 +1,179 @@
+import React, { useState } from 'react';
+import * as Sentry from '@sentry/react';
+import {
+  Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Typography,
+  Button,
+  IconButton,
+  InputAdornment,
+} from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
+import api, { getApiErrorMessage } from '@/shared/api/api';
+import type { AuthUser } from '@/shared/types/auth';
+
+interface ChangePasswordDialogProps {
+  open: boolean;
+  onClose: () => void;
+  currentUser?: AuthUser | null;
+  showSuccess: (message: string, title?: string) => void;
+}
+
+const ChangePasswordDialog = ({
+  open,
+  onClose,
+  currentUser,
+  showSuccess,
+}: ChangePasswordDialogProps) => {
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+
+  const handleChangePassword = async () => {
+    setPasswordError('');
+    if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setPasswordError('All fields are required');
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+    if (!currentUser) {
+      setPasswordError('No active session');
+      return;
+    }
+    try {
+      await api.put(`/api/auth/users/${currentUser.id}/change-password`, {
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword,
+      });
+      onClose();
+      setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      showSuccess('Password changed successfully');
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'change-password' } });
+      setPasswordError(getApiErrorMessage(err, 'Failed to change password'));
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={() => {
+        onClose();
+        window.dispatchEvent(new Event('pos-refocus'));
+      }}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle>Change Password</DialogTitle>
+      <DialogContent sx={{ pt: 2 }}>
+        {passwordError && (
+          <Typography color="error" sx={{ mb: 2 }}>
+            {passwordError}
+          </Typography>
+        )}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <TextField
+            label="Old Password"
+            type={showOldPassword ? 'text' : 'password'}
+            fullWidth
+            size="small"
+            value={passwordData.oldPassword}
+            onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle old password visibility"
+                    onClick={() => setShowOldPassword((show) => !show)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    edge="end"
+                    size="small"
+                  >
+                    {showOldPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            label="New Password"
+            type={showNewPassword ? 'text' : 'password'}
+            fullWidth
+            size="small"
+            value={passwordData.newPassword}
+            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle new password visibility"
+                    onClick={() => setShowNewPassword((show) => !show)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    edge="end"
+                    size="small"
+                  >
+                    {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            label="Confirm New Password"
+            type={showConfirmPassword ? 'text' : 'password'}
+            fullWidth
+            size="small"
+            value={passwordData.confirmPassword}
+            onChange={(e) =>
+              setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+            }
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle confirm password visibility"
+                    onClick={() => setShowConfirmPassword((show) => !show)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    edge="end"
+                    size="small"
+                  >
+                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button
+          onClick={() => {
+            onClose();
+            window.dispatchEvent(new Event('pos-refocus'));
+          }}
+          variant="outlined"
+        >
+          Cancel
+        </Button>
+        <Button onClick={handleChangePassword} variant="contained">
+          Change Password
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export default ChangePasswordDialog;

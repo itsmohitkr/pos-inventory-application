@@ -1,9 +1,15 @@
 module.exports = {
     testEnvironment: 'node',
-    setupFilesAfterEnv: ['<rootDir>/tests/setup/prisma-mock.js'],
+    setupFilesAfterEnv: ['<rootDir>/tests/setup/prisma-mock.ts'],
     clearMocks: true,
     moduleDirectories: ['node_modules', 'src'],
-    testMatch: ['**/tests/domains/**/*.test.js'],
-    collectCoverageFrom: ['src/domains/**/*.js'],
+
+    transform: {
+        '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json', isolatedModules: true }],
+    },
+    moduleFileExtensions: ['ts', 'js', 'json', 'node'],
+
+    testMatch: ['**/tests/domains/**/*.test.ts'],
+    collectCoverageFrom: ['src/domains/**/*.{js,ts}'],
     coverageDirectory: 'coverage',
 };

@@ -1,0 +1,162 @@
+import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
+import settingsService from '@/shared/api/settingsService';
+import { getApiErrorMessage } from '@/shared/api/api';
+import { getAdminAutoLogoutTime } from '@/shared/utils/paymentSettings';
+import type { AuthActionResult, AuthUser } from '@/shared/types/auth';
+import { clearAdminToken, setAdminToken } from '@/shared/api/adminToken';
+
+const STORAGE_KEYS = {
+  user: 'posCurrentUser',
+  expiry: 'posAdminElevationExpiry',
+};
+
+export const useAuth = () => {
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [adminLogoutTimer, setAdminLogoutTimer] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const handleAdminLogout = useCallback(() => {
+    if (currentUser && currentUser.originalRole) {
+      const restoredUser = {
+        ...currentUser,
+        role: currentUser.originalRole,
+      };
+      delete restoredUser.originalRole;
+
+      setCurrentUser(restoredUser);
+      localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(restoredUser));
+      localStorage.removeItem(STORAGE_KEYS.expiry);
+      clearAdminToken();
+      setAdminLogoutTimer(null);
+
+      window.location.hash = '#/pos';
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const storedUser = localStorage.getItem(STORAGE_KEYS.user);
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+
+        if (user.originalRole) {
+          const expiry = localStorage.getItem(STORAGE_KEYS.expiry);
+          if (expiry) {
+            const remaining = Math.floor((parseInt(expiry, 10) - Date.now()) / 1000);
+            if (remaining > 0) {
+              setAdminLogoutTimer(remaining);
+            } else {
+              handleAdminLogout();
+            }
+          }
+        }
+      }
+      setLoading(false);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [handleAdminLogout]);
+
+  useEffect(() => {
+    // Browser timer handles are numbers, not NodeJS.Timeout — this runs in the
+    // renderer, and the cleanup below calls the window.* clear functions.
+    let interval: number | undefined;
+    let logoutTimer: number | undefined;
+    let syncTimer: number | undefined;
+
+    if (adminLogoutTimer !== null && adminLogoutTimer > 0) {
+      interval = window.setInterval(() => {
+        setAdminLogoutTimer((prev) => (prev === null ? null : prev - 1));
+      }, 1000);
+    } else if (adminLogoutTimer === 0) {
+      logoutTimer = window.setTimeout(() => {
+        handleAdminLogout();
+      }, 0);
+    }
+
+    if (adminLogoutTimer !== null && adminLogoutTimer % 5 === 0) {
+      const expiry = localStorage.getItem(STORAGE_KEYS.expiry);
+      if (expiry) {
+        const remaining = Math.floor((parseInt(expiry, 10) - Date.now()) / 1000);
+        if (Math.abs(remaining - adminLogoutTimer) > 2) {
+          syncTimer = window.setTimeout(() => {
+            setAdminLogoutTimer(remaining > 0 ? remaining : 0);
+          }, 0);
+        }
+      }
+    }
+
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(logoutTimer);
+      window.clearTimeout(syncTimer);
+    };
+  }, [adminLogoutTimer, handleAdminLogout]);
+
+  const handleLogin = (user: AuthUser) => {
+    // Admins are handed a token at login so they do not have to verify again
+    // straight away; other roles receive none.
+    if (user.adminToken && user.adminTokenExpiresAt) {
+      setAdminToken(user.adminToken, user.adminTokenExpiresAt);
+    }
+    setCurrentUser(user);
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem(STORAGE_KEYS.user);
+    localStorage.removeItem(STORAGE_KEYS.expiry);
+    clearAdminToken();
+  };
+
+  const handleAdminLogin = async (password: string): Promise<AuthActionResult> => {
+    try {
+      // Elevation only makes sense once someone is already logged in.
+      if (!currentUser) {
+        return { success: false, error: 'No active session' };
+      }
+
+      const res = await settingsService.verifyAdmin(password);
+      if (res.success) {
+        // The token is what the server actually checks. Without it the
+        // elevation below only changes the UI.
+        if (res.adminToken && res.adminTokenExpiresAt) {
+          setAdminToken(res.adminToken, res.adminTokenExpiresAt);
+        }
+        const elevatedUser: AuthUser = {
+          ...currentUser,
+          originalRole: currentUser.role,
+          role: 'admin',
+        };
+        setCurrentUser(elevatedUser);
+        localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(elevatedUser));
+
+        const timeoutMinutes = getAdminAutoLogoutTime();
+        const durationSeconds = timeoutMinutes * 60;
+        const expiry = Date.now() + durationSeconds * 1000;
+
+        localStorage.setItem(STORAGE_KEYS.expiry, expiry.toString());
+        setAdminLogoutTimer(durationSeconds);
+        return { success: true };
+      }
+      return { success: false, error: 'Invalid admin password' };
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'admin-elevation' } });
+      return { success: false, error: getApiErrorMessage(error, 'Invalid admin password') };
+    }
+  };
+
+  return {
+    currentUser,
+    setCurrentUser,
+    adminLogoutTimer,
+    loading,
+    handleLogin,
+    handleLogout,
+    handleAdminLogin,
+    handleAdminLogout,
+  };
+};

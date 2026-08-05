@@ -1,4 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+/*
+ * Self-hosted, not loaded from Google Fonts. A CSS @import from a remote
+ * host is render-blocking, and this app runs offline on a shop PC with no
+ * guaranteed internet — that import could stall or fail on every launch.
+ * Both files are variable fonts (one file covers every weight below).
+ */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/inter-variable-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/roboto-variable-latin.woff2') format('woff2');
+}
 
 :root {
   --bb-navy: #0b1d39;

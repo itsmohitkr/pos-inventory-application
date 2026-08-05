@@ -1,0 +1,136 @@
+import React, { useState } from 'react';
+import * as Sentry from '@sentry/react';
+import {
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Alert,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+} from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
+import trovixLogo from '@/assets/trovix.png';
+import settingsService from '@/shared/api/settingsService';
+import { getApiErrorMessage } from '@/shared/api/api';
+import type { AuthUser } from '@/shared/types/auth';
+
+const LoginPage = ({ onLogin }: { onLogin: (user: AuthUser) => void }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = await settingsService.login({ username, password });
+      onLogin(data);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'login' } });
+      setError(getApiErrorMessage(err, 'Login failed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Container maxWidth="sm">
+      <Box
+        sx={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Box
+              component="img"
+              src={trovixLogo}
+              alt="Trovix"
+              sx={{ width: 72, height: 72, objectFit: 'contain', mb: 2, borderRadius: 2 }}
+            />
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 600,
+                mb: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+              }}
+            >
+              Trovix
+              <Box sx={{ width: 10, height: 10, bgcolor: '#4caf50', borderRadius: '50%' }} />
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+              Where Retail Meets Intelligence
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              POS System Login
+            </Typography>
+          </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Box
+            component="form"
+            onSubmit={handleLogin}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+          >
+            <TextField
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              fullWidth
+              disabled={loading}
+              autoFocus
+            />
+            <TextField
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              fullWidth
+              disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={() => setShowPassword((show) => !show)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={loading || !username || !password}
+              sx={{ py: 1.5, fontWeight: 600, textTransform: 'none' }}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Log In'}
+            </Button>
+          </Box>
+        </Paper>
+      </Box>
+    </Container>
+  );
+};
+
+export default LoginPage;

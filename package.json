@@ -1,14 +1,14 @@
 {
   "name": "trovix",
   "version": "1.0.1",
-  "description": "Trovix — POS for any shop",
-  "main": "desktop/main.js",
+  "description": "Trovix \u2014 POS for any shop",
+  "main": "desktop/dist/main.js",
   "homepage": "./",
   "author": "Trovix <support@trovix.app>",
   "license": "ISC",
   "scripts": {
-    "electron-dev": "concurrently \"npm run client-dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron-build": "npm run sync-version && npm run client-build && npm run electron-pack",
+    "electron-dev": "npm run desktop-build && npm run server-build && concurrently \"npm run client-dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron-build": "npm run sync-version && npm run desktop-build && npm run server-build && npm run client-build && npm run electron-pack",
     "electron-pack": "electron-builder --publish never",
     "electron-publish": "npm run sync-version && electron-builder --publish always",
     "sync-version": "node scripts/sync-version.js",
@@ -17,7 +17,11 @@
     "server": "cd server && npm run dev",
     "dev": "concurrently \"npm run client-dev\" \"npm run server\"",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "typecheck": "tsc -p desktop --noEmit",
+    "typecheck:all": "npm run typecheck && npm --prefix server run typecheck && npm --prefix client run typecheck",
+    "server-build": "npm --prefix server run build",
+    "desktop-build": "tsc -p desktop/tsconfig.build.json"
   },
   "keywords": [],
   "devDependencies": {
@@ -28,6 +32,7 @@
     "electron-is-dev": "^3.0.1",
     "fs-extra": "^11.3.3",
     "prettier": "^3.8.2",
+    "typescript": "^6.0.3",
     "wait-on": "^7.0.1"
   },
   "type": "commonjs",
@@ -44,9 +49,12 @@
     "asar": true,
     "afterPack": "./scripts/post-build.js",
     "files": [
-      "desktop/**/*",
+      "desktop/dist/**/*",
+      "desktop/splash/**/*",
       "client/dist/**/*",
-      "server/**/*",
+      "server/dist/**/*",
+      "server/prisma/**/*",
+      "server/package.json",
       "server/node_modules/**/*",
       "node_modules/**/*",
       "!node_modules/.cache",
@@ -55,7 +63,9 @@
       "!server/.env"
     ],
     "asarUnpack": [
-      "server/**/*",
+      "server/dist/**/*",
+      "server/prisma/**/*",
+      "server/package.json",
       "server/node_modules/**/*",
       "node_modules/**/*",
       "server/prisma/migrations/**/*",

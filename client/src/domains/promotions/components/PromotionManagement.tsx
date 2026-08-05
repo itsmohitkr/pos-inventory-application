@@ -1,0 +1,595 @@
+import React, { useState, useEffect } from 'react';
+import type {
+  ProductPriceInfo,
+  Promotion,
+  PromotionItem,
+  PromotionFormState,
+  PromoSettings,
+  PromoThresholdConfig,
+  CategorySale,
+  CategorySaleInput,
+} from '@/domains/promotions/types';
+import type { CategoryNode, Product } from '@/shared/types/models';
+import * as Sentry from '@sentry/react';
+import type { AlertColor } from '@mui/material';
+import { Box, Container, Paper, Typography, Snackbar, Alert, Stack } from '@mui/material';
+import inventoryService from '@/shared/api/inventoryService';
+import posService from '@/shared/api/posService';
+import settingsService from '@/shared/api/settingsService';
+import categorySaleService from '@/shared/api/categorySaleService';
+import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
+import PromotionSidebar from '@/domains/promotions/components/PromotionSidebar';
+import ThresholdSettingsPanel from '@/domains/promotions/components/ThresholdSettingsPanel';
+import ScheduledSalesPanel from '@/domains/promotions/components/ScheduledSalesPanel';
+import PromotionFormDialog from '@/domains/promotions/components/PromotionFormDialog';
+import CategorySalesPanel from '@/domains/promotions/components/CategorySalesPanel';
+import CategorySaleFormDialog from '@/domains/promotions/components/CategorySaleFormDialog';
+
+/**
+ * Promotion form state. Spread directly into the create/update payload, so
+ * every field here reaches the API.
+ *
+ * `isActive` is present only in edit mode — handleEditOpen carries the existing
+ * value through, while creating a promotion omits it and lets the server apply
+ * its default.
+ */
+const PromotionManagement = () => {
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [categorySales, setCategorySales] = useState<CategorySale[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState('threshold');
+
+  // Category Sale state
+  const [openCategorySaleDialog, setOpenCategorySaleDialog] = useState(false);
+  const [categorySaleToEdit, setCategorySaleToEdit] = useState<CategorySale | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState<PromotionFormState>({
+    name: '',
+    startDate: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD
+    endDate: new Date().toLocaleDateString('en-CA'),
+    items: [],
+  });
+
+  // Product selection state
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productPriceInfo, setProductPriceInfo] = useState<ProductPriceInfo | null>(null);
+  const [promoPrice, setPromoPrice] = useState('');
+
+  const [promoSettings, setPromoSettings] = useState<PromoSettings>({
+    enabled: false,
+    config: [],
+  });
+  const [newThreshold, setNewThreshold] = useState('');
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: AlertColor;
+  }>({ open: false, message: '', severity: 'success' });
+
+  async function fetchCategorySales() {
+    try {
+      const data = await categorySaleService.fetchCategorySales();
+      setCategorySales(data);
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'fetch-category-sales' } });
+      console.error('Failed to fetch category sales:', error);
+    }
+  }
+
+  const handleCreateCategorySale = async (saleInput: CategorySaleInput) => {
+    if (categorySaleToEdit) {
+      await categorySaleService.updateCategorySale(categorySaleToEdit.id, saleInput);
+      setSnackbar({
+        open: true,
+        message: 'Category sale updated successfully',
+        severity: 'success',
+      });
+    } else {
+      await categorySaleService.createCategorySale(saleInput);
+      setSnackbar({
+        open: true,
+        message: 'Category sale created successfully',
+        severity: 'success',
+      });
+    }
+    fetchCategorySales();
+  };
+
+  const handleToggleCategorySaleStatus = async (id: number, newStatus: 'active' | 'paused') => {
+    try {
+      await categorySaleService.toggleCategorySaleStatus(id, newStatus);
+      setSnackbar({
+        open: true,
+        message: `Category sale ${newStatus === 'active' ? 'resumed' : 'paused'}`,
+        severity: 'success',
+      });
+      fetchCategorySales();
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'toggle-category-sale-status' } });
+      setSnackbar({ open: true, message: 'Failed to update sale status', severity: 'error' });
+    }
+  };
+
+  const handleDeleteCategorySale = async (id: number) => {
+    try {
+      await categorySaleService.deleteCategorySale(id);
+      setSnackbar({ open: true, message: 'Category sale deleted', severity: 'success' });
+      fetchCategorySales();
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'delete-category-sale' } });
+      setSnackbar({ open: true, message: 'Failed to delete category sale', severity: 'error' });
+    }
+  };
+
+  async function fetchCategories() {
+    try {
+      const data = await inventoryService.fetchCategories();
+      const flatten = (nodes: CategoryNode[]): string[] => {
+        const list: string[] = [];
+        nodes.forEach((node: CategoryNode) => {
+          list.push(node.path);
+          if (node.children) list.push(...flatten(node.children));
+        });
+        return list;
+      };
+      setCategories(flatten(getResponseArray(data)));
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-fetch-categories' } });
+      console.error('Failed to fetch categories:', error);
+    }
+  }
+
+  async function fetchPromoSettings() {
+    try {
+      const data = await settingsService.fetchSettings();
+      const settings = getResponseObject(data);
+      if (settings.promotion_buy_x_get_free) {
+        const promoData = settings.promotion_buy_x_get_free;
+        // Migration: If old format (thresholds array) exists but not new config array
+        if (promoData.thresholds && !promoData.config) {
+          const migratedConfig = promoData.thresholds.map((t: number) => ({
+            threshold: t,
+            isActive: true,
+            profitPercentage: promoData.profitPercentage || 20,
+            minCostPrice: promoData.minCostPrice || 0,
+            maxCostPrice: promoData.maxCostPrice || null,
+            sortBySales: promoData.sortBySales || 'none',
+            maxGiftsToShow: promoData.maxGiftsToShow || 5,
+          }));
+          setPromoSettings({
+            enabled: promoData.enabled || false,
+            config: migratedConfig,
+          });
+        } else {
+          setPromoSettings({
+            enabled: promoData.enabled || false,
+            config: promoData.config || [],
+          });
+        }
+      }
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-fetch-settings' } });
+      console.error('Failed to fetch promotion settings:', error);
+    }
+  }
+
+  const handleSavePromoSettings = async () => {
+    try {
+      await settingsService.updateSettings({
+        key: 'promotion_buy_x_get_free',
+        value: promoSettings,
+      });
+      setSnackbar({
+        open: true,
+        message: 'Promotion settings saved successfully!',
+        severity: 'success',
+      });
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-save-settings' } });
+      console.error('Failed to save promotion settings:', error);
+      setSnackbar({ open: true, message: 'Failed to save promotion settings', severity: 'error' });
+    }
+  };
+
+  const handleAddThreshold = () => {
+    const val = parseInt(newThreshold);
+    if (isNaN(val) || val <= 0) return;
+
+    const currentConfig = promoSettings.config || [];
+    if (currentConfig.some((c) => c.threshold === val)) return;
+
+    const newEntry: PromoThresholdConfig = {
+      threshold: val,
+      isActive: false,
+      profitPercentage: 20,
+      minCostPrice: 0,
+      maxCostPrice: null,
+      allowedGroups: [],
+      disallowedGroups: [],
+      sortBySales: 'none',
+      maxGiftsToShow: 5,
+    };
+
+    setPromoSettings((prev) => ({
+      ...prev,
+      config: [...(prev.config || []), newEntry].sort((a, b) => a.threshold - b.threshold),
+    }));
+    setNewThreshold('');
+  };
+
+  const handleRemoveThreshold = (threshold: number) => {
+    setPromoSettings((prev) => ({
+      ...prev,
+      config: (prev.config || []).filter((c) => c.threshold !== threshold),
+    }));
+  };
+
+  const handleUpdateConfig = (
+    threshold: number,
+    field: keyof PromoThresholdConfig,
+    value: unknown
+  ) => {
+    setPromoSettings((prev) => ({
+      ...prev,
+      config: prev.config.map((c) => (c.threshold === threshold ? { ...c, [field]: value } : c)),
+    }));
+  };
+
+  async function fetchPromotions() {
+    try {
+      const data = await posService.fetchPromotions();
+      setPromotions(data);
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-fetch' } });
+      console.error('Failed to fetch promotions:', error);
+    }
+  }
+
+  async function fetchProducts() {
+    try {
+      const data = await inventoryService.fetchProducts({ pageSize: 1000 });
+      setProducts(getResponseArray(data));
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-fetch-products' } });
+      console.error('Failed to fetch products:', error);
+    }
+  }
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      fetchPromotions();
+      fetchProducts();
+      fetchPromoSettings();
+      fetchCategories();
+      fetchCategorySales();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  const handleOpenDialog = () => {
+    setIsEditMode(false);
+    setEditId(null);
+    setFormData({
+      name: '',
+      startDate: new Date().toLocaleDateString('en-CA'),
+      endDate: new Date().toLocaleDateString('en-CA'),
+      items: [],
+    });
+    setOpenDialog(true);
+  };
+
+  const handleEditOpen = async (promo: Promotion) => {
+    setIsEditMode(true);
+    setEditId(promo.id);
+
+    // Convert ISO dates to YYYY-MM-DD
+    const start = promo.startDate.split('T')[0];
+    const end = promo.endDate.split('T')[0];
+
+    // Fetch current pricing for the items in the promotion
+    const enrichedItems = await Promise.all(
+      promo.items.map(async (item: PromotionItem) => {
+        try {
+          const data = await posService.fetchPromotionProductOptions(item.productId);
+          return {
+            productId: item.productId,
+            productName: item.product?.name || 'Unknown Product',
+            promoPrice: item.promoPrice,
+            mrp: data.mrp,
+            costPrice: data.costPrice,
+            sellingPrice: data.sellingPrice,
+          };
+        } catch {
+          return {
+            productId: item.productId,
+            productName: item.product?.name || 'Unknown Product',
+            promoPrice: item.promoPrice,
+            mrp: 0,
+            costPrice: 0,
+            sellingPrice: 0,
+          };
+        }
+      })
+    );
+
+    setFormData({
+      name: promo.name,
+      startDate: start,
+      endDate: end,
+      isActive: promo.isActive,
+      items: enrichedItems,
+    });
+
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setSelectedProduct(null);
+    setProductPriceInfo(null);
+    setPromoPrice('');
+  };
+
+  const handleProductSelect = async (
+    event: React.SyntheticEvent,
+    newValue: Product | null
+  ) => {
+    setSelectedProduct(newValue);
+    if (newValue) {
+      try {
+        const data = await posService.fetchPromotionProductOptions(newValue.id);
+        setProductPriceInfo(data);
+        setPromoPrice(data.sellingPrice);
+      } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'promotions-fetch-product-pricing' } });
+        console.error('Failed to fetch product pricing:', error);
+      }
+    } else {
+      setProductPriceInfo(null);
+      setPromoPrice('');
+    }
+  };
+
+  const handleAddItem = () => {
+    if (!selectedProduct || !promoPrice || !productPriceInfo) return;
+
+    const newItem = {
+      productId: selectedProduct.id,
+      productName: selectedProduct.name,
+      promoPrice: parseFloat(promoPrice),
+      mrp: productPriceInfo.mrp,
+      costPrice: productPriceInfo.costPrice,
+      sellingPrice: productPriceInfo.sellingPrice,
+    };
+
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, newItem],
+    }));
+
+    setSelectedProduct(null);
+    setProductPriceInfo(null);
+    setPromoPrice('');
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.startDate || !formData.endDate) {
+      setSnackbar({
+        open: true,
+        message: 'Please select both start and end dates',
+        severity: 'error',
+      });
+      return;
+    }
+
+    const [sy, sm, sd] = formData.startDate.split('-').map(Number);
+    const [ey, em, ed] = formData.endDate.split('-').map(Number);
+
+    const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+    const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      setSnackbar({ open: true, message: 'Invalid date format selected', severity: 'error' });
+      return;
+    }
+
+    try {
+      const submissionData = {
+        ...formData,
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+      };
+
+      if (isEditMode && editId) {
+        await posService.updatePromotion(editId, submissionData);
+      } else {
+        await posService.createPromotion(submissionData);
+      }
+      fetchPromotions();
+      handleCloseDialog();
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-save' } });
+      console.error('Failed to save promotion:', error);
+    }
+  };
+
+  const handleDeletePromotion = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this promotion?')) return;
+    try {
+      await posService.deletePromotion(id);
+      fetchPromotions();
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-delete' } });
+      console.error('Failed to delete promotion:', error);
+    }
+  };
+
+  const isPromotionActive = (promo: Promotion) => {
+    const now = new Date();
+    const start = new Date(promo.startDate);
+    const end = new Date(promo.endDate);
+    return promo.isActive && now >= start && now <= end;
+  };
+
+  return (
+    <Box
+      sx={{
+        bgcolor: '#f8fafc',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}
+    >
+      {/* Header Bar */}
+      <Paper
+        elevation={0}
+        sx={{
+          m: 1.5,
+          px: 2.5,
+          py: 1.75,
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
+            Promotions & Campaigns
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Schedule temporary price reductions and create automated sales events.
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box sx={{ textAlign: 'right', mr: 2 }}>
+            <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', display: 'block', letterSpacing: '0.5px' }}>
+              ACTIVE EVENTS
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 900, color: '#0b1d39', lineHeight: 1 }}>
+              {promotions.filter(isPromotionActive).length}
+            </Typography>
+          </Box>
+        </Stack>
+      </Paper>
+
+      {/* Main Content */}
+      <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 1.5, pb: 1.5, display: 'flex', gap: 1.5 }}>
+        <PromotionSidebar activeTab={activeTab} onChangeTab={setActiveTab} />
+
+        {/* Content Area */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            overflow: 'auto',
+          }}
+        >
+          {activeTab === 'threshold' && (
+            <ThresholdSettingsPanel
+              promoSettings={promoSettings}
+              setPromoSettings={setPromoSettings}
+              newThreshold={newThreshold}
+              setNewThreshold={setNewThreshold}
+              categories={categories}
+              onSave={handleSavePromoSettings}
+              onAddThreshold={handleAddThreshold}
+              onUpdateConfig={handleUpdateConfig}
+              onRemoveThreshold={handleRemoveThreshold}
+            />
+          )}
+
+          {activeTab === 'sales' && (
+            <ScheduledSalesPanel
+              promotions={promotions}
+              onCreate={handleOpenDialog}
+              onEdit={handleEditOpen}
+              onDelete={handleDeletePromotion}
+              isPromotionActive={isPromotionActive}
+            />
+          )}
+
+          {activeTab === 'category-sales' && (
+            <CategorySalesPanel
+              sales={categorySales}
+              onCreate={() => {
+                setCategorySaleToEdit(null);
+                setOpenCategorySaleDialog(true);
+              }}
+              onEdit={(sale) => {
+                setCategorySaleToEdit(sale);
+                setOpenCategorySaleDialog(true);
+              }}
+              onDelete={handleDeleteCategorySale}
+              onToggleStatus={handleToggleCategorySaleStatus}
+            />
+          )}
+        </Box>
+      </Box>
+
+      <PromotionFormDialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        isEditMode={isEditMode}
+        formData={formData}
+        setFormData={setFormData}
+        products={products}
+        selectedProduct={selectedProduct}
+        onProductSelect={handleProductSelect}
+        productPriceInfo={productPriceInfo}
+        promoPrice={promoPrice}
+        setPromoPrice={setPromoPrice}
+        onAddItem={handleAddItem}
+        onRemoveItem={handleRemoveItem}
+        onSubmit={handleSubmit}
+      />
+
+      <CategorySaleFormDialog
+        open={openCategorySaleDialog}
+        onClose={() => {
+          setOpenCategorySaleDialog(false);
+          setCategorySaleToEdit(null);
+        }}
+        onSave={handleCreateCategorySale}
+        categories={categories}
+        saleToEdit={categorySaleToEdit}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%', borderRadius: 2, fontWeight: 600 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+};
+
+export default PromotionManagement;

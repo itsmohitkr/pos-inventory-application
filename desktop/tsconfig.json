@@ -1,0 +1,34 @@
+{
+  "extends": "../tsconfig.base.json",
+  "//": [
+    "Electron main + preload, now fully converted to TypeScript. Compiles to",
+    "desktop/dist/*.js — Electron's main process is loaded via plain Node",
+    "require(), not ts-node/tsx, so something must compile these .ts files",
+    "before `electron .` can load them. Root package.json's `desktop-build`",
+    "script (tsc -p desktop/tsconfig.build.json) does this, run before",
+    "electron-dev/electron-build, the same way server/ already compiles to",
+    "server/dist before Electron requires it.",
+    "",
+    "This config (noEmit:true) is used by the `typecheck` script only —",
+    "tsconfig.build.json extends it and flips noEmit:false plus sets rootDir",
+    "and outDir for the actual build. See server/tsconfig.build.json for the",
+    "same split rationale (there it's about excluding tests/ from dist; here",
+    "there is no test suite to exclude, but the noEmit-vs-emit split is kept",
+    "for consistency with that pattern).",
+    "",
+    "main.ts holds the Prisma engine path resolution, the Windows",
+    "`file:C:/path` DATABASE_URL format, and asar path joins — none of which",
+    "are covered by tests. Every __dirname-relative path in main.ts and",
+    "server-wrapper.ts was re-audited (and where necessary given an extra",
+    "'..') for the additional desktop/dist/ nesting level this build step",
+    "introduces. See the NOTE comments beside each adjusted path."
+  ],
+  "compilerOptions": {
+    "module": "node16",
+    "moduleResolution": "node16",
+    "noEmit": true,
+    "types": ["node", "electron"]
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

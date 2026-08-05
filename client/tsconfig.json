@@ -1,0 +1,42 @@
+{
+  "extends": "../tsconfig.base.json",
+  "//": [
+    "Vite transpiles TS itself, so tsc is used only as a type checker (noEmit).",
+    "`npm run typecheck` is the CI gate; `vite build` does not type-check.",
+    "",
+    "strict and allowJs:false are enabled here rather than in",
+    "tsconfig.base.json because the base is shared with desktop/, which has",
+    "not been assessed. server/ sets the same flags in its own config.",
+    "src/ is now fully .ts/.tsx, including its Vitest unit tests — allowJs:false",
+    "is a hard guarantee, not just a default, since there is nothing left under",
+    "src/ that needs the old silent-exclude behaviour.",
+    "",
+    "The E2E Playwright suite (tests/e2e/**) is intentionally NOT included",
+    "here: it runs under Node, not Vite, and needs @playwright/test's and",
+    "Node's ambient types, which would collide with this program's browser",
+    "types if merged into the same tsc run. It has its own tsconfig.e2e.json."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+
+    // Mirrors the `@` alias in vite.config.js — keep both in sync.
+    // No baseUrl: it is deprecated in TS 6; `paths` resolves relative to this file.
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client", "vitest/globals"],
+
+    "strict": true,
+    "allowJs": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests/e2e"]
+}

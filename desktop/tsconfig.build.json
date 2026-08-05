@@ -1,0 +1,16 @@
+{
+  "//": [
+    "Used by `npm run desktop-build` only. tsconfig.json stays noEmit:true so",
+    "`tsc -p desktop --noEmit` (the `typecheck` script) never writes files;",
+    "this config extends it and flips noEmit:false, plus sets rootDir/outDir",
+    "so main.ts/preload.ts/server-wrapper.ts/ipcChannels.ts compile to",
+    "desktop/dist/*.js — see server/tsconfig.build.json for the same split."
+  ],
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": "./dist"
+  },
+  "exclude": ["node_modules", "dist"]
+}

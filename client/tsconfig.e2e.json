@@ -1,0 +1,28 @@
+{
+  "extends": "../tsconfig.base.json",
+  "//": [
+    "Type-checks the Playwright E2E suite (tests/e2e/**) and playwright.config.ts.",
+    "Kept separate from tsconfig.json because these files run under Node via",
+    "the Playwright test runner, not Vite/Vitest — they need @playwright/test's",
+    "and Node's ambient types, which conflict with the browser-facing types in",
+    "src/ (see nodeTestShims.d.ts in src/shared for why Node's global",
+    "`setTimeout` override isn't added to the main program). A separate tsc",
+    "program keeps the two from merging.",
+    "Run with: npx tsc -p tsconfig.e2e.json"
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+
+    "strict": true,
+    "allowJs": false
+  },
+  "include": ["tests/e2e/**/*", "playwright.config.ts"]
+}

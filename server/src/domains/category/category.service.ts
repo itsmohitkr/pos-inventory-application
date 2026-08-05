@@ -1,0 +1,245 @@
+import { StatusCodes } from 'http-status-codes';
+import type { CreateCategoryInput, UpdateCategoryInput } from './category.validation';
+import prisma = require('../../config/prisma');
+import type { Category } from '@prisma/client';
+import { createHttpError } from '../../shared/error/appError';
+
+/** A category with its full slash-joined path and nested children. */
+export interface CategoryNode {
+  id: number;
+  name: string;
+  parentId: number | null;
+  path: string;
+  children: CategoryNode[];
+}
+
+const buildPathMap = (categories: Category[]): Map<number, string> => {
+  const byId = new Map<number, Category>();
+  categories.forEach((category) => byId.set(category.id, category));
+
+  const cache = new Map<number, string>();
+  const buildPath = (id: number): string => {
+    const cached = cache.get(id);
+    if (cached !== undefined) return cached;
+    const category = byId.get(id);
+    if (!category) return '';
+    const parentPath = category.parentId ? buildPath(category.parentId) : '';
+    const path = parentPath ? `${parentPath}/${category.name}` : category.name;
+    cache.set(id, path);
+    return path;
+  };
+
+  categories.forEach((category) => buildPath(category.id));
+  return cache;
+};
+
+const buildTree = (categories: Category[], pathMap: Map<number, string>): CategoryNode[] => {
+  const nodes = new Map<number, CategoryNode>();
+  categories.forEach((category) => {
+    nodes.set(category.id, {
+      id: category.id,
+      name: category.name,
+      parentId: category.parentId,
+      path: pathMap.get(category.id) || category.name,
+      children: [],
+    });
+  });
+
+  const roots: CategoryNode[] = [];
+  nodes.forEach((node) => {
+    if (node.parentId && nodes.has(node.parentId)) {
+      nodes.get(node.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  return roots;
+};
+
+const ensureCategoriesFromProducts = async () => {
+  // 1. Get distinct category strings from products (fast with index)
+  const rawProducts = await prisma.product.findMany({
+    // NOTE: this was `{ not: null, not: '' }` — a duplicate key, so only the
+    // second survived and `not: null` was always discarded. Behaviour is
+    // unchanged: SQL `category <> ''` already excludes NULL rows, so the
+    // dropped filter was redundant.
+    where: { category: { not: '' } },
+    distinct: ['category'],
+    select: { category: true },
+  });
+
+  // The query above already excludes null/empty categories at the SQL level;
+  // this filter makes that guarantee explicit for the type checker (Prisma's
+  // return type is still `string | null` because the column itself is
+  // nullable) rather than relying on the query shape never changing.
+  const products = rawProducts.filter(
+    (p): p is { category: string } => p.category !== null
+  );
+
+  if (products.length === 0) return;
+
+  // 2. Fetch all existing categories once to build a path map
+  const existingCategories = await prisma.category.findMany();
+  const pathMap = buildPathMap(existingCategories);
+
+  const existingPaths = new Map<string, number>(); // path -> id
+  existingCategories.forEach((c) => {
+    existingPaths.set(pathMap.get(c.id) || c.name, c.id);
+  });
+
+  // 3. Process each distinct category string from products
+  for (const product of products) {
+    const fullCategoryString = product.category;
+    if (existingPaths.has(fullCategoryString)) continue;
+
+    // Missing path, create it segment by segment
+    const parts = fullCategoryString
+      .split('/')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    let currentPath = '';
+    let parentId: number | null = null;
+
+    for (const part of parts) {
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      if (existingPaths.has(currentPath)) {
+        parentId = existingPaths.get(currentPath) ?? null;
+      } else {
+        // Create missing segment. Explicit type breaks a circular-inference
+        // error TS reports here (Prisma's generic create() overload combined
+        // with the surrounding closures over `parentId`).
+        const created: Category = await prisma.category.create({
+          data: { name: part, parentId },
+        });
+        const newId: number = created.id;
+        parentId = newId;
+        existingPaths.set(currentPath, newId);
+      }
+    }
+  }
+};
+
+const getCategoryTree = async () => {
+  // Synchronous sync removed to make sidebar instant
+  const categories = await prisma.category.findMany();
+  const pathMap = buildPathMap(categories);
+  return buildTree(categories, pathMap);
+};
+
+const createCategory = async ({ name, parentId }: CreateCategoryInput) => {
+  const trimmedName = name?.trim();
+  if (!trimmedName || trimmedName.includes('/')) {
+    throw createHttpError(StatusCodes.BAD_REQUEST, 'Invalid category name', {
+      error: 'Invalid category name',
+    });
+  }
+  // The schema accepts parentId as a number, a string or null; Prisma needs a
+  // number or null. An empty string still means "root" (falsy -> null), as
+  // `parentId || null` did before.
+  const normalizedParentId = parentId ? Number(parentId) : null;
+
+  const exists = await prisma.category.findFirst({
+    where: { name: trimmedName, parentId: normalizedParentId },
+  });
+  if (exists) {
+    return exists;
+  }
+  return prisma.category.create({
+    data: { name: trimmedName, parentId: normalizedParentId },
+  });
+};
+
+const updateCategory = async (id: number, { name }: UpdateCategoryInput) => {
+  const trimmedName = name?.trim();
+  if (!trimmedName || trimmedName.includes('/')) {
+    throw createHttpError(StatusCodes.BAD_REQUEST, 'Invalid category name', {
+      error: 'Invalid category name',
+    });
+  }
+  const categories = await prisma.category.findMany();
+  const pathMap = buildPathMap(categories);
+  const oldPath = pathMap.get(Number(id));
+  if (!oldPath) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Category not found', {
+      error: 'Category not found',
+    });
+  }
+
+  const updated = await prisma.category.update({
+    where: { id: Number(id) },
+    data: { name: trimmedName },
+  });
+
+  const oldParts = oldPath.split('/');
+  oldParts[oldParts.length - 1] = trimmedName;
+  const newPath = oldParts.join('/');
+
+  // Find products linked to this category or its subcategories
+  const productsToUpdate = await prisma.product.findMany({
+    where: {
+      OR: [{ category: oldPath }, { category: { startsWith: `${oldPath}/` } }],
+    },
+  });
+
+  for (const product of productsToUpdate) {
+    // The where clause only matches non-null categories at the SQL level;
+    // this guard makes that explicit for the type checker and is itself
+    // another "should not happen" fallback.
+    if (!product.category) continue;
+
+    let nextCategory;
+    // Case-insensitive check for exact match or path prefix
+    if (product.category.toLowerCase() === oldPath.toLowerCase()) {
+      nextCategory = newPath;
+    } else if (product.category.toLowerCase().startsWith(oldPath.toLowerCase() + '/')) {
+      nextCategory = newPath + product.category.slice(oldPath.length);
+    } else {
+      // Should not happen with current where clause, but safe fallback
+      continue;
+    }
+
+    await prisma.product.update({
+      where: { id: product.id },
+      data: { category: nextCategory },
+    });
+  }
+
+  return updated;
+};
+
+const deleteCategory = async (id: number) => {
+  const categories = await prisma.category.findMany();
+  const pathMap = buildPathMap(categories);
+  const targetPath = pathMap.get(Number(id));
+  if (!targetPath) {
+    throw createHttpError(StatusCodes.NOT_FOUND, 'Category not found', {
+      error: 'Category not found',
+    });
+  }
+
+  const idsToDelete = categories
+    .filter((category) => {
+      const path = pathMap.get(category.id) || '';
+      return path === targetPath || path.startsWith(`${targetPath}/`);
+    })
+    .map((category) => category.id);
+
+  await prisma.$transaction([
+    prisma.product.updateMany({
+      where: { category: { startsWith: targetPath } },
+      data: { category: null },
+    }),
+    prisma.category.deleteMany({
+      where: { id: { in: idsToDelete } },
+    }),
+  ]);
+};
+
+export {
+  getCategoryTree,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  ensureCategoriesFromProducts,
+};

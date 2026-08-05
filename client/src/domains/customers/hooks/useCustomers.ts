@@ -1,0 +1,117 @@
+import { useState, useCallback, useEffect } from 'react';
+import * as Sentry from '@sentry/react';
+import customerService from '@/shared/api/customerService';
+import type {
+  Customer,
+  CustomerPurchaseHistory,
+} from '@/shared/api/customerService';
+
+export const useCustomers = () => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [historyData, setHistoryData] = useState<CustomerPurchaseHistory | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+
+  const LIMIT = 50;
+
+  const fetchCustomers = useCallback(
+    async (
+      pageNum = 1,
+      searchTerm = '',
+      sort: string = sortBy,
+      ord: 'asc' | 'desc' = order
+    ) => {
+    setIsLoading(true);
+    try {
+      const res = await customerService.getAll({ 
+        page: pageNum, 
+        limit: LIMIT, 
+        search: searchTerm,
+        sortBy: sort,
+        order: ord
+      });
+      setCustomers(res?.customers || []);
+      setTotal(res?.total || 0);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'customers-fetch' } });
+      console.error('Failed to fetch customers', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [sortBy, order]);
+
+  useEffect(() => {
+    fetchCustomers(page, search, sortBy, order);
+  }, [fetchCustomers, page, search, sortBy, order]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    setPage(1);
+  }, []);
+
+  const openHistory = useCallback(async (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setHistoryData(null);
+    setIsLoadingHistory(true);
+    try {
+      const res = await customerService.getPurchaseHistory(customer.id);
+      setHistoryData(res);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'customer-history-fetch' } });
+      console.error('Failed to fetch purchase history', err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, []);
+
+  const closeHistory = useCallback(() => {
+    setSelectedCustomer(null);
+    setHistoryData(null);
+  }, []);
+
+  const openEdit = useCallback((customer: Customer) => {
+    setEditingCustomer(customer);
+  }, []);
+
+  const closeEdit = useCallback(() => {
+    setEditingCustomer(null);
+  }, []);
+
+  const handleSaveEdit = useCallback(async (id: number, data: Partial<Customer>) => {
+    await customerService.update(id, data);
+    fetchCustomers(page, search);
+  }, [fetchCustomers, page, search]);
+
+  return {
+    customers,
+    total,
+    page,
+    search,
+    isLoading,
+    selectedCustomer,
+    historyData,
+    isLoadingHistory,
+    editingCustomer,
+    LIMIT,
+    sortBy,
+    setSortBy,
+    order,
+    setOrder,
+    setPage,
+    handleSearchChange,
+    openHistory,
+    closeHistory,
+    openEdit,
+    closeEdit,
+    handleSaveEdit,
+    fetchCustomers,
+  };
+};

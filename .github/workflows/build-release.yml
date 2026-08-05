@@ -28,9 +28,24 @@ jobs:
         working-directory: server
         run: npm ci
 
+      # `prisma`'s own postinstall (triggered by the npm ci above) generates a
+      # client into server/node_modules/.prisma using a stale/default schema
+      # snapshot — a SEPARATE copy from the one schema.prisma's custom
+      # `output` actually targets (repo-root node_modules/.prisma). Node's
+      # module resolution finds this nearer, stale copy first, so any tsc
+      # step (build or typecheck) run before this cleanup silently typechecks
+      # against a `{}`-shaped Prisma Client instead of the real schema.
+      # Removing it lets resolution correctly fall through to the client
+      # this step generates next.
       - name: Generate Prisma Client
         working-directory: server
-        run: npx prisma generate
+        run: |
+          rm -rf node_modules/.prisma
+          npx prisma generate
+
+      - name: Build server
+        working-directory: server
+        run: npm run build
 
       - name: Validate Prisma Migrations
         working-directory: server
@@ -38,6 +53,14 @@ jobs:
         run: npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --exit-code
         env:
           DATABASE_URL: "file:./test.db"
+
+      - name: Typecheck server
+        working-directory: server
+        run: npm run typecheck
+
+      - name: Lint server
+        working-directory: server
+        run: npm run lint
 
       - name: Run server tests
         working-directory: server
@@ -47,6 +70,10 @@ jobs:
       - name: Install client dependencies
         working-directory: client
         run: npm ci
+
+      - name: Typecheck client
+        working-directory: client
+        run: npm run typecheck
 
       - name: Lint client
         working-directory: client
@@ -109,12 +136,24 @@ jobs:
         working-directory: server
         run: npm ci
 
+      # See the same step in quality-gate above — must run before any tsc
+      # step (build or typecheck), and before the stale server-local
+      # node_modules/.prisma npm ci creates gets a chance to shadow it.
+      - name: Generate Prisma Client
+        run: |
+          rm -rf server/node_modules/.prisma
+          npx prisma generate --schema=server/prisma/schema.prisma
+
       - name: Build client
         working-directory: client
         run: npx vite build
 
-      - name: Generate Prisma Client
-        run: npx prisma generate --schema=server/prisma/schema.prisma
+      - name: Build server
+        working-directory: server
+        run: npm run build
+
+      - name: Build desktop
+        run: npm run desktop-build
 
       - name: Package macOS installer
         run: npx electron-builder --mac --publish never
@@ -164,12 +203,25 @@ jobs:
         working-directory: server
         run: npm ci
 
+      # See the equivalent step in quality-gate/build-mac above for why this
+      # order matters and why the stale copy must be removed first —
+      # PowerShell syntax here since this job runs on windows-latest.
+      - name: Generate Prisma Client
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force server/node_modules/.prisma -ErrorAction SilentlyContinue
+          npx prisma generate --schema=server/prisma/schema.prisma
+
       - name: Build client
         working-directory: client
         run: npx vite build
 
-      - name: Generate Prisma Client
-        run: npx prisma generate --schema=server/prisma/schema.prisma
+      - name: Build server
+        working-directory: server
+        run: npm run build
+
+      - name: Build desktop
+        run: npm run desktop-build
 
       - name: Package Windows installer
         run: npx electron-builder --win --publish never
@@ -183,9 +235,171 @@ jobs:
             dist/latest.yml
           retention-days: 90
 
+  # ── Packaged Smoke Test ─────────────────────────────────────
+  # Boots the actual installed artifact. Every other gate tests source; without
+  # this, a packaging regression (e.g. the server failing to resolve its Prisma
+  # schema) passes CI and auto-updates to customers as an app that won't start.
+  #
+  # Two scenarios, both required:
+  #   1. Fresh install  — no pos.db: migrations must run, server must answer
+  #   2. Upgrade        — existing pos.db: must reuse it, not re-migrate or wipe
+  # Scenario 2 is the path every current customer takes on auto-update.
+  smoke-mac:
+    needs: build-mac
+    runs-on: macos-latest
+    steps:
+      - name: Download mac installer
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-installer
+          path: dist/
+
+      - name: Extract app from DMG
+        run: |
+          set -euo pipefail
+          DMG=$(ls dist/*.dmg | head -1)
+          hdiutil attach "$DMG" -mountpoint /tmp/trovix-mnt -nobrowse -quiet
+          cp -R "/tmp/trovix-mnt/Trovix.app" /tmp/Trovix.app
+          hdiutil detach /tmp/trovix-mnt -quiet
+          test -x "/tmp/Trovix.app/Contents/MacOS/Trovix"
+
+      - name: Scenario 1 — fresh install boots and migrates
+        run: |
+          set -euo pipefail
+          USERDATA=/tmp/trovix-userdata
+          rm -rf "$USERDATA" && mkdir -p "$USERDATA"
+
+          "/tmp/Trovix.app/Contents/MacOS/Trovix" --user-data-dir="$USERDATA" \
+            > /tmp/app-fresh.log 2>&1 &
+          echo $! > /tmp/app.pid
+
+          # gatingMiddleware holds requests until boot completes, so a 2xx here
+          # means migrations + seeding finished successfully.
+          for i in $(seq 1 90); do
+            if curl -fsS --max-time 3 http://127.0.0.1:5001/api/settings >/dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              READY=1; break
+            fi
+            sleep 1
+          done
+
+          kill "$(cat /tmp/app.pid)" 2>/dev/null || true
+          sleep 3
+
+          if [ "${READY:-0}" != "1" ]; then
+            echo "::error::Packaged app failed to serve on 127.0.0.1:5001 (fresh install)"
+            cat /tmp/app-fresh.log; exit 1
+          fi
+          if [ ! -f "$USERDATA/pos.db" ]; then
+            echo "::error::pos.db was not created on first boot"
+            cat /tmp/app-fresh.log; exit 1
+          fi
+
+      - name: Scenario 2 — upgrade over existing pos.db
+        run: |
+          set -euo pipefail
+          USERDATA=/tmp/trovix-userdata
+          test -f "$USERDATA/pos.db" || { echo "::error::missing pos.db from scenario 1"; exit 1; }
+          BEFORE=$(shasum "$USERDATA/pos.db" | cut -d' ' -f1)
+
+          "/tmp/Trovix.app/Contents/MacOS/Trovix" --user-data-dir="$USERDATA" \
+            > /tmp/app-upgrade.log 2>&1 &
+          echo $! > /tmp/app.pid
+
+          for i in $(seq 1 90); do
+            if curl -fsS --max-time 3 http://127.0.0.1:5001/api/settings >/dev/null 2>&1; then
+              READY=1; break
+            fi
+            sleep 1
+          done
+
+          kill "$(cat /tmp/app.pid)" 2>/dev/null || true
+          sleep 3
+
+          if [ "${READY:-0}" != "1" ]; then
+            echo "::error::Packaged app failed to boot against an existing pos.db"
+            cat /tmp/app-upgrade.log; exit 1
+          fi
+          echo "Existing DB checksum before: $BEFORE"
+          echo "Upgrade boot succeeded against existing database"
+
+      - name: Upload smoke logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-mac-logs
+          path: /tmp/app-*.log
+          retention-days: 7
+
+  smoke-win:
+    needs: build-win
+    runs-on: windows-latest
+    steps:
+      - name: Download windows installer
+        uses: actions/download-artifact@v4
+        with:
+          name: win-installer
+          path: dist/
+
+      - name: Install silently
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist/*.exe | Select-Object -First 1
+          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          $exe = Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter 'Trovix.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { Write-Error 'Trovix.exe not found after install'; exit 1 }
+          echo "TROVIX_EXE=$($exe.FullName)" >> $env:GITHUB_ENV
+
+      - name: Scenario 1 — fresh install boots and migrates
+        shell: pwsh
+        run: |
+          $userData = "$env:TEMP\trovix-userdata"
+          Remove-Item -Recurse -Force $userData -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $userData | Out-Null
+
+          $proc = Start-Process -FilePath $env:TROVIX_EXE `
+            -ArgumentList "--user-data-dir=$userData" -PassThru
+
+          $ready = $false
+          for ($i = 0; $i -lt 90; $i++) {
+            try {
+              Invoke-WebRequest -Uri 'http://127.0.0.1:5001/api/settings' `
+                -UseBasicParsing -TimeoutSec 3 | Out-Null
+              $ready = $true; Write-Host "Server ready after ${i}s"; break
+            } catch { Start-Sleep -Seconds 1 }
+          }
+
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 3
+
+          if (-not $ready) { Write-Error 'Packaged app failed to serve on 127.0.0.1:5001'; exit 1 }
+          if (-not (Test-Path "$userData\pos.db")) { Write-Error 'pos.db not created on first boot'; exit 1 }
+
+      - name: Scenario 2 — upgrade over existing pos.db
+        shell: pwsh
+        run: |
+          $userData = "$env:TEMP\trovix-userdata"
+          if (-not (Test-Path "$userData\pos.db")) { Write-Error 'missing pos.db from scenario 1'; exit 1 }
+
+          $proc = Start-Process -FilePath $env:TROVIX_EXE `
+            -ArgumentList "--user-data-dir=$userData" -PassThru
+
+          $ready = $false
+          for ($i = 0; $i -lt 90; $i++) {
+            try {
+              Invoke-WebRequest -Uri 'http://127.0.0.1:5001/api/settings' `
+                -UseBasicParsing -TimeoutSec 3 | Out-Null
+              $ready = $true; break
+            } catch { Start-Sleep -Seconds 1 }
+          }
+
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          if (-not $ready) { Write-Error 'Packaged app failed to boot against an existing pos.db'; exit 1 }
+          Write-Host 'Upgrade boot succeeded against existing database'
+
   # ── Release ─────────────────────────────────────────────────
   release:
-    needs: [build-mac, build-win]
+    needs: [smoke-mac, smoke-win]
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -1,0 +1,177 @@
+import { useState, useEffect, useCallback } from 'react';
+import * as Sentry from '@sentry/react';
+import inventoryService from '@/shared/api/inventoryService';
+import { getApiErrorMessage, type ApiError } from '@/shared/api/api';
+import type { CategoryNode, Product } from '@/shared/types/models';
+
+interface UseEditProductArgs {
+  product?: Product | null;
+  open: boolean;
+  onClose: () => void;
+  onProductUpdated: () => void;
+  showError: (message: string) => void;
+}
+
+export const useEditProduct = ({
+  product,
+  open,
+  onClose,
+  onProductUpdated,
+  showError,
+}: UseEditProductArgs) => {
+  const [formData, setFormData] = useState<Record<string, any>>({
+    name: '',
+    category: '',
+    barcode: '',
+    batchTrackingEnabled: false,
+    lowStockWarningEnabled: false,
+    lowStockThreshold: 2,
+  });
+  const [existingCategories, setExistingCategories] = useState<string[]>([]);
+  const [barcodes, setBarcodes] = useState<string[]>([]);
+  const [manualBarcodeInput, setManualBarcodeInput] = useState('');
+  const [barcodeError, setBarcodeError] = useState('');
+  const [barcodeChecking, setBarcodeChecking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchProductDetails = useCallback(async () => {
+    if (!product?.id) return;
+    try {
+      const data = await inventoryService.fetchProductById(product.id);
+      const fullProduct = data.data;
+      if (fullProduct) {
+        setFormData({
+          name: fullProduct.name || '',
+          category: fullProduct.category || '',
+          barcode: fullProduct.barcode || '',
+          batchTrackingEnabled: !!fullProduct.batchTrackingEnabled,
+          lowStockWarningEnabled: !!fullProduct.lowStockWarningEnabled,
+          lowStockThreshold: fullProduct.lowStockThreshold || 2,
+        });
+        setBarcodes(fullProduct.barcode ? fullProduct.barcode.split('|').filter(Boolean) : []);
+      }
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-edit-product-details-fetch' } });
+      console.error('Failed to fetch product details:', error);
+    }
+  }, [product?.id]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await inventoryService.fetchCategories();
+        setExistingCategories((data.data || []).map((c: CategoryNode) => c.path || c.name).filter(Boolean).sort());
+      } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'inventory-edit-product-categories-fetch' } });
+        console.error('Failed to fetch categories:', error);
+      }
+    };
+    if (open) {
+      fetchCategories();
+      fetchProductDetails();
+      setManualBarcodeInput('');
+      setBarcodeError('');
+      setIsSaving(false);
+    }
+  }, [open, fetchProductDetails]);
+
+  const addBarcode = async (barcode: string) => {
+    const trimmed = barcode.trim();
+    if (!trimmed) return true;
+    if (!product) return false;
+
+    if (barcodes.some((b) => b.toLowerCase() === trimmed.toLowerCase())) {
+      setBarcodeError('Barcode already added');
+      return false;
+    }
+
+    setBarcodeChecking(true);
+    try {
+      try {
+        const data = await inventoryService.fetchProductByBarcode(encodeURIComponent(trimmed));
+        const existingProduct = data?.product;
+        if (existingProduct && String(existingProduct.id) !== String(product.id)) {
+          setBarcodeError(`Barcode '${trimmed}' is already associated with product '${existingProduct.name}'`);
+          return false;
+        }
+      } catch (error) {
+        if ((error as ApiError).response?.status === 404) {
+          // Safe to add
+        } else {
+          console.error('Barcode verification failed:', error);
+        }
+      }
+
+      const updatedBarcodes = [...barcodes, trimmed];
+      setBarcodes(updatedBarcodes);
+      setManualBarcodeInput('');
+      setBarcodeError('');
+      setFormData((prev) => ({ ...prev, barcode: updatedBarcodes.join('|') }));
+      return true;
+    } finally {
+      setBarcodeChecking(false);
+    }
+  };
+
+  const removeBarcode = (index: number) => {
+    const updatedBarcodes = barcodes.filter((_, i) => i !== index);
+    setBarcodes(updatedBarcodes);
+    setBarcodeError('');
+    setFormData((prev) => ({
+      ...prev,
+      barcode: updatedBarcodes.length > 0 ? updatedBarcodes.join('|') : null,
+    }));
+  };
+
+  const generateBarcode = () => {
+    const newBarcode = Math.floor(1000000000000 + Math.random() * 9000000000000).toString();
+    addBarcode(newBarcode);
+  };
+
+  const handleSave = async () => {
+    if (!product?.id) return;
+
+    if (manualBarcodeInput.trim()) {
+      const success = await addBarcode(manualBarcodeInput);
+      if (!success) return;
+    }
+
+    if (barcodeChecking || barcodeError) return;
+
+    setIsSaving(true);
+    try {
+      await inventoryService.updateProduct(product.id, formData);
+      if (onProductUpdated) onProductUpdated();
+      onClose();
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-update-product' } });
+      console.error('Error updating product:', error);
+      const errorMessage = getApiErrorMessage(error);
+      if ((error as ApiError).response?.status === 409) {
+        setBarcodeError(errorMessage);
+        showError('Conflict: ' + errorMessage);
+      } else {
+        showError('Failed to update product: ' + errorMessage);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return {
+    formData,
+    setFormData,
+    existingCategories,
+    barcodes,
+    manualBarcodeInput,
+    setManualBarcodeInput,
+    barcodeError,
+    barcodeChecking,
+    isSaving,
+    addBarcode,
+    removeBarcode,
+    generateBarcode,
+    handleSave,
+    fetchProductDetails,
+  };
+};

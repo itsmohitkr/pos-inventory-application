@@ -1,0 +1,230 @@
+import React, { useState } from 'react';
+import * as Sentry from '@sentry/react';
+import inventoryService from '@/shared/api/inventoryService';
+
+/**
+ * One parsed CSV row: the two bookkeeping fields plus the file's own columns,
+ * written on by lowercased header name. An intersection rather than an
+ * interface with an index signature, so the column values type as the strings
+ * they are (parseCSVLine trims every cell) while lineNumber stays a number.
+ */
+export type BulkImportRow = {
+  lineNumber: number;
+  errors: string[];
+} & Record<string, string>;
+
+/** Validation problems for one CSV line, collected before import. */
+export interface BulkImportValidationError {
+  line: number;
+  messages: string[];
+}
+
+/** The server's response from POST /api/products/import. */
+export interface BulkImportResult {
+  success: boolean;
+  imported?: number;
+  failed?: number;
+  errors?: { line: number; message: string }[];
+  [key: string]: unknown;
+}
+
+export const useBulkImport = (
+  onImportComplete: () => void,
+  showError: (message: string) => void
+) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<BulkImportRow[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<BulkImportResult | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<BulkImportValidationError[]>([]);
+  const [hasErrors, setHasErrors] = useState(false);
+
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    result.push(current.trim());
+    return result;
+  };
+
+  const validateAllRows = async (allData: BulkImportRow[]) => {
+    setValidating(true);
+    const errors: { line: number; messages: string[] }[] = [];
+    const seenBarcodes = new Map<string, number>();
+
+    for (const row of allData) {
+      const rowErrors: string[] = [];
+      if (!row.name || !row.name.trim()) {
+        rowErrors.push('Missing product name');
+      }
+
+      if (row.barcode && row.barcode.trim()) {
+        const barcode = row.barcode.trim().toLowerCase();
+        if (seenBarcodes.has(barcode)) {
+          rowErrors.push(`Duplicate barcode in CSV (also at line ${seenBarcodes.get(barcode)})`);
+        } else {
+          seenBarcodes.set(barcode, row.lineNumber);
+        }
+      }
+
+      row.errors = rowErrors;
+      if (rowErrors.length > 0) {
+        errors.push({ line: row.lineNumber, messages: rowErrors });
+      }
+    }
+
+    try {
+      const uniqueBarcodes = Array.from(seenBarcodes.keys()).filter((b) => b);
+      if (uniqueBarcodes.length > 0) {
+        const originalBarcodes = allData
+          .filter((row: BulkImportRow) => row.barcode && row.barcode.trim())
+          .map((row: BulkImportRow) => row.barcode.trim());
+
+        const data = await inventoryService.validateBarcodes(originalBarcodes);
+        const { existingBarcodes } = data;
+
+        for (const row of allData) {
+          if (row.barcode && row.barcode.trim()) {
+            const rowBarcode = row.barcode.trim().toLowerCase();
+            const exists = existingBarcodes.some((eb: string) => eb.toLowerCase() === rowBarcode);
+            if (exists) {
+              const error = 'Barcode already exists in database';
+              row.errors.push(error);
+              const existingError = errors.find((e) => e.line === row.lineNumber);
+              if (existingError) {
+                existingError.messages.push(error);
+              } else {
+                errors.push({ line: row.lineNumber, messages: [error] });
+              }
+            }
+          }
+        }
+      }
+    } catch (_error) {
+      Sentry.captureException(_error, { tags: { feature: 'bulk-import-validate-barcodes' } });
+      console.error('Failed to validate barcodes against database:', _error);
+    }
+
+    setValidationErrors(errors);
+    setHasErrors(errors.length > 0);
+    setValidating(false);
+  };
+
+  const parseCSV = async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      // readAsText always yields a string; narrow from FileReader's union.
+      const text = (e.target?.result ?? '') as string;
+      const lines = text.split('\n').filter((line) => line.trim());
+
+      if (lines.length < 2) {
+        showError('CSV file is empty or invalid');
+        return;
+      }
+
+      const headerValues = parseCSVLine(lines[0]);
+      const headers = headerValues.map((h) => h.trim().toLowerCase());
+
+      const allData = lines.slice(1).map((line, index) => {
+        const values = parseCSVLine(line);
+        const row = { lineNumber: index + 2, errors: [] as string[] } as BulkImportRow;
+        headers.forEach((header, i) => {
+          let value = values[i] ? values[i].trim() : '';
+          if (header === 'barcode' && value && /^\d+\.00$/.test(value)) {
+            value = value.replace('.00', '');
+          }
+          row[header] = value;
+        });
+        return row;
+      });
+
+      await validateAllRows(allData);
+      setPreview(allData);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setResult(null);
+      setValidationErrors([]);
+      setHasErrors(false);
+      parseCSV(selectedFile);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file || hasErrors) return;
+
+    setImporting(true);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const data = await inventoryService.importProducts(formData);
+      setResult(data);
+
+      if (data.success && onImportComplete) {
+        setTimeout(() => {
+          onImportComplete();
+        }, 2000);
+      }
+    } catch (err) {
+      Sentry.captureException(err, { tags: { feature: 'bulk-import-products' } });
+      setResult({
+        success: false,
+        imported: 0,
+        failed: 0,
+        errors: [{ line: 0, message: 'Failed to connect to server' }],
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const reset = () => {
+    setFile(null);
+    setPreview([]);
+    setResult(null);
+    setValidationErrors([]);
+    setHasErrors(false);
+  };
+
+  return {
+    file,
+    preview,
+    importing,
+    result,
+    validating,
+    validationErrors,
+    hasErrors,
+    handleFileChange,
+    handleImport,
+    reset,
+  };
+};

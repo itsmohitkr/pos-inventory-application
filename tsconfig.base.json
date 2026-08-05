@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "//": [
+    "Shared TypeScript settings for client/, server/, and desktop/.",
+    "",
+    "MIGRATION STATE: allowJs/strict stay loose here because desktop/ has not",
+    "been assessed and still needs .js/.ts coexistence. client/ and server/",
+    "each override allowJs:false and strict:true in their own tsconfig once",
+    "their source tree (excluding test files, converted separately) was fully",
+    "TypeScript and strict-clean — see each package's tsconfig comment and",
+    "CLAUDE.md's TypeScript strictness table.",
+    "",
+    "Do NOT flip strict:true or allowJs:false here until desktop/ is converted",
+    "— it would turn every unconverted boundary into an error at once."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    "allowJs": true,
+    "checkJs": false,
+
+    "strict": false,
+    "noImplicitAny": false,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    "declaration": false,
+    "sourceMap": true,
+    "pretty": true
+  }
+}

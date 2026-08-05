@@ -28,10 +28,53 @@ jobs:
       - name: Install Server Dependencies
         run: cd server && npm ci
 
+      # Server typecheck depends on @prisma/client's generated types (every
+      # domain service imports `Prisma`-derived types from it). Two things
+      # have to both be true for that to work, not just "run generate":
+      #
+      # 1. `prisma`'s own postinstall (triggered by npm ci above) generates a
+      #    client into server/node_modules/.prisma from a stale/default schema
+      #    snapshot — a DIFFERENT copy from the one schema.prisma's custom
+      #    `output` actually targets (repo-root node_modules/.prisma). Node's
+      #    module resolution finds this nearer, stale copy first, so it has
+      #    to be removed or it silently shadows the correct one generated
+      #    below — confirmed by reproducing this in a fresh clone: adding the
+      #    generate step alone did NOT fix CI; only removing the stale copy
+      #    first did.
+      # 2. The correct client then has to actually be generated before any
+      #    tsc step (build or typecheck) runs, or every Prisma-touching file
+      #    typechecks against a fallback `{}` shape instead of the real
+      #    schema. build-release.yml already did this explicitly; ci.yml did
+      #    not, which is exactly why this was missed until a PR that actually
+      #    exercised full strict-mode typecheck on the server.
+      - name: Generate Prisma Client
+        run: |
+          cd server
+          rm -rf node_modules/.prisma
+          npx prisma generate
+
+      # 0. TYPE CHECKING
+      # Gates the TypeScript migration. Passes trivially while the codebase is
+      # still JavaScript (allowJs + checkJs:false), and becomes a real gate as
+      # files are converted. A type regression must not reach a release.
+      - name: Typecheck Desktop
+        run: npm run typecheck
+      - name: Typecheck Server
+        run: cd server && npm run typecheck
+      - name: Typecheck Client
+        run: cd client && npm run typecheck
+
       # 1. LINTING
+      # Both configs cover .ts/.tsx. The client config previously matched only
+      # js/jsx, so after the TypeScript migration it linted 50 files while 194
+      # TypeScript files went unchecked — this step passed without inspecting
+      # any converted code. The server had no ESLint setup at all.
       - name: Lint Client
         run: cd client && npm run lint
-      
+
+      - name: Lint Server
+        run: cd server && npm run lint
+
       # 2. PRISMA & DATABASE INTEGRITY
       - name: Validate Prisma Schema
         run: |
