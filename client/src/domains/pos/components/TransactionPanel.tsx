@@ -23,6 +23,7 @@ const TransactionPanel = ({
   totalQty,
   totalAmount,
   totalSavings,
+  saleSavings,
   changeCalculatorEnabled,
   paymentMethodsEnabled,
   onPrintLastReceipt,
@@ -217,7 +218,12 @@ const TransactionPanel = ({
           </Box>
         )}
 
-        <PriceBreakdownSection subTotal={subTotal} discount={discount} totalAmount={totalAmount} />
+        <PriceBreakdownSection
+          subTotal={subTotal}
+          discount={discount}
+          totalAmount={totalAmount}
+          saleSavings={saleSavings}
+        />
 
         <ChangeCalculatorSection
           changeCalculatorEnabled={changeCalculatorEnabled}

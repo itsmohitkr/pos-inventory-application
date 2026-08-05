@@ -281,6 +281,20 @@ export const usePOSTabs = () => {
     () => cart.reduce((sum: number, item: CartItem) => sum + (item?.mrp || 0) * (item?.quantity || 0), 0),
     [cart]
   );
+  /**
+   * Extra saved specifically from active promotions/category sales — the
+   * discount off the regular sellingPrice, not the broader MRP-vs-paid
+   * margin totalSavings already covers. Only counts items currently flagged
+   * isOnSale by usePOSPromotions/addToCart.
+   */
+  const saleSavings = useMemo(
+    () =>
+      cart.reduce((sum: number, item: CartItem) => {
+        if (!item.isOnSale) return sum;
+        return sum + Math.max(0, (item.sellingPrice || 0) - (item.price || 0)) * (item.quantity || 0);
+      }, 0),
+    [cart]
+  );
   const totalCostPrice = useMemo(
     () => cart.reduce((sum: number, item: CartItem) => sum + (item?.costPrice || 0) * (item?.quantity || 0), 0),
     [cart]
@@ -320,6 +334,7 @@ export const usePOSTabs = () => {
     setLastAddedItemId,
     subTotal,
     totalMrp,
+    saleSavings,
     totalCostPrice,
     totalQty,
     baseTotalAmount,
