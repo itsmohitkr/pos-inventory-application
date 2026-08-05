@@ -273,6 +273,139 @@ describe('Sale Domain API', () => {
         });
     });
 
+    describe('POST /api/sale — isOnSale flag', () => {
+        // Same pattern as the "error paths" describe above: a pass-through
+        // transaction so processSale's real pricing logic runs against
+        // mocked Prisma calls, not a canned final result.
+        const runRealTransaction = () => {
+            prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+            prisma.setting.findUnique.mockResolvedValue(null);
+        };
+
+        const batch = (overrides = {}) => ({
+            id: 1,
+            productId: 1,
+            quantity: 5,
+            mrp: 100,
+            costPrice: 40,
+            sellingPrice: 60,
+            wholesaleEnabled: false,
+            wholesalePrice: null,
+            wholesaleMinQty: null,
+            batchCode: 'B-TEST',
+            expiryDate: null,
+            product: { id: 1, name: 'Test Product', category: 'Snacks' },
+            ...overrides,
+        });
+
+        it('marks the line isOnSale when an active category sale applies', async () => {
+            runRealTransaction();
+            prisma.promotion.findMany.mockResolvedValue(asMock([]));
+            (prisma as unknown as { categorySale: { findMany: jest.Mock } }).categorySale.findMany
+                .mockResolvedValue([
+                    // mrp 100, 50% off => 50, which must be lower than the batch's
+                    // regular sellingPrice (60) for the discount to actually apply —
+                    // matching processSale's own bestDiscountPrice < sellingPrice guard.
+                    { category: 'Snacks', discountPercentage: 50, excludedProductIds: null },
+                ]);
+            prisma.batch.findMany.mockResolvedValue(asMock([batch()]));
+            prisma.sale.create.mockResolvedValue(asMock({ id: 20, totalAmount: 50, items: [] }));
+
+            const res = await request(app)
+                .post('/api/sale')
+                .send({ items: [{ batch_id: 1, quantity: 1, sellingPrice: 60, isFree: false }] });
+
+            expect(res.status).toBe(201);
+            expect(prisma.sale.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        items: {
+                            create: [expect.objectContaining({ isOnSale: true, isWholesale: false, sellingPrice: 50 })],
+                        },
+                    }),
+                })
+            );
+        });
+
+        it('marks the line isOnSale when an active promotion applies', async () => {
+            runRealTransaction();
+            prisma.promotion.findMany.mockResolvedValue(asMock([
+                {
+                    id: 1,
+                    items: [{ productId: 1, promoPrice: 45 }],
+                },
+            ]));
+            prisma.batch.findMany.mockResolvedValue(asMock([batch()]));
+            prisma.sale.create.mockResolvedValue(asMock({ id: 21, totalAmount: 45, items: [] }));
+
+            const res = await request(app)
+                .post('/api/sale')
+                .send({ items: [{ batch_id: 1, quantity: 1, sellingPrice: 60, isFree: false }] });
+
+            expect(res.status).toBe(201);
+            expect(prisma.sale.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        items: {
+                            create: [expect.objectContaining({ isOnSale: true, isWholesale: false, sellingPrice: 45 })],
+                        },
+                    }),
+                })
+            );
+        });
+
+        it('leaves isOnSale false for a plain regular-price sale', async () => {
+            runRealTransaction();
+            prisma.promotion.findMany.mockResolvedValue(asMock([]));
+            prisma.batch.findMany.mockResolvedValue(asMock([batch()]));
+            prisma.sale.create.mockResolvedValue(asMock({ id: 22, totalAmount: 60, items: [] }));
+
+            const res = await request(app)
+                .post('/api/sale')
+                .send({ items: [{ batch_id: 1, quantity: 1, sellingPrice: 60, isFree: false }] });
+
+            expect(res.status).toBe(201);
+            expect(prisma.sale.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        items: {
+                            create: [expect.objectContaining({ isOnSale: false, isWholesale: false, sellingPrice: 60 })],
+                        },
+                    }),
+                })
+            );
+        });
+
+        it('prioritises wholesale over an active promotion — isOnSale stays false', async () => {
+            runRealTransaction();
+            // Promo would price this at 45, but the line qualifies for wholesale
+            // (qty 10 >= wholesaleMinQty 10), which must win per processSale's
+            // existing priority order.
+            prisma.promotion.findMany.mockResolvedValue(asMock([
+                { id: 1, items: [{ productId: 1, promoPrice: 45 }] },
+            ]));
+            prisma.batch.findMany.mockResolvedValue(asMock([
+                batch({ wholesaleEnabled: true, wholesalePrice: 50, wholesaleMinQty: 10, quantity: 20 }),
+            ]));
+            prisma.sale.create.mockResolvedValue(asMock({ id: 23, totalAmount: 500, items: [] }));
+
+            const res = await request(app)
+                .post('/api/sale')
+                .send({ items: [{ batch_id: 1, quantity: 10, sellingPrice: 60, isFree: false }] });
+
+            expect(res.status).toBe(201);
+            expect(prisma.sale.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        items: {
+                            create: [expect.objectContaining({ isOnSale: false, isWholesale: true, sellingPrice: 50 })],
+                        },
+                    }),
+                })
+            );
+        });
+    });
+
     describe('POST /api/sale/:id/return — error paths', () => {
         it('rejects a return larger than the quantity originally sold', async () => {
             prisma.$transaction.mockImplementation(async (callback) => callback(prisma));

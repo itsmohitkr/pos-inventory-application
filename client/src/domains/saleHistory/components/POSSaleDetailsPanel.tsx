@@ -225,8 +225,34 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                 return (
                   <TableRow key={item.id}>
                     <TableCell sx={{ fontWeight: 600 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <span>{item.productName}</span>
+                        {item.isWholesale && (
+                          <Chip
+                            label="Wholesale"
+                            size="small"
+                            sx={{
+                              bgcolor: '#e0f2fe',
+                              color: '#0369a1',
+                              fontWeight: 700,
+                              fontSize: '0.65rem',
+                              height: 20,
+                            }}
+                          />
+                        )}
+                        {item.isOnSale && (
+                          <Chip
+                            label="Sale Offer"
+                            size="small"
+                            sx={{
+                              bgcolor: '#fef3c7',
+                              color: '#b45309',
+                              fontWeight: 700,
+                              fontSize: '0.65rem',
+                              height: 20,
+                            }}
+                          />
+                        )}
                         {returnedQty > 0 && (
                           <Chip
                             label={returnedQty === item.quantity ? 'Refunded' : 'Returned'}
@@ -236,6 +262,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                               color: returnedQty === item.quantity ? '#d32f2f' : '#2e7d32',
                               fontWeight: 700,
                               fontSize: '0.7rem',
+                              height: 20,
                             }}
                           />
                         )}
