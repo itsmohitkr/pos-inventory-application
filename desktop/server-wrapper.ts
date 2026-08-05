@@ -87,5 +87,19 @@ ModuleInternal._resolveFilename = function (
 
 // Now load and run the actual server
 // The server is TypeScript and ships compiled. process.cwd() is set to the
-// server directory by main.js, so this resolves to server/dist/index.js.
+// server directory by main.js — specifically to the *unpacked* server
+// directory (see main.ts's `serverDir`), not a virtual app.asar path — so
+// this resolves to a real, physical server/dist/index.js.
+//
+// This is an ABSOLUTE path (path.join on process.cwd()), so the
+// resolveFilename override above never touches it — that override only
+// intercepts bare specifiers. That means server/dist/**/* MUST stay in
+// package.json's asarUnpack list, even though it holds no native binaries
+// and nothing here spawns it as a subprocess: it's genuinely the odd one
+// out, unpacked not because it needs to be for the reasons everything else
+// in asarUnpack does, but because this require() has no fallback path to
+// find it packed. Removing it breaks every boot with
+// "Cannot find module '.../app.asar.unpacked/server/dist/index.js'" —
+// caught by smoke-mac in CI on the first real release attempt after the
+// asarUnpack narrowing that dropped it, before it ever reached a customer.
 require(path.join(process.cwd(), 'dist', 'index.js'));
