@@ -282,7 +282,7 @@ const RefundProcessor = ({
                         {item.isWholesale && (
                           <Chip label="Wholesale" size="small" sx={{ bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
                         )}
-                        {!item.isWholesale && item.mrp > item.sellingPrice && (
+                        {item.isOnSale && (
                           <Chip label="Sale Offer" size="small" sx={{ bgcolor: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
                         )}
                       </Box>

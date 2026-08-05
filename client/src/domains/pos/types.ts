@@ -101,6 +101,7 @@ export interface ReceiptSaleItem {
   productName?: string;
   isFree?: boolean;
   isWholesale?: boolean;
+  isOnSale?: boolean;
   batch?: {
     mrp?: number;
     expiryDate?: string | null;

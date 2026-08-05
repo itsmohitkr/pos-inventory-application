@@ -40,6 +40,7 @@ export interface SaleItem {
   costPrice: number;
   mrp: number;
   isWholesale: boolean;
+  isOnSale: boolean;
   isFree: boolean;
   batch?: BatchRef;
 }

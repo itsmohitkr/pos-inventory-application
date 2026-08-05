@@ -132,6 +132,7 @@ const processSale = async ({
       costPrice: number;
       mrp: number;
       isWholesale: boolean;
+      isOnSale: boolean;
       isFree: boolean;
     }[] = [];
     const movementData: {
@@ -201,6 +202,7 @@ const processSale = async ({
       // Determine effective price
       let effectivePrice = batch.sellingPrice;
       let isWholesaleItem = false;
+      let isOnSaleItem = false;
 
       // 0. Check if explicitly free (price is 0 or marked isFree)
       if (item.sellingPrice === 0 || item.isFree) {
@@ -226,6 +228,7 @@ const processSale = async ({
         // 2. Check Promotion / category sale — whichever gives the lower price
         else if (bestDiscountPrice !== null && bestDiscountPrice < batch.sellingPrice) {
           effectivePrice = bestDiscountPrice;
+          isOnSaleItem = true;
         }
       }
 
@@ -238,6 +241,7 @@ const processSale = async ({
         costPrice: batch.costPrice,
         mrp: batch.mrp,
         isWholesale: isWholesaleItem,
+        isOnSale: isOnSaleItem,
         isFree: !!(item.sellingPrice === 0 || item.isFree),
       });
 
