@@ -264,6 +264,20 @@ const CustomerHistoryDrawer = ({
                           <TableRow key={item.id} sx={{ '&:last-child td': { borderBottom: 0 } }}>
                             <TableCell sx={{ fontSize: '0.85rem', fontWeight: 500, color: '#1e293b' }}>
                               {item.batch?.product?.name || 'Unknown'}
+                              {item.isWholesale && (
+                                <Chip
+                                  label="Wholesale"
+                                  size="small"
+                                  sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700, ml: 1, bgcolor: '#e0f2fe', color: '#0369a1' }}
+                                />
+                              )}
+                              {item.isOnSale && (
+                                <Chip
+                                  label="Sale Offer"
+                                  size="small"
+                                  sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700, ml: 1, bgcolor: '#fef3c7', color: '#b45309' }}
+                                />
+                              )}
                               {item.returnedQuantity > 0 && (
                                 <Chip
                                   label={`-${item.returnedQuantity} returned`}

@@ -94,6 +94,7 @@ const POS = ({
     setLastAddedItemId: _setLastAddedItemId,
     subTotal,
     totalMrp,
+    saleSavings,
     totalCostPrice,
     totalQty,
     baseTotalAmount,
@@ -581,6 +582,7 @@ const POS = ({
             totalQty={totalQty}
             totalAmount={totalAmount}
             totalSavings={totalSavings}
+            saleSavings={saleSavings}
             changeCalculatorEnabled={changeCalculatorEnabled}
             paymentMethodsEnabled={paymentMethodsEnabled}
             onPrintLastReceipt={handlePrintLastReceipt}

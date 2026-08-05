@@ -248,6 +248,11 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                               (WS)
                             </span>
                           )}
+                          {item.isOnSale && (
+                            <span style={{ fontSize: '0.8em', marginLeft: '4px', color: '#000' }}>
+                              (Sale)
+                            </span>
+                          )}
                           {item.isFree && (
                             <span style={{ fontSize: '0.8em', marginLeft: '4px', color: '#000' }}>
                               (Free)
