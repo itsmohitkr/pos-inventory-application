@@ -80,7 +80,27 @@ ModuleInternal._resolveFilename = function (
 
   // 2. Fall back to the unpacked tree — Prisma's own packages, and a safety
   //    net for anything normal resolution genuinely can't find.
-  const unpackedPath = require.resolve(request, { paths: [unpackedNodeModules] });
+  //
+  // MUST call originalResolve here, not require.resolve(). require.resolve
+  // resolves through whatever Module._resolveFilename currently is — which
+  // by this point IS this very function — so calling it here recurses into
+  // this function again, forever, until the stack overflows. originalResolve
+  // is the pre-patch reference captured above, so it terminates. Node's
+  // Module._resolveFilename accepts the same `paths` option require.resolve
+  // does, via the options object, so this is a drop-in fix, not a behavior
+  // change for what actually gets resolved.
+  //
+  // This bug was latent since the fallback branch was added — the old,
+  // broad asarUnpack config unpacked nearly everything, so normal resolution
+  // (branch 1, above) almost always succeeded and this branch rarely ran.
+  // Narrowing asarUnpack in #146 means far more requests fall through to
+  // here, and the first real build to actually exercise it stack-overflowed
+  // on first boot — caught by smoke-mac/smoke-win, release correctly
+  // skipped, nothing shipped.
+  const unpackedPath = originalResolve(request, parent, isMain, {
+    ...(typeof options === 'object' && options ? options : {}),
+    paths: [unpackedNodeModules],
+  });
   resolutionCache.set(cacheKey, unpackedPath);
   return unpackedPath;
 };
