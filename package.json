@@ -63,13 +63,14 @@
       "!server/.env"
     ],
     "asarUnpack": [
-      "server/dist/**/*",
       "server/prisma/**/*",
-      "server/package.json",
-      "server/node_modules/**/*",
-      "node_modules/**/*",
       "server/prisma/migrations/**/*",
-      "node_modules/.prisma/**/*"
+      "server/package.json",
+      "node_modules/.prisma/**/*",
+      "node_modules/prisma/**/*",
+      "node_modules/@prisma/**/*",
+      "server/node_modules/prisma/**/*",
+      "server/node_modules/@prisma/**/*"
     ],
     "extraFiles": [
       {

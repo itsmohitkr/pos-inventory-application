@@ -4,7 +4,10 @@
 import path = require('path');
 import Module = require('module');
 
-// Get paths - all node_modules are unpacked
+// Only Prisma's own packages (CLI, client, native engine) are unpacked —
+// see package.json's asarUnpack. Everything else (Express, Joi, pino,
+// helmet, bcryptjs, ...) now stays packed inside app.asar, resolved via
+// Electron's normal asar-transparent fs, same as any other in-process file.
 // NOTE: this file compiles to desktop/dist/server-wrapper.js, one directory
 // deeper than the old desktop/server-wrapper.js. Packaged layout is
 // app.asar/desktop/dist/server-wrapper.js, so reaching the real Resources
@@ -19,10 +22,32 @@ console.log('Server wrapper starting...');
 console.log('Unpacked node_modules:', unpackedNodeModules);
 console.log('Server directory:', process.cwd());
 
-// Override module resolution to always use unpacked node_modules
+// Override module resolution — but as a FALLBACK now, not the primary path.
 // _resolveFilename is an internal, untyped Node API — cast through `any` the
 // same way the original .js code accessed it dynamically.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+//
+// HISTORY — read this before changing the try-order below.
+// This override originally forced EVERY bare-specifier require through the
+// unpacked node_modules tree first, because at the time everything was
+// unpacked there. package.json's asarUnpack now only unpacks Prisma's own
+// packages (CLI, client, native engine) — everything else stays packed
+// inside app.asar, which Electron's own fs patching already resolves
+// transparently, the same as any other in-process file read. So normal
+// resolution is tried FIRST here, falling back to the (now much smaller)
+// unpacked tree only for what's genuinely still there — the fallback is
+// deliberately kept, not deleted, as a safety net for whatever originally
+// motivated it (most likely a hoisting/lookup edge case that made a plain
+// require() fail from inside an asar-packed script for some package).
+//
+// A prior attempt at exactly this reordering (commit 35d6050) was later
+// undone by a broad "clean revert" (commit d2d7334) alongside a chain of
+// other Windows packaging/resource-loading fixes — it isn't fully knowable
+// from history alone whether THIS specific piece was the cause or
+// collateral rollback alongside an unrelated main.js problem. This change
+// is scoped narrower than that attempt (asarUnpack now excludes only
+// non-Prisma packages, not everything), but it must still be verified on an
+// actual Windows packaged build — see the startup-perf plan's verification
+// section — not merged on macOS/dev testing alone.
 const ModuleInternal = Module as any;
 const originalResolve = ModuleInternal._resolveFilename;
 const resolutionCache = new Map<string, string>();
@@ -43,18 +68,21 @@ ModuleInternal._resolveFilename = function (
     return resolutionCache.get(cacheKey);
   }
 
-  // Try unpacked node_modules for all module requests
+  // 1. Try normal resolution first — correct for everything still packed
+  //    inside app.asar (the vast majority of packages now).
   try {
-    const unpackedPath = require.resolve(request, { paths: [unpackedNodeModules] });
-    resolutionCache.set(cacheKey, unpackedPath);
-    return unpackedPath;
+    const result = originalResolve(request, parent, isMain, options);
+    resolutionCache.set(cacheKey, result);
+    return result;
   } catch (e) {
-    // Fall back to default resolution
+    // Fall through to the unpacked tree below.
   }
 
-  const result = originalResolve(request, parent, isMain, options);
-  resolutionCache.set(cacheKey, result);
-  return result;
+  // 2. Fall back to the unpacked tree — Prisma's own packages, and a safety
+  //    net for anything normal resolution genuinely can't find.
+  const unpackedPath = require.resolve(request, { paths: [unpackedNodeModules] });
+  resolutionCache.set(cacheKey, unpackedPath);
+  return unpackedPath;
 };
 
 // Now load and run the actual server
