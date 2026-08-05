@@ -249,6 +249,7 @@ const RefundProcessor = ({
                 />
               </TableCell>
               <TableCell sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>PRODUCT DETAILS</TableCell>
+              <TableCell align="right" sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>PRICE</TableCell>
               <TableCell align="right" sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>SOLD</TableCell>
               <TableCell align="right" sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>RETURNED</TableCell>
               <TableCell align="right" width={140} sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>RETURN QTY</TableCell>
@@ -278,6 +279,12 @@ const RefundProcessor = ({
                         {item.sellingPrice === 0 && (
                           <Chip label="FREE" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#f0fdf4', color: '#166534' }} />
                         )}
+                        {item.isWholesale && (
+                          <Chip label="Wholesale" size="small" sx={{ bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+                        )}
+                        {!item.isWholesale && item.mrp > item.sellingPrice && (
+                          <Chip label="Sale Offer" size="small" sx={{ bgcolor: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+                        )}
                       </Box>
                       {item.batch?.batchCode && (
                         <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
@@ -286,6 +293,7 @@ const RefundProcessor = ({
                       )}
                     </Box>
                   </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>₹{item.sellingPrice.toFixed(2)}</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>{item.quantity}</TableCell>
                   <TableCell align="right">
                     {alreadyReturned > 0 ? (
