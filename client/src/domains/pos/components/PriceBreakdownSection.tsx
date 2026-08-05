@@ -5,12 +5,15 @@ interface PriceBreakdownSectionProps {
   subTotal: number;
   discount: number;
   totalAmount: number;
+  /** Extra saved from active promotions/category sales, not the broader MRP margin. */
+  saleSavings?: number;
 }
 
 const PriceBreakdownSection = ({
   subTotal,
   discount,
   totalAmount,
+  saleSavings = 0,
 }: PriceBreakdownSectionProps) => {
   return (
     <>
@@ -65,6 +68,18 @@ const PriceBreakdownSection = ({
           ₹{totalAmount.toFixed(2)}
         </Typography>
       </Paper>
+
+      {saleSavings > 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.5 }}>
+          <Typography
+            variant="caption"
+            sx={{ color: '#7c3aed', fontWeight: 700, fontSize: '0.75rem' }}
+            data-testid="pos-sale-savings"
+          >
+            You save ₹{saleSavings.toFixed(2)} more on the sale product
+          </Typography>
+        </Box>
+      )}
     </>
   );
 };
