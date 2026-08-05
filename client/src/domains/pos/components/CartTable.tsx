@@ -210,6 +210,31 @@ const CartTable = ({
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
                       <ShortBatchCode batchCode={item.batch_code} />
+                      {item.isOnSale && item.sellingPrice > item.price && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.75,
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            bgcolor: 'rgba(124, 58, 237, 0.1)',
+                            px: 1,
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Box
+                            component="span"
+                            sx={{ textDecoration: 'line-through', color: '#64748b' }}
+                          >
+                            ₹{item.sellingPrice.toFixed(2)}
+                          </Box>
+                          <Box component="span" sx={{ color: '#7c3aed' }}>
+                            ₹{item.price.toFixed(2)}
+                          </Box>
+                        </Typography>
+                      )}
                       {item.wholesaleEnabled && (
                         <Typography
                           variant="caption"
