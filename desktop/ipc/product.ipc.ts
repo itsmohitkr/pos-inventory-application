@@ -66,7 +66,7 @@ export const registerProductIpc = (): void => {
       }
     ) =>
       withErrorHandling(async () => {
-        validateIpcPayload(GetAllProductsSchema, { query: payload });
+        validateIpcPayload(GetAllProductsSchema, { query: payload ?? {} });
         const page = countOr(payload?.page, 1);
         const pageSize = countOr(payload?.pageSize, 25);
         const search = strOr(payload?.search, '');
@@ -102,7 +102,7 @@ export const registerProductIpc = (): void => {
 
   ipcMain.handle(IPC.PRODUCT_GET_SUMMARY, async (_event, payload: { search?: unknown; category?: unknown }) =>
     withErrorHandling(async () => {
-      validateIpcPayload(GetProductSummarySchema, { query: payload });
+      validateIpcPayload(GetProductSummarySchema, { query: payload ?? {} });
       const search = strOr(payload?.search, '');
       const category = strOr(payload?.category, 'all');
       const data = await productService.getProductSummary({ search, category });

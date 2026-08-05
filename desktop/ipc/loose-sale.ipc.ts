@@ -38,7 +38,7 @@ export const registerLooseSaleIpc = (): void => {
 
   ipcMain.handle(IPC.LOOSE_SALE_GET_REPORT, async (_event, payload: unknown) =>
     withErrorHandling(async () => {
-      const { query } = validateIpcPayload(GetLooseSalesReportSchema, { query: payload });
+      const { query } = validateIpcPayload(GetLooseSalesReportSchema, { query: payload ?? {} });
       const data = await looseSaleService.getLooseSalesReport(
         query as Parameters<typeof looseSaleService.getLooseSalesReport>[0]
       );

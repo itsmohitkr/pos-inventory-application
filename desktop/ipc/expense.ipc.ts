@@ -40,7 +40,7 @@ export const registerExpenseIpc = (): void => {
 
   ipcMain.handle(IPC.EXPENSE_GET_ALL, async (_event, payload: unknown) =>
     withErrorHandling(async () => {
-      const { query } = validateIpcPayload(GetExpensesSchema, { query: payload });
+      const { query } = validateIpcPayload(GetExpensesSchema, { query: payload ?? {} });
       const data = await expenseService.getExpenses(
         query as Parameters<typeof expenseService.getExpenses>[0]
       );

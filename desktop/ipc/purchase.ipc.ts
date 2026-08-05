@@ -40,7 +40,7 @@ export const registerPurchaseIpc = (): void => {
 
   ipcMain.handle(IPC.PURCHASE_GET_ALL, async (_event, payload: unknown) =>
     withErrorHandling(async () => {
-      const { query } = validateIpcPayload(GetPurchasesSchema, { query: payload });
+      const { query } = validateIpcPayload(GetPurchasesSchema, { query: payload ?? {} });
       const data = await purchaseService.getPurchases(
         query as Parameters<typeof purchaseService.getPurchases>[0]
       );

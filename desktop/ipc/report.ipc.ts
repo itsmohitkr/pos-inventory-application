@@ -31,7 +31,7 @@ const {
 export const registerReportIpc = (): void => {
   ipcMain.handle(IPC.REPORT_GET_REPORTS, async (_event, payload: unknown) =>
     withErrorHandling(async () => {
-      const { query } = validateIpcPayload(GetReportsSchema, { query: payload });
+      const { query } = validateIpcPayload(GetReportsSchema, { query: payload ?? {} });
       const stats = await reportService.getReports(
         query as Parameters<typeof reportService.getReports>[0]
       );
@@ -43,7 +43,7 @@ export const registerReportIpc = (): void => {
 
   ipcMain.handle(IPC.REPORT_GET_EXPIRY, async (_event, payload: unknown) =>
     withErrorHandling(async () => {
-      const { query } = validateIpcPayload(GetExpiryReportSchema, { query: payload });
+      const { query } = validateIpcPayload(GetExpiryReportSchema, { query: payload ?? {} });
       const expiringBatches = await reportService.getExpiryReport(
         query as Parameters<typeof reportService.getExpiryReport>[0]
       );
@@ -70,7 +70,7 @@ export const registerReportIpc = (): void => {
 
   ipcMain.handle(IPC.REPORT_GET_MONTHLY, async (_event, payload: unknown) =>
     withErrorHandling(async () => {
-      const { query } = validateIpcPayload(GetMonthlySalesSchema, { query: payload });
+      const { query } = validateIpcPayload(GetMonthlySalesSchema, { query: payload ?? {} });
       const parsed = query as { year?: number };
       const stats = await reportService.getMonthlySales({
         year: parsed.year ?? new Date().getFullYear(),
@@ -83,7 +83,7 @@ export const registerReportIpc = (): void => {
 
   ipcMain.handle(IPC.REPORT_GET_DAILY, async (_event, payload: unknown) =>
     withErrorHandling(async () => {
-      const { query } = validateIpcPayload(GetDailySalesSchema, { query: payload });
+      const { query } = validateIpcPayload(GetDailySalesSchema, { query: payload ?? {} });
       const parsed = query as { year?: number; month?: number };
       const stats = await reportService.getDailySales({
         year: parsed.year ?? new Date().getFullYear(),
