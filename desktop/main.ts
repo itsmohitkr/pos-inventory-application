@@ -860,6 +860,20 @@ const createWindow = (): void => {
   startServer()
     .then(() => {
       console.log('Server port open — waiting for backend bootstrap and frontend...');
+
+      // Domain IPC handlers (see desktop/ipc/*.ipc.ts, aggregated by
+      // desktop/ipc/index.ts) require() the compiled server's service
+      // modules directly, whose Prisma singleton is instantiated at
+      // module-load time from DATABASE_URL. Deliberately required here,
+      // lazily — not as a top-level import — so that first require()
+      // happens only after startServer() has confirmed DATABASE_URL/the
+      // Prisma engine path were already set (both are set earlier in this
+      // file's own module-load code, well before this point runs, but a
+      // static top-level import would have loaded these before that setup
+      // ran instead, at desktop/main.ts's own import time).
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { registerAllIpc } = require('./ipc') as typeof import('./ipc');
+      registerAllIpc();
     })
     .catch((err) => {
       console.error('Failed to start server:', err);

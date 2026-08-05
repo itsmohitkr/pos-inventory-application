@@ -10,7 +10,7 @@ import {
   ArrowBack as ArrowBackIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import api from '@/shared/api/api';
+import inventoryService from '@/shared/api/inventoryService';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import AddProductForm from '@/domains/inventory/components/AddProductForm';
 import ProductList from '@/domains/inventory/components/ProductList';
@@ -72,8 +72,8 @@ const InventoryPage = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const response = await api.get('/api/products/export', { responseType: 'blob' });
-      const blob = response.data;
+      const csv = await inventoryService.exportProducts();
+      const blob = new Blob([csv], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

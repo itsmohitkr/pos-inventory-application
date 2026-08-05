@@ -3,8 +3,20 @@
     "Used by `npm run build` / `npm run dev` only. tsconfig.json includes",
     "tests/ so `tsc --noEmit` (typecheck) and ts-jest enforce strict on the",
     "test suite too, but the shipped dist/ must not contain compiled test",
-    "output — this config extends the base and excludes tests/ for that."
+    "output — this config extends the base and excludes tests/ for that.",
+    "",
+    "declaration:true emits .d.ts files alongside dist/**/*.js — additive",
+    "only, no change to the emitted JS or runtime behavior. Needed so",
+    "desktop/ipc/*.ts (the IPC migration) gets real types when it imports",
+    "compiled server modules via `typeof import('...server/dist/...')`;",
+    "without it TS falls back to inferring types from bare JS parameter",
+    "defaults, which silently produces wrong types (e.g. a `message: string`",
+    "parameter whose default is `ReasonPhrases.OK` infers as the enum type",
+    "ReasonPhrases, not string, once the original annotation is stripped)."
   ],
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true
+  },
   "exclude": ["node_modules", "dist", "prisma", "coverage", "tests"]
 }

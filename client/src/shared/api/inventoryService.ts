@@ -1,5 +1,7 @@
 import type { AxiosRequestConfig } from 'axios';
-import api from '@/shared/api/api';
+import api, { isElectronProd } from '@/shared/api/api';
+import { invokeIpc } from '@/shared/api/ipc';
+import { IPC } from '@/shared/ipcChannels';
 
 /** Per-call axios options — used throughout for AbortController signals. */
 type RequestConfig = AxiosRequestConfig;
@@ -24,6 +26,9 @@ const inventoryService = {
    * Fetch all products with their associated batches and history
    */
   fetchProducts: async (params?: QueryParams, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_GET_ALL, params);
+    }
     const response = await api.get('/api/products', { ...config, params });
     return response.data;
   },
@@ -32,6 +37,9 @@ const inventoryService = {
    * Create a new product
    */
   createProduct: async (productData: RequestBody, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_CREATE, productData);
+    }
     const response = await api.post('/api/products', productData, config);
     return response.data;
   },
@@ -40,6 +48,9 @@ const inventoryService = {
    * Update an existing product
    */
   updateProduct: async (id: number, productData: RequestBody, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_UPDATE, { id, ...productData });
+    }
     const response = await api.put(`/api/products/${id}`, productData, config);
     return response.data;
   },
@@ -48,6 +59,9 @@ const inventoryService = {
    * Delete a product
    */
   deleteProduct: async (id: number, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_DELETE, { id });
+    }
     const response = await api.delete(`/api/products/${id}`, config);
     return response.data;
   },
@@ -64,6 +78,9 @@ const inventoryService = {
    * Fetch all product categories
    */
   fetchCategories: async (config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CATEGORY_GET_CATEGORIES);
+    }
     const response = await api.get('/api/categories', config);
     return response.data;
   },
@@ -72,6 +89,9 @@ const inventoryService = {
    * Bulk update products (e.g., via Excel upload)
    */
   bulkUpdate: async (products: RequestBody[], config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_BULK_CREATE, { products });
+    }
     const response = await api.post('/api/products/bulk', { products }, config);
     return response.data;
   },
@@ -80,6 +100,9 @@ const inventoryService = {
    * Update an existing batch
    */
   updateBatch: async (id: number, batchData: RequestBody, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_UPDATE_BATCH, { id, ...batchData });
+    }
     const response = await api.put(`/api/batches/${id}`, batchData, config);
     return response.data;
   },
@@ -88,6 +111,9 @@ const inventoryService = {
    * Delete a batch
    */
   deleteBatch: async (id: number, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_DELETE_BATCH, { id });
+    }
     const response = await api.delete(`/api/batches/${id}`, config);
     return response.data;
   },
@@ -104,6 +130,9 @@ const inventoryService = {
    * Fetch product by barcode
    */
   fetchProductByBarcode: async (barcode: string, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_GET_BY_BARCODE, { barcode });
+    }
     const response = await api.get(`/api/products/${barcode}`, config);
     return response.data;
   },
@@ -112,6 +141,9 @@ const inventoryService = {
    * Fetch product details by ID
    */
   fetchProductById: async (id: number, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_GET_BY_ID, { id });
+    }
     const response = await api.get(`/api/products/id/${id}`, config);
     return response.data;
   },
@@ -120,6 +152,9 @@ const inventoryService = {
    * Fetch inventory summary and category counts
    */
   fetchSummary: async (params?: QueryParams, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_GET_SUMMARY, params);
+    }
     const response = await api.get('/api/products/summary', { ...config, params });
     return response.data;
   },
@@ -128,6 +163,9 @@ const inventoryService = {
    * Fetch product stock history
    */
   fetchProductHistory: async (id: number, params?: QueryParams, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_GET_HISTORY, { id, ...params });
+    }
     const response = await api.get(`/api/products/${id}/history`, { ...config, params });
     return response.data;
   },
@@ -136,6 +174,9 @@ const inventoryService = {
    * Add a new stock batch
    */
   addBatch: async (payload: RequestBody, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_ADD_BATCH, payload);
+    }
     const response = await api.post('/api/batches', payload, config);
     return response.data;
   },
@@ -144,6 +185,9 @@ const inventoryService = {
    * Create a new category
    */
   createCategory: async (categoryData: RequestBody, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CATEGORY_CREATE, categoryData);
+    }
     const response = await api.post('/api/categories', categoryData, config);
     return response.data;
   },
@@ -152,6 +196,9 @@ const inventoryService = {
    * Update a category
    */
   updateCategory: async (id: number, categoryData: RequestBody, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CATEGORY_UPDATE, { id, ...categoryData });
+    }
     const response = await api.put(`/api/categories/${id}`, categoryData, config);
     return response.data;
   },
@@ -160,6 +207,9 @@ const inventoryService = {
    * Delete a category
    */
   deleteCategory: async (id: number, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CATEGORY_DELETE, { id });
+    }
     const response = await api.delete(`/api/categories/${id}`, config);
     return response.data;
   },
@@ -176,6 +226,9 @@ const inventoryService = {
    * Validate barcodes against database
    */
   validateBarcodes: async (barcodes: string[], config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.PRODUCT_VALIDATE_BARCODES, { barcodes });
+    }
     const response = await api.post('/api/products/validate-barcodes', { barcodes }, config);
     return response.data;
   },
@@ -184,10 +237,28 @@ const inventoryService = {
    * Import products from CSV file
    */
   importProducts: async (formData: FormData, config: RequestConfig = {}) => {
+    if (isElectronProd) {
+      const file = formData.get('file');
+      const csvData = file instanceof Blob ? await file.text() : '';
+      return invokeIpc(IPC.PRODUCT_IMPORT, { csvData });
+    }
     const response = await api.post('/api/products/import', formData, {
       ...config,
       headers: { ...config?.headers, 'Content-Type': 'multipart/form-data' },
     });
+    return response.data;
+  },
+
+  /**
+   * Export all products as a CSV file, returned as raw text (not a Blob —
+   * the IPC path has no HTTP response to carry a real Content-Type/blob;
+   * the renderer builds the Blob itself before triggering the download).
+   */
+  exportProducts: async (config: RequestConfig = {}): Promise<string> => {
+    if (isElectronProd) {
+      return invokeIpc<string>(IPC.PRODUCT_EXPORT);
+    }
+    const response = await api.get('/api/products/export', { ...config, responseType: 'text' });
     return response.data;
   },
 };

@@ -13,7 +13,8 @@ import {
   InputAdornment,
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import api, { getApiErrorMessage } from '@/shared/api/api';
+import { getApiErrorMessage } from '@/shared/api/api';
+import settingsService from '@/shared/api/settingsService';
 import type { AuthUser } from '@/shared/types/auth';
 
 interface ChangePasswordDialogProps {
@@ -54,7 +55,7 @@ const ChangePasswordDialog = ({
       return;
     }
     try {
-      await api.put(`/api/auth/users/${currentUser.id}/change-password`, {
+      await settingsService.changePassword(currentUser.id, {
         oldPassword: passwordData.oldPassword,
         newPassword: passwordData.newPassword,
       });

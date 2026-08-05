@@ -1,4 +1,6 @@
-import api from './api';
+import api, { isElectronProd } from './api';
+import { invokeIpc } from '@/shared/api/ipc';
+import { IPC } from '@/shared/ipcChannels';
 
 /** Payload accepted by POST /api/auth/complete-onboarding. */
 export interface CompleteOnboardingPayload {
@@ -13,8 +15,12 @@ export interface CompleteOnboardingPayload {
 }
 
 const authService = {
-  completeOnboarding: (data: CompleteOnboardingPayload) =>
-    api.post('/api/auth/complete-onboarding', data),
+  completeOnboarding: (data: CompleteOnboardingPayload) => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.AUTH_COMPLETE_ONBOARDING, data);
+    }
+    return api.post('/api/auth/complete-onboarding', data);
+  },
 };
 
 export default authService;
