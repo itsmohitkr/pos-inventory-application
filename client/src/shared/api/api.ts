@@ -62,7 +62,12 @@ export const getApiErrorMessage = (
 // TCP so there is no network-stack overhead and no loopback port dependency.
 // In the browser (Vite dev server) window.electron is absent, so axios uses its
 // default HTTP adapter and all calls go directly to localhost:5001 unchanged.
-const isElectronProd =
+//
+// Exported so domain API wrapper files (client/src/shared/api/*Service.ts)
+// can gate their own direct-IPC calls (via ipc.ts's invokeIpc) on the exact
+// same condition api-bridge already uses — a migrated route should switch
+// transport in the same builds api-bridge already did, not a new set.
+export const isElectronProd =
   typeof window !== 'undefined' &&
   !!window.electron?.ipcRenderer &&
   import.meta.env.PROD;

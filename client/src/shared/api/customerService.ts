@@ -1,4 +1,6 @@
-import api from '@/shared/api/api';
+import api, { isElectronProd } from '@/shared/api/api';
+import { invokeIpc } from '@/shared/api/ipc';
+import { IPC } from '@/shared/ipcChannels';
 import type { Sale } from '@/shared/types/models';
 
 /** A customer record as returned by the API. */
@@ -52,21 +54,33 @@ export interface CustomerListResult {
 
 const customerService = {
   findOrCreate: async (phone: string, name: string | null = null): Promise<FindOrCreateResult> => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CUSTOMER_FIND_OR_CREATE, { phone, name });
+    }
     const response = await api.post('/api/customers', { phone, name });
     return response.data;
   },
 
   findByPhone: async (phone: string): Promise<Customer> => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CUSTOMER_GET_BY_PHONE, { phone });
+    }
     const response = await api.get(`/api/customers/phone/${encodeURIComponent(phone)}`);
     return response.data;
   },
 
   findByBarcode: async (barcode: string): Promise<Customer> => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CUSTOMER_GET_BY_BARCODE, { barcode });
+    }
     const response = await api.get(`/api/customers/barcode/${encodeURIComponent(barcode)}`);
     return response.data;
   },
 
   update: async (id: number, data: Partial<Customer>): Promise<Customer> => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CUSTOMER_UPDATE, { id, ...data });
+    }
     const response = await api.put(`/api/customers/${id}`, data);
     return response.data;
   },
@@ -78,6 +92,9 @@ const customerService = {
     sortBy = 'createdAt',
     order = 'desc',
   }: CustomerListParams = {}): Promise<CustomerListResult> => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CUSTOMER_GET_ALL, { page, limit, search, sortBy, order });
+    }
     // URLSearchParams coerced these numbers to strings implicitly before;
     // String() makes that explicit without changing the emitted query.
     const params = new URLSearchParams({
@@ -92,11 +109,17 @@ const customerService = {
   },
 
   getById: async (id: number): Promise<Customer> => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CUSTOMER_GET_BY_ID, { id });
+    }
     const response = await api.get(`/api/customers/${id}`);
     return response.data;
   },
 
   getPurchaseHistory: async (id: number): Promise<CustomerPurchaseHistory> => {
+    if (isElectronProd) {
+      return invokeIpc(IPC.CUSTOMER_GET_PURCHASE_HISTORY, { id });
+    }
     const response = await api.get(`/api/customers/${id}/history`);
     return response.data;
   },

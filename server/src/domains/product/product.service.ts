@@ -1390,6 +1390,23 @@ const buildHistoryRange = ({ range, startDate, endDate }: HistoryRangeOptions) =
   };
 };
 
+/**
+ * Running totals per movement type, used for both the per-batch map and the
+ * overall total in getProductHistory. Module-scoped (not declared inline in
+ * that function) and exported: getProductHistory's inferred return type
+ * references it, and an exported function cannot use a type declaration
+ * emit (server/tsconfig.build.json's `declaration: true`) can't see —
+ * TS4025. Purely a declaration-location change, no behavior change.
+ */
+export interface MovementTotals {
+  added: number;
+  sold: number;
+  returned: number;
+  adjustmentIn: number;
+  adjustmentOut: number;
+  net: number;
+}
+
 const getProductHistory = async (
   productId: number | string,
   { range = 'today', startDate, endDate }: HistoryRangeOptions = {}
@@ -1412,16 +1429,6 @@ const getProductHistory = async (
       createdAt: 'desc',
     },
   });
-
-  /** Running totals per movement type, used for both the per-batch map and the overall total. */
-  interface MovementTotals {
-    added: number;
-    sold: number;
-    returned: number;
-    adjustmentIn: number;
-    adjustmentOut: number;
-    net: number;
-  }
 
   const summaryMap = new Map<string, MovementTotals & { date: string }>();
   const totals: MovementTotals = {
