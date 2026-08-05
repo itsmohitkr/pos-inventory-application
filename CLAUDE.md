@@ -13,114 +13,115 @@ Electron desktop POS (Point of Sale) — "Where Retail Meets Intelligence". Pack
 │   ├── preload.ts    Context bridge — exposes ipcRenderer to renderer
 │   ├── ipcChannels.ts  IPC channel name constants (single source of truth)
 │   └── server-wrapper.ts  Loads the Express server inside Electron
-├── client/           React frontend (Vite)
+├── client/           React frontend (Vite, TypeScript — no untyped .js/.jsx anywhere)
 │   └── src/
 │       ├── domains/
 │       │   ├── pos/
 │       │   │   ├── components/
-│       │   │   │   ├── POS.jsx                  Main POS screen — state, handlers, layout
-│       │   │   │   ├── POSDialogManager.jsx      All POS dialogs (batch, receipt, qty, loose, calc, numpad)
-│       │   │   │   ├── BatchSelectionDialog.jsx  Batch picker (mode: 'batch' or 'price')
-│       │   │   │   ├── TransactionPanel.jsx
-│       │   │   │   ├── CartTable.jsx
-│       │   │   │   ├── Receipt.jsx
-│       │   │   │   ├── ReceiptPreviewDialog.jsx
-│       │   │   │   └── receiptUtils.js           getSafePrintableWidth, getReceiptCalculations, getReceiptTheme
+│       │   │   │   ├── POS.tsx                  Main POS screen — state, handlers, layout
+│       │   │   │   ├── POSDialogManager.tsx      All POS dialogs (batch, receipt, qty, loose, calc, numpad)
+│       │   │   │   ├── BatchSelectionDialog.tsx  Batch picker (mode: 'batch' or 'price')
+│       │   │   │   ├── TransactionPanel.tsx
+│       │   │   │   ├── CartTable.tsx
+│       │   │   │   ├── Receipt.tsx
+│       │   │   │   ├── ReceiptPreviewDialog.tsx
+│       │   │   │   ├── posReceiptSettings.ts     Client-side DEFAULT_RECEIPT_SETTINGS mirror
+│       │   │   │   └── receiptUtils.ts           getSafePrintableWidth, getReceiptCalculations, getReceiptTheme
 │       │   │   ├── hooks/
-│       │   │   │   ├── usePOSData.js             Products + settings fetch, retry, mountedRef guard
-│       │   │   │   ├── usePOSSale.js             handlePay + handlePayAndPrint (isPaying guard on both)
-│       │   │   │   ├── usePOSSearch.js           Autocomplete — precomputed searchIndex, no state mutation
-│       │   │   │   ├── usePOSTabs.js             Multi-tab cart state (sessionStorage)
-│       │   │   │   ├── usePOSPromotions.js       Promo price resolution
-│       │   │   │   ├── usePOSLayout.js           Panel sizing
-│       │   │   │   └── usePOSShortcuts.js        Keyboard shortcuts
-│       │   │   └── pages/POSPage.jsx
+│       │   │   │   ├── usePOSData.ts             Products + settings fetch, retry, mountedRef guard
+│       │   │   │   ├── usePOSSale.ts             handlePay + handlePayAndPrint (isPaying guard on both)
+│       │   │   │   ├── usePOSSearch.ts           Autocomplete — precomputed searchIndex, no state mutation
+│       │   │   │   ├── usePOSTabs.ts             Multi-tab cart state (sessionStorage)
+│       │   │   │   ├── usePOSPromotions.ts       Promo price resolution
+│       │   │   │   ├── usePOSLayout.ts           Panel sizing
+│       │   │   │   └── usePOSShortcuts.ts        Keyboard shortcuts
+│       │   │   └── pages/POSPage.tsx
 │       │   ├── inventory/
 │       │   │   ├── components/
-│       │   │   │   ├── ProductList.jsx           Thin orchestrator (forwardRef + layout)
-│       │   │   │   ├── useProductList.js         All ProductList state + handlers
-│       │   │   │   ├── useInventoryLayout.js     Panel resize state
-│       │   │   │   ├── useCategoryManagement.js  Category CRUD, handleCategorySelect, handleCategorySortToggle
-│       │   │   │   ├── useProductActions.js      Edit/delete/add-stock handlers
-│       │   │   │   ├── useProductSelection.js    Row selection
-│       │   │   │   ├── ProductListTable.jsx      Virtualized table (owns tableContainerRef + useVirtualizer)
-│       │   │   │   ├── ProductListToolbar.jsx    Stock filter toggle, reset, category toggle
-│       │   │   │   ├── CategorySidebar.jsx       Category tree with drag-drop
-│       │   │   │   ├── ProductDetailPanel.jsx    Right panel — batch table, actions
-│       │   │   │   ├── ProductBatchTable.jsx     Batch list with edit/delete per batch
-│       │   │   │   ├── AddProductForm.jsx        Thin form shell
-│       │   │   │   ├── useAddProductForm.js      Barcode checking, validation, submit
-│       │   │   │   ├── ProductInitialBatchSection.jsx  Initial stock & pricing (shows batch code + expiry only when batchTrackingEnabled)
-│       │   │   │   ├── AddStockDialog.jsx        Add stock to existing product
-│       │   │   │   ├── EditBatchDialog.jsx       Edit individual batch
-│       │   │   │   ├── EditProductDialog.jsx     Edit product metadata
-│       │   │   │   ├── QuickInventoryDialog.jsx  Fast qty adjustment
-│       │   │   │   ├── BarcodePrintDialog.jsx    Dialog shell + IPC print call (stays here)
-│       │   │   │   ├── BarcodeSettingsPanel.jsx  Left-side settings (qty, size, margins, content)
-│       │   │   │   ├── BarcodePreviewGrid.jsx    Label preview grid
-│       │   │   │   ├── barcodeSizePresets.js     DEFAULT_SIZES (pure data)
-│       │   │   │   ├── PriceListPanel.jsx        Dialog shell + IPC print-html-content call (stays here)
-│       │   │   │   ├── usePriceList.js           Price list state + handlers
-│       │   │   │   └── paperSizePresets.js       PAPER_PRESETS + utility functions (pure)
-│       │   │   └── pages/InventoryPage.jsx
+│       │   │   │   ├── ProductList.tsx           Thin orchestrator (forwardRef + layout)
+│       │   │   │   ├── useProductList.ts         All ProductList state + handlers
+│       │   │   │   ├── useInventoryLayout.ts     Panel resize state
+│       │   │   │   ├── useCategoryManagement.ts  Category CRUD, handleCategorySelect, handleCategorySortToggle
+│       │   │   │   ├── useProductActions.ts      Edit/delete/add-stock handlers
+│       │   │   │   ├── useProductSelection.ts    Row selection
+│       │   │   │   ├── ProductListTable.tsx      Virtualized table (owns tableContainerRef + useVirtualizer)
+│       │   │   │   ├── ProductListToolbar.tsx    Stock filter toggle, reset, category toggle
+│       │   │   │   ├── CategorySidebar.tsx       Category tree with drag-drop
+│       │   │   │   ├── ProductDetailPanel.tsx    Right panel — batch table, actions
+│       │   │   │   ├── ProductBatchTable.tsx     Batch list with edit/delete per batch
+│       │   │   │   ├── AddProductForm.tsx        Thin form shell (single scrollable page, not a tabbed wizard)
+│       │   │   │   ├── useAddProductForm.ts      Barcode checking, validation, submit
+│       │   │   │   ├── ProductInitialBatchSection.tsx  Initial stock & pricing (shows batch code + expiry only when batchTrackingEnabled)
+│       │   │   │   ├── AddStockDialog.tsx        Add stock to existing product
+│       │   │   │   ├── EditBatchDialog.tsx       Edit individual batch
+│       │   │   │   ├── EditProductDialog.tsx     Edit product metadata
+│       │   │   │   ├── QuickInventoryDialog.tsx  Fast qty adjustment
+│       │   │   │   ├── BarcodePrintDialog.tsx    Dialog shell + IPC print call (stays here)
+│       │   │   │   ├── BarcodeSettingsPanel.tsx  Left-side settings (qty, size, margins, content)
+│       │   │   │   ├── BarcodePreviewGrid.tsx    Label preview grid
+│       │   │   │   ├── barcodeSizePresets.ts     DEFAULT_SIZES (pure data)
+│       │   │   │   ├── PriceListPanel.tsx        Dialog shell + IPC print-html-content call (stays here)
+│       │   │   │   ├── usePriceList.ts           Price list state + handlers
+│       │   │   │   └── paperSizePresets.ts       PAPER_PRESETS + utility functions (pure)
+│       │   │   └── pages/InventoryPage.tsx
 │       │   ├── dashboard/
 │       │   │   ├── components/               Stat cards, charts (daily/monthly/hourly)
-│       │   │   ├── hooks/useDashboardData.js
+│       │   │   ├── hooks/useDashboardData.ts
 │       │   │   └── pages/
 │       │   ├── reporting/
-│       │   │   ├── components/               AnalyticsPanel, SalesHistory, ExpiryReport, LowStock, etc.
-│       │   │   └── hooks/useReportingData.js
+│       │   │   └── components/               AnalyticsPanel, SalesHistory, ExpiryReport, LowStock,
+│       │   │                                 useReportingData.ts, etc. (no separate hooks/ folder)
 │       │   ├── expenses/
 │       │   │   ├── components/
-│       │   │   │   ├── ExpenseManagement.jsx     Thin orchestrator (tabs + dialogs)
-│       │   │   │   ├── useExpenseManagement.js   All expense/purchase state + handlers
-│       │   │   │   ├── ExpenseListTab.jsx
-│       │   │   │   └── PurchaseListTab.jsx
+│       │   │   │   ├── ExpenseManagement.tsx     Thin orchestrator (tabs + dialogs)
+│       │   │   │   ├── useExpenseManagement.ts   All expense/purchase state + handlers
+│       │   │   │   ├── ExpenseListTab.tsx
+│       │   │   │   └── PurchaseListTab.tsx
 │       │   │   └── ...
 │       │   ├── auth/
 │       │   │   ├── components/               LoginPage, AdminElevationDialog, UserManagementDialog
-│       │   │   └── hooks/useAuth.js          currentUser, admin elevation, auto-logout timer
+│       │   │   └── hooks/useAuth.ts          currentUser, admin elevation, auto-logout timer
 │       │   ├── settings/
 │       │   │   ├── components/
-│       │   │   │   ├── AccountDetailsDialog.jsx  Shop info, wipe-database (requires password + confirmPhrase)
-│       │   │   │   ├── WipeDatabaseConfirmation.jsx  Wipe UI — password + typed phrase "WIPE ALL DATA"
+│       │   │   │   ├── AccountDetailsDialog.tsx  Shop info, wipe-database (requires password + confirmPhrase)
+│       │   │   │   ├── WipeDatabaseConfirmation.tsx  Wipe UI — password + typed phrase "WIPE ALL DATA"
 │       │   │   │   └── ...
-│       │   │   └── hooks/useSettings.js
-│       │   ├── promotions/
+│       │   │   └── hooks/useSettings.ts
+│       │   ├── promotions/          Threshold promos, scheduled sale events, category-wide sales (CategorySale)
 │       │   ├── refund/
 │       │   └── saleHistory/
 │       └── shared/
 │           ├── api/
-│           │   ├── api.js               axios instance (baseURL: http://localhost:5001)
-│           │   ├── inventoryService.js
-│           │   ├── posService.js
-│           │   ├── dashboardService.js
-│           │   └── settingsService.js
+│           │   ├── api.ts               axios instance (baseURL: http://localhost:5001)
+│           │   ├── inventoryService.ts
+│           │   ├── posService.ts
+│           │   ├── categorySaleService.ts
+│           │   ├── dashboardService.ts
+│           │   └── settingsService.ts
 │           ├── components/              AppLayout, GlobalAppBar, CustomDialog, GlobalErrorBoundary
-│           ├── hooks/                   useCustomDialog, useSettings (shared)
-│           ├── utils/                   responseGuards, paymentSettings, refundStatus
-│           └── ipcChannels.js           ES module mirror of desktop/ipcChannels.ts
-├── server/           Express API (runs inside Electron, port 5001)
-│   ├── index.js      Boot: migrations, DB backup, password migration, seed
-│   ├── seed.js       Default users (passwords bcrypt-hashed at seed time) + sample data
+│           ├── hooks/                   useCustomDialog, useSettings (shared), usePrinters (cached get-printers)
+│           ├── utils/                   responseGuards, paymentSettings, refundStatus, resolvePrinterName
+│           └── ipcChannels.ts           ES module mirror of desktop/ipcChannels.ts
+├── server/           Express API (runs inside Electron, port 5001; TypeScript, strict mode)
+│   ├── index.ts      Boot: tiered migration check, DB backup, migrate deploy, password migration, seed
+│   ├── seed.ts        Default users (passwords bcrypt-hashed at seed time) + sample data
 │   ├── prisma/       Schema + migrations, SQLite database
 │   └── src/
-│       ├── app.js    Express app: helmet, CORS (localhost-only), rate-limit, localhost guard, router mount
+│       ├── app.ts    Express app: helmet, CORS (localhost-only), rate-limit, localhost guard, router mount
 │       ├── config/
-│       │   └── constants.js  DEFAULT_RECEIPT_SETTINGS (authoritative source)
-│       └── domains/  Domain-driven modules — auth, product, sale, category,
+│       │   └── constants.ts  DEFAULT_RECEIPT_SETTINGS (authoritative source)
+│       └── domains/  Domain-driven modules — auth, product, sale, category, category-sale,
 │                     purchase, expense, promotion, report, setting, batch,
 │                     loose-sale, stock-movement, customer
-│                     Each: *.controller.js, *.service.js, *.router.js, *.validation.js
+│                     Each: *.controller.ts, *.service.ts, *.router.ts, *.validation.ts
 ├── scripts/
 │   ├── post-build.js     Copies .prisma engine binary after electron-builder
 │   └── sync-version.js   Syncs root package.json version → client + server
 ├── assets/           App icons
 ├── .github/workflows/
-│   ├── build-release.yml  Triggered on v* tags — builds macOS + Windows
-│   ├── client-quality.yml  Lint + unit + E2E (Chromium) on client changes
-│   ├── server-quality.yml  Jest tests on server changes
-│   └── client-nightly.yml  Full-browser E2E nightly
+│   ├── ci.yml              Runs on push/PR to main — typecheck, lint, Prisma validation, unit tests, E2E
+│   ├── build-release.yml   Triggered on v* tags — quality-gate → build-mac/build-win → smoke-mac/smoke-win → release
+│   └── client-nightly.yml  Scheduled full-browser E2E
 └── Documents/        Operational guides (backup strategy, DB troubleshooting)
 ```
 
@@ -167,8 +168,8 @@ Push a `v*` tag (e.g. `git tag v1.2.0 && git push origin v1.2.0`). The `build-re
 ### Security model
 The Express server binds exclusively to `127.0.0.1:5001` — it is never reachable from other machines on the network. Two layers enforce this:
 
-1. **Bind address** — `server/index.js` calls `app.listen(PORT, '127.0.0.1', ...)`. Do not remove the second argument.
-2. **Localhost middleware** — `server/src/app.js` rejects any request whose `req.ip` is not `127.0.0.1` / `::1` / `::ffff:127.0.0.1`. This is defence-in-depth.
+1. **Bind address** — `server/index.ts` calls `app.listen(PORT, '127.0.0.1', ...)`. Do not remove the second argument.
+2. **Localhost middleware** — `server/src/app.ts` rejects any request whose `req.ip` is not `127.0.0.1` / `::1` / `::ffff:127.0.0.1`. This is defence-in-depth.
 3. **CORS** — restricted to `null` origin (Electron production renderer uses `file://`) and `http://localhost:*` (Vite dev server). All other origins are rejected.
 
 Because the server is localhost-only, there is **no JWT/session middleware** on API routes — auth is UI-enforced in the renderer. Do not add network-facing endpoints without also adding authentication middleware.
@@ -187,13 +188,13 @@ User clicks Pay & Print / Print Label
   │
   ├─ window.electron.ipcRenderer.invoke('print-manual', { printerName })
   │
-  └─ main.js: mainWindow.webContents.print({ silent: true, ... })
+  └─ main.ts: mainWindow.webContents.print({ silent: true, ... }) via printWithTimeout()
        └─ returns { success, error } back to renderer
             └─ describePrintError() maps Chromium error codes to user-readable messages
             └─ error snackbar on failure (transaction already saved — never rolled back)
 ```
 
-For barcode labels specifically, `document.body.classList.add('is-printing-labels')` must fire **before** the invoke so `@media print` CSS hides everything except `.printable-area`. The 100 ms setTimeout in `BarcodePrintDialog.jsx` is intentional.
+For barcode labels specifically, `document.body.classList.add('is-printing-labels')` must fire **before** the invoke so `@media print` CSS hides everything except `.printable-area`. The 100 ms setTimeout in `BarcodePrintDialog.tsx` is intentional.
 
 **IPC/print code location rule:** `ipcRenderer.invoke` calls for printing must never be moved out of their current file:
 - Receipt print (Pay & Print / Last Receipt) → `usePOSSale.ts` (`handlePayAndPrint`, `handlePrintLastReceipt`)
@@ -222,7 +223,12 @@ per-dialog printer choice in `localStorage`.
 must check `result.success`; a rejected `invoke` means something unexpected,
 not an ordinary print failure. `get-printers` likewise always resolves to an
 array. This uniformity is load-bearing — the handlers previously disagreed
-(one returned, one threw, one did both) and callers each guessed differently.
+(`print-manual` returned `{success,error}`, `print-html-content` threw on
+failure) and callers each guessed differently. `print-html-content`'s
+contract changed from throwing to returning as part of the print-stack
+hardening pass — its only caller, `PriceListPanel.tsx`, was updated to check
+`result?.success` accordingly; if you add a new caller, check `.success`,
+don't wrap the invoke in a bare try/catch expecting a throw.
 
 **A print failure is not a payment failure.** In `handlePayAndPrint` the sale
 commits *before* printing, so the print block has its own `try/catch`. Never
@@ -232,15 +238,23 @@ failure messages must say the sale was saved and point at Sale History.
 
 **Critical:** Always use `ipcRenderer.invoke()` (not `ipcRenderer.send()`) for `print-manual`. The Electron main process registers the handler with `ipcMain.handle()`, which only responds to `invoke` — `send` silently does nothing.
 
-**Print jobs are guarded by a 30 s timeout** (`printWithTimeout` in
-`desktop/main.ts`). Chromium's print callback does not always fire — a stalled
-spooler can swallow it — and without the guard the renderer's `await invoke`
-never settles, leaving `isPaying` stuck `true` and the Pay button disabled
-until restart. Do not remove it, and keep new print paths going through that
-helper.
+**Print jobs are guarded by a 60 s timeout** (`printWithTimeout` in
+`desktop/main.ts`, used by both `print-manual` and `print-html-content`).
+Chromium's print callback does not always fire — a stalled spooler can
+swallow it — and without the guard the renderer's `await invoke` never
+settles, leaving `isPaying` stuck `true` and the Pay button disabled until
+restart. Set deliberately long: the only job of the timeout is to stop an
+indefinite hang, and a value too short would falsely report failure for a
+job that actually printed on a busy Windows spooler with a large label
+batch. Do not remove it, and keep new print paths going through that helper.
+None of this desktop-side print logic (`printWithTimeout`,
+`describePrintError`, the two `ipcMain.handle` bodies) has automated test
+coverage — `desktop/` has zero automated tests altogether (see TypeScript
+strictness section below). Changes here should be verified by hand
+(`electron-dev` / a packaged build), not assumed safe because CI is green.
 
 ### Double-payment guard
-`POS.jsx` uses an `isPaying` state flag set at the top of both `handlePay` and `handlePayAndPrint` and cleared in `finally`. The flag is propagated to `TransactionPanel → TransactionActionButtons` to disable the Pay button during an in-flight transaction. Never remove this guard — rapid double-taps would create duplicate sales.
+`POS.tsx` uses an `isPaying` state flag set at the top of both `handlePay` and `handlePayAndPrint` and cleared in `finally`. The flag is propagated to `TransactionPanel → TransactionActionButtons` to disable the Pay button during an in-flight transaction. Never remove this guard — rapid double-taps would create duplicate sales.
 
 ### Batch system
 Products have a `batchTrackingEnabled` flag that controls two separate flows:
@@ -252,7 +266,7 @@ Products have a `batchTrackingEnabled` flag that controls two separate flows:
 Key invariants to preserve:
 - `addBatch` and `createOrUpdateProduct` are always wrapped in `prisma.$transaction()` — batch creation and stock movement are atomic.
 - `deleteBatch` is blocked if any `SaleItem` references the batch (sales history must not be erased). To retire a batch, set its quantity to 0 instead.
-- `processSale` (`sale.service.js`) rejects expired batches (`expiryDate < now`) before touching stock — the error message includes the product name and expiry date.
+- `processSale` (`sale.service.ts`) rejects expired batches (`expiryDate < now`) before touching stock — the error message includes the product name and expiry date.
 - `updateBatch` validates wholesale pricing constraints (wholesalePrice ≤ sellingPrice) — pass `wholesaleEnabled` and `wholesalePrice` when calling `validatePricing`.
 - Toggling `batchTrackingEnabled` from OFF → ON via `updateProduct` auto-assigns `batchCode` values to any existing batches that lack one.
 
@@ -261,16 +275,15 @@ Receipt settings live in two places:
 1. **Backend DB** (primary) — `Setting` table, key `posReceiptSettings`, JSON value
 2. **localStorage** (cache/fallback) — key `posReceiptSettings`
 
-`useSettings.js → handleSaveBillSettings` writes to both on every save. On load, the DB value wins (fetched with 3 retries); localStorage is a fallback if the API is unreachable during startup. The authoritative default shape is `server/src/config/constants.js → DEFAULT_RECEIPT_SETTINGS`.
+`useSettings.ts → handleSaveBillSettings` writes to both on every save. On load, the DB value wins (fetched with 3 retries); localStorage is a fallback if the API is unreachable during startup. The authoritative default shape is `server/src/config/constants.ts → DEFAULT_RECEIPT_SETTINGS`.
 
 ### Database bootstrap and migrations
 On every startup:
 1. `desktop/main.ts` copies bundled `pos.db` to `~/{userData}/pos.db` if missing or <5 KB
 2. `DATABASE_URL` env var is set before the server starts
-3. `server/index.js` calls `backupDatabase()` → copies `pos.db` to `pos.db.bak`
-4. `runPrismaMigrations()` runs `prisma migrate deploy` (60 s timeout)
-5. `migratePasswordsToHash()` bcrypt-hashes any remaining plaintext passwords on every boot
-6. `checkAndSeed()` seeds default settings + admin user if DB is empty
+3. `server/index.ts` runs a tiered migration check (cached version file → `_prisma_migrations` query → `prisma migrate deploy` subprocess only if genuinely pending), backing up `pos.db` → `pos.db.bak` first whenever a deploy is about to run
+4. `migratePasswordsToHash()` bcrypt-hashes any remaining plaintext passwords on every boot
+5. `checkAndSeed()` seeds default settings + admin user if DB is empty
 
 Default users seeded on first boot: `admin / admin123`, `cashier / cashier123`, `salesman / salesman123`. Passwords are bcrypt-hashed at seed time (not plaintext). Change the admin password before deploying to a production machine.
 
@@ -279,10 +292,10 @@ Settings → Account Details → Wipe Database requires **two** inputs before th
 1. The admin's current password
 2. The confirmation phrase typed exactly as `WIPE ALL DATA`
 
-The Joi schema (`auth.validation.js → wipeDatabaseBodySchema`) enforces `confirmPhrase` server-side, so the check cannot be bypassed by manipulating the UI.
+The Joi schema (`auth.validation.ts → wipeDatabaseBodySchema`) enforces `confirmPhrase` server-side, so the check cannot be bypassed by manipulating the UI.
 
 ### Crash prevention (main process)
-`desktop/main.ts` registers `process.on('uncaughtException')` and `process.on('unhandledRejection')` at the top of the file. Both handlers write to the log file and show a `dialog.showErrorBox` to the user instead of silently crashing. `waitForServer` timeout is 90 s (covers the full migration + listen cycle). `server/index.js` registers `app.on('error')` to handle `EADDRINUSE` and other listen errors with a clean `process.exit(1)`.
+`desktop/main.ts` registers `process.on('uncaughtException')` and `process.on('unhandledRejection')` at the top of the file. Both handlers write to the log file and show a `dialog.showErrorBox` to the user instead of silently crashing. `waitForServer` timeout is 90 s (covers the full migration + listen cycle). `server/index.ts` registers `app.on('error')` to handle `EADDRINUSE` and other listen errors with a clean `process.exit(1)`.
 
 ### Prisma engine in packaged builds
 The native Prisma query engine binary lives in `node_modules/.prisma/client/`. electron-builder skips dot-folders by default, so it is handled two ways:
@@ -296,22 +309,21 @@ The native Prisma query engine binary lives in `node_modules/.prisma/client/`. e
 
 ## Frontend Component Architecture (SRP pattern)
 
-Large components follow a **hook + shell** pattern. The parent file is a thin orchestrator; all state and logic live in a co-located `use*.js` hook.
+Large components follow a **hook + shell** pattern. The parent file is a thin orchestrator; all state and logic live in a co-located `use*.ts` hook.
 
 | Shell component | Hook | Responsibility split |
 |---|---|---|
-| `ProductList.jsx` | `useProductList.js` | Shell keeps `forwardRef`/`useImperativeHandle` + layout; hook owns all state, effects, handlers. Spreads `useCategoryManagement`, `useInventoryLayout`, `useProductSelection`, `useProductActions`. |
-| `useCategoryManagement.js` | (sub-hook of useProductList) | Category fetch, CRUD, `handleCategorySelect`, `handleCategorySortToggle`. All returned and spread via useProductList. |
-| `InventoryTree.jsx` | `useInventoryTree.js` | Shell keeps `forwardRef` + JSX; hook owns fetch, CRUD, drag-drop |
-| `PriceListPanel.jsx` | `usePriceList.js` | Shell keeps IPC print call + dialog; hook owns state, computed values, handlers |
-| `ExpenseManagement.jsx` | `useExpenseManagement.js` | Shell renders tabs + dialogs; hook owns all expense/purchase state |
-| `AddProductForm.jsx` | `useAddProductForm.js` | Shell renders form sections; hook owns barcode checking, validation, submit |
+| `ProductList.tsx` | `useProductList.ts` | Shell keeps `forwardRef`/`useImperativeHandle` + layout; hook owns all state, effects, handlers. Spreads `useCategoryManagement`, `useInventoryLayout`, `useProductSelection`, `useProductActions`. |
+| `useCategoryManagement.ts` | (sub-hook of useProductList) | Category fetch, CRUD, `handleCategorySelect`, `handleCategorySortToggle`. All returned and spread via useProductList. |
+| `PriceListPanel.tsx` | `usePriceList.ts` | Shell keeps IPC print call + dialog; hook owns state, computed values, handlers |
+| `ExpenseManagement.tsx` | `useExpenseManagement.ts` | Shell renders tabs + dialogs; hook owns all expense/purchase state |
+| `AddProductForm.tsx` | `useAddProductForm.ts` | Shell renders form sections (single scrollable page — a deliberate redesign away from an earlier tabbed wizard); hook owns barcode checking, validation, submit |
 
 **Rules for future work:**
 - New files go in the **same folder** as their parent component — no folder moves without updating all import chains.
-- `forwardRef` on `ProductList` and `InventoryTree` must be preserved — parent pages call `ref.current.refresh()` on them.
-- `ProductListTable.jsx` owns its own `tableContainerRef` and `useVirtualizer` — do not lift the ref to the parent.
-- Pure data (presets, column configs) belongs in `*.js` config/preset files, not inside components or hooks.
+- `forwardRef` on `ProductList` must be preserved — parent pages call `ref.current.refresh()` on it.
+- `ProductListTable.tsx` owns its own `tableContainerRef` and `useVirtualizer` — do not lift the ref to the parent.
+- Pure data (presets, column configs) belongs in `*.ts` config/preset files, not inside components or hooks.
 - `useProductList` returns everything via spread (`...categoriesContext`, `...layout`, `...selection`, `...actions`). When adding new handlers to sub-hooks, ensure they are included in that sub-hook's return object.
 
 ---
@@ -320,10 +332,10 @@ Large components follow a **hook + shell** pattern. The parent file is a thin or
 
 ### Adding a new domain (backend)
 Create `server/src/domains/<name>/` with four files:
-- `<name>.router.js` — Express routes mounted in `server/src/app.js`
-- `<name>.controller.js` — HTTP handlers, import `logger` (not `console.error`)
-- `<name>.service.js` — Business logic, Prisma queries, transactions
-- `<name>.validation.js` — Joi schemas
+- `<name>.router.ts` — Express routes mounted in `server/src/app.ts`
+- `<name>.controller.ts` — HTTP handlers, import `logger` (not `console.error`)
+- `<name>.service.ts` — Business logic, Prisma queries, transactions
+- `<name>.validation.ts` — Joi schemas
 
 Use `asyncHandler` wrapper in controllers. Throw `createHttpError(status, message)` from services. Map Prisma errors via `toAppError`. Wrap multi-step DB operations in `prisma.$transaction()`.
 
@@ -334,10 +346,10 @@ Use `asyncHandler` wrapper in controllers. Throw `createHttpError(status, messag
 4. Use `ipcRenderer.invoke` in the renderer (not `send`)
 
 ### Adding a new receipt setting field
-1. Add the field + default to `server/src/config/constants.js → DEFAULT_RECEIPT_SETTINGS`
-2. Add the same field + default to `client/src/domains/pos/components/posReceiptSettings.js → DEFAULT_RECEIPT_SETTINGS`
-3. Use it in `client/src/domains/pos/components/Receipt.jsx`
-4. Wire a control in `client/src/domains/pos/components/ReceiptPreviewDialog.jsx`
+1. Add the field + default to `server/src/config/constants.ts → DEFAULT_RECEIPT_SETTINGS`
+2. Add the same field + default to `client/src/domains/pos/components/posReceiptSettings.ts → DEFAULT_RECEIPT_SETTINGS`
+3. Use it in `client/src/domains/pos/components/Receipt.tsx`
+4. Wire a control in `client/src/domains/pos/components/ReceiptPreviewDialog.tsx`
 
 ### Database migrations
 ```bash
@@ -410,10 +422,18 @@ marked with a `NOTE` comment at the call site. Converting it surfaced one
 real bug: `server-wrapper.ts`'s unpacked-`node_modules` path calculation
 needed a third `..` for the same reason, or packaged-app module resolution
 would have silently pointed at the wrong directory. Verified via a full
-local `electron-dev` run and an unsigned `electron-pack` (macOS) — the
+local `electron-dev` run and an unsigned `electron-pack` (macOS). The
 Windows-specific `file:C:/path` format and `.dll.node` engine lookup are
-unchanged but still need verification on an actual Windows machine before
-this merges, since there is no Windows CI or test coverage for them.
+unchanged from the pre-TS code, and are exercised for real by
+`build-release.yml`'s `smoke-win` job: it silently installs the actual NSIS
+installer on a `windows-latest` GitHub runner, boots the packaged `.exe`
+against a fresh `userData` dir and confirms the server comes up and `pos.db`
+gets created (exercising the Windows path formatting, the Prisma engine
+lookup, and a real `migrate deploy`), then re-launches against that same
+`pos.db` to confirm a second boot succeeds. This is real, automated Windows
+verification — not just a build check — but it runs on a clean CI VM, not a
+real shop PC with antivirus/driver quirks, so it doesn't replace testing an
+actual release on a real Windows machine before wide rollout.
 
 Test files converted last, once source was fully clean — they are the net
 that verifies the migration, so they had to keep passing throughout:
@@ -502,7 +522,7 @@ Two conventions worth keeping if this is taken further:
 - **SQLite only** — single file, no concurrent write processes. The server and the Electron main process must never open the DB simultaneously (server handles all DB access).
 - **Windows path** — `DATABASE_URL` uses `file:C:/path` (not `file:///C:/path`) on Windows. The forward-slash format is intentional. Do not change this.
 - **Spaces in AppData path** — handled by literal path formatting in `desktop/main.ts`. Do not switch to `pathToFileURL`.
-- **Server binds to 127.0.0.1** — `app.listen(PORT, '127.0.0.1', ...)` in `server/index.js`. Do not change to `0.0.0.0` or remove the host argument. A localhost-only guard middleware in `app.js` enforces this as a second layer.
+- **Server binds to 127.0.0.1** — `app.listen(PORT, '127.0.0.1', ...)` in `server/index.ts`. Do not change to `0.0.0.0` or remove the host argument. A localhost-only guard middleware in `app.ts` enforces this as a second layer.
 - **No JWT/session middleware** — because the server is localhost-only, API routes rely on UI-enforced auth. If the server ever needs to be network-accessible, add authentication middleware before exposing any routes.
 - **Print CSS** — receipt printing forces `color: #000000 !important` and `-webkit-print-color-adjust: exact` on all elements. Do not add colour-dependent logic to receipt rendering. Use camelCase for CSS-in-JS properties (`WebkitPrintColorAdjust`, not `'-webkit-print-color-adjust'`).
 - **IPC print location** — `ipcRenderer.invoke` for `print-manual` and `print-html-content` must stay in the component files listed above. Moving them breaks the `is-printing-labels` / `is-printing-price-labels` CSS class timing that hides the UI during print capture. Pure helpers (printer resolution, the cached printer list) are shared on purpose — it is the invoke that is pinned.
@@ -510,7 +530,7 @@ Two conventions worth keeping if this is taken further:
 - **The print window is network-isolated** — `print-html-content` renders unsanitised database-derived HTML, so its `BrowserWindow` uses a dedicated `print-isolated` session partition with a `webRequest` block on every non-`data:` URL, plus a CSP in the template. Do not move that block onto the default session (it would break auto-update) and do not drop the partition.
 - **waitForServer timeout** — set to 90 s in `desktop/main.ts` to cover the full Prisma migration + `app.listen()` cycle. Do not reduce this below the longest expected migration time.
 - **MUI v6 Grid** — use `<Grid size={{ xs: n, md: m }}>` syntax. The deprecated `item`, `xs`, `md` props have been removed. Fractional grid sizes are not supported; round to the nearest integer.
-- **axios params serializer** — the axios instance has a known incompatibility with ISO date strings in `params` objects in certain Vite-bundled environments. Build query strings with native `URLSearchParams` and append them to the URL directly (see `dashboardService.js`).
+- **axios params serializer** — the axios instance has a known incompatibility with ISO date strings in `params` objects in certain Vite-bundled environments. Build query strings with native `URLSearchParams` and append them to the URL directly (see `dashboardService.ts`).
 - **server/node_modules must be bundled explicitly** — `server/node_modules/**/*` is listed in both `files` and `asarUnpack` in `package.json`. electron-builder does not automatically bundle nested node_modules directories the same way it handles the root one. The build workflow must run `npm ci` inside `server/` for these to exist at build time.
 - **Build workflow must install server deps** — `build-mac` and `build-win` jobs in `build-release.yml` must each run `npm ci` in the `server/` directory before packaging. Skipping this means `server/node_modules` is empty and server-only packages are missing from the installer.
-- **Releases are tag-triggered** — `build-release.yml` only runs on `v*` tag pushes or manual dispatch. Push a tag (`git tag vX.Y.Z && git push origin vX.Y.Z`) to cut a release. Quality workflows (`client-quality`, `server-quality`) run on every main push but do not trigger builds.
+- **Releases are tag-triggered** — `build-release.yml` only runs on `v*` tag pushes or manual dispatch. Push a tag (`git tag vX.Y.Z && git push origin vX.Y.Z`) to cut a release; the actual app version embedded in the build (and compared by auto-update) is derived from the tag itself (`npm version "1.0.$NUM" --no-git-tag-version`, stripping the `v` prefix), not from the committed `package.json` version — bumping `package.json` manually before tagging is not required and does not by itself change what ships. `ci.yml` runs typecheck/lint/unit/E2E on every push/PR to main but does not trigger a build. Both `build-release.yml`'s `quality-gate`/`build-mac`/`build-win` jobs and `ci.yml` must generate the Prisma client (`rm -rf node_modules/.prisma && npx prisma generate` from `server/`) immediately after installing server dependencies and before any `tsc` step — `prisma`'s own `postinstall` hook creates a stale client at `server/node_modules/.prisma` that otherwise shadows the correctly-generated one at the repo-root `node_modules/.prisma/client` (the path `schema.prisma`'s `output` field actually points at) in Node's module resolution, breaking every server typecheck/build.
