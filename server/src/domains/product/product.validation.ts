@@ -35,7 +35,14 @@ export const GetAllProductsSchema = {
     category: z.string().optional(),
     sortBy: str().optional(),
     sortOrder: z.enum(['asc', 'desc'], { error: 'Sort order must be asc or desc' }).optional(),
-    includeBatches: z.enum(['true', 'false'], { error: 'includeBatches must be true or false' }).optional(),
+    // bool(), not z.enum(['true','false']): the HTTP path sends a string
+    // ('true'/'false', since query params are always strings), but the IPC
+    // path (used by every packaged build) sends a real JS boolean —
+    // ipcRenderer.invoke's structured clone preserves it as-is, unlike
+    // axios's query-string serialization. An enum of just the two string
+    // literals rejected the boolean outright, failing validation before the
+    // request ever reached the handler.
+    includeBatches: bool().optional(),
   }),
 };
 
