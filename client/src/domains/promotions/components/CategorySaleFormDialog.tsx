@@ -715,7 +715,15 @@ const CategorySaleFormDialog = ({
 
                             {/* Group 4 Data: Proposed Category Sale */}
                             <TableCell align="right" sx={{ bgcolor: isSelected ? '#fff7ed' : 'inherit', color: isSelected ? '#ea580c' : '#64748b', fontWeight: 700 }}>
-                              {isSelected ? `${p.discountPercentage}% OFF` : 'Excluded'}
+                              {!isSelected ? (
+                                'Excluded'
+                              ) : p.noAdditionalDiscount ? (
+                                <Tooltip title="This product's current regular price is already lower than (or equal to) what this category discount would offer, so it keeps its regular price." arrow>
+                                  <span>No extra discount</span>
+                                </Tooltip>
+                              ) : (
+                                `${p.discountPercentage}% OFF`
+                              )}
                             </TableCell>
                             <TableCell align="right" sx={{ bgcolor: isSelected ? '#fff7ed' : 'inherit', fontWeight: 800, color: isSelected ? '#c2410c' : '#475569', borderRight: '1px solid #e2e8f0' }}>
                               {isSelected ? p.newSellingPrice.toFixed(2) : p.currentSellingPrice.toFixed(2)}
@@ -733,13 +741,25 @@ const CategorySaleFormDialog = ({
                               {isSelected ? p.profitAmount.toFixed(2) : p.regularProfitAmount.toFixed(2)}
                             </TableCell>
                             <TableCell align="right" sx={{ bgcolor: !isSelected ? 'inherit' : isNegativeMargin ? '#fee2e2' : '#f0fdf4' }}>
-                              <Chip
-                                label={`${isSelected ? p.profitMargin : p.regularProfitMargin}%`}
-                                size="small"
-                                color={!isSelected ? 'default' : isNegativeMargin ? 'error' : 'success'}
-                                variant={!isSelected ? 'outlined' : isNegativeMargin ? 'filled' : 'outlined'}
-                                sx={{ height: 22, fontWeight: 700 }}
-                              />
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                                <Chip
+                                  label={`${isSelected ? p.profitMargin : p.regularProfitMargin}%`}
+                                  size="small"
+                                  color={!isSelected ? 'default' : isNegativeMargin ? 'error' : 'success'}
+                                  variant={!isSelected ? 'outlined' : isNegativeMargin ? 'filled' : 'outlined'}
+                                  sx={{ height: 22, fontWeight: 700 }}
+                                />
+                                {isSelected && p.marginProtected && (
+                                  <Tooltip title="The discount was capped at your cost price to avoid selling this product at a loss." arrow>
+                                    <Chip
+                                      label="Margin protected"
+                                      size="small"
+                                      variant="outlined"
+                                      sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, borderColor: '#a5b4fc', color: '#4338ca' }}
+                                    />
+                                  </Tooltip>
+                                )}
+                              </Box>
                             </TableCell>
                           </TableRow>
                         );

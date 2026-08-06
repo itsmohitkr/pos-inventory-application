@@ -27,6 +27,31 @@ export interface ActiveCategorySaleInfo {
   excludedProductIds: Set<number>;
 }
 
+export interface CategorySaleDiscountResult {
+  /** MRP-based discount price after the cost floor — not yet compared to the current regular price. */
+  price: number;
+  /** True if the naive MRP-based discount would have gone below cost before flooring. */
+  marginProtected: boolean;
+}
+
+/**
+ * The one piece of math shared by both the checkout-time price
+ * (sale.service.ts's getCategorySalePrice) and the merchant-facing preview
+ * (previewCategorySaleProducts below): a flat category discount off MRP,
+ * capped at cost price so a category sale can never turn into a real loss.
+ * Deliberately does NOT compare against the current regular selling price —
+ * callers need that comparison at different points (see getCategorySalePrice's
+ * own comment for why it can't happen here).
+ */
+export const computeCategorySaleDiscountedPrice = (
+  mrp: number,
+  costPrice: number,
+  discountPercentage: number
+): CategorySaleDiscountResult => {
+  const rawPrice = Math.round(mrp * (1 - discountPercentage / 100) * 100) / 100;
+  return { price: Math.max(rawPrice, costPrice), marginProtected: rawPrice < costPrice };
+};
+
 export interface ProductPreviewItem {
   id: number;
   name: string;
@@ -45,6 +70,10 @@ export interface ProductPreviewItem {
   newSellingPrice: number;
   profitAmount: number;
   profitMargin: number;
+  /** The naive MRP-based discount would have undercut cost; price was capped at breakeven instead. */
+  marginProtected: boolean;
+  /** The product's current regular price already beats what this category discount offers — no extra discount applies. */
+  noAdditionalDiscount: boolean;
 }
 
 /**
@@ -259,10 +288,22 @@ const previewCategorySaleProducts = async (
         ? Math.round(((currentSellingPrice - costPrice) / currentSellingPrice) * 1000) / 10
         : 0;
 
-    // Proposed Category Sale Pricing & Profit (Discount percentage applied on MRP)
+    // Proposed Category Sale Pricing & Profit (Discount percentage applied on
+    // MRP and floored at cost via the same computeCategorySaleDiscountedPrice
+    // sale.service.ts's getCategorySalePrice uses at checkout, then compared
+    // here against the current regular price — see that function's own
+    // comment for why that comparison can't live inside the shared helper —
+    // so this preview shows the price the customer will actually be charged,
+    // not a number that looks valid here but silently never applies).
     const basePrice = mrp > 0 ? mrp : currentSellingPrice;
-    const newSellingPrice =
-      Math.round(basePrice * (1 - discountPercentage / 100) * 100) / 100;
+    const { price: marginFlooredPrice, marginProtected } = computeCategorySaleDiscountedPrice(
+      basePrice,
+      costPrice,
+      discountPercentage
+    );
+    // Never worse than what the customer already pays regularly.
+    const newSellingPrice = Math.min(marginFlooredPrice, currentSellingPrice);
+    const noAdditionalDiscount = marginFlooredPrice >= currentSellingPrice;
     const profitAmount = Math.round((newSellingPrice - costPrice) * 100) / 100;
     const profitMargin =
       newSellingPrice > 0
@@ -287,6 +328,8 @@ const previewCategorySaleProducts = async (
       newSellingPrice,
       profitAmount,
       profitMargin,
+      marginProtected,
+      noAdditionalDiscount,
     };
   });
 };

@@ -58,7 +58,12 @@ const getBulkEffectivePromoPrices = async (
  * actually in the cart — never a different batch of the same product.
  */
 const getCategorySalePrice = (
-  batch: { productId: number; mrp: number; product: { category: string | null } | null },
+  batch: {
+    productId: number;
+    mrp: number;
+    costPrice: number;
+    product: { category: string | null } | null;
+  },
   activeCategorySalesMap: Map<string, { discountPercentage: number; excludedProductIds: Set<number> }>
 ): number | null => {
   const category = batch.product?.category;
@@ -69,7 +74,15 @@ const getCategorySalePrice = (
   if (catSale.excludedProductIds.has(batch.productId)) return null;
   if (batch.mrp <= 0) return null;
 
-  return Math.round(batch.mrp * (1 - catSale.discountPercentage / 100) * 100) / 100;
+  // Shared with previewCategorySaleProducts's preview math — see that
+  // function's own comment for why the currentSellingPrice comparison isn't
+  // folded into the same helper (it has to happen after combining with any
+  // active promotion price, below, not before).
+  return categorySaleService.computeCategorySaleDiscountedPrice(
+    batch.mrp,
+    batch.costPrice,
+    catSale.discountPercentage
+  ).price;
 };
 
 /**

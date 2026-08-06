@@ -126,4 +126,8 @@ export interface CategorySaleProductPreview {
   newSellingPrice: number;
   profitAmount: number;
   profitMargin: number;
+  /** The naive MRP-based discount would have undercut cost; price was capped at breakeven instead. */
+  marginProtected: boolean;
+  /** The product's current regular price already beats what this category discount offers — no extra discount applies. */
+  noAdditionalDiscount: boolean;
 }

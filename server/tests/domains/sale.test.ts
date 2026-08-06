@@ -404,6 +404,36 @@ describe('Sale Domain API', () => {
                 })
             );
         });
+
+        it('caps the category-sale price at cost — never sells at a loss', async () => {
+            runRealTransaction();
+            prisma.promotion.findMany.mockResolvedValue(asMock([]));
+            (prisma as unknown as { categorySale: { findMany: jest.Mock } }).categorySale.findMany
+                .mockResolvedValue([
+                    // mrp 100, 50% off => 50, which is below this batch's cost (93) —
+                    // must be capped at cost, not sold at a loss. 93 is still below
+                    // the regular sellingPrice (100), so the discount still applies,
+                    // just floored.
+                    { category: 'Snacks', discountPercentage: 50, excludedProductIds: null },
+                ]);
+            prisma.batch.findMany.mockResolvedValue(asMock([batch({ costPrice: 93, sellingPrice: 100 })]));
+            prisma.sale.create.mockResolvedValue(asMock({ id: 24, totalAmount: 93, items: [] }));
+
+            const res = await request(app)
+                .post('/api/sale')
+                .send({ items: [{ batch_id: 1, quantity: 1, sellingPrice: 100, isFree: false }] });
+
+            expect(res.status).toBe(201);
+            expect(prisma.sale.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        items: {
+                            create: [expect.objectContaining({ isOnSale: true, isWholesale: false, sellingPrice: 93 })],
+                        },
+                    }),
+                })
+            );
+        });
     });
 
     describe('POST /api/sale/:id/return — error paths', () => {
