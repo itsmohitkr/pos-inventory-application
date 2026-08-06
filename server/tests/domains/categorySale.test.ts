@@ -192,9 +192,16 @@ describe('Category Sale Domain API', () => {
       expect(res.body[0].currentSellingPrice).toBe(100);
       expect(res.body[0].regularProfitAmount).toBe(20); // 100 - 80
       expect(res.body[0].regularProfitMargin).toBe(20); // (20/100)*100
-      expect(res.body[0].newSellingPrice).toBe(108); // 120 * 0.90
-      expect(res.body[0].profitAmount).toBe(28); // 108 - 80
-      expect(res.body[0].profitMargin).toBe(25.9); // (28/108)*100 rounded to 1 dec
+      // 120 * 0.90 = 108, which is WORSE than the current regular price of
+      // 100 (this product is already discounted more off MRP than this 10%
+      // category sale offers) — so the effective price stays at the current
+      // 100, not the naive MRP-based 108, matching what processSale's own
+      // bestDiscountPrice < sellingPrice guard would actually charge.
+      expect(res.body[0].newSellingPrice).toBe(100);
+      expect(res.body[0].noAdditionalDiscount).toBe(true);
+      expect(res.body[0].marginProtected).toBe(false);
+      expect(res.body[0].profitAmount).toBe(20); // 100 - 80, unchanged from regular
+      expect(res.body[0].profitMargin).toBe(20); // unchanged from regular
     });
   });
 });

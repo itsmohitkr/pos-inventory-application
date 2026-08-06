@@ -50,6 +50,16 @@ const SalesListPanel = ({
   const looseTotal = looseSales.reduce((sum: number, ls: LooseSale) => sum + (ls.price || 0), 0);
   const combinedTotal = posTotal + looseTotal;
 
+  // 'pos' mode shows a merged, chronological list of both sale types so
+  // loose sales are visible without switching tabs; 'loose' mode is
+  // untouched — still loose-only, full width.
+  const mergedRows: (ReportSale | LooseSale)[] =
+    saleType === 'pos'
+      ? [...sales, ...looseSales].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+      : [];
+
   return (
     <Paper
       sx={{
@@ -72,7 +82,7 @@ const SalesListPanel = ({
       >
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
           {saleType === 'pos' ? 'Sales' : 'Loose Sales'} (
-          {saleType === 'pos' ? sales.length : looseSales.length})
+          {saleType === 'pos' ? mergedRows.length : looseSales.length})
         </Typography>
       </Box>
 
@@ -81,8 +91,13 @@ const SalesListPanel = ({
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 800, bgcolor: '#f8fafc', minWidth: 150 }}>
-                {saleType === 'pos' ? 'ORDER ID' : 'ITEM NAME / NOTES'}
+                {saleType === 'pos' ? 'SALE' : 'ITEM NAME / NOTES'}
               </TableCell>
+              {saleType === 'pos' && (
+                <TableCell align="center" sx={{ fontWeight: 800, bgcolor: '#f8fafc', minWidth: 90 }}>
+                  TYPE
+                </TableCell>
+              )}
               <TableCell sx={{ fontWeight: 800, bgcolor: '#f8fafc', minWidth: 130 }}>
                 DATE & TIME
               </TableCell>
@@ -112,77 +127,128 @@ const SalesListPanel = ({
           </TableHead>
           <TableBody>
             {saleType === 'pos'
-              ? sales.map((sale) => (
-                <TableRow
-                  key={sale.id}
-                  id={`sale-row-${sale.id}`}
-                  hover
-                  selected={selectedSale?.id === sale.id}
-                  onClick={() => onSelectSale(sale)}
-                  sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: 'rgba(11, 29, 57, 0.08)' } }}
-                >
-                  <TableCell sx={{ fontWeight: 600 }}>ORD-{sale.id}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {new Date(sale.createdAt).toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(sale.createdAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>
-                    ₹{sale.netTotalAmount.toFixed(2)}
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={sale.paymentMethod || 'Cash'}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: '0.7rem',
-                        color: sale.paymentMethod === 'Cash' ? '#0b1d39' : '#1e293b',
-                        borderColor: sale.paymentMethod === 'Cash' ? '#0b1d39' : '#cbd5e1',
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    {(() => {
-                      const refundStatus = getRefundStatus(sale.items);
-                      const display = getStatusDisplay(refundStatus);
-                      return (
+              ? mergedRows.map((sale) => {
+                const isPos = 'items' in sale;
+                // ReportSale.id and LooseSale.id are separate DB sequences and
+                // routinely collide (both commonly have a row with id=1, 2, ...) —
+                // key/DOM-id/selection must be qualified by type, not just id, or
+                // a POS row and a loose row with the same id fight over the same
+                // React key and both light up as "selected" together. The POS-row
+                // id format is left unchanged since SaleHistory.tsx's keyboard-nav
+                // scrollIntoView looks up `sale-row-${id}` for POS sales only.
+                const rowKey = isPos ? `pos-${sale.id}` : `loose-${sale.id}`;
+                const rowDomId = isPos ? `sale-row-${sale.id}` : `sale-row-loose-${sale.id}`;
+                const isSelected =
+                  !!selectedSale && selectedSale.id === sale.id && ('items' in selectedSale) === isPos;
+                return (
+                  <TableRow
+                    key={rowKey}
+                    id={rowDomId}
+                    hover
+                    selected={isSelected}
+                    onClick={() => onSelectSale(sale)}
+                    sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: 'rgba(11, 29, 57, 0.08)' } }}
+                  >
+                    {isPos ? (
+                      <TableCell sx={{ fontWeight: 600 }}>ORD-{sale.id}</TableCell>
+                    ) : (
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#e65100' }}>
+                          {sale.itemName || 'Loose Item'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          LOO-{sale.id}
+                        </Typography>
+                      </TableCell>
+                    )}
+                    <TableCell align="center">
+                      <Chip
+                        label={isPos ? 'POS Sale' : 'Loose Sale'}
+                        size="small"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: '0.7rem',
+                          bgcolor: isPos ? '#e8eefb' : '#fff3e0',
+                          color: isPos ? '#0b1d39' : '#e65100',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {new Date(sale.createdAt).toLocaleDateString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(sale.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                      ₹{(isPos ? sale.netTotalAmount : sale.price).toFixed(2)}
+                    </TableCell>
+                    <TableCell align="center">
+                      {isPos ? (
                         <Chip
-                          label={display.label}
+                          label={sale.paymentMethod || 'Cash'}
                           size="small"
+                          variant="outlined"
                           sx={{
-                            bgcolor: display.bgcolor,
-                            color: display.color,
-                            fontWeight: 500,
+                            fontWeight: 600,
+                            fontSize: '0.7rem',
+                            color: sale.paymentMethod === 'Cash' ? '#0b1d39' : '#1e293b',
+                            borderColor: sale.paymentMethod === 'Cash' ? '#0b1d39' : '#cbd5e1',
                           }}
                         />
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => onPrintReceipt(sale)}
-                        color="success"
-                        aria-label="Print Receipt"
-                      >
-                        <PrintIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => onRefund(sale)} color="error" aria-label="Return/Refund">
-                        <RefundIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">—</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      {isPos ? (
+                        (() => {
+                          const refundStatus = getRefundStatus(sale.items);
+                          const display = getStatusDisplay(refundStatus);
+                          return (
+                            <Chip
+                              label={display.label}
+                              size="small"
+                              sx={{
+                                bgcolor: display.bgcolor,
+                                color: display.color,
+                                fontWeight: 500,
+                              }}
+                            />
+                          );
+                        })()
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">—</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                      {isPos ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5 }}>
+                          <IconButton
+                            size="small"
+                            onClick={() => onPrintReceipt(sale)}
+                            color="success"
+                            aria-label="Print Receipt"
+                          >
+                            <PrintIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => onRefund(sale)} color="error" aria-label="Return/Refund">
+                            <RefundIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      ) : (
+                        <IconButton size="small" color="error" aria-label="Delete Loose Sale" onClick={() => onDeleteLoose(sale.id)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
               : looseSales.map((sale) => (
                 <TableRow
                   key={sale.id}
@@ -221,11 +287,11 @@ const SalesListPanel = ({
                   </TableCell>
                 </TableRow>
               ))}
-            {(saleType === 'pos' ? sales.length : looseSales.length) === 0 && (
+            {(saleType === 'pos' ? mergedRows.length : looseSales.length) === 0 && (
               <TableRow>
-                <TableCell colSpan={saleType === 'pos' ? 6 : 4} align="center" sx={{ py: 8 }}>
+                <TableCell colSpan={saleType === 'pos' ? 7 : 4} align="center" sx={{ py: 8 }}>
                   <Typography variant="body1" color="text.secondary">
-                    No {saleType === 'pos' ? 'POS' : 'loose'} sales found for this period
+                    No {saleType === 'pos' ? '' : 'loose '}sales found for this period
                   </Typography>
                 </TableCell>
               </TableRow>

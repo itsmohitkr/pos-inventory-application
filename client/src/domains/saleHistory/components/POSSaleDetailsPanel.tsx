@@ -227,6 +227,19 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                     <TableCell sx={{ fontWeight: 600 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <span>{item.productName}</span>
+                        {item.isFree && (
+                          <Chip
+                            label="GIFT"
+                            size="small"
+                            sx={{
+                              bgcolor: '#22ab7dff',
+                              color: 'white',
+                              fontWeight: 900,
+                              fontSize: '0.65rem',
+                              height: 20,
+                            }}
+                          />
+                        )}
                         {item.isWholesale && (
                           <Chip
                             label="Wholesale"

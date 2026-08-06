@@ -12,6 +12,22 @@ const categorySaleBodySchema = z
     endDate: str().nullable().optional(),
     status: z.enum(['draft', 'active', 'paused']).default('draft'),
     excludedProductIds: z.array(z.number()).optional(),
+    // Admin-gated per-product override — see requireAdmin usage in
+    // category-sale.router.ts, which only kicks in when this array is
+    // non-empty. Deliberately bypasses the automatic margin floor (the
+    // reason is required precisely because that's a conscious choice, e.g.
+    // a festival clearance sold below cost).
+    productOverrides: z
+      .array(
+        z.object({
+          productId: id(),
+          discountPercentage: num()
+            .min(0, 'Discount percentage must be zero or greater')
+            .max(100, 'Discount percentage cannot exceed 100'),
+          reason: str().min(3, 'A reason is required').max(200, 'Reason is too long'),
+        })
+      )
+      .optional(),
   })
   .refine(
     (data) => {
