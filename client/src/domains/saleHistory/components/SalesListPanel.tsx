@@ -129,12 +129,23 @@ const SalesListPanel = ({
             {saleType === 'pos'
               ? mergedRows.map((sale) => {
                 const isPos = 'items' in sale;
+                // ReportSale.id and LooseSale.id are separate DB sequences and
+                // routinely collide (both commonly have a row with id=1, 2, ...) —
+                // key/DOM-id/selection must be qualified by type, not just id, or
+                // a POS row and a loose row with the same id fight over the same
+                // React key and both light up as "selected" together. The POS-row
+                // id format is left unchanged since SaleHistory.tsx's keyboard-nav
+                // scrollIntoView looks up `sale-row-${id}` for POS sales only.
+                const rowKey = isPos ? `pos-${sale.id}` : `loose-${sale.id}`;
+                const rowDomId = isPos ? `sale-row-${sale.id}` : `sale-row-loose-${sale.id}`;
+                const isSelected =
+                  !!selectedSale && selectedSale.id === sale.id && ('items' in selectedSale) === isPos;
                 return (
                   <TableRow
-                    key={sale.id}
-                    id={`sale-row-${sale.id}`}
+                    key={rowKey}
+                    id={rowDomId}
                     hover
-                    selected={selectedSale?.id === sale.id}
+                    selected={isSelected}
                     onClick={() => onSelectSale(sale)}
                     sx={{ cursor: 'pointer', '&.Mui-selected': { bgcolor: 'rgba(11, 29, 57, 0.08)' } }}
                   >
