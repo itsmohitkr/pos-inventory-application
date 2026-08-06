@@ -5,7 +5,7 @@ import { ipcMain } from 'electron';
 import { StatusCodes } from 'http-status-codes';
 import IPC = require('../ipcChannels');
 import { resolveServerModulePath } from './resolveServerModule';
-import { buildSuccessPayload, validateIpcPayload, withErrorHandling } from './ipcHelpers';
+import { assertAdmin, buildSuccessPayload, validateIpcPayload, withErrorHandling } from './ipcHelpers';
 
 type CategorySaleServiceModule = typeof import('../../server/dist/src/domains/category-sale/category-sale.service');
 type CategorySaleValidationModule = typeof import('../../server/dist/src/domains/category-sale/category-sale.validation');
@@ -23,17 +23,32 @@ const {
   resolveServerModulePath('src', 'domains', 'category-sale', 'category-sale.validation')
 );
 
+/**
+ * Mirrors category-sale.router.ts's requireAdminForOverrides — a per-product
+ * discount override bypasses the automatic margin floor, so it requires a
+ * live admin elevation token, same as the HTTP path. Every other
+ * category-sale write stays unauthenticated, same as before.
+ */
+const requireAdminForOverridesIpc = (payload: { productOverrides?: unknown; adminToken?: unknown }): void => {
+  const hasOverrides = Array.isArray(payload?.productOverrides) && payload.productOverrides.length > 0;
+  if (hasOverrides) assertAdmin(payload?.adminToken);
+};
+
 export const registerCategorySaleIpc = (): void => {
-  ipcMain.handle(IPC.CATEGORY_SALE_CREATE, async (_event, payload: unknown) =>
-    withErrorHandling(async () => {
-      const { body } = validateIpcPayload(CreateCategorySaleSchema, { body: payload });
-      const sale = await categorySaleService.createCategorySale(
-        body as Parameters<typeof categorySaleService.createCategorySale>[0]
-      );
-      return buildSuccessPayload(StatusCodes.CREATED, sale, 'Category sale created successfully', {
-        format: 'raw',
-      });
-    })
+  ipcMain.handle(
+    IPC.CATEGORY_SALE_CREATE,
+    async (_event, payload: { adminToken?: unknown } & Record<string, unknown>) =>
+      withErrorHandling(async () => {
+        const { adminToken, ...rest } = (payload ?? {}) as { adminToken?: unknown; [key: string]: unknown };
+        requireAdminForOverridesIpc({ productOverrides: rest.productOverrides, adminToken });
+        const { body } = validateIpcPayload(CreateCategorySaleSchema, { body: rest });
+        const sale = await categorySaleService.createCategorySale(
+          body as Parameters<typeof categorySaleService.createCategorySale>[0]
+        );
+        return buildSuccessPayload(StatusCodes.CREATED, sale, 'Category sale created successfully', {
+          format: 'raw',
+        });
+      })
   );
 
   ipcMain.handle(IPC.CATEGORY_SALE_GET_ALL, async () =>
@@ -59,11 +74,17 @@ export const registerCategorySaleIpc = (): void => {
 
   ipcMain.handle(
     IPC.CATEGORY_SALE_UPDATE,
-    async (_event, payload: { id?: unknown } & Record<string, unknown>) =>
+    async (_event, payload: { id?: unknown; adminToken?: unknown } & Record<string, unknown>) =>
       withErrorHandling(async () => {
+        const { adminToken, ...rest } = (payload ?? {}) as {
+          id?: unknown;
+          adminToken?: unknown;
+          [key: string]: unknown;
+        };
+        requireAdminForOverridesIpc({ productOverrides: rest.productOverrides, adminToken });
         const { params, body } = validateIpcPayload(UpdateCategorySaleSchema, {
-          params: { id: payload?.id },
-          body: payload,
+          params: { id: rest.id },
+          body: rest,
         });
         const sale = await categorySaleService.updateCategorySale(
           (params as { id: number }).id,

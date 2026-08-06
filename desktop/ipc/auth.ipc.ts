@@ -19,12 +19,10 @@ import { ipcMain } from 'electron';
 import { StatusCodes } from 'http-status-codes';
 import IPC = require('../ipcChannels');
 import { resolveServerModulePath } from './resolveServerModule';
-import { buildSuccessPayload, validateIpcPayload, withErrorHandling } from './ipcHelpers';
+import { assertAdmin, buildSuccessPayload, validateIpcPayload, withErrorHandling } from './ipcHelpers';
 
 type AuthServiceModule = typeof import('../../server/dist/src/domains/auth/auth.service');
 type AuthValidationModule = typeof import('../../server/dist/src/domains/auth/auth.validation');
-type AdminTokensModule = typeof import('../../server/dist/src/domains/auth/adminTokens');
-type AppErrorModule = typeof import('../../server/dist/src/shared/error/appError');
 
 const authService: AuthServiceModule = require(
   resolveServerModulePath('src', 'domains', 'auth', 'auth.service')
@@ -39,29 +37,6 @@ const {
   VerifyAdminSchema,
   CompleteOnboardingSchema,
 }: AuthValidationModule = require(resolveServerModulePath('src', 'domains', 'auth', 'auth.validation'));
-const { resolveToken }: AdminTokensModule = require(
-  resolveServerModulePath('src', 'domains', 'auth', 'adminTokens')
-);
-const { createHttpError }: AppErrorModule = require(
-  resolveServerModulePath('src', 'shared', 'error', 'appError')
-);
-
-/** Mirrors requireAdmin.ts exactly, reading the token from the payload instead of the X-Admin-Token header. */
-const assertAdmin = (adminToken: unknown): void => {
-  const entry = resolveToken(typeof adminToken === 'string' ? adminToken : undefined);
-
-  if (!entry) {
-    throw createHttpError(StatusCodes.UNAUTHORIZED, 'Admin verification required', {
-      error: 'Admin verification required',
-    });
-  }
-
-  if (entry.role !== 'admin') {
-    throw createHttpError(StatusCodes.FORBIDDEN, 'Admin privileges required', {
-      error: 'Admin privileges required',
-    });
-  }
-};
 
 export const registerAuthIpc = (): void => {
   ipcMain.handle(IPC.AUTH_LOGIN, async (_event, payload: unknown) =>

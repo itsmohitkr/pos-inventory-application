@@ -2,6 +2,7 @@ import type { AxiosRequestConfig } from 'axios';
 import api, { isElectronProd } from '@/shared/api/api';
 import { invokeIpc } from '@/shared/api/ipc';
 import { IPC } from '@/shared/ipcChannels';
+import { getAdminToken } from '@/shared/api/adminToken';
 import type {
   CategorySale,
   CategorySaleInput,
@@ -23,8 +24,14 @@ const categorySaleService = {
     data: CategorySaleInput,
     config: RequestConfig = {}
   ): Promise<CategorySale> => {
+    // A non-empty productOverrides is admin-gated (bypasses the automatic
+    // margin floor) — the HTTP path already gets this via api.ts's request
+    // interceptor attaching X-Admin-Token to every request; the IPC path
+    // needs it added to the payload explicitly, same as settingsService.ts's
+    // createUser/updateUser.
     if (isElectronProd) {
-      return invokeIpc(IPC.CATEGORY_SALE_CREATE, data);
+      const adminToken = data.productOverrides?.length ? getAdminToken() : undefined;
+      return invokeIpc(IPC.CATEGORY_SALE_CREATE, { ...data, adminToken });
     }
     const response = await api.post('/api/category-sales', data, config);
     return response.data;
@@ -36,7 +43,8 @@ const categorySaleService = {
     config: RequestConfig = {}
   ): Promise<CategorySale> => {
     if (isElectronProd) {
-      return invokeIpc(IPC.CATEGORY_SALE_UPDATE, { id, ...data });
+      const adminToken = data.productOverrides?.length ? getAdminToken() : undefined;
+      return invokeIpc(IPC.CATEGORY_SALE_UPDATE, { id, ...data, adminToken });
     }
     const response = await api.put(`/api/category-sales/${id}`, data, config);
     return response.data;

@@ -64,15 +64,35 @@ const getCategorySalePrice = (
     costPrice: number;
     product: { category: string | null } | null;
   },
-  activeCategorySalesMap: Map<string, { discountPercentage: number; excludedProductIds: Set<number> }>
+  activeCategorySalesMap: Map<
+    string,
+    {
+      discountPercentage: number;
+      excludedProductIds: Set<number>;
+      productOverrides: Map<number, { discountPercentage: number; reason: string }>;
+    }
+  >
 ): number | null => {
   const category = batch.product?.category;
   if (!category) return null;
 
   const catSale = activeCategorySalesMap.get(category.toLowerCase().trim());
-  if (!catSale || catSale.discountPercentage <= 0) return null;
+  if (!catSale) return null;
   if (catSale.excludedProductIds.has(batch.productId)) return null;
   if (batch.mrp <= 0) return null;
+
+  // A deliberate, admin-approved per-product override (see
+  // category-sale.router.ts's conditional requireAdmin gate) — computed
+  // directly off MRP, no margin floor, no comparison to the current price.
+  // This is a conscious choice (e.g. a festival clearance sold below cost),
+  // so it takes priority over the automatic category-wide discount and is
+  // meaningful even when that discount is 0%.
+  const override = catSale.productOverrides.get(batch.productId);
+  if (override) {
+    return Math.round(batch.mrp * (1 - override.discountPercentage / 100) * 100) / 100;
+  }
+
+  if (catSale.discountPercentage <= 0) return null;
 
   // Shared with previewCategorySaleProducts's preview math — see that
   // function's own comment for why the currentSellingPrice comparison isn't

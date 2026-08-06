@@ -92,8 +92,18 @@ const SettingsMenu = ({
         </ListItemIcon>
         <ListItemText>Change Password</ListItemText>
       </MenuItem>
-      {!currentUser?.originalRole && currentUser?.role !== 'admin' && <Divider />}
-      {!currentUser?.originalRole && currentUser?.role !== 'admin' && (
+      {/*
+        Shown whenever there is no active elevation countdown (i.e. not
+        already elevated from a lower role — that case has its own "Log out
+        Admin" timer instead). This includes users who logged in directly as
+        the admin account: their elevation token (server-side, ~15 min TTL by
+        default) expires independently of their login session, and without
+        this item there was no way to re-verify short of a full logout —
+        admin-gated actions (e.g. category-sale product overrides) would fail
+        with "verify as admin" for a user who never left the admin account.
+      */}
+      {!currentUser?.originalRole && <Divider />}
+      {!currentUser?.originalRole && (
         <MenuItem
           onClick={() => {
             onAdminLogin();
@@ -104,7 +114,7 @@ const SettingsMenu = ({
             <LockIcon fontSize="small" sx={{ color: 'warning.main' }} />
           </ListItemIcon>
           <ListItemText sx={{ color: 'warning.main', fontWeight: 'bold' }}>
-            Admin Login
+            {currentUser?.role === 'admin' ? 'Verify Admin' : 'Admin Login'}
           </ListItemText>
         </MenuItem>
       )}

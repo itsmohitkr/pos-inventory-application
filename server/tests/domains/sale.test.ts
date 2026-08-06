@@ -434,6 +434,41 @@ describe('Sale Domain API', () => {
                 })
             );
         });
+
+        it('uses an admin-approved per-product override instead of the category-wide discount, bypassing the cost floor', async () => {
+            runRealTransaction();
+            prisma.promotion.findMany.mockResolvedValue(asMock([]));
+            (prisma as unknown as { categorySale: { findMany: jest.Mock } }).categorySale.findMany
+                .mockResolvedValue([
+                    {
+                        category: 'Snacks',
+                        discountPercentage: 10,
+                        excludedProductIds: null,
+                        // mrp 100, override 20% => 80, below this batch's cost (93) —
+                        // deliberately NOT floored, unlike the automatic 10% path above.
+                        productOverrides: JSON.stringify([
+                            { productId: 1, discountPercentage: 20, reason: 'Festival clearance' },
+                        ]),
+                    },
+                ]);
+            prisma.batch.findMany.mockResolvedValue(asMock([batch({ costPrice: 93, sellingPrice: 100 })]));
+            prisma.sale.create.mockResolvedValue(asMock({ id: 25, totalAmount: 80, items: [] }));
+
+            const res = await request(app)
+                .post('/api/sale')
+                .send({ items: [{ batch_id: 1, quantity: 1, sellingPrice: 100, isFree: false }] });
+
+            expect(res.status).toBe(201);
+            expect(prisma.sale.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        items: {
+                            create: [expect.objectContaining({ isOnSale: true, isWholesale: false, sellingPrice: 80 })],
+                        },
+                    }),
+                })
+            );
+        });
     });
 
     describe('POST /api/sale/:id/return — error paths', () => {

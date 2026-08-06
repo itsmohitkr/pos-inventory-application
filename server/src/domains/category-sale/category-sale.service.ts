@@ -7,6 +7,12 @@ import type { CategorySaleInput } from './category-sale.validation';
 
 export type CategorySaleComputedStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'expired';
 
+export interface ProductOverride {
+  productId: number;
+  discountPercentage: number;
+  reason: string;
+}
+
 export interface CategorySaleWithComputedStatus {
   id: number;
   name: string;
@@ -17,6 +23,7 @@ export interface CategorySaleWithComputedStatus {
   endDate: Date | null;
   status: string;
   excludedProductIds: number[];
+  productOverrides: ProductOverride[];
   computedStatus: CategorySaleComputedStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -25,6 +32,7 @@ export interface CategorySaleWithComputedStatus {
 export interface ActiveCategorySaleInfo {
   discountPercentage: number;
   excludedProductIds: Set<number>;
+  productOverrides: Map<number, { discountPercentage: number; reason: string }>;
 }
 
 export interface CategorySaleDiscountResult {
@@ -74,6 +82,11 @@ export interface ProductPreviewItem {
   marginProtected: boolean;
   /** The product's current regular price already beats what this category discount offers — no extra discount applies. */
   noAdditionalDiscount: boolean;
+  /** An admin has deliberately overridden this product's discount, bypassing the automatic margin floor. */
+  isOverride: boolean;
+  overrideReason: string | null;
+  /** No batch has ever been added for this product — mrp/costPrice/currentSellingPrice are all 0 because there's genuinely no data, not because of any pricing outcome. */
+  hasPricingData: boolean;
 }
 
 /**
@@ -111,9 +124,20 @@ const parseExcludedProductIds = (excludedProductIdsStr: string | null | undefine
   }
 };
 
+const parseProductOverrides = (productOverridesStr: string | null | undefined): ProductOverride[] => {
+  if (!productOverridesStr) return [];
+  try {
+    const parsed = JSON.parse(productOverridesStr);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 const formatSaleRecord = (sale: any, now = new Date()): CategorySaleWithComputedStatus => {
   return {
     ...sale,
+    productOverrides: parseProductOverrides(sale.productOverrides),
     excludedProductIds: parseExcludedProductIds(sale.excludedProductIds),
     computedStatus: computeComputedStatus(sale, now),
   };
@@ -126,6 +150,9 @@ const createCategorySale = async (input: CategorySaleInput): Promise<CategorySal
   const excludedStr = input.excludedProductIds && input.excludedProductIds.length > 0
     ? JSON.stringify(input.excludedProductIds)
     : null;
+  const overridesStr = input.productOverrides && input.productOverrides.length > 0
+    ? JSON.stringify(input.productOverrides)
+    : null;
 
   const sale = await prisma.categorySale.create({
     data: {
@@ -137,6 +164,7 @@ const createCategorySale = async (input: CategorySaleInput): Promise<CategorySal
       endDate: input.endDate ? new Date(input.endDate) : null,
       status: input.status,
       excludedProductIds: excludedStr,
+      productOverrides: overridesStr,
     },
   });
   return formatSaleRecord(sale);
@@ -185,6 +213,9 @@ const updateCategorySale = async (
   const excludedStr = input.excludedProductIds && input.excludedProductIds.length > 0
     ? JSON.stringify(input.excludedProductIds)
     : null;
+  const overridesStr = input.productOverrides && input.productOverrides.length > 0
+    ? JSON.stringify(input.productOverrides)
+    : null;
 
   const sale = await prisma.categorySale.update({
     where: { id: toId(id) },
@@ -197,6 +228,7 @@ const updateCategorySale = async (
       endDate: input.endDate ? new Date(input.endDate) : null,
       status: input.status,
       excludedProductIds: excludedStr,
+      productOverrides: overridesStr,
     },
   });
   return formatSaleRecord(sale);
@@ -244,8 +276,10 @@ const deleteCategorySale = async (id: string | number) => {
  */
 const previewCategorySaleProducts = async (
   category: string,
-  discountPercentage: number
+  discountPercentage: number,
+  productOverrides: ProductOverride[] = []
 ): Promise<ProductPreviewItem[]> => {
+  const overrideMap = new Map(productOverrides.map((o) => [o.productId, o]));
   // Matched in JS (not via a DB-level `equals` filter) so this uses the exact
   // same case/whitespace-insensitive comparison as getActiveCategorySalesMap
   // and getCategorySalePrice in sale.service.ts. An exact-match filter here
@@ -267,6 +301,7 @@ const previewCategorySaleProducts = async (
 
   return products.map((product) => {
     const latestBatch = product.batches[0];
+    const hasPricingData = !!latestBatch;
     const mrp = latestBatch?.mrp ?? latestBatch?.sellingPrice ?? 0;
     const costPrice = latestBatch?.costPrice ?? 0;
     const currentSellingPrice = latestBatch?.sellingPrice ?? 0;
@@ -296,14 +331,50 @@ const previewCategorySaleProducts = async (
     // so this preview shows the price the customer will actually be charged,
     // not a number that looks valid here but silently never applies).
     const basePrice = mrp > 0 ? mrp : currentSellingPrice;
-    const { price: marginFlooredPrice, marginProtected } = computeCategorySaleDiscountedPrice(
-      basePrice,
-      costPrice,
-      discountPercentage
-    );
-    // Never worse than what the customer already pays regularly.
-    const newSellingPrice = Math.min(marginFlooredPrice, currentSellingPrice);
-    const noAdditionalDiscount = marginFlooredPrice >= currentSellingPrice;
+    const override = overrideMap.get(product.id);
+
+    let newSellingPrice: number;
+    let marginProtected: boolean;
+    let noAdditionalDiscount: boolean;
+    let isOverride: boolean;
+    let overrideReason: string | null;
+
+    if (!hasPricingData) {
+      // No batch has ever been added for this product — there is no MRP,
+      // cost, or selling price to discount at all. Previously this fell
+      // through to the normal branch, where mrp/costPrice/currentSellingPrice
+      // are all 0, and `0 >= 0` made noAdditionalDiscount true — mislabeling
+      // "no data yet" as "already has a better regular price", which is
+      // false and confusing (every other column showing 0 alongside a
+      // "better deal" claim). This is a distinct case, not a pricing outcome.
+      newSellingPrice = 0;
+      marginProtected = false;
+      noAdditionalDiscount = false;
+      isOverride = false;
+      overrideReason = null;
+    } else if (override) {
+      // Deliberate admin choice — computed directly off MRP, no margin
+      // floor, no comparison to the current price. See sale.service.ts's
+      // getCategorySalePrice for the matching checkout-time logic.
+      newSellingPrice = Math.round(basePrice * (1 - override.discountPercentage / 100) * 100) / 100;
+      marginProtected = false;
+      noAdditionalDiscount = false;
+      isOverride = true;
+      overrideReason = override.reason;
+    } else {
+      const { price: marginFlooredPrice, marginProtected: floored } = computeCategorySaleDiscountedPrice(
+        basePrice,
+        costPrice,
+        discountPercentage
+      );
+      // Never worse than what the customer already pays regularly.
+      newSellingPrice = Math.min(marginFlooredPrice, currentSellingPrice);
+      marginProtected = floored;
+      noAdditionalDiscount = marginFlooredPrice >= currentSellingPrice;
+      isOverride = false;
+      overrideReason = null;
+    }
+
     const profitAmount = Math.round((newSellingPrice - costPrice) * 100) / 100;
     const profitMargin =
       newSellingPrice > 0
@@ -330,6 +401,9 @@ const previewCategorySaleProducts = async (
       profitMargin,
       marginProtected,
       noAdditionalDiscount,
+      isOverride,
+      overrideReason,
+      hasPricingData,
     };
   });
 };
@@ -359,12 +433,19 @@ const getActiveCategorySalesMap = async (
   activeSales.forEach((sale) => {
     const catKey = sale.category.toLowerCase().trim();
     const excludedSet = new Set<number>(parseExcludedProductIds(sale.excludedProductIds));
+    const overridesMap = new Map(
+      parseProductOverrides(sale.productOverrides).map((o) => [
+        o.productId,
+        { discountPercentage: o.discountPercentage, reason: o.reason },
+      ])
+    );
     const existing = categoryDiscountMap.get(catKey);
 
     if (!existing || sale.discountPercentage > existing.discountPercentage) {
       categoryDiscountMap.set(catKey, {
         discountPercentage: sale.discountPercentage,
         excludedProductIds: excludedSet,
+        productOverrides: overridesMap,
       });
     }
   });

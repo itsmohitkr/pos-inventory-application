@@ -83,6 +83,18 @@ export interface PromoSettings {
 
 export type CategorySaleComputedStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'expired';
 
+/**
+ * A deliberate, admin-approved per-product discount that bypasses the
+ * automatic margin floor — e.g. a festival clearance sold below cost. The
+ * reason is required precisely because that's a conscious choice; see
+ * category-sale.router.ts's requireAdminForOverrides.
+ */
+export interface CategorySaleProductOverride {
+  productId: number;
+  discountPercentage: number;
+  reason: string;
+}
+
 export interface CategorySale {
   id: number;
   name: string;
@@ -93,6 +105,7 @@ export interface CategorySale {
   endDate: string | null;
   status: 'draft' | 'active' | 'paused';
   excludedProductIds?: number[];
+  productOverrides?: CategorySaleProductOverride[];
   computedStatus: CategorySaleComputedStatus;
   createdAt: string;
   updatedAt: string;
@@ -107,6 +120,9 @@ export interface CategorySaleInput {
   endDate?: string | null;
   status?: 'draft' | 'active' | 'paused';
   excludedProductIds?: number[];
+  productOverrides?: CategorySaleProductOverride[];
+  /** Only read server-side when productOverrides is non-empty — see requireAdminForOverrides. */
+  adminToken?: string | null;
 }
 
 export interface CategorySaleProductPreview {
@@ -130,4 +146,9 @@ export interface CategorySaleProductPreview {
   marginProtected: boolean;
   /** The product's current regular price already beats what this category discount offers — no extra discount applies. */
   noAdditionalDiscount: boolean;
+  /** An admin has deliberately overridden this product's discount, bypassing the automatic margin floor. */
+  isOverride: boolean;
+  overrideReason: string | null;
+  /** No batch has ever been added for this product — mrp/costPrice/currentSellingPrice are all 0 because there's genuinely no data, not because of any pricing outcome. */
+  hasPricingData: boolean;
 }
