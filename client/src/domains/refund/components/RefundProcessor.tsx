@@ -154,9 +154,11 @@ const RefundProcessor = ({
     setSubmitting(true);
     try {
       const result = await posService.processRefund(sale.id, itemsToReturn);
-      await showSuccess(
-        `Return processed successfully! Refunded ₹${result.totalRefunded.toFixed(2)} to the customer.`
-      );
+      // Defensive: the confirmed amount is a nice-to-have, not something the
+      // success path should ever throw over if a response is malformed.
+      const confirmedAmount =
+        typeof result?.totalRefunded === 'number' ? ` Refunded ₹${result.totalRefunded.toFixed(2)} to the customer.` : '';
+      await showSuccess(`Return processed successfully!${confirmedAmount}`);
       setSelectedItems({});
       if (onRefundSuccess) onRefundSuccess();
     } catch (err) {
