@@ -237,45 +237,50 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                               fontWeight: 900,
                               fontSize: '0.65rem',
                               height: 20,
+                              borderRadius: '4px',
                             }}
                           />
                         )}
                         {item.isWholesale && (
                           <Chip
-                            label="Wholesale"
+                            label="WHOLESALE"
                             size="small"
                             sx={{
-                              bgcolor: '#e0f2fe',
-                              color: '#0369a1',
-                              fontWeight: 700,
+                              bgcolor: '#f59e0b',
+                              color: 'white',
+                              fontWeight: 800,
                               fontSize: '0.65rem',
                               height: 20,
+                              borderRadius: '4px',
                             }}
                           />
                         )}
                         {item.isOnSale && (
                           <Chip
-                            label="Sale Offer"
+                            label="SALE OFFER"
                             size="small"
                             sx={{
-                              bgcolor: '#fef3c7',
-                              color: '#b45309',
-                              fontWeight: 700,
+                              bgcolor: '#7c3aed',
+                              color: 'white',
+                              fontWeight: 800,
                               fontSize: '0.65rem',
                               height: 20,
+                              borderRadius: '4px',
                             }}
                           />
                         )}
                         {returnedQty > 0 && (
                           <Chip
-                            label={returnedQty === item.quantity ? 'Refunded' : 'Returned'}
+                            label={returnedQty === item.quantity ? 'REFUNDED' : 'RETURNED'}
                             size="small"
                             sx={{
                               bgcolor: returnedQty === item.quantity ? '#ffebee' : '#e8f5e9',
                               color: returnedQty === item.quantity ? '#d32f2f' : '#2e7d32',
-                              fontWeight: 700,
-                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              fontSize: '0.65rem',
                               height: 20,
+                              borderRadius: '4px',
+                              border: returnedQty === item.quantity ? '1px solid #ffcdd2' : '1px solid #c8e6c9',
                             }}
                           />
                         )}

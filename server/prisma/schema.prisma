@@ -129,6 +129,8 @@ model SaleItem {
   isWholesale      Boolean @default(false)
   isOnSale         Boolean @default(false)
   isFree           Boolean @default(false)
+  /// The buy-X-get-free threshold amount that earned this gift, only set when isFree. Null for every non-gift item and every sale predating this field.
+  freeGiftThresholdAmount Float?
   batch            Batch   @relation(fields: [batchId], references: [id])
   sale             Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
 

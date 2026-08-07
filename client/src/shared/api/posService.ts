@@ -29,6 +29,8 @@ export interface SaleItemPayload {
   quantity: number;
   sellingPrice: number;
   isFree?: boolean;
+  /** The buy-X-get-free threshold amount that earned this gift, only meaningful when isFree. */
+  freeGiftThresholdAmount?: number | null;
 }
 
 /**
@@ -51,6 +53,12 @@ export interface ProcessSalePayload {
 export interface RefundItemPayload {
   saleItemId: number;
   quantity: number;
+}
+
+/** Response shape of POST /api/sale/:id/return — mirrors server's ReturnResult. */
+export interface RefundResult {
+  message: string;
+  totalRefunded: number;
 }
 
 /**
@@ -94,7 +102,11 @@ const posService = {
   /**
    * Process a refund
    */
-  processRefund: async (saleId: number, items: RefundItemPayload[], config: RequestConfig = {}) => {
+  processRefund: async (
+    saleId: number,
+    items: RefundItemPayload[],
+    config: RequestConfig = {}
+  ): Promise<RefundResult> => {
     if (isElectronProd) {
       return invokeIpc(IPC.SALE_PROCESS_RETURN, { id: saleId, items });
     }

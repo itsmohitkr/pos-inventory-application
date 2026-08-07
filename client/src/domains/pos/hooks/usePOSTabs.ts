@@ -269,6 +269,7 @@ export const usePOSTabs = () => {
         promoPrice: null,
         costPrice: batch.costPrice,
         isFree: true,
+        freeGiftThresholdAmount: config.threshold,
       };
 
       setCart((prev: CartItem[]) => {

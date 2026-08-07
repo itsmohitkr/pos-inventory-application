@@ -21,6 +21,7 @@ const saleItemSchema = z.object({
   quantity: int().positive('Quantity must be greater than zero'),
   sellingPrice: num().min(0, 'Selling price must be zero or greater'),
   isFree: bool().optional(),
+  freeGiftThresholdAmount: num().nullable().optional(),
 });
 
 /** One grouped schema per router route, named after the controller handler it validates for. */

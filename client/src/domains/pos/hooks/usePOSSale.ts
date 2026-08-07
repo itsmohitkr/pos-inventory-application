@@ -65,6 +65,7 @@ export const usePOSSale = ({
         quantity: item.quantity,
         sellingPrice: item.price,
         isFree: item.isFree,
+        freeGiftThresholdAmount: item.freeGiftThresholdAmount ?? null,
       }));
       const { icon: _icon, ...methodWithoutIcon } = methodToUse;
       const res = await posService.processSale({
@@ -109,6 +110,7 @@ export const usePOSSale = ({
         quantity: item.quantity,
         sellingPrice: item.price,
         isFree: item.isFree,
+        freeGiftThresholdAmount: item.freeGiftThresholdAmount ?? null,
       }));
       const { icon: _icon, ...methodWithoutIcon } = methodToUse;
       const res = await posService.processSale({

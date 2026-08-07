@@ -121,13 +121,47 @@ const ScheduledSalesPanel = ({
                 )}
               </TableCell>
               <TableCell align="right">
-                <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                  <IconButton size="small" onClick={() => onEdit(promo)} sx={{ color: '#3b82f6', bgcolor: '#eff6ff', '&:hover': { bgcolor: '#dbeafe' }, borderRadius: '8px' }}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => onDelete(promo.id)} sx={{ color: '#ef4444', bgcolor: '#fef2f2', '&:hover': { bgcolor: '#fee2e2' }, borderRadius: '8px' }}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
+                <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => onEdit(promo)}
+                      aria-label="Edit Scheduled Event"
+                      sx={{
+                        bgcolor: 'rgba(31, 41, 55, 0.08)',
+                        color: '#1f2937',
+                        '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.15)' },
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <Typography
+                      variant="caption"
+                      sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}
+                    >
+                      Edit
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => onDelete(promo.id)}
+                      aria-label="Delete Scheduled Event"
+                      sx={{
+                        bgcolor: 'rgba(239, 68, 68, 0.1)',
+                        color: '#ef4444',
+                        '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' },
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                    <Typography
+                      variant="caption"
+                      sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ef4444' }}
+                    >
+                      Delete
+                    </Typography>
+                  </Box>
                 </Box>
               </TableCell>
             </TableRow>

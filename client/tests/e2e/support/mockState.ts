@@ -338,6 +338,12 @@ export const createMockState = () => {
       const sale = state.sales.find((entry) => String(entry.id) === String(saleId));
       if (!sale) return null;
 
+      // Mirrors server.processReturn's ReturnResult shape ({ message,
+      // totalRefunded }), not an ad hoc { success, sale } — the real client
+      // reads totalRefunded off this response, so the mock must match the
+      // real API contract, not just resolve without throwing.
+      let totalRefunded = 0;
+
       for (const returnedItem of items || []) {
         const saleItem = sale.items.find(
           (entry) => String(entry.id) === String(returnedItem.saleItemId)
@@ -353,6 +359,7 @@ export const createMockState = () => {
         }
 
         saleItem.returnedQuantity = toNumeric(saleItem.returnedQuantity, 0) + acceptedReturnQty;
+        totalRefunded += acceptedReturnQty * saleItem.sellingPrice;
 
         const match = findProductAndBatchByBatchId(saleItem.batchId);
         if (match) {
@@ -368,7 +375,7 @@ export const createMockState = () => {
         }
       }
 
-      return { success: true, sale };
+      return { message: 'Return processed successfully', totalRefunded };
     },
     getCustomers: () => state.customers,
     getCustomerById: (id: Id) => state.customers.find(c => String(c.id) === String(id)) || null,
