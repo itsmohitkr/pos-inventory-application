@@ -73,9 +73,15 @@ export const registerProductIpc = (): void => {
         const category = strOr(payload?.category, 'all');
         const sortBy = strOr(payload?.sortBy, 'name');
         const sortOrder = strOr(payload?.sortOrder, 'asc');
-        const includeBatches = strOr(payload?.includeBatches, 'false');
+        // Not strOr: ipcRenderer.invoke's structured clone preserves a real
+        // boolean, unlike the HTTP path where axios stringifies query params
+        // — a plain strOr(..., 'false') silently treats `true` (boolean) as
+        // "not a string" and falls back to 'false', so every packaged build
+        // took the plain getAllProducts path with no promotion/category-sale
+        // pricing (no isOnSale/promoPrice), regardless of any active sale.
+        const includeBatches = payload?.includeBatches === true || payload?.includeBatches === 'true';
 
-        if (includeBatches === 'true') {
+        if (includeBatches) {
           const data = await productService.getAllProductsWithBatches({ search, category });
           return buildSuccessPayload(StatusCodes.OK, { data }, 'Products fetched successfully', {
             format: 'merge',
