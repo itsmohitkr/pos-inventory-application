@@ -163,24 +163,26 @@ const CartTable = ({
                           label="GIFT"
                           size="small"
                           sx={{
-                            height: 16,
-                            fontSize: '0.6rem',
+                            height: 20,
+                            fontSize: '0.65rem',
                             fontWeight: 900,
                             bgcolor: '#22ab7dff',
                             color: 'white',
+                            borderRadius: '4px',
                           }}
                         />
                       )}
                       {item.isOnSale && (
                         <Chip
-                          label="SALE"
+                          label="SALE OFFER"
                           size="small"
                           sx={{
-                            height: 16,
-                            fontSize: '0.6rem',
+                            height: 20,
+                            fontSize: '0.65rem',
                             fontWeight: 800,
                             bgcolor: '#7c3aed',
                             color: 'white',
+                            borderRadius: '4px',
                           }}
                         />
                       )}
@@ -190,18 +192,19 @@ const CartTable = ({
                           arrow
                         >
                           <Chip
-                            label="WHOLESALE OFFER"
+                            label="WHOLESALE"
                             size="small"
                             variant={item.quantity >= (item.wholesaleMinQty ?? Infinity) ? 'filled' : 'outlined'}
                             sx={{
-                              height: 22,
-                              fontSize: '0.7rem',
-                              fontWeight: 900,
+                              height: 20,
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
                               bgcolor:
                                 item.quantity >= (item.wholesaleMinQty ?? Infinity) ? '#f59e0b' : 'transparent',
                               color: item.quantity >= (item.wholesaleMinQty ?? Infinity) ? 'white' : '#f59e0b',
                               borderColor: '#f59e0b',
                               borderWidth: 1.5,
+                              borderRadius: '4px',
                               '& .MuiChip-label': { px: 1 },
                             }}
                           />

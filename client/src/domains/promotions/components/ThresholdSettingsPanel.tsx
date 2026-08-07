@@ -241,25 +241,51 @@ const ThresholdSettingsPanel = ({
                         </Stack>
                       </TableCell>
                       <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                          <Tooltip title="Edit Configuration">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleEditClick(config)}
-                              sx={{ color: '#0f172a', bgcolor: '#f1f5f9', '&:hover': { bgcolor: '#e2e8f0' }, borderRadius: '8px' }}
+                        <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                            <Tooltip title="Edit Configuration">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleEditClick(config)}
+                                aria-label="Edit Rule"
+                                sx={{
+                                  bgcolor: 'rgba(31, 41, 55, 0.08)',
+                                  color: '#1f2937',
+                                  '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.15)' },
+                                }}
+                              >
+                                <ChevronRightIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Typography
+                              variant="caption"
+                              sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}
                             >
-                              <ChevronRightIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Remove Rule">
-                            <IconButton
-                              size="small"
-                              onClick={() => onRemoveThreshold(config.threshold)}
-                              sx={{ color: '#ef4444', bgcolor: '#fef2f2', '&:hover': { bgcolor: '#fee2e2' }, borderRadius: '8px' }}
+                              Edit
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                            <Tooltip title="Remove Rule">
+                              <IconButton
+                                size="small"
+                                onClick={() => onRemoveThreshold(config.threshold)}
+                                aria-label="Remove Rule"
+                                sx={{
+                                  bgcolor: 'rgba(239, 68, 68, 0.1)',
+                                  color: '#ef4444',
+                                  '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' },
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Typography
+                              variant="caption"
+                              sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ef4444' }}
                             >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                              Delete
+                            </Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                     </TableRow>

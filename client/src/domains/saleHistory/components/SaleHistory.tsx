@@ -45,7 +45,6 @@ const SaleHistory = ({
   const [loading, setLoading] = useState(false);
   const [selectedSale, setSelectedSale] = useState<ReportSale | LooseSale | null>(null);
   const [tabValue, setTabValue] = useState(0);
-  const [saleType, setSaleType] = useState('pos');
   const [deleteLooseId, setDeleteLooseId] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState({
     startDate: '',
@@ -236,22 +235,15 @@ const SaleHistory = ({
     }
   };
 
-  const handleSaleTypeChange = (event: React.MouseEvent<HTMLElement>, newType: string | null) => {
-    if (newType !== null) {
-      setSaleType(newType);
-      // Reset selected item when switching tabs
-      if (newType === 'pos') {
-        setSelectedSale(sales[0] || null);
-      } else {
-        setSelectedSale(looseSales[0] || null);
-      }
-    }
-  };
-
   // The list can hold either kind of row; only till sales have `items`, and
   // the detail/print panels below are POS-only.
   const selectedPosSale =
     selectedSale && 'items' in selectedSale ? (selectedSale as ReportSale) : null;
+
+  // A loose sale has nothing for the POS-only detail panel to show — give
+  // the list the full width instead of wasting half the screen on a
+  // permanent "No Transaction Selected" panel while one is selected.
+  const isLooseSaleSelected = !!selectedSale && !('items' in selectedSale);
 
   const stats = calculateSaleStats(selectedPosSale);
 
@@ -266,8 +258,6 @@ const SaleHistory = ({
       }}
     >
       <SaleHistoryHeader
-        saleType={saleType}
-        onSaleTypeChange={handleSaleTypeChange}
         tabValue={tabValue}
         onTabChange={handleTabChange}
         timeframes={timeframes}
@@ -311,19 +301,18 @@ const SaleHistory = ({
           >
             {/* Left Panel: Sales List */}
             <Grid
-              size={{ xs: saleType === 'pos' ? 6 : 12, md: saleType === 'pos' ? 6 : 12 }}
+              size={{ xs: isLooseSaleSelected ? 12 : 6, md: isLooseSaleSelected ? 12 : 6 }}
               sx={{
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 0,
                 minWidth: 0,
-                flexBasis: saleType === 'pos' ? '50%' : '100%',
-                maxWidth: saleType === 'pos' ? '50%' : '100%',
+                flexBasis: isLooseSaleSelected ? '100%' : '50%',
+                maxWidth: isLooseSaleSelected ? '100%' : '50%',
                 transition: 'all 0.3s ease',
               }}
             >
               <SalesListPanel
-                saleType={saleType}
                 sales={sales}
                 looseSales={looseSales}
                 selectedSale={selectedSale}
@@ -334,8 +323,8 @@ const SaleHistory = ({
               />
             </Grid>
 
-            {/* Right Panel: Statistics & Products (Only for POS Sales) */}
-            {saleType === 'pos' && (
+            {/* Right Panel: Transaction Details — omitted while a loose sale is selected, nothing for it to show */}
+            {!isLooseSaleSelected && (
               <Grid
                 size={{ xs: 6, md: 6 }}
                 sx={{
@@ -347,10 +336,7 @@ const SaleHistory = ({
                   maxWidth: '50%',
                 }}
               >
-                <POSSaleDetailsPanel
-                  selectedSale={selectedPosSale}
-                  stats={stats}
-                />
+                <POSSaleDetailsPanel selectedSale={selectedPosSale} stats={stats} />
               </Grid>
             )}
           </Grid>

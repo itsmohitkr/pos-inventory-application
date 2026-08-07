@@ -42,6 +42,8 @@ export interface SaleItem {
   isWholesale: boolean;
   isOnSale: boolean;
   isFree: boolean;
+  /** The buy-X-get-free threshold amount that earned this gift, set only when isFree. Null for sales predating this field. */
+  freeGiftThresholdAmount?: number | null;
   batch?: BatchRef;
 }
 

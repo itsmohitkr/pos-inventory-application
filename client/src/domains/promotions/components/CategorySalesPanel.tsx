@@ -213,16 +213,52 @@ const CategorySalesPanel = ({
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => onEdit(sale)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" color="error" onClick={() => onDelete(sale.id)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            onClick={() => onEdit(sale)}
+                            aria-label="Edit Category Sale"
+                            sx={{
+                              bgcolor: 'rgba(31, 41, 55, 0.08)',
+                              color: '#1f2937',
+                              '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.15)' },
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}
+                        >
+                          Edit
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            onClick={() => onDelete(sale.id)}
+                            aria-label="Delete Category Sale"
+                            sx={{
+                              bgcolor: 'rgba(239, 68, 68, 0.1)',
+                              color: '#ef4444',
+                              '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' },
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ef4444' }}
+                        >
+                          Delete
+                        </Typography>
+                      </Box>
+                    </Box>
                   </TableCell>
                 </TableRow>
               );

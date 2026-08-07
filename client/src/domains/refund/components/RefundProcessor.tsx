@@ -113,15 +113,50 @@ const RefundProcessor = ({
       return;
     }
 
-    const confirmed = await showConfirm(
-      `Are you sure you want to process this return? Items will be returned to inventory.`
-    );
+    // Warn (don't block) when this return would drop the sale's remaining
+    // paid total below the threshold that earned an already-issued free
+    // gift the cashier isn't also returning. freeGiftThresholdAmount is only
+    // ever set on isFree items, and only from this feature onward — older
+    // sales have it null, so no warning fires for them.
+    const remainingPaidTotalBefore = sale.items.reduce((sum, item) => {
+      if (item.isFree) return sum;
+      return sum + (item.quantity - item.returnedQuantity) * item.sellingPrice;
+    }, 0);
+    const paidAmountBeingReturned = sale.items.reduce((sum, item) => {
+      if (item.isFree) return sum;
+      const selection = selectedItems[item.id];
+      if (!selection?.checked) return sum;
+      return sum + selection.quantity * item.sellingPrice;
+    }, 0);
+    const remainingPaidTotalAfter = remainingPaidTotalBefore - paidAmountBeingReturned;
+
+    const undercutGifts = sale.items.filter((item) => {
+      if (!item.isFree || !item.freeGiftThresholdAmount) return false;
+      if (item.quantity - item.returnedQuantity <= 0) return false;
+      if (selectedItems[item.id]?.checked) return false;
+      return remainingPaidTotalAfter < item.freeGiftThresholdAmount;
+    });
+
+    let confirmMessage = 'Are you sure you want to process this return? Items will be returned to inventory.';
+    if (undercutGifts.length > 0) {
+      const giftList = undercutGifts
+        .map(
+          (item) =>
+            `${item.batch?.product?.name || item.productName} (earned by spending ₹${item.freeGiftThresholdAmount!.toFixed(2)}+)`
+        )
+        .join(', ');
+      confirmMessage = `This sale's free gift — ${giftList} — was earned by a purchase amount this return drops below. The gift isn't selected to be returned. Continue anyway?`;
+    }
+
+    const confirmed = await showConfirm(confirmMessage);
     if (!confirmed) return;
 
     setSubmitting(true);
     try {
-      await posService.processRefund(sale.id, itemsToReturn);
-      await showSuccess('Return processed successfully!');
+      const result = await posService.processRefund(sale.id, itemsToReturn);
+      await showSuccess(
+        `Return processed successfully! Refunded ₹${result.totalRefunded.toFixed(2)} to the customer.`
+      );
       setSelectedItems({});
       if (onRefundSuccess) onRefundSuccess();
     } catch (err) {
@@ -139,6 +174,15 @@ const RefundProcessor = ({
   const isAllChecked =
     allReturnableItems.length > 0 && checkedItemsCount === allReturnableItems.length;
   const isIndeterminate = checkedItemsCount > 0 && checkedItemsCount < allReturnableItems.length;
+
+  // Same formula the server uses in processReturn — quantity * the item's
+  // actual historical sellingPrice, so wholesale/promo/sale-priced items and
+  // gift items (sellingPrice 0) all refund correctly, not MRP.
+  const totalRefundAmount = sale.items.reduce((sum, item) => {
+    const selection = selectedItems[item.id];
+    if (!selection?.checked) return sum;
+    return sum + selection.quantity * item.sellingPrice;
+  }, 0);
 
   return (
     <Box display="flex" flexDirection="column" height="100%">
@@ -277,13 +321,46 @@ const RefundProcessor = ({
                           {item.batch?.product?.name || item.productName}
                         </Typography>
                         {item.sellingPrice === 0 && (
-                          <Chip label="FREE" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: '#f0fdf4', color: '#166534' }} />
+                          <Chip
+                            label="GIFT"
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.65rem',
+                              fontWeight: 900,
+                              bgcolor: '#22ab7dff',
+                              color: 'white',
+                              borderRadius: '4px',
+                            }}
+                          />
                         )}
                         {item.isWholesale && (
-                          <Chip label="Wholesale" size="small" sx={{ bgcolor: '#e0f2fe', color: '#0369a1', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+                          <Chip
+                            label="WHOLESALE"
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              bgcolor: '#f59e0b',
+                              color: 'white',
+                              borderRadius: '4px',
+                            }}
+                          />
                         )}
                         {item.isOnSale && (
-                          <Chip label="Sale Offer" size="small" sx={{ bgcolor: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+                          <Chip
+                            label="SALE OFFER"
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              bgcolor: '#7c3aed',
+                              color: 'white',
+                              borderRadius: '4px',
+                            }}
+                          />
                         )}
                       </Box>
                       {item.batch?.batchCode && (
@@ -340,12 +417,26 @@ const RefundProcessor = ({
         sx={{
           p: 2.5,
           display: 'flex',
-          justifyContent: 'flex-end',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 1.5,
           borderTop: '1px solid #e2e8f0',
           bgcolor: '#ffffff'
         }}
       >
+        <Box>
+          {checkedItemsCount > 0 && (
+            <>
+              <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block' }}>
+                REFUND DUE TO CUSTOMER
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#0b1d39' }}>
+                ₹{totalRefundAmount.toFixed(2)}
+              </Typography>
+            </>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
         {onCancel && (
           <Button
             onClick={onCancel}
@@ -379,6 +470,7 @@ const RefundProcessor = ({
         >
           {submitting ? 'Processing...' : 'Process Returns'}
         </Button>
+        </Box>
       </Box>
 
       <CustomDialog {...dialogState} onClose={closeDialog} />

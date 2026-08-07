@@ -189,30 +189,54 @@ const CustomerListTable = ({
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                        <Tooltip title="Preview Card">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => handlePreview(e, c)}
-                            aria-label="Preview Card"
-                            sx={{ color: '#3b82f6' }}
+                      <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                          <Tooltip title="Preview Card">
+                            <IconButton
+                              size="small"
+                              onClick={(e) => handlePreview(e, c)}
+                              aria-label="Preview Card"
+                              sx={{
+                                bgcolor: 'rgba(59, 130, 246, 0.1)',
+                                color: '#3b82f6',
+                                '&:hover': { bgcolor: 'rgba(59, 130, 246, 0.2)' },
+                              }}
+                            >
+                              <PreviewIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Typography
+                            variant="caption"
+                            sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#3b82f6' }}
                           >
-                            <PreviewIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Edit Details">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEdit(c);
-                            }}
-                            aria-label="Edit Details"
-                            sx={{ color: '#64748b' }}
+                            Preview
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
+                          <Tooltip title="Edit Details">
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(c);
+                              }}
+                              aria-label="Edit Details"
+                              sx={{
+                                bgcolor: 'rgba(31, 41, 55, 0.08)',
+                                color: '#1f2937',
+                                '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.15)' },
+                              }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Typography
+                            variant="caption"
+                            sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}
                           >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                            Edit
+                          </Typography>
+                        </Box>
                       </Box>
                     </TableCell>
                   </TableRow>

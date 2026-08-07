@@ -167,6 +167,7 @@ const processSale = async ({
       isWholesale: boolean;
       isOnSale: boolean;
       isFree: boolean;
+      freeGiftThresholdAmount: number | null;
     }[] = [];
     const movementData: {
       productId: number;
@@ -276,6 +277,7 @@ const processSale = async ({
         isWholesale: isWholesaleItem,
         isOnSale: isOnSaleItem,
         isFree: !!(item.sellingPrice === 0 || item.isFree),
+        freeGiftThresholdAmount: item.freeGiftThresholdAmount ?? null,
       });
 
       movementData.push({

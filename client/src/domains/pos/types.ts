@@ -37,6 +37,8 @@ export interface CartItem {
   costPrice: number;
   /** Free items are charged 0 and excluded from discount maths. */
   isFree: boolean;
+  /** The buy-X-get-free threshold amount that earned this gift, set only when isFree. */
+  freeGiftThresholdAmount?: number | null;
 }
 
 /**

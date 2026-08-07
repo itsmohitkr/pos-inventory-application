@@ -4,8 +4,6 @@ import {
   Typography,
   Paper,
   Stack,
-  ToggleButton,
-  ToggleButtonGroup,
   FormControl,
   InputLabel,
   Select,
@@ -13,7 +11,6 @@ import {
   TextField,
   Button,
 } from '@mui/material';
-import { ShoppingBag as PosIcon, Sell as LooseIcon } from '@mui/icons-material';
 
 /** One selectable range in the timeframe dropdown. */
 export interface SaleHistoryTimeframe {
@@ -28,9 +25,6 @@ export interface SaleHistoryDateRange {
 }
 
 interface SaleHistoryHeaderProps {
-  /** 'pos' for till sales, 'loose' for weighed/loose sales. */
-  saleType: string;
-  onSaleTypeChange: (event: React.MouseEvent<HTMLElement>, value: string | null) => void;
   /** Index into `timeframes`; the last entry is the custom range. */
   tabValue: number;
   onTabChange: (event: { target: { value: number } }) => void;
@@ -41,8 +35,6 @@ interface SaleHistoryHeaderProps {
 }
 
 const SaleHistoryHeader = ({
-  saleType,
-  onSaleTypeChange,
   tabValue,
   onTabChange,
   timeframes,
@@ -79,23 +71,6 @@ const SaleHistoryHeader = ({
         </Typography>
       </Box>
       <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-        <ToggleButtonGroup
-          value={saleType}
-          exclusive
-          onChange={onSaleTypeChange}
-          size="small"
-          sx={{ bgcolor: 'rgba(255,255,255,0.5)' }}
-        >
-          <ToggleButton value="pos" sx={{ px: 2, gap: 1, fontWeight: 700 }}>
-            <PosIcon fontSize="small" />
-            POS Sales
-          </ToggleButton>
-          <ToggleButton value="loose" sx={{ px: 2, gap: 1, fontWeight: 700 }}>
-            <LooseIcon fontSize="small" />
-            Loose Sales
-          </ToggleButton>
-        </ToggleButtonGroup>
-
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Time Frame</InputLabel>
           <Select value={tabValue} label="Time Frame" onChange={onTabChange}>
