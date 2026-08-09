@@ -12,7 +12,13 @@ interface NewProductFields {
 }
 
 export const createInventoryPage = (page: Page) => {
-  const addProductButton = page.getByRole('button', { name: 'Add Product' });
+  // Scoped to #root, not just role+name: the Add Product dialog's own submit
+  // button shares this exact label and is rendered via a portal outside
+  // #root, so an unscoped locator matches two elements while the dialog is
+  // open or mid-close-animation — a real, reproducible race, not just a
+  // timing fluke (confirmed via a failed CI run's trace: the page button
+  // resolved through locator('#root')..., the dialog's did not).
+  const addProductButton = page.locator('#root').getByRole('button', { name: 'Add Product' });
   const detailPanel = page.getByTestId('inventory-detail-panel');
 
   const getProductRow = (productName: string | RegExp) =>
