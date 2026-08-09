@@ -19,8 +19,9 @@ import { flushSync } from 'react-dom';
 import posService from '@/shared/api/posService';
 import dashboardService from '@/shared/api/dashboardService';
 import { isRequestCanceled } from '@/shared/api/api';
-import { Container, Grid, Box, CircularProgress } from '@mui/material';
+import { Container, Box, CircularProgress } from '@mui/material';
 
+import { useResizablePanel } from '@/shared/hooks/useResizablePanel';
 import RefundDialog from '@/domains/refund/components/RefundDialog';
 import SaleHistoryHeader from '@/domains/saleHistory/components/SaleHistoryHeader';
 import SalesListPanel from '@/domains/saleHistory/components/SalesListPanel';
@@ -54,6 +55,12 @@ const SaleHistory = ({
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [refundSale, setRefundSale] = useState<ReportSale | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const { width: rightPanelWidth, isResizing, startResizing } = useResizablePanel({
+    storageKey: 'saleHistoryRightPanelWidth',
+    defaultWidth: 450,
+    min: 320,
+    max: typeof window !== 'undefined' ? window.innerWidth * 0.6 : 900,
+  });
 
   const timeframes = [
     { label: 'Today', getValue: () => getSaleHistoryRange('day') },
@@ -240,11 +247,6 @@ const SaleHistory = ({
   const selectedPosSale =
     selectedSale && 'items' in selectedSale ? (selectedSale as ReportSale) : null;
 
-  // A loose sale has nothing for the POS-only detail panel to show — give
-  // the list the full width instead of wasting half the screen on a
-  // permanent "No Transaction Selected" panel while one is selected.
-  const isLooseSaleSelected = !!selectedSale && !('items' in selectedSale);
-
   const stats = calculateSaleStats(selectedPosSale);
 
   return (
@@ -292,24 +294,25 @@ const SaleHistory = ({
             <CircularProgress size={60} thickness={4} />
           </Box>
         ) : (
-          <Grid
-            container
-            spacing={1.5}
-            wrap="nowrap"
+          <Box
             className="no-print"
-            sx={{ flex: 1, minHeight: 0, overflow: 'hidden', flexWrap: 'nowrap' }}
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', lg: 'row' },
+              gap: 1.5,
+              flex: 1,
+              minHeight: 0,
+              overflow: 'hidden',
+            }}
           >
             {/* Left Panel: Sales List */}
-            <Grid
-              size={{ xs: isLooseSaleSelected ? 12 : 6, md: isLooseSaleSelected ? 12 : 6 }}
+            <Box
               sx={{
+                flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 0,
                 minWidth: 0,
-                flexBasis: isLooseSaleSelected ? '100%' : '50%',
-                maxWidth: isLooseSaleSelected ? '100%' : '50%',
-                transition: 'all 0.3s ease',
               }}
             >
               <SalesListPanel
@@ -321,25 +324,52 @@ const SaleHistory = ({
                 onRefund={handleRefund}
                 onDeleteLoose={setDeleteLooseId}
               />
-            </Grid>
+            </Box>
 
-            {/* Right Panel: Transaction Details — omitted while a loose sale is selected, nothing for it to show */}
-            {!isLooseSaleSelected && (
-              <Grid
-                size={{ xs: 6, md: 6 }}
+            {/* Vertical Resizer Slider */}
+            <Box
+              onMouseDown={startResizing}
+              sx={{
+                display: { xs: 'none', lg: 'flex' },
+                width: '12px',
+                mx: -1.5,
+                cursor: 'col-resize',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+                '&:hover .handle': {
+                  bgcolor: 'primary.main',
+                  width: '4px',
+                },
+              }}
+            >
+              <Box
+                className="handle"
                 sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  minHeight: 0,
-                  minWidth: 0,
-                  flexBasis: '50%',
-                  maxWidth: '50%',
+                  width: '2px',
+                  height: '60px',
+                  bgcolor: isResizing ? 'primary.main' : 'divider',
+                  borderRadius: '4px',
+                  transition: 'all 0.2s',
+                  ...(isResizing && { width: '4px' }),
                 }}
-              >
-                <POSSaleDetailsPanel selectedSale={selectedPosSale} stats={stats} />
-              </Grid>
-            )}
-          </Grid>
+              />
+            </Box>
+
+            {/* Right Panel: Transaction Details */}
+            <Box
+              sx={{
+                width: { xs: '100%', lg: rightPanelWidth },
+                minWidth: { lg: 320 },
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 0,
+              }}
+            >
+              <POSSaleDetailsPanel selectedSale={selectedPosSale} stats={stats} />
+            </Box>
+          </Box>
         )}
 
         <SaleHistoryPrintContainer
