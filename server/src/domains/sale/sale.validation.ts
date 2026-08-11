@@ -33,6 +33,14 @@ export const ProcessSaleSchema = {
     paymentMethod: str().nullable().optional(),
     paymentDetails: z.union([z.string().nullable(), looseObject()]).optional(),
     customerId: id().nullable().optional(),
+    /**
+     * Set once the cashier has been warned and confirmed anyway (see
+     * usePOSSale.ts's confirmExpiredItems) — lets an expired batch through
+     * the check below instead of hard-blocking the whole sale. Defaults to
+     * false/unset, so any caller unaware of this flag (an older client, or a
+     * direct API call) still gets the original safe behavior.
+     */
+    allowExpiredItems: bool().optional(),
   }),
 };
 

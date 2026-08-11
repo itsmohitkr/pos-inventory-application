@@ -26,6 +26,9 @@ import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
 import { useAddStock } from '@/domains/inventory/components/useAddStock';
+import { getExpiryDateInputBounds } from '@/shared/utils/expiryDateBounds';
+
+const { min: expiryDateMin, max: expiryDateMax } = getExpiryDateInputBounds();
 
 const AddStockDialog = ({ open, onClose, product, onStockAdded }: AddStockDialogProps) => {
   const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
@@ -97,6 +100,7 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }: AddStockDialog
                     value={stockData.expiryDate}
                     onChange={(e) => handleChange('expiryDate', e.target.value)}
                     InputLabelProps={{ shrink: true }}
+                    InputProps={{ inputProps: { min: expiryDateMin, max: expiryDateMax } }}
                   />
                 </Grid>
               </>

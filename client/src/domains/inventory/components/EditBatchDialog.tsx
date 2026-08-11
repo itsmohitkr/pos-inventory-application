@@ -28,7 +28,10 @@ import inventoryService from '@/shared/api/inventoryService';
 import { getApiErrorMessage } from '@/shared/api/api';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
+import { getExpiryDateInputBounds } from '@/shared/utils/expiryDateBounds';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
+
+const { min: expiryDateMin, max: expiryDateMax } = getExpiryDateInputBounds();
 
 const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDialogProps) => {
   const { dialogState, showError, closeDialog } = useCustomDialog();
@@ -282,6 +285,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
                 InputLabelProps={{ shrink: true }}
                 value={formData.expiryDate}
                 onChange={(e) => handleChange('expiryDate', e.target.value)}
+                InputProps={{ inputProps: { min: expiryDateMin, max: expiryDateMax } }}
               />
             </Grid>
 

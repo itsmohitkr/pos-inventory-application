@@ -11,6 +11,35 @@ const numericValue = z.union([num().min(0, 'Must be zero or greater'), z.string(
 const integerValue = z.union([int().min(0, 'Must be zero or greater'), z.string().trim(), z.null()]);
 const dateValue = z.union([z.coerce.date(), z.string().trim(), z.null()]);
 
+/**
+ * Expiry date for a NEWLY created batch (initial stock, or Add Batch) —
+ * must be today or later, and within 10 years. Deliberately NOT used for
+ * UpdateBatchSchema (which keeps the loose dateValue above): a batch that
+ * already carries a past expiry (the exact scenario this validation exists
+ * to prevent going forward) must still be editable for its other fields —
+ * price, wholesale settings — without being blocked by its own pre-existing
+ * date.
+ */
+const newBatchExpiryDate = dateValue.refine(
+  (value) => {
+    if (value === null || value === '') return true;
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return true; // malformed dates are reported by dateValue's own coercion, not here
+    // Boundaries built from UTC date components, not local setHours(0,0,0,0):
+    // a date-only string like "2026-08-11" is parsed by z.coerce.date() (the
+    // union branch that wins above) as UTC midnight. Comparing that against
+    // a locally-computed midnight would, in any negative-UTC-offset
+    // timezone, wrongly reject a legitimately same-day expiry date — local
+    // midnight there is hours ahead of UTC midnight for the same calendar
+    // day.
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const maxDate = new Date(Date.UTC(now.getUTCFullYear() + 10, now.getUTCMonth(), now.getUTCDate()));
+    return date >= today && date <= maxDate;
+  },
+  { error: 'Expiry date must be today or later, and within 10 years' }
+);
+
 /** Shared by GetProductById, GetProductHistory, UpdateProduct, DeleteProduct. */
 const productIdParamSchema = z.object({ id: numericId() });
 
@@ -56,6 +85,7 @@ export const CreateProductSchema = {
     lowStockThreshold: integerValue.optional(),
     initialBatch: z.looseObject({
       ...batchFields,
+      expiryDate: newBatchExpiryDate.optional(),
       quantity: integerValue,
       cost_price: numericValue,
       selling_price: numericValue,
@@ -116,6 +146,7 @@ export const DeleteProductSchema = { params: productIdParamSchema };
 export const AddBatchSchema = {
   body: z.looseObject({
     ...batchFields,
+    expiryDate: newBatchExpiryDate.optional(),
     product_id: numericId(),
     batch_code: str().nullable().optional(),
     quantity: integerValue,

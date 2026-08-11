@@ -24,6 +24,9 @@ interface ProductInitialBatchSectionProps {
 import React from 'react';
 import { Box, Typography, Grid, TextField, InputAdornment, Switch, FormControlLabel, Divider } from '@mui/material';
 import { SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
+import { getExpiryDateInputBounds } from '@/shared/utils/expiryDateBounds';
+
+const { min: expiryDateMin, max: expiryDateMax } = getExpiryDateInputBounds();
 
 const ProductInitialBatchSection = ({
   initialBatch, enableBatchTracking, discountInput,
@@ -54,7 +57,11 @@ const ProductInitialBatchSection = ({
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>Leave empty to auto-generate a unique batch code</Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField fullWidth size="small" type="date" label="Expiry Date" name="initialBatch.expiryDate" value={initialBatch.expiryDate} onChange={onChange} InputLabelProps={{ shrink: true }} />
+            <TextField
+              fullWidth size="small" type="date" label="Expiry Date" name="initialBatch.expiryDate"
+              value={initialBatch.expiryDate} onChange={onChange} InputLabelProps={{ shrink: true }}
+              InputProps={{ inputProps: { min: expiryDateMin, max: expiryDateMax } }}
+            />
           </Grid>
         </>
       )}
