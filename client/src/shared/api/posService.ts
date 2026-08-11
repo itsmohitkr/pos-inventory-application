@@ -47,6 +47,8 @@ export interface ProcessSalePayload {
   /** Accepted by validation but not persisted by the server today. */
   paymentDetails?: string | Record<string, unknown> | null;
   customerId?: number | null;
+  /** Set once the cashier has been warned about an expired batch and confirmed anyway. */
+  allowExpiredItems?: boolean;
 }
 
 /** One line of a refund request for POST /api/sale/:id/return. */

@@ -149,6 +149,7 @@ const processSale = async ({
   extraDiscount = 0,
   paymentMethod = 'Cash',
   customerId = null,
+  allowExpiredItems = false,
 }: ProcessSaleInput) => {
   // Only roundOff is read here. The full shape lives in
   // server/src/config/constants.ts -> DEFAULT_RECEIPT_SETTINGS; declaring just
@@ -204,7 +205,7 @@ const processSale = async ({
         throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
       }
 
-      if (batch.expiryDate && new Date(batch.expiryDate) < new Date()) {
+      if (!allowExpiredItems && batch.expiryDate && new Date(batch.expiryDate) < new Date()) {
         const productName = batch.product?.name || 'Unknown Product';
         const expiredOn = new Date(batch.expiryDate).toLocaleDateString();
         const message = `Cannot sell "${productName}" — batch ${batch.batchCode || batch.id} expired on ${expiredOn}. Remove it from the cart.`;

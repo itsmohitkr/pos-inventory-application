@@ -205,6 +205,90 @@ describe('Product Domain API', () => {
         });
     });
 
+    describe('New-batch expiry date validation', () => {
+        it('rejects a new batch with a past expiry date', async () => {
+            const pastDate = new Date();
+            pastDate.setDate(pastDate.getDate() - 1);
+
+            const res = await request(app)
+                .post('/api/batches')
+                .send({
+                    product_id: 1, quantity: 5, mrp: 100, cost_price: 40, selling_price: 60,
+                    expiryDate: pastDate.toISOString().slice(0, 10),
+                });
+
+            expect(res.status).toBe(400);
+            expect(prisma.batch.create).not.toHaveBeenCalled();
+        });
+
+        it('rejects a new batch with an expiry date more than 10 years out', async () => {
+            const farFuture = new Date();
+            farFuture.setFullYear(farFuture.getFullYear() + 11);
+
+            const res = await request(app)
+                .post('/api/batches')
+                .send({
+                    product_id: 1, quantity: 5, mrp: 100, cost_price: 40, selling_price: 60,
+                    expiryDate: farFuture.toISOString().slice(0, 10),
+                });
+
+            expect(res.status).toBe(400);
+            expect(prisma.batch.create).not.toHaveBeenCalled();
+        });
+
+        it('accepts a new batch with a valid future expiry date', async () => {
+            prisma.$transaction.mockImplementation(async (cb) => cb(prisma));
+            prisma.product.findUnique.mockResolvedValue(asMock({
+                id: 1, batchTrackingEnabled: true, batches: [],
+            }));
+            prisma.batch.create.mockResolvedValue(asMock({ id: 10, productId: 1, quantity: 5 }));
+
+            const nextYear = new Date();
+            nextYear.setFullYear(nextYear.getFullYear() + 1);
+
+            const res = await request(app)
+                .post('/api/batches')
+                .send({
+                    product_id: 1, quantity: 5, mrp: 100, cost_price: 40, selling_price: 60,
+                    expiryDate: nextYear.toISOString().slice(0, 10),
+                });
+
+            expect(res.status).toBe(201);
+            expect(prisma.batch.create).toHaveBeenCalled();
+        });
+
+        it('accepts a same-day expiry date regardless of server timezone', async () => {
+            // Regression: comparing a date-only string (parsed as UTC midnight)
+            // against a locally-computed midnight would wrongly reject "today"
+            // in any negative-UTC-offset timezone. Forces the server into one
+            // to prove the fix isn't just coincidentally passing under this
+            // machine's own timezone.
+            const originalTz = process.env.TZ;
+            process.env.TZ = 'America/Los_Angeles';
+            try {
+                prisma.$transaction.mockImplementation(async (cb) => cb(prisma));
+                prisma.product.findUnique.mockResolvedValue(asMock({
+                    id: 1, batchTrackingEnabled: true, batches: [],
+                }));
+                prisma.batch.create.mockResolvedValue(asMock({ id: 10, productId: 1, quantity: 5 }));
+
+                const todayDateOnly = new Date().toISOString().slice(0, 10);
+
+                const res = await request(app)
+                    .post('/api/batches')
+                    .send({
+                        product_id: 1, quantity: 5, mrp: 100, cost_price: 40, selling_price: 60,
+                        expiryDate: todayDateOnly,
+                    });
+
+                expect(res.status).toBe(201);
+                expect(prisma.batch.create).toHaveBeenCalled();
+            } finally {
+                process.env.TZ = originalTz;
+            }
+        });
+    });
+
     describe('DELETE /api/products/:id', () => {
         it('should soft-delete product', async () => {
             prisma.product.update.mockResolvedValue(asMock({ id: 1, isDeleted: true }));

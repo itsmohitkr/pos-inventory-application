@@ -7,6 +7,7 @@ import { resolvePrinterName } from '@/shared/utils/resolvePrinterName';
 import { IPC } from '@/shared/ipcChannels';
 import type { CartItem, PaymentMethod, ReceiptSale } from '@/domains/pos/types';
 import type { Customer } from '@/shared/api/customerService';
+import type { Product } from '@/shared/types/models';
 import type {
   PrinterInfo,
   ReceiptSettings,
@@ -29,6 +30,9 @@ interface UsePOSSaleArgs {
   clearCustomerOnSale: () => void;
   /** Printed on the receipt header. */
   shopName?: string;
+  /** Cross-referenced against cart items' batch_id to detect an expired batch before paying. */
+  products: Product[];
+  showConfirm: (message: string) => Promise<boolean>;
 }
 
 export const usePOSSale = ({
@@ -46,10 +50,50 @@ export const usePOSSale = ({
   refocus,
   activeCustomer,
   clearCustomerOnSale,
+  products,
+  showConfirm,
 }: UsePOSSaleArgs) => {
   const [lastSale, setLastSale] = useState<ReceiptSale | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [isPrintingReceipt, setIsPrintingReceipt] = useState(false);
+
+  /**
+   * Warn, don't block: an expired batch used to hard-fail the whole sale
+   * server-side, with no way through even when the expiry date was simply
+   * never updated after new stock arrived. Cross-references the cart against
+   * already-fetched product/batch data (no extra request) and, if anything
+   * is expired, lets the cashier consciously confirm before proceeding —
+   * same non-blocking-confirm shape as RefundProcessor.tsx's gift-threshold
+   * warning.
+   *
+   * Returns `hasExpiredItems` alongside `proceed` so the caller only sends
+   * `allowExpiredItems: true` when this check genuinely found (and the
+   * cashier confirmed) an expired batch — never unconditionally. The
+   * server-side expiry check is the actual backstop for anything this
+   * client-side pass might miss (a stale/incomplete `products` cache, a
+   * batch not yet loaded); always sending the flag would silently disable
+   * that backstop for every sale, not just ones with a real expired item.
+   */
+  const checkExpiredItems = useCallback(async (): Promise<{
+    proceed: boolean;
+    hasExpiredItems: boolean;
+  }> => {
+    const now = new Date();
+    const expired: string[] = [];
+    for (const item of cart) {
+      const batch = products
+        .find((p) => p.id === item.product_id)
+        ?.batches?.find((b) => b.id === item.batch_id);
+      if (batch?.expiryDate && new Date(batch.expiryDate) < now) {
+        expired.push(`${item.name} (expired ${new Date(batch.expiryDate).toLocaleDateString()})`);
+      }
+    }
+    if (expired.length === 0) return { proceed: true, hasExpiredItems: false };
+    const confirmed = await showConfirm(
+      `The following item(s) are past their expiry date: ${expired.join(', ')}. This usually means the expiry date wasn't updated after new stock arrived. Continue with the sale anyway?`
+    );
+    return { proceed: confirmed, hasExpiredItems: true };
+  }, [cart, products, showConfirm]);
 
   const handlePay = useCallback(async (
     selectedPaymentMethod?: PaymentMethod | null,
@@ -60,6 +104,8 @@ export const usePOSSale = ({
     const methodToUse: Partial<PaymentMethod> & { id: string; label: string } =
       selectedPaymentMethod || { id: 'cash', label: 'Cash' };
     try {
+      const { proceed, hasExpiredItems } = await checkExpiredItems();
+      if (!proceed) return;
       const items = cart.map((item: CartItem) => ({
         batch_id: item.batch_id,
         quantity: item.quantity,
@@ -75,6 +121,7 @@ export const usePOSSale = ({
         paymentMethod: methodToUse.label,
         paymentDetails: JSON.stringify({ method: methodWithoutIcon }),
         customerId: (customerOverride || activeCustomer)?.id || null,
+        allowExpiredItems: hasExpiredItems,
       });
       const detailedRes = await posService.fetchSaleById(res.saleId);
       setLastSale(detailedRes);
@@ -94,7 +141,7 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale, setShowReceipt, receiptSettings]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, fetchProducts, showNotification, refocus, showError, activeCustomer, clearCustomerOnSale, setShowReceipt, receiptSettings, checkExpiredItems]);
 
   const handlePayAndPrint = useCallback(async (
     selectedPaymentMethod?: PaymentMethod | null,
@@ -105,6 +152,8 @@ export const usePOSSale = ({
     const methodToUse: Partial<PaymentMethod> & { id: string; label: string } =
       selectedPaymentMethod || { id: 'cash', label: 'Cash' };
     try {
+      const { proceed, hasExpiredItems } = await checkExpiredItems();
+      if (!proceed) return;
       const items = cart.map((item: CartItem) => ({
         batch_id: item.batch_id,
         quantity: item.quantity,
@@ -120,6 +169,7 @@ export const usePOSSale = ({
         paymentMethod: methodToUse.label,
         paymentDetails: JSON.stringify({ method: methodWithoutIcon }),
         customerId: (customerOverride || activeCustomer)?.id || null,
+        allowExpiredItems: hasExpiredItems,
       });
 
       flushSync(() => {
@@ -170,7 +220,7 @@ export const usePOSSale = ({
     } finally {
       setIsPaying(false);
     }
-  }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError, activeCustomer, clearCustomerOnSale]);
+  }, [isPaying, cart, discount, activeTabId, handleCloseTab, receiptSettings, defaultPrinter, printers, setShowReceipt, fetchProducts, refocus, showError, activeCustomer, clearCustomerOnSale, checkExpiredItems]);
 
   const handlePrintLastReceipt = useCallback(async () => {
     if (!lastSale) return;

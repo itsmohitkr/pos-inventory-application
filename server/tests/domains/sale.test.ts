@@ -133,6 +133,26 @@ describe('Sale Domain API', () => {
             expect(prisma.sale.create).not.toHaveBeenCalled();
         });
 
+        it('allows a sale with an expired batch when allowExpiredItems is set — warn, not block', async () => {
+            runRealTransaction();
+            const expired = new Date();
+            expired.setFullYear(expired.getFullYear() - 1);
+            prisma.batch.findMany.mockResolvedValue(asMock([batch({ expiryDate: expired })]));
+            prisma.sale.create.mockResolvedValue(asMock({
+                id: 10, totalAmount: 60, discount: 0, extraDiscount: 0, items: [],
+            }));
+
+            const res = await request(app)
+                .post('/api/sale')
+                .send({
+                    items: [{ batch_id: 1, quantity: 1, sellingPrice: 60, isFree: false }],
+                    allowExpiredItems: true,
+                });
+
+            expect(res.status).toBe(201);
+            expect(prisma.sale.create).toHaveBeenCalled();
+        });
+
         it('rejects a sale referencing an unknown batch id', async () => {
             runRealTransaction();
             prisma.batch.findMany.mockResolvedValue(asMock([]));
