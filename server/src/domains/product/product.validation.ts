@@ -7,9 +7,13 @@ import { z, int, num, str, bool, numericId } from '../../shared/middleware/zodHe
  *
  * Shared across every batch-carrying body schema below.
  */
-const numericValue = z.union([num().min(0, 'Must be zero or greater'), z.string().trim(), z.null()]);
-const integerValue = z.union([int().min(0, 'Must be zero or greater'), z.string().trim(), z.null()]);
-const dateValue = z.union([z.coerce.date(), z.string().trim(), z.null()]);
+// z.null() must come first in each union: z.coerce.number()/z.coerce.date()
+// treat `null` as `0` (JS coercion), so a coercing branch tried before
+// z.null() would silently turn an explicit "no value" into 0 / the Unix
+// epoch instead of preserving null.
+const numericValue = z.union([z.null(), num().min(0, 'Must be zero or greater'), z.string().trim()]);
+const integerValue = z.union([z.null(), int().min(0, 'Must be zero or greater'), z.string().trim()]);
+const dateValue = z.union([z.null(), z.coerce.date(), z.string().trim()]);
 
 /**
  * Expiry date for a NEWLY created batch (initial stock, or Add Batch) —
