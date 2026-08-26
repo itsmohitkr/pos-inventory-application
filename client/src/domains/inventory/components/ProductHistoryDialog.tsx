@@ -7,6 +7,8 @@ interface ProductHistoryDialogProps {
   product?: Product | null;
   /** Null while the range is still loading. */
   history?: ProductHistory | null;
+  /** Set when the last fetch failed — takes precedence over the empty-state text. */
+  error?: string | null;
   loading: boolean;
   /** A getDateRange preset key, e.g. 'today' or 'thisMonth'. */
   range: string;
@@ -30,6 +32,7 @@ import {
   TableCell,
   TableBody,
   Chip,
+  Alert,
 } from '@mui/material';
 
 const rangeOptions = [
@@ -94,6 +97,7 @@ const ProductHistoryDialog = ({
   onClose,
   product,
   history,
+  error,
   loading,
   range,
   onRangeChange,
@@ -150,6 +154,11 @@ const ProductHistoryDialog = ({
       </DialogTitle>
       <DialogContent>
         {loading && <LinearProgress sx={{ mb: 2 }} />}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
           <Chip label={`Added: ${totals.added}`} color="success" variant="outlined" />
           <Chip label={`Sold: ${totals.sold}`} color="error" variant="outlined" />

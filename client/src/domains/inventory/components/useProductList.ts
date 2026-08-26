@@ -49,6 +49,7 @@ export default function useProductList({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRange, setHistoryRange] = useState('thisMonth');
   const [historyData, setHistoryData] = useState<ProductHistory | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -286,6 +287,7 @@ export default function useProductList({
     const controller = new AbortController();
     const fetchHistory = async () => {
       setIsHistoryLoading(true);
+      setHistoryError(null);
       try {
         const data = await inventoryService.fetchProductHistory(
           selectedProduct.id,
@@ -298,6 +300,7 @@ export default function useProductList({
         Sentry.captureException(error, { tags: { feature: 'inventory-product-history-fetch' } });
         console.error(error);
         setHistoryData(null);
+        setHistoryError(getApiErrorMessage(error, 'Failed to load product history'));
       } finally {
         if (!controller.signal.aborted) setIsHistoryLoading(false);
       }
@@ -430,7 +433,7 @@ export default function useProductList({
     selectedProductDetails,
     historyOpen, setHistoryOpen,
     historyRange, setHistoryRange,
-    historyData, isHistoryLoading,
+    historyData, historyError, isHistoryLoading,
     sortBy, sortOrder,
     isLoadingBatches,
     summaryTotals, categoryCounts, uncategorizedCount, totalCount,
