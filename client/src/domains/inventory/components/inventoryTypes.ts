@@ -44,11 +44,20 @@ export interface StockMovementDaySummary extends StockMovementTotals {
   date: string;
 }
 
+export interface StockMovementPagination {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+
 export interface ProductHistory {
   /** The resolved boundaries of the requested range/preset, ISO strings. */
   startDate?: string | null;
   endDate?: string | null;
   totals: StockMovementTotals;
+  /** Only this page's rows — totals/summaryByDate cover the full range regardless. */
   movements: StockMovement[];
   summaryByDate: StockMovementDaySummary[];
+  pagination?: StockMovementPagination;
 }

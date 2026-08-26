@@ -126,6 +126,8 @@ export const GetProductHistorySchema = {
     range: str().optional(),
     startDate: dateValue.optional(),
     endDate: dateValue.optional(),
+    page: int().min(1, 'Page must be at least 1').optional(),
+    pageSize: int().min(1, 'Page size must be at least 1').max(500, 'Page size is too large').optional(),
   }),
 };
 

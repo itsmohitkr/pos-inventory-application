@@ -18,6 +18,8 @@ interface ProductHistoryDialogProps {
   customEnd?: string;
   onCustomStartChange?: (value: string) => void;
   onCustomEndChange?: (value: string) => void;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 import React, { useState } from 'react';
@@ -123,6 +125,8 @@ const ProductHistoryDialog = ({
   customEnd,
   onCustomStartChange,
   onCustomEndChange,
+  isLoadingMore,
+  onLoadMore,
 }: ProductHistoryDialogProps) => {
   const totals = history?.totals || {
     added: 0,
@@ -329,6 +333,18 @@ const ProductHistoryDialog = ({
             )}
           </TableBody>
         </Table>
+        {history?.pagination && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mt: 2 }}>
+            <Typography variant="caption" color="text.secondary">
+              Showing {movements.length} of {history.pagination.totalCount}
+            </Typography>
+            {history.pagination.page < history.pagination.totalPages && (
+              <Button size="small" variant="outlined" disabled={isLoadingMore} onClick={onLoadMore}>
+                {isLoadingMore ? 'Loading…' : 'Load More'}
+              </Button>
+            )}
+          </Box>
+        )}
       </DialogContent>
     </Dialog>
   );

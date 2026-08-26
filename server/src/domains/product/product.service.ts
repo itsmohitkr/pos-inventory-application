@@ -1380,6 +1380,8 @@ interface HistoryRangeOptions {
   range?: string;
   startDate?: string;
   endDate?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 const buildHistoryRange = ({ range, startDate, endDate }: HistoryRangeOptions) => {
@@ -1409,7 +1411,7 @@ export interface MovementTotals {
 
 const getProductHistory = async (
   productId: number | string,
-  { range = 'today', startDate, endDate }: HistoryRangeOptions = {}
+  { range = 'today', startDate, endDate, page = 1, pageSize = 100 }: HistoryRangeOptions = {}
 ) => {
   const id = parseInt(String(productId));
   const { from, to } = buildHistoryRange({ range, startDate, endDate });
@@ -1420,15 +1422,29 @@ const getProductHistory = async (
     if (to) where.createdAt.lte = to;
   }
 
-  const movements = await prisma.stockMovement.findMany({
+  // Totals/summaryByDate must reflect the ENTIRE range, not just the current
+  // page, so they're computed from a lightweight query (no batch include)
+  // over every matching row, separate from the paginated list below.
+  const movementsForTotals = await prisma.stockMovement.findMany({
     where,
-    include: {
-      batch: true,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    select: { type: true, quantity: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
   });
+
+  const [movements, totalCount] = await Promise.all([
+    prisma.stockMovement.findMany({
+      where,
+      include: {
+        batch: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.stockMovement.count({ where }),
+  ]);
 
   const summaryMap = new Map<string, MovementTotals & { date: string }>();
   const totals: MovementTotals = {
@@ -1468,7 +1484,7 @@ const getProductHistory = async (
     }
   };
 
-  movements.forEach((movement) => {
+  movementsForTotals.forEach((movement) => {
     const dateKey = movement.createdAt.toISOString().split('T')[0];
     let summary = summaryMap.get(dateKey);
     if (!summary) {
@@ -1498,6 +1514,12 @@ const getProductHistory = async (
     totals,
     summaryByDate,
     movements,
+    pagination: {
+      page,
+      pageSize,
+      totalCount,
+      totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
+    },
   };
 };
 

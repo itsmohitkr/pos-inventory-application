@@ -285,6 +285,16 @@ export default function useProductList({
     return () => controller.abort();
   }, [selectedProduct?.id, selectedProductRefresh]);
 
+  const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
+
+  const buildHistoryParams = useCallback(
+    (page: number) =>
+      historyRange === 'custom'
+        ? { range: historyRange, startDate: historyCustomStart, endDate: historyCustomEnd, page }
+        : { range: historyRange, page },
+    [historyRange, historyCustomStart, historyCustomEnd]
+  );
+
   useEffect(() => {
     if (!historyOpen || !selectedProduct?.id) return undefined;
     // Custom range needs both bounds before it's worth a request.
@@ -294,13 +304,9 @@ export default function useProductList({
       setIsHistoryLoading(true);
       setHistoryError(null);
       try {
-        const params =
-          historyRange === 'custom'
-            ? { range: historyRange, startDate: historyCustomStart, endDate: historyCustomEnd }
-            : { range: historyRange };
         const data = await inventoryService.fetchProductHistory(
           selectedProduct.id,
-          params,
+          buildHistoryParams(1),
           { signal: controller.signal }
         );
         setHistoryData(data.data || null);
@@ -316,7 +322,33 @@ export default function useProductList({
     };
     fetchHistory();
     return () => controller.abort();
-  }, [historyOpen, historyRange, historyCustomStart, historyCustomEnd, selectedProduct?.id]);
+  }, [historyOpen, historyRange, historyCustomStart, historyCustomEnd, selectedProduct?.id, buildHistoryParams]);
+
+  const loadMoreHistory = useCallback(async () => {
+    if (!selectedProduct?.id || isLoadingMoreHistory) return;
+    const pagination = historyData?.pagination;
+    if (!pagination || pagination.page >= pagination.totalPages) return;
+    setIsLoadingMoreHistory(true);
+    try {
+      const data = await inventoryService.fetchProductHistory(
+        selectedProduct.id,
+        buildHistoryParams(pagination.page + 1)
+      );
+      const nextPage = data.data;
+      if (!nextPage) return;
+      setHistoryData((prev) =>
+        prev
+          ? { ...nextPage, movements: [...prev.movements, ...nextPage.movements] }
+          : nextPage
+      );
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-product-history-load-more' } });
+      console.error(error);
+      showError(getApiErrorMessage(error, 'Failed to load more history'));
+    } finally {
+      setIsLoadingMoreHistory(false);
+    }
+  }, [selectedProduct?.id, isLoadingMoreHistory, historyData?.pagination, buildHistoryParams, showError]);
 
   // Computed values
   const averageMargin = useMemo(() => {
@@ -445,6 +477,7 @@ export default function useProductList({
     historyCustomStart, setHistoryCustomStart,
     historyCustomEnd, setHistoryCustomEnd,
     historyData, historyError, isHistoryLoading,
+    isLoadingMoreHistory, loadMoreHistory,
     sortBy, sortOrder,
     isLoadingBatches,
     summaryTotals, categoryCounts, uncategorizedCount, totalCount,
