@@ -112,6 +112,7 @@ model Sale {
   createdAt     DateTime  @default(now())
   customer      Customer? @relation(fields: [customerId], references: [id])
   items         SaleItem[]
+  stockMovements StockMovement[]
 
   @@index([createdAt])
   @@index([customerId])
@@ -142,16 +143,21 @@ model StockMovement {
   id        Int      @id @default(autoincrement())
   productId Int
   batchId   Int?
+  /// The sale that caused a 'sold'/'returned' movement. Null for every
+  /// other movement type and every row predating this field.
+  saleId    Int?
   type      String
   quantity  Int
   note      String?
   createdAt DateTime @default(now())
   batch     Batch?   @relation(fields: [batchId], references: [id])
   product   Product  @relation(fields: [productId], references: [id])
+  sale      Sale?    @relation(fields: [saleId], references: [id])
 
   @@index([productId])
   @@index([batchId])
   @@index([createdAt])
+  @@index([saleId])
   // Serves getProductHistory, which always filters productId + a createdAt
   // range together — the single-column indexes above each only help one
   // side of that filter.

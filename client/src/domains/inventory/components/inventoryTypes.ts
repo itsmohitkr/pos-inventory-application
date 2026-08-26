@@ -37,6 +37,8 @@ export interface StockMovement {
   note?: string | null;
   createdAt: string;
   batch?: { id: number; batchCode?: string | null; sellingPrice?: number | null } | null;
+  /** Set for 'sold'/'returned' movements — the sale that caused it. Null otherwise, and for rows predating this field. */
+  saleId?: number | null;
 }
 
 /** Per-day movement totals, keyed by ISO date, sorted ascending. */

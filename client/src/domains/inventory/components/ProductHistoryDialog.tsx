@@ -167,13 +167,14 @@ const ProductHistoryDialog = ({
       : 'Export CSV';
 
   const handleExportCsv = () => {
-    const headers = ['Date', 'Time', 'Type', 'Qty', 'Batch', 'Note'];
+    const headers = ['Date', 'Time', 'Type', 'Qty', 'Batch', 'Sale #', 'Note'];
     const rows = filteredMovements.map((movement) => [
       escapeCsvField(formatDate(movement.createdAt)),
       escapeCsvField(formatTime(movement.createdAt)),
       escapeCsvField(movementLabel(movement.type)),
       movement.quantity,
       escapeCsvField(batchLabel(movement.batch)),
+      movement.saleId ?? '',
       escapeCsvField(movement.note || ''),
     ]);
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
@@ -379,7 +380,17 @@ const ProductHistoryDialog = ({
                   </TableCell>
                   <TableCell align="right">{movement.quantity}</TableCell>
                   <TableCell>{batchLabel(movement.batch)}</TableCell>
-                  <TableCell>{movement.note || '—'}</TableCell>
+                  <TableCell>
+                    {movement.saleId && (
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        label={`Sale #${movement.saleId}`}
+                        sx={{ mr: 0.75, height: 20, fontSize: '0.7rem' }}
+                      />
+                    )}
+                    {movement.note || '—'}
+                  </TableCell>
                 </TableRow>
               ))
             )}
