@@ -20,7 +20,7 @@ interface ProductHistoryDialogProps {
   onCustomEndChange?: (value: string) => void;
 }
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -39,7 +39,18 @@ import {
   Chip,
   Alert,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
+
+const movementTypeFilterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'added', label: 'Added' },
+  { value: 'sold', label: 'Sold' },
+  { value: 'returned', label: 'Returned' },
+  { value: 'adjustment_in', label: 'Adjust +' },
+  { value: 'adjustment_out', label: 'Adjust -' },
+];
 
 const rangeOptions = [
   { value: 'today', label: 'Today' },
@@ -123,6 +134,12 @@ const ProductHistoryDialog = ({
   };
   const summaryByDate = history?.summaryByDate || [];
   const movements = history?.movements || [];
+
+  const [movementTypeFilter, setMovementTypeFilter] = useState('all');
+  const filteredMovements =
+    movementTypeFilter === 'all'
+      ? movements
+      : movements.filter((movement) => movement.type === movementTypeFilter);
 
   return (
     <Dialog
@@ -252,9 +269,25 @@ const ProductHistoryDialog = ({
 
         <Divider sx={{ my: 2 }} />
 
-        <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-          Movement Details
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Movement Details
+          </Typography>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={movementTypeFilter}
+            onChange={(_event, value) => {
+              if (value) setMovementTypeFilter(value);
+            }}
+          >
+            {movementTypeFilterOptions.map((option) => (
+              <ToggleButton key={option.value} value={option.value}>
+                {option.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -267,16 +300,16 @@ const ProductHistoryDialog = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {movements.length === 0 ? (
+            {filteredMovements.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center">
                   <Typography variant="body2" color="text.secondary">
-                    No movements found
+                    {movements.length === 0 ? 'No movements found' : 'No movements match this filter'}
                   </Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              movements.map((movement) => (
+              filteredMovements.map((movement) => (
                 <TableRow key={movement.id}>
                   <TableCell>{formatDate(movement.createdAt)}</TableCell>
                   <TableCell>{formatTime(movement.createdAt)}</TableCell>
