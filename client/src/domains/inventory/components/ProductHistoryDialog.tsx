@@ -138,6 +138,11 @@ const ProductHistoryDialog = ({
             <Typography variant="body2" color="text.secondary">
               {product?.name || ''}
             </Typography>
+            {history?.startDate && history?.endDate && (
+              <Typography variant="caption" color="text.secondary">
+                {formatDate(history.startDate)} – {formatDate(history.endDate)}
+              </Typography>
+            )}
           </Box>
           <ButtonGroup size="small" variant="outlined">
             {rangeOptions.map((option) => (

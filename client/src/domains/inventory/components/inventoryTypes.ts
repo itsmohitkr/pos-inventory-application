@@ -45,6 +45,9 @@ export interface StockMovementDaySummary extends StockMovementTotals {
 }
 
 export interface ProductHistory {
+  /** The resolved boundaries of the requested range/preset, ISO strings. */
+  startDate?: string | null;
+  endDate?: string | null;
   totals: StockMovementTotals;
   movements: StockMovement[];
   summaryByDate: StockMovementDaySummary[];
