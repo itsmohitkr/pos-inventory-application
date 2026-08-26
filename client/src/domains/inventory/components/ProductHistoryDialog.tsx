@@ -75,6 +75,18 @@ const formatDate = (value?: string | null): string => {
 /** Quotes a CSV field and doubles any embedded quotes, per RFC 4180. */
 const escapeCsvField = (value: string | number): string => `"${String(value).replace(/"/g, '""')}"`;
 
+/**
+ * Batch tracking is often off, so most movements' batch has no code — fall
+ * back to the batch's price so the cell still carries information instead
+ * of a bare "N/A"; only a genuinely missing batch shows an em dash.
+ */
+const batchLabel = (batch?: { batchCode?: string | null; sellingPrice?: number | null } | null): string => {
+  if (!batch) return '—';
+  if (batch.batchCode) return batch.batchCode;
+  if (batch.sellingPrice != null) return `₹${batch.sellingPrice.toFixed(2)}`;
+  return 'N/A';
+};
+
 const formatTime = (value?: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
@@ -161,7 +173,7 @@ const ProductHistoryDialog = ({
       escapeCsvField(formatTime(movement.createdAt)),
       escapeCsvField(movementLabel(movement.type)),
       movement.quantity,
-      escapeCsvField(movement.batch?.batchCode || 'N/A'),
+      escapeCsvField(batchLabel(movement.batch)),
       escapeCsvField(movement.note || ''),
     ]);
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
@@ -366,7 +378,7 @@ const ProductHistoryDialog = ({
                     />
                   </TableCell>
                   <TableCell align="right">{movement.quantity}</TableCell>
-                  <TableCell>{movement.batch?.batchCode || 'N/A'}</TableCell>
+                  <TableCell>{batchLabel(movement.batch)}</TableCell>
                   <TableCell>{movement.note || '—'}</TableCell>
                 </TableRow>
               ))

@@ -36,7 +36,7 @@ export interface StockMovement {
   quantity: number;
   note?: string | null;
   createdAt: string;
-  batch?: { id: number; batchCode?: string | null } | null;
+  batch?: { id: number; batchCode?: string | null; sellingPrice?: number | null } | null;
 }
 
 /** Per-day movement totals, keyed by ISO date, sorted ascending. */
