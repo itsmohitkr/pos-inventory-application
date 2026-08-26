@@ -72,6 +72,9 @@ const formatDate = (value?: string | null): string => {
   return date.toLocaleDateString();
 };
 
+/** Quotes a CSV field and doubles any embedded quotes, per RFC 4180. */
+const escapeCsvField = (value: string | number): string => `"${String(value).replace(/"/g, '""')}"`;
+
 const formatTime = (value?: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
@@ -144,6 +147,33 @@ const ProductHistoryDialog = ({
     movementTypeFilter === 'all'
       ? movements
       : movements.filter((movement) => movement.type === movementTypeFilter);
+
+  const totalCount = history?.pagination?.totalCount ?? movements.length;
+  const exportLabel =
+    filteredMovements.length < totalCount
+      ? `Export Loaded (${filteredMovements.length} of ${totalCount})`
+      : 'Export CSV';
+
+  const handleExportCsv = () => {
+    const headers = ['Date', 'Time', 'Type', 'Qty', 'Batch', 'Note'];
+    const rows = filteredMovements.map((movement) => [
+      escapeCsvField(formatDate(movement.createdAt)),
+      escapeCsvField(formatTime(movement.createdAt)),
+      escapeCsvField(movementLabel(movement.type)),
+      movement.quantity,
+      escapeCsvField(movement.batch?.batchCode || 'N/A'),
+      escapeCsvField(movement.note || ''),
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const productLabel = (product?.name || 'product').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    link.download = `${productLabel}_history_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
     <Dialog
@@ -277,20 +307,30 @@ const ProductHistoryDialog = ({
           <Typography variant="subtitle1" fontWeight="bold">
             Movement Details
           </Typography>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={movementTypeFilter}
-            onChange={(_event, value) => {
-              if (value) setMovementTypeFilter(value);
-            }}
-          >
-            {movementTypeFilterOptions.map((option) => (
-              <ToggleButton key={option.value} value={option.value}>
-                {option.label}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={movementTypeFilter}
+              onChange={(_event, value) => {
+                if (value) setMovementTypeFilter(value);
+              }}
+            >
+              {movementTypeFilterOptions.map((option) => (
+                <ToggleButton key={option.value} value={option.value}>
+                  {option.label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleExportCsv}
+              disabled={filteredMovements.length === 0}
+            >
+              {exportLabel}
+            </Button>
+          </Box>
         </Box>
         <Table size="small">
           <TableHead>
