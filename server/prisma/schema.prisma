@@ -152,6 +152,10 @@ model StockMovement {
   @@index([productId])
   @@index([batchId])
   @@index([createdAt])
+  // Serves getProductHistory, which always filters productId + a createdAt
+  // range together — the single-column indexes above each only help one
+  // side of that filter.
+  @@index([productId, createdAt])
 }
 
 model LooseSale {
