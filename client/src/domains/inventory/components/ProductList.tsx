@@ -273,6 +273,10 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
           loading={pl.isHistoryLoading}
           range={pl.historyRange}
           onRangeChange={pl.setHistoryRange}
+          customStart={pl.historyCustomStart}
+          customEnd={pl.historyCustomEnd}
+          onCustomStartChange={pl.setHistoryCustomStart}
+          onCustomEndChange={pl.setHistoryCustomEnd}
         />
         <EditProductDialog
           open={pl.editOpen}

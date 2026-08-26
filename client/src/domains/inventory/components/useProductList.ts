@@ -48,6 +48,9 @@ export default function useProductList({
   const [selectedProductRefresh, setSelectedProductRefresh] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRange, setHistoryRange] = useState('thisMonth');
+  /** Only read when historyRange === 'custom'; ISO date strings from a date input. */
+  const [historyCustomStart, setHistoryCustomStart] = useState('');
+  const [historyCustomEnd, setHistoryCustomEnd] = useState('');
   const [historyData, setHistoryData] = useState<ProductHistory | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -284,14 +287,20 @@ export default function useProductList({
 
   useEffect(() => {
     if (!historyOpen || !selectedProduct?.id) return undefined;
+    // Custom range needs both bounds before it's worth a request.
+    if (historyRange === 'custom' && (!historyCustomStart || !historyCustomEnd)) return undefined;
     const controller = new AbortController();
     const fetchHistory = async () => {
       setIsHistoryLoading(true);
       setHistoryError(null);
       try {
+        const params =
+          historyRange === 'custom'
+            ? { range: historyRange, startDate: historyCustomStart, endDate: historyCustomEnd }
+            : { range: historyRange };
         const data = await inventoryService.fetchProductHistory(
           selectedProduct.id,
-          { range: historyRange },
+          params,
           { signal: controller.signal }
         );
         setHistoryData(data.data || null);
@@ -307,7 +316,7 @@ export default function useProductList({
     };
     fetchHistory();
     return () => controller.abort();
-  }, [historyOpen, historyRange, selectedProduct?.id]);
+  }, [historyOpen, historyRange, historyCustomStart, historyCustomEnd, selectedProduct?.id]);
 
   // Computed values
   const averageMargin = useMemo(() => {
@@ -433,6 +442,8 @@ export default function useProductList({
     selectedProductDetails,
     historyOpen, setHistoryOpen,
     historyRange, setHistoryRange,
+    historyCustomStart, setHistoryCustomStart,
+    historyCustomEnd, setHistoryCustomEnd,
     historyData, historyError, isHistoryLoading,
     sortBy, sortOrder,
     isLoadingBatches,

@@ -10,9 +10,14 @@ interface ProductHistoryDialogProps {
   /** Set when the last fetch failed — takes precedence over the empty-state text. */
   error?: string | null;
   loading: boolean;
-  /** A getDateRange preset key, e.g. 'today' or 'thisMonth'. */
+  /** A getDateRange preset key, e.g. 'today' or 'thisMonth', or 'custom'. */
   range: string;
   onRangeChange: (range: string) => void;
+  /** Only read/shown when range === 'custom'; date-input value strings (YYYY-MM-DD). */
+  customStart?: string;
+  customEnd?: string;
+  onCustomStartChange?: (value: string) => void;
+  onCustomEndChange?: (value: string) => void;
 }
 
 import React from 'react';
@@ -33,6 +38,7 @@ import {
   TableBody,
   Chip,
   Alert,
+  TextField,
 } from '@mui/material';
 
 const rangeOptions = [
@@ -44,6 +50,7 @@ const rangeOptions = [
   { value: 'lastMonth', label: 'Last Month' },
   { value: 'thisYear', label: 'This Year' },
   { value: 'lastYear', label: 'Last Year' },
+  { value: 'custom', label: 'Custom' },
 ];
 
 const formatDate = (value?: string | null): string => {
@@ -101,6 +108,10 @@ const ProductHistoryDialog = ({
   loading,
   range,
   onRangeChange,
+  customStart,
+  customEnd,
+  onCustomStartChange,
+  onCustomEndChange,
 }: ProductHistoryDialogProps) => {
   const totals = history?.totals || {
     added: 0,
@@ -130,31 +141,53 @@ const ProductHistoryDialog = ({
       }}
     >
       <DialogTitle>
-        <Box
-          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}
-        >
-          <Box>
-            <Typography variant="h6">Product History</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {product?.name || ''}
-            </Typography>
-            {history?.startDate && history?.endDate && (
-              <Typography variant="caption" color="text.secondary">
-                {formatDate(history.startDate)} – {formatDate(history.endDate)}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}
+          >
+            <Box>
+              <Typography variant="h6">Product History</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {product?.name || ''}
               </Typography>
-            )}
+              {history?.startDate && history?.endDate && (
+                <Typography variant="caption" color="text.secondary">
+                  {formatDate(history.startDate)} – {formatDate(history.endDate)}
+                </Typography>
+              )}
+            </Box>
+            <ButtonGroup size="small" variant="outlined">
+              {rangeOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  onClick={() => onRangeChange(option.value)}
+                  variant={range === option.value ? 'contained' : 'outlined'}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </ButtonGroup>
           </Box>
-          <ButtonGroup size="small" variant="outlined">
-            {rangeOptions.map((option) => (
-              <Button
-                key={option.value}
-                onClick={() => onRangeChange(option.value)}
-                variant={range === option.value ? 'contained' : 'outlined'}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </ButtonGroup>
+          {range === 'custom' && (
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <TextField
+                type="date"
+                size="small"
+                label="From"
+                InputLabelProps={{ shrink: true }}
+                value={customStart || ''}
+                onChange={(e) => onCustomStartChange?.(e.target.value)}
+              />
+              <TextField
+                type="date"
+                size="small"
+                label="To"
+                InputLabelProps={{ shrink: true }}
+                value={customEnd || ''}
+                onChange={(e) => onCustomEndChange?.(e.target.value)}
+              />
+            </Box>
+          )}
         </Box>
       </DialogTitle>
       <DialogContent>
