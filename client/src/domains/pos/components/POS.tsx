@@ -180,8 +180,6 @@ const POS = ({
     activeCustomer,
     clearCustomerOnSale: clearOnSale,
     shopName: propShopName || 'Bachat Bazar',
-    products,
-    showConfirm,
   });
 
   const { filterOptions } = usePOSSearch(products);
