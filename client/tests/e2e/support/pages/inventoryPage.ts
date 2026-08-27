@@ -60,6 +60,13 @@ export const createInventoryPage = (page: Page) => {
       // step navigation needed between them.
       await page.getByLabel('Product Name').fill(name);
       await page.getByLabel('Category').fill(category);
+      // Category is an MUI Autocomplete — filling it opens a suggestions
+      // dropdown that stays open (and animating) until dismissed. Left open,
+      // it can still be intercepting pointer events over whatever sits below
+      // it (here, the Generate button) when the next click fires — a real,
+      // reproducible race, not just a timing fluke. Escape closes it the same
+      // way a user tabbing/clicking away would.
+      await page.keyboard.press('Escape');
 
       // Barcode is required server-side (CreateProductSchema). Generate one
       // instead of hardcoding a value, matching how a cashier without a
