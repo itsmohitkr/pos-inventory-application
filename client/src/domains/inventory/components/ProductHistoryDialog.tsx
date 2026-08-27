@@ -30,7 +30,6 @@ import {
   Box,
   Typography,
   Button,
-  ButtonGroup,
   Divider,
   LinearProgress,
   Table,
@@ -40,10 +39,10 @@ import {
   TableBody,
   Chip,
   Alert,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
+import ProductHistoryRangeSelector from '@/domains/inventory/components/ProductHistoryRangeSelector';
 
 const movementTypeFilterOptions = [
   { value: 'all', label: 'All' },
@@ -54,22 +53,13 @@ const movementTypeFilterOptions = [
   { value: 'adjustment_out', label: 'Adjust -' },
 ];
 
-const rangeOptions = [
-  { value: 'today', label: 'Today' },
-  { value: 'yesterday', label: 'Yesterday' },
-  { value: 'thisWeek', label: 'This Week' },
-  { value: 'lastWeek', label: 'Last Week' },
-  { value: 'thisMonth', label: 'This Month' },
-  { value: 'lastMonth', label: 'Last Month' },
-  { value: 'thisYear', label: 'This Year' },
-  { value: 'lastYear', label: 'Last Year' },
-  { value: 'custom', label: 'Custom' },
-];
-
+/** DD-MM-YYYY, always — not locale-dependent, so it reads the same on every machine. */
 const formatDate = (value?: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
-  return date.toLocaleDateString();
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${day}-${month}-${date.getFullYear()}`;
 };
 
 /** Quotes a CSV field and doubles any embedded quotes, per RFC 4180. */
@@ -205,53 +195,28 @@ const ProductHistoryDialog = ({
       }}
     >
       <DialogTitle>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <Box
-            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}
-          >
-            <Box>
-              <Typography variant="h6">Product History</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {product?.name || ''}
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}
+        >
+          <Box>
+            <Typography variant="h6">Product History</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {product?.name || ''}
+            </Typography>
+            {history?.startDate && history?.endDate && (
+              <Typography variant="caption" color="text.secondary">
+                {formatDate(history.startDate)} – {formatDate(history.endDate)}
               </Typography>
-              {history?.startDate && history?.endDate && (
-                <Typography variant="caption" color="text.secondary">
-                  {formatDate(history.startDate)} – {formatDate(history.endDate)}
-                </Typography>
-              )}
-            </Box>
-            <ButtonGroup size="small" variant="outlined">
-              {rangeOptions.map((option) => (
-                <Button
-                  key={option.value}
-                  onClick={() => onRangeChange(option.value)}
-                  variant={range === option.value ? 'contained' : 'outlined'}
-                >
-                  {option.label}
-                </Button>
-              ))}
-            </ButtonGroup>
+            )}
           </Box>
-          {range === 'custom' && (
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <TextField
-                type="date"
-                size="small"
-                label="From"
-                InputLabelProps={{ shrink: true }}
-                value={customStart || ''}
-                onChange={(e) => onCustomStartChange?.(e.target.value)}
-              />
-              <TextField
-                type="date"
-                size="small"
-                label="To"
-                InputLabelProps={{ shrink: true }}
-                value={customEnd || ''}
-                onChange={(e) => onCustomEndChange?.(e.target.value)}
-              />
-            </Box>
-          )}
+          <ProductHistoryRangeSelector
+            range={range}
+            onRangeChange={onRangeChange}
+            customStart={customStart}
+            customEnd={customEnd}
+            onCustomStartChange={onCustomStartChange}
+            onCustomEndChange={onCustomEndChange}
+          />
         </Box>
       </DialogTitle>
       <DialogContent>
