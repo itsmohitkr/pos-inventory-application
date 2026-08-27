@@ -32,7 +32,7 @@ const setup = () => {
   const setSelectedProductRefresh = vi.fn();
   const showConfirm = vi.fn();
   const showError = vi.fn();
-  const showSuccess = vi.fn();
+  const showNotification = vi.fn();
 
   const { result } = renderHook(() =>
     useProductActions(
@@ -44,7 +44,7 @@ const setup = () => {
       setSelectedProductRefresh,
       showConfirm,
       showError,
-      showSuccess
+      showNotification
     )
   );
 
@@ -55,7 +55,7 @@ const setup = () => {
     setSelectedProductRefresh,
     showConfirm,
     showError,
-    showSuccess,
+    showNotification,
   };
 };
 
@@ -172,7 +172,7 @@ describe('useProductActions handleBatchDelete', () => {
   });
 
   it('refreshes and shows no extra message for a plain (hard) delete', async () => {
-    const { result, showConfirm, fetchProducts, fetchSummary, showSuccess } = setup();
+    const { result, showConfirm, fetchProducts, fetchSummary, showNotification } = setup();
     showConfirm.mockResolvedValueOnce(true);
     mockedDeleteBatch.mockResolvedValueOnce({ data: { softDeleted: false } });
 
@@ -183,11 +183,11 @@ describe('useProductActions handleBatchDelete', () => {
     expect(mockedDeleteBatch).toHaveBeenCalledWith(1);
     expect(fetchProducts).toHaveBeenCalled();
     expect(fetchSummary).toHaveBeenCalled();
-    expect(showSuccess).not.toHaveBeenCalled();
+    expect(showNotification).not.toHaveBeenCalled();
   });
 
   it('shows a retire-specific success message when the batch was soft-deleted', async () => {
-    const { result, showConfirm, showSuccess } = setup();
+    const { result, showConfirm, showNotification } = setup();
     showConfirm.mockResolvedValueOnce(true);
     mockedDeleteBatch.mockResolvedValueOnce({ data: { softDeleted: true } });
 
@@ -195,7 +195,7 @@ describe('useProductActions handleBatchDelete', () => {
       await result.current.handleBatchDelete(1);
     });
 
-    expect(showSuccess).toHaveBeenCalledWith(expect.stringContaining('retired'));
+    expect(showNotification).toHaveBeenCalledWith(expect.stringContaining('retired'));
   });
 
   it('shows an error when deletion fails, e.g. the batch still has stock', async () => {

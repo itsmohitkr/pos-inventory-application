@@ -39,7 +39,15 @@ export default function useProductList({
   debouncedSearch,
   onSearchChange,
 }: UseProductListArgs) {
-  const { dialogState, showError, showConfirm, showSuccess, closeDialog } = useCustomDialog();
+  const { dialogState, showError, showConfirm, closeDialog } = useCustomDialog();
+
+  /** Auto-dismissing toast — not a blocking dialog, for confirmations that
+   * don't need to interrupt the user (e.g. after they've already confirmed
+   * the action itself via showConfirm). */
+  const [notice, setNotice] = useState({ open: false, message: '' });
+  const showNotification = useCallback((message: string) => {
+    setNotice({ open: true, message });
+  }, []);
 
   const [products, setProducts] = useState<SearchableProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -228,7 +236,7 @@ export default function useProductList({
     setSelectedProductRefresh,
     showConfirm,
     showError,
-    showSuccess
+    showNotification
   );
 
   // Lifecycle
@@ -468,6 +476,7 @@ export default function useProductList({
     ...actions,
     // State
     dialogState, showError, closeDialog,
+    notice, setNotice,
     products, setProducts,
     setFilteredProducts: setBarcodeOverride,
     searchTerm, setSearchTerm,

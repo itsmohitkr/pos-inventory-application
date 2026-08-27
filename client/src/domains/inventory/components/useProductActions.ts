@@ -14,7 +14,10 @@ export const useProductActions = (
   setSelectedProductRefresh: React.Dispatch<React.SetStateAction<number>>,
   showConfirm: (message: string, title?: string) => Promise<boolean> | boolean,
   showError: (message: string) => void,
-  showSuccess: (message: string, title?: string) => Promise<boolean> | boolean
+  /** Auto-dismissing toast, not a blocking dialog — for confirmations that
+   * don't need to interrupt the user (e.g. after they already confirmed the
+   * action itself via showConfirm). */
+  showNotification: (message: string) => void
 ) => {
   const [editOpen, setEditOpen] = useState(false);
   const [batchEditOpen, setBatchEditOpen] = useState(false);
@@ -86,7 +89,7 @@ export const useProductActions = (
       fetchSummary();
       setSelectedProductRefresh((value: number) => value + 1);
       if (result?.data?.softDeleted) {
-        showSuccess('Batch retired — hidden from inventory, sales history preserved.');
+        showNotification('Batch retired — hidden from inventory, sales history preserved.');
       }
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-delete-batch' } });
