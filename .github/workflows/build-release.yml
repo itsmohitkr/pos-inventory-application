@@ -350,8 +350,8 @@ jobs:
           # several minutes and, on at least one run, prevent it from
           # completing at all (no exe found afterward in any candidate path).
           # Excluding the download folder, the candidate install roots, and
-          # the installer's own process name keeps Defender from scanning or
-          # blocking anything related to this install.
+          # the installer's own process name keeps Defender's real-time
+          # scanning from touching this install.
           $paths = @(
             (Resolve-Path 'dist').Path,
             "$env:LOCALAPPDATA\Programs",
@@ -363,11 +363,32 @@ jobs:
           $setupName = (Get-ChildItem dist/*.exe | Select-Object -First 1).Name
           if ($setupName) { Add-MpPreference -ExclusionProcess $setupName }
 
+          # Also strip the "downloaded from the internet" mark-of-the-web tag
+          # if present, which is what triggers SmartScreen's app-reputation
+          # check — a separate mechanism from real-time AV scanning, and one
+          # the exclusions above don't touch at all.
+          Get-ChildItem dist -Recurse -File | Unblock-File
+
+          # Diagnostics: GitHub-hosted runners can have Defender Tamper
+          # Protection enabled, which is known to silently no-op
+          # Add-MpPreference calls (no error, but no actual effect either).
+          # Logging this now means a still-failing install next has real
+          # evidence instead of another guess.
+          $prefs = Get-MpPreference
+          Write-Host "Defender ExclusionPath: $($prefs.ExclusionPath -join '; ')"
+          Write-Host "Defender ExclusionProcess: $($prefs.ExclusionProcess -join '; ')"
+          $status = Get-MpComputerStatus
+          Write-Host "RealTimeProtectionEnabled: $($status.RealTimeProtectionEnabled)"
+          Write-Host "IsTamperProtected: $($status.IsTamperProtected)"
+
       - name: Install silently
         shell: pwsh
         run: |
           $setup = Get-ChildItem dist/*.exe | Select-Object -First 1
+          $sw = [System.Diagnostics.Stopwatch]::StartNew()
           Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          $sw.Stop()
+          Write-Host "Install process exited after $($sw.Elapsed)"
 
           # This installer is an "assisted" (non-one-click) NSIS build with no
           # explicit `perMachine` setting, which defaults to a per-user install
@@ -389,6 +410,14 @@ jobs:
             Select-Object -First 1
 
           if (-not $exe) {
+            Write-Host "---- Diagnostics: install did not produce Trovix.exe ----"
+            Write-Host "Recent Windows Defender threat detections:"
+            Get-MpThreatDetection | Format-List | Out-String | Write-Host
+            foreach ($root in $searchRoots) {
+              Write-Host "-- Contents of $root (up to 2 levels deep) --"
+              Get-ChildItem $root -Recurse -Depth 2 -ErrorAction SilentlyContinue |
+                Select-Object FullName | Out-String | Write-Host
+            }
             Write-Error "Trovix.exe not found after install. Searched: $($searchRoots -join ', ')"
             exit 1
           }
