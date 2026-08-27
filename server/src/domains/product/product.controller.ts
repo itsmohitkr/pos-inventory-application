@@ -118,9 +118,14 @@ const createProduct = async (req: Request, res: Response) => {
 
 const addBatch = async (req: Request, res: Response) => {
   const batch = await productService.addBatch(req.body);
-  return sendSuccessResponse(res, StatusCodes.CREATED, { id: batch.id }, 'Batch added', {
-    format: 'merge',
-  });
+  const message = batch.created ? 'New batch created' : 'Batch updated';
+  return sendSuccessResponse(
+    res,
+    StatusCodes.CREATED,
+    { id: batch.id, created: batch.created },
+    message,
+    { format: 'merge' }
+  );
 };
 
 const updateProduct = async (req: Request, res: Response) => {

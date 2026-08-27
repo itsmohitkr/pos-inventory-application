@@ -106,6 +106,7 @@ describe('Product Domain API', () => {
                 .send({ product_id: 1, quantity: 5, mrp: 100, cost_price: 40, selling_price: 60 });
 
             expect(res.status).toBe(201);
+            expect(res.body.created).toBe(true);
             expect(prisma.batch.create).toHaveBeenCalled();
             expect(prisma.stockMovement.create).toHaveBeenCalledWith({
                 data: expect.objectContaining({
@@ -127,6 +128,7 @@ describe('Product Domain API', () => {
                 .send({ product_id: 1, quantity: 5, mrp: 100, cost_price: 40, selling_price: 60 });
 
             expect(res.status).toBe(201);
+            expect(res.body.created).toBe(false);
             // Accumulates 10 + 5 rather than creating a second batch.
             expect(prisma.batch.update).toHaveBeenCalledWith({
                 where: { id: 11 },
@@ -151,6 +153,7 @@ describe('Product Domain API', () => {
                 .send({ product_id: 1, quantity: 5, mrp: 100, cost_price: 40, selling_price: 60 });
 
             expect(res.status).toBe(201);
+            expect(res.body.created).toBe(true);
             expect(prisma.batch.create).toHaveBeenCalled();
             expect(prisma.stockMovement.create).toHaveBeenCalledWith({
                 data: expect.objectContaining({ batchId: 10, quantity: 5, note: 'Stock added' }),

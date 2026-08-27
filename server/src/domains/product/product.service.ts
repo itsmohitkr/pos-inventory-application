@@ -846,17 +846,20 @@ const addBatch = async (batchData: BatchInput) => {
 
     // Batch tracking ON — every addition becomes its own batch record.
     if (product.batchTrackingEnabled) {
-      return createBatchWithMovement(tx, batchFields);
+      const batch = await createBatchWithMovement(tx, batchFields);
+      return { ...batch, created: true };
     }
 
     // Batch tracking OFF — accumulate into the product's single logical batch.
     const existingBatch = product.batches[0];
     if (existingBatch) {
-      return addQuantityToBatch(tx, { batch: existingBatch, qtyToAdd, note: 'Stock added' });
+      const batch = await addQuantityToBatch(tx, { batch: existingBatch, qtyToAdd, note: 'Stock added' });
+      return { ...batch, created: false };
     }
 
     // No existing batch — create the first batch for this non-tracked product.
-    return createBatchWithMovement(tx, batchFields);
+    const batch = await createBatchWithMovement(tx, batchFields);
+    return { ...batch, created: true };
   });
 };
 

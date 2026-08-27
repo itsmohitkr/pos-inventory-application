@@ -161,12 +161,15 @@ export const useAddStock = ({
         expiryDate: stockData.expiryDate || null,
       };
 
-      await inventoryService.addBatch(payload);
+      const result = await inventoryService.addBatch(payload);
 
       setFormSubmitted(false);
       if (onStockAdded) onStockAdded();
       onClose();
-      setNotice({ open: true, message: 'Stock added successfully!' });
+      setNotice({
+        open: true,
+        message: result?.created ? 'New batch created successfully!' : 'Batch updated successfully!',
+      });
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-add-stock' } });
       console.error(error);
