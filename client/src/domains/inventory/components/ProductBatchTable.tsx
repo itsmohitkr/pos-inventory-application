@@ -1,195 +1,327 @@
 import type { Batch } from '@/shared/types/models';
+import React from 'react';
+import { formatPrice } from '@/shared/utils/priceUtils';
+import {
+  Box,
+  Typography,
+  Chip,
+  IconButton,
+  Tooltip,
+  Paper,
+  Divider,
+  Button,
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  AddCircleOutline as AddStockIcon,
+  Event as ExpiryIcon,
+  Add as AddIcon,
+} from '@mui/icons-material';
 
 interface ProductBatchTableProps {
   batches: Batch[];
   /** Shows the batch-code and expiry columns when true. */
   batchTrackingEnabled?: boolean;
+  onAddStock?: () => void;
   onQuickInventoryOpen: (batch: Batch) => void;
   onBatchEditClick: (batch: Batch) => void;
   onBatchDelete: (batchId: number) => void;
 }
 
-import React from 'react';
-import {
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Box,
-  IconButton,
-  Typography,
-  Tooltip,
-} from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Inventory2 as InventoryIcon,
-} from '@mui/icons-material';
-
 const ProductBatchTable = ({
   batches,
-  batchTrackingEnabled,
+  batchTrackingEnabled = false,
+  onAddStock,
   onQuickInventoryOpen,
   onBatchEditClick,
-  onBatchDelete
+  onBatchDelete,
 }: ProductBatchTableProps) => {
   return (
-    <Box sx={{ flex: 1, overflow: 'auto' }}>
-      <Box sx={{ p: 1.5, pb: 1 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1f2937', fontSize: '0.9rem' }}>
-          Stock Lots / Batches
-        </Typography>
-      </Box>
-      <Table size="small">
-        <TableHead>
-          <TableRow sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0' }}>
-            {batchTrackingEnabled && (
-              <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>Batch Code</TableCell>
-            )}
-            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>Qty</TableCell>
-            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              MRP
-            </TableCell>
-            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              CP
-            </TableCell>
-            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              SP
-            </TableCell>
-            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Disc %
-            </TableCell>
-            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Margin
-            </TableCell>
-            {batchTrackingEnabled && (
-              <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-                EXP
-              </TableCell>
-            )}
-            <TableCell sx={{ px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Action
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {batches.map((batch) => {
-            const margin =
-              batch.sellingPrice > 0
-                ? (((batch.sellingPrice - batch.costPrice) / batch.sellingPrice) * 100).toFixed(1)
-                : 0;
-            const discount =
-              batch.mrp > 0
-                ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1)
-                : 0;
+    <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* Section Header */}
+      <Box
+        sx={{
+          py: 0.5,
+          pb: 1.25,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0b1d39', fontSize: '0.85rem' }}>
+            Lots & Batches
+          </Typography>
 
-            return (
-              <TableRow key={batch.id} data-testid={`inventory-batch-row-${batch.id}`}>
-                {batchTrackingEnabled && (
-                  <TableCell sx={{ px: 1.5 }}>
-                    <Tooltip title={batch.batchCode || 'N/A'} arrow placement="top">
-                      <Typography variant="body2" fontWeight={500} sx={{ cursor: 'help' }}>
-                        {batch.batchCode
-                          ? (batch.batchCode.length > 8 ? `${batch.batchCode.substring(0, 8)}...` : batch.batchCode)
-                          : 'N/A'}
-                      </Typography>
-                    </Tooltip>
-                  </TableCell>
-                )}
-                <TableCell sx={{ px: 1.5 }}>
-                  <Typography variant="body2" fontWeight={600}>{batch.quantity}</Typography>
-                </TableCell>
-                <TableCell sx={{ px: 1.5 }}>
-                  <Typography variant="body2">₹{batch.mrp}</Typography>
-                </TableCell>
-                <TableCell sx={{ px: 1.5 }}>
-                  <Typography variant="body2">₹{batch.costPrice}</Typography>
-                </TableCell>
-                <TableCell sx={{ px: 1.5 }}>
-                  <Typography variant="body2" fontWeight={600}>₹{batch.sellingPrice}</Typography>
-                </TableCell>
-                <TableCell sx={{ px: 1.5 }}>
-                  <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600 }}>{discount}%</Typography>
-                </TableCell>
-                <TableCell sx={{ px: 1.5 }}>
+          <Chip
+            label={`${batches.length} ${batches.length === 1 ? 'batch' : 'batches'}`}
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              bgcolor: 'rgba(31, 41, 55, 0.08)',
+              color: '#1f2937',
+            }}
+          />
+        </Box>
+
+        {batchTrackingEnabled && onAddStock && (
+          <Button
+            size="small"
+            variant="outlined"
+            color="inherit"
+            startIcon={<AddIcon fontSize="small" />}
+            onClick={onAddStock}
+            sx={{
+              height: '32px',
+              textTransform: 'none',
+              fontSize: '0.78rem',
+              fontWeight: 500,
+              borderColor: '#e2e8f0',
+              color: '#1f2937',
+              borderRadius: '6px',
+              px: 1.5,
+              '&:hover': {
+                borderColor: '#cbd5e1',
+                bgcolor: 'rgba(31, 41, 55, 0.05)',
+              },
+            }}
+          >
+            New Batch
+          </Button>
+        )}
+      </Box>
+
+      {/* Batch Cards Container (Autonomous Scroll Area) */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1.25,
+          overflowY: 'auto',
+          pr: 0.5,
+        }}
+      >
+        {batches.map((batch) => {
+          const margin =
+            batch.sellingPrice > 0
+              ? (((batch.sellingPrice - batch.costPrice) / batch.sellingPrice) * 100).toFixed(1)
+              : '0.0';
+          const discount =
+            batch.mrp > 0
+              ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1)
+              : '0.0';
+          const numMargin = Number(margin);
+
+          return (
+            <Paper
+              key={batch.id}
+              elevation={0}
+              data-testid={`inventory-batch-row-${batch.id}`}
+              sx={{
+                p: 1.5,
+                px: 2,
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                bgcolor: '#ffffff',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.25,
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  borderColor: '#cbd5e1',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                },
+              }}
+            >
+              {/* Batch Code & Quantity Header */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 500 }}>
+                    Batch ID:
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 500,
+                      color: '#334155',
+                      fontSize: '0.75rem',
+                      bgcolor: '#f1f5f9',
+                      border: '1px solid #e2e8f0',
+                      px: 0.85,
+                      py: 0.25,
+                      borderRadius: '5px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {batchTrackingEnabled && batch.batchCode ? batch.batchCode : 'Standard Lot'}
+                  </Typography>
+                </Box>
+
+                <Chip
+                  label={`${batch.quantity} in stock`}
+                  size="small"
+                  sx={{
+                    height: 22,
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    bgcolor: batch.quantity > 0 ? 'rgba(16, 185, 129, 0.12)' : '#fef2f2',
+                    color: batch.quantity > 0 ? '#059669' : '#ef4444',
+                    border: 'none',
+                  }}
+                />
+              </Box>
+
+              {/* Pricing & Financial Metrics Grid: MRP, CP, SP, Margin, Discount */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: 0.75,
+                  bgcolor: '#f8fafc',
+                  p: 1,
+                  borderRadius: '6px',
+                  border: 'none',
+                  alignItems: 'center',
+                }}
+              >
+                <Box>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+                    MRP
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                    ₹{formatPrice(batch.mrp)}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+                    Cost (CP)
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                    ₹{formatPrice(batch.costPrice)}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+                    Selling (SP)
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#0b1d39', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                    ₹{formatPrice(batch.sellingPrice)}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+                    Margin
+                  </Typography>
                   <Typography
                     variant="body2"
                     sx={{
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      whiteSpace: 'nowrap',
                       color:
-                        Number(margin) > 20
-                          ? 'success.main'
-                          : Number(margin) > 10
-                            ? 'warning.main'
-                            : 'error.main',
-                      fontWeight: 600,
+                        numMargin > 20
+                          ? '#059669'
+                          : numMargin > 10
+                            ? '#d97706'
+                            : '#ef4444',
                     }}
                   >
                     {margin}%
                   </Typography>
-                </TableCell>
-                {batchTrackingEnabled && (
-                  <TableCell sx={{ px: 1.5 }}>
-                    <Typography variant="body2">
-                      {batch.expiryDate
-                        ? new Date(batch.expiryDate).toLocaleDateString()
-                        : 'N/A'}
-                    </Typography>
-                  </TableCell>
-                )}
-                <TableCell sx={{ px: 1.5 }}>
-                  <Box sx={{ display: 'flex', gap: 1.5 }}>
-                    <ActionButton
-                      icon={<InventoryIcon fontSize="small" />}
-                      label="Stock"
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+                    Discount
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#2563eb', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                    {discount}%
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider sx={{ borderColor: '#f1f5f9' }} />
+
+              {/* Expiry & Action Buttons Row */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <ExpiryIcon sx={{ fontSize: 13, color: batch.expiryDate ? '#64748b' : '#94a3b8' }} />
+                  <Typography variant="caption" sx={{ color: batch.expiryDate ? '#475569' : '#94a3b8', fontSize: '0.7rem', fontWeight: 500 }}>
+                    {batch.expiryDate
+                      ? `EXP: ${new Date(batch.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                      : 'EXP: N/A'}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Tooltip title="Quick Stock Update">
+                    <IconButton
+                      size="small"
                       onClick={() => onQuickInventoryOpen(batch)}
-                      color="#1f8a5b"
-                      testId={`inventory-quick-stock-${batch.id}`}
-                    />
-                    <ActionButton
-                      icon={<EditIcon fontSize="small" />}
-                      label="Edit"
+                      data-testid={`inventory-quick-stock-${batch.id}`}
+                      aria-label="Quick Stock Update"
+                      sx={{
+                        bgcolor: 'rgba(16, 185, 129, 0.1)',
+                        color: '#059669',
+                        borderRadius: '6px',
+                        '&:hover': { bgcolor: 'rgba(16, 185, 129, 0.2)' },
+                      }}
+                    >
+                      <AddStockIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Tooltip title="Edit Batch Details">
+                    <IconButton
+                      size="small"
                       onClick={() => onBatchEditClick(batch)}
-                      color="#1f2937"
-                    />
-                    <ActionButton
-                      icon={<DeleteIcon fontSize="small" />}
-                      label="Delete"
+                      aria-label="Edit Batch Details"
+                      sx={{
+                        border: '1px solid #e2e8f0',
+                        color: '#475569',
+                        borderRadius: '6px',
+                        '&:hover': { bgcolor: '#f8fafc', color: '#0f172a' },
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Tooltip title="Delete Batch">
+                    <IconButton
+                      size="small"
                       onClick={() => onBatchDelete(batch.id)}
-                      color="#ef4444"
-                    />
-                  </Box>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                      aria-label="Delete Batch"
+                      sx={{
+                        border: '1px solid #fecaca',
+                        color: '#ef4444',
+                        bgcolor: '#fef2f2',
+                        borderRadius: '6px',
+                        '&:hover': { bgcolor: '#fee2e2' },
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Box>
+            </Paper>
+          );
+        })}
+      </Box>
     </Box>
   );
 };
-
-const ActionButton = ({ icon, label, onClick, color, testId }: { icon?: React.ReactNode; label?: string; onClick?: () => void; color?: string; testId?: string }) => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-    <IconButton
-      size="small"
-      onClick={onClick}
-      data-testid={testId}
-      sx={{
-        bgcolor: `${color}1A`, // 10% opacity
-        color: color,
-        '&:hover': { bgcolor: `${color}33` }, // 20% opacity
-      }}
-    >
-      {icon}
-    </IconButton>
-    <Typography
-      variant="caption"
-      sx={{ fontSize: '0.65rem', fontWeight: 600, color: color }}
-    >
-      {label}
-    </Typography>
-  </Box>
-);
 
 export default ProductBatchTable;

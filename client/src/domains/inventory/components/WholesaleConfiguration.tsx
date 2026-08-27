@@ -1,4 +1,5 @@
 import React from 'react';
+import { limitTwoDecimals } from '@/shared/utils/priceUtils';
 import {
   Grid,
   TextField,
@@ -82,7 +83,7 @@ const WholesaleConfiguration = ({
               required
               InputLabelProps={{ shrink: true }}
               value={wholesalePrice}
-              onChange={(e) => onPriceChange(e.target.value)}
+              onChange={(e) => onPriceChange(limitTwoDecimals(e.target.value))}
               placeholder="0.00"
               error={Boolean(wPriceError)}
               helperText={wPriceError}

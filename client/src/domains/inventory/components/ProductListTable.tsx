@@ -16,15 +16,13 @@ interface ProductListTableProps {
   onSort: (field: string) => void;
   onSelect: (product: Product, event: React.MouseEvent) => void;
   onDragStart: (event: React.DragEvent, product: Product) => void;
-  onEdit: (product: Product) => void;
-  onDelete: (id: number) => void;
   /** Clears the selection; the row passes no arguments. */
   onDoubleClick: () => void;
 }
 
 const ProductListTable = ({
   displayedProducts, selectedIds, sortBy, sortOrder, isPending,
-  onSort, onSelect, onDragStart, onEdit, onDelete, onDoubleClick,
+  onSort, onSelect, onDragStart, onDoubleClick,
 }: ProductListTableProps) => {
   const tableContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -55,10 +53,10 @@ const ProductListTable = ({
       <Table size="small" stickyHeader>
         <TableHead>
           <TableRow sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0' }}>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '50px', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '50px', minWidth: '50px', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               S.No.
             </TableCell>
-            <TableCell sx={{ px: 1.5, minWidth: '220px', maxWidth: '220px' }}>
+            <TableCell sx={{ px: 1.5, minWidth: '200px' }}>
               <TableSortLabel
                 active={sortBy === 'name'}
                 direction={sortBy === 'name' ? sortOrder : 'asc'}
@@ -74,7 +72,7 @@ const ProductListTable = ({
                 Name
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ px: 1.5, minWidth: '200px', maxWidth: '200px' }}>
+            <TableCell sx={{ px: 1.5, width: '170px', minWidth: '150px' }}>
               <TableSortLabel
                 active={sortBy === 'barcode'}
                 direction={sortBy === 'barcode' ? sortOrder : 'asc'}
@@ -90,39 +88,7 @@ const ProductListTable = ({
                 Barcode
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
-              <TableSortLabel
-                active={sortBy === 'batchTrackingEnabled'}
-                direction={sortBy === 'batchTrackingEnabled' ? sortOrder : 'asc'}
-                onClick={() => onSort('batchTrackingEnabled')}
-                sx={{ 
-                  fontWeight: 700, 
-                  color: '#475569', 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase',
-                  '& .MuiTableSortLabel-icon': { opacity: 1 }
-                }}
-              >
-                Batch Tracking
-              </TableSortLabel>
-            </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
-              <TableSortLabel
-                active={sortBy === 'lowStockWarningEnabled'}
-                direction={sortBy === 'lowStockWarningEnabled' ? sortOrder : 'asc'}
-                onClick={() => onSort('lowStockWarningEnabled')}
-                sx={{ 
-                  fontWeight: 700, 
-                  color: '#475569', 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase',
-                  '& .MuiTableSortLabel-icon': { opacity: 1 }
-                }}
-              >
-                Low Stock
-              </TableSortLabel>
-            </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+            <TableCell align="right" sx={{ whiteSpace: 'nowrap', px: 1.5, width: '110px', minWidth: '90px' }}>
               <TableSortLabel
                 active={sortBy === 'stock'}
                 direction={sortBy === 'stock' ? sortOrder : 'asc'}
@@ -138,7 +104,7 @@ const ProductListTable = ({
                 Stock
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5 }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '160px', minWidth: '140px' }}>
               <TableSortLabel
                 active={sortBy === 'lastUpdatedAt'}
                 direction={sortBy === 'lastUpdatedAt' ? sortOrder : 'desc'}
@@ -154,15 +120,12 @@ const ProductListTable = ({
                 Last Updated
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Actions
-            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {paddingTop > 0 && (
             <TableRow>
-              <TableCell colSpan={8} sx={{ height: paddingTop, p: 0, border: 0 }} />
+              <TableCell colSpan={5} sx={{ height: paddingTop, p: 0, border: 0 }} />
             </TableRow>
           )}
           {virtualItems.map((virtualRow) => {
@@ -175,15 +138,13 @@ const ProductListTable = ({
                 isSelected={selectedIds.has(String(product.id))}
                 onSelect={onSelect}
                 onDragStart={onDragStart}
-                onEdit={onEdit}
-                onDelete={onDelete}
                 onDoubleClick={onDoubleClick}
               />
             );
           })}
           {paddingBottom > 0 && (
             <TableRow>
-              <TableCell colSpan={8} sx={{ height: paddingBottom, p: 0, border: 0 }} />
+              <TableCell colSpan={5} sx={{ height: paddingBottom, p: 0, border: 0 }} />
             </TableRow>
           )}
         </TableBody>

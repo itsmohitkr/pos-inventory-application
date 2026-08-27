@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import CustomDialog from '@/shared/components/CustomDialog';
 import SuccessNotification from '@/shared/components/SuccessNotification';
+import { formatPrice, limitTwoDecimals } from '@/shared/utils/priceUtils';
 
 const QuickInventoryDialog = ({
   open,
@@ -177,7 +178,7 @@ const QuickInventoryDialog = ({
                   Current CP
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                  ₹{batch?.costPrice || 0}
+                  ₹{formatPrice(batch?.costPrice)}
                 </Typography>
               </Box>
               <Box sx={{ flex: 1.5 }}>
@@ -187,7 +188,7 @@ const QuickInventoryDialog = ({
                   type="number"
                   label="New CP"
                   value={newCostPrice}
-                  onChange={(event) => setNewCostPrice(event.target.value)}
+                  onChange={(event) => setNewCostPrice(limitTwoDecimals(event.target.value))}
                   inputProps={{ min: 0, step: 0.01 }}
                 />
               </Box>

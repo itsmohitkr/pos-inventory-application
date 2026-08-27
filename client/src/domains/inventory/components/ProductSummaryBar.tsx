@@ -40,10 +40,9 @@ const ProductSummaryBar = ({
   return (
     <Box
       sx={{
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))',
         gap: 1.25,
-        flexWrap: 'wrap',
-        alignItems: 'center',
         pt: 1.5,
         borderTop: '1px solid #e2e8f0',
       }}
@@ -55,15 +54,18 @@ const ProductSummaryBar = ({
             border: '1px solid',
             borderColor: `${accentColor}33`, // 20% opacity
             borderRadius: '8px',
-            p: 1.25,
+            py: 1,
+            px: 1.25,
             bgcolor: `${accentColor}0A`, // 4% opacity
-            minWidth: label.includes('Value') ? 130 : 100,
-            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            minWidth: 0,
             transition: 'all 0.2s ease',
             '&:hover': {
               bgcolor: `${accentColor}1A`, // 10% opacity
               borderColor: `${accentColor}66`, // 40% opacity
-            }
+            },
           }}
         >
           <Typography
@@ -71,22 +73,28 @@ const ProductSummaryBar = ({
             sx={{
               color: accentColor,
               textTransform: 'uppercase',
-              fontSize: '0.85rem',
+              fontSize: '0.68rem',
               letterSpacing: '0.5px',
-              fontWeight: 500,
+              fontWeight: 600,
               display: 'block',
-              mb: 0.5,
+              mb: 0.25,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {label}
           </Typography>
           <Typography
-            variant="body1"
+            variant="body2"
             sx={{ 
               fontWeight: 500, 
-              fontSize: '0.85rem', 
-              color: '#0b1d39',
-              lineHeight: 1
+              fontSize: '0.88rem', 
+              color: '#1e293b',
+              lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {getValue(summaryTotals, avg)}

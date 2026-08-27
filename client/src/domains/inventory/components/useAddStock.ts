@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { getApiErrorMessage } from '@/shared/api/api';
 import type { Product } from '@/shared/types/models';
+import { limitTwoDecimals } from '@/shared/utils/priceUtils';
 
 interface UseAddStockArgs {
   product?: Product | null;
@@ -86,9 +87,17 @@ export const useAddStock = ({
   // `value` is a string from the text fields, or a boolean for the wholesale
   // switch.
   const handleChange = useCallback((name: string, value: string | boolean) => {
+    let finalValue = value;
+    if (
+      typeof value === 'string' &&
+      ['mrp', 'cost_price', 'selling_price', 'wholesalePrice'].includes(name)
+    ) {
+      finalValue = limitTwoDecimals(value);
+    }
+
     if (name === 'discount_percent') {
-      setDiscountInput(String(value));
-      const val = parseFloat(String(value));
+      setDiscountInput(String(finalValue));
+      const val = parseFloat(String(finalValue));
       if (!isNaN(val)) {
         setStockData((prev) => {
           const m = parseFloat(String(prev.mrp)) || 0;
@@ -103,11 +112,11 @@ export const useAddStock = ({
     }
 
     setStockData((prev) => {
-      const newData = { ...prev, [name]: value };
+      const newData = { ...prev, [name]: finalValue };
       
       if (name === 'mrp' || name === 'selling_price') {
-        const m = name === 'mrp' ? parseFloat(String(value)) : parseFloat(prev.mrp || 0);
-        const s = name === 'selling_price' ? parseFloat(String(value)) : parseFloat(prev.selling_price || 0);
+        const m = name === 'mrp' ? parseFloat(String(finalValue)) : parseFloat(prev.mrp || 0);
+        const s = name === 'selling_price' ? parseFloat(String(finalValue)) : parseFloat(prev.selling_price || 0);
         if (m > 0) {
           setDiscountInput((((m - s) / m) * 100).toFixed(1));
         } else {
