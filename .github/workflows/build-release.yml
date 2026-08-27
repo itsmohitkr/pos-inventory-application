@@ -341,6 +341,28 @@ jobs:
           name: win-installer
           path: dist/
 
+      - name: Exclude installer from Windows Defender
+        shell: pwsh
+        run: |
+          # The installer is unsigned (no code-signing cert configured), which
+          # Windows Defender/SmartScreen on a fresh runner can flag for a
+          # cloud-reputation check — observed to stall the "silent" install for
+          # several minutes and, on at least one run, prevent it from
+          # completing at all (no exe found afterward in any candidate path).
+          # Excluding the download folder, the candidate install roots, and
+          # the installer's own process name keeps Defender from scanning or
+          # blocking anything related to this install.
+          $paths = @(
+            (Resolve-Path 'dist').Path,
+            "$env:LOCALAPPDATA\Programs",
+            "$env:ProgramFiles",
+            "${env:ProgramFiles(x86)}"
+          ) | Where-Object { $_ }
+          Add-MpPreference -ExclusionPath $paths
+          Add-MpPreference -ExclusionProcess 'Trovix.exe'
+          $setupName = (Get-ChildItem dist/*.exe | Select-Object -First 1).Name
+          if ($setupName) { Add-MpPreference -ExclusionProcess $setupName }
+
       - name: Install silently
         shell: pwsh
         run: |
