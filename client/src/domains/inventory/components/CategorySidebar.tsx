@@ -84,7 +84,6 @@ const CategorySidebar = ({
   uncategorizedCount,
   hasUncategorized,
   categorySortOrder,
-  isResizingLeft,
   contextMenu,
   activeCategory,
   addCategoryOpen,
@@ -105,7 +104,6 @@ const CategorySidebar = ({
   onCategoryDialogClose,
   onCategoryNameChange,
   onSaveCategory,
-  onResizeStart,
   onDoubleClick,
   onToggleCategories,
 }: CategorySidebarProps) => {

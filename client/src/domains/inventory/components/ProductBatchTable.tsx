@@ -104,7 +104,7 @@ const ProductBatchTable = ({
           flexDirection: 'column',
           gap: 1.25,
           overflowY: 'auto',
-          // @ts-ignore - Chrome/Electron overlay scrollbar prevents layout shifting
+          // @ts-expect-error - Chrome/Electron overlay scrollbar prevents layout shifting
           overflowY: 'overlay',
           pr: 0,
           scrollbarWidth: 'thin',

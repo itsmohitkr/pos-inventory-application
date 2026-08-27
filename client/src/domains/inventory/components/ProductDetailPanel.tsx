@@ -57,9 +57,6 @@ interface ProductDetailPanelProps {
 const ProductDetailPanel = ({
   displayProduct,
   isLoadingBatches,
-  width,
-  isResizing,
-  onResizeStart,
   onAddStock,
   onOpenHistory,
   onBatchEditClick,
