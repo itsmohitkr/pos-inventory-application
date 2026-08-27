@@ -13,7 +13,8 @@ export const useProductActions = (
   /** Bumped to force the detail panel to refetch its batches. */
   setSelectedProductRefresh: React.Dispatch<React.SetStateAction<number>>,
   showConfirm: (message: string, title?: string) => Promise<boolean> | boolean,
-  showError: (message: string) => void
+  showError: (message: string) => void,
+  showSuccess: (message: string, title?: string) => Promise<boolean> | boolean
 ) => {
   const [editOpen, setEditOpen] = useState(false);
   const [batchEditOpen, setBatchEditOpen] = useState(false);
@@ -76,14 +77,17 @@ export const useProductActions = (
 
   const handleBatchDelete = async (batchId: number) => {
     const confirmed = await showConfirm(
-      'Are you sure you want to delete this batch? This action cannot be undone.'
+      'Deleting this batch will remove it from the inventory view. If it still has stock, deletion will be blocked. If it has sales history, the batch will be retired (hidden from inventory) rather than erased — all existing sales, reports, and transaction history stay fully intact. Continue?'
     );
     if (!confirmed) return;
     try {
-      await inventoryService.deleteBatch(batchId);
+      const result = await inventoryService.deleteBatch(batchId);
       fetchProducts();
       fetchSummary();
       setSelectedProductRefresh((value: number) => value + 1);
+      if (result?.data?.softDeleted) {
+        showSuccess('Batch retired — hidden from inventory, sales history preserved.');
+      }
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-delete-batch' } });
       showError('Failed to delete batch: ' + getApiErrorMessage(error));

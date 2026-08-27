@@ -382,7 +382,7 @@ const getAllProducts = async ({
             CAST(COALESCE(SUM(b.quantity * b.costPrice), 0) AS REAL) as total_cost,
             CAST(COALESCE(SUM(b.quantity * b.sellingPrice), 0) AS REAL) as total_selling
         FROM Product p
-        LEFT JOIN Batch b ON b.productId = p.id
+        LEFT JOIN Batch b ON b.productId = p.id AND b.isDeleted = 0
         ${whereSql}
         GROUP BY p.id
         ORDER BY ${safeSortBy} ${safeOrder}
@@ -414,6 +414,7 @@ const getAllProductsWithBatches = async ({ search = '', category = 'all' } = {})
     where,
     include: {
       batches: {
+        where: { isDeleted: false },
         orderBy: { createdAt: 'asc' },
       },
       promotions: {
@@ -500,7 +501,7 @@ const getProductSummary = async ({ search = '', category = 'all' }: ProductListF
             CAST(COALESCE(SUM(b.quantity * b.sellingPrice), 0) AS REAL) as total_selling,
             CAST(COALESCE(SUM(b.quantity * b.mrp), 0) AS REAL) as total_mrp
         FROM Product p
-        LEFT JOIN Batch b ON b.productId = p.id
+        LEFT JOIN Batch b ON b.productId = p.id AND b.isDeleted = 0
         ${whereSql}
     `);
 
@@ -560,6 +561,7 @@ const getProductById = async (id: number | string) => {
     where: { id: parseInt(String(id)), isDeleted: false },
     include: {
       batches: {
+        where: { isDeleted: false },
         orderBy: { createdAt: 'asc' },
       },
     },
@@ -604,7 +606,7 @@ const getProductByBarcode = async (barcode: string) => {
     },
     include: {
       batches: {
-        where: { quantity: { gt: 0 } },
+        where: { quantity: { gt: 0 }, isDeleted: false },
         orderBy: { createdAt: 'asc' },
       },
     },
@@ -813,7 +815,7 @@ const addBatch = async (batchData: BatchInput) => {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const product = await tx.product.findUnique({
       where: { id: parseInt(String(product_id)) },
-      include: { batches: { orderBy: { createdAt: 'asc' } } },
+      include: { batches: { where: { isDeleted: false }, orderBy: { createdAt: 'asc' } } },
     });
 
     if (!product) {
@@ -892,7 +894,7 @@ const updateProduct = async (id: string | number, productData: UpdateProductInpu
       const current = await tx.product.findUnique({ where: { id: productId } });
       if (current && !current.batchTrackingEnabled) {
         const batchesWithoutCode = await tx.batch.findMany({
-          where: { productId, batchCode: null },
+          where: { productId, batchCode: null, isDeleted: false },
         });
         for (const b of batchesWithoutCode) {
           await tx.batch.update({
@@ -948,7 +950,7 @@ const updateBatch = async (id: number | string, batchData: BatchUpdateInput) => 
   const existing = await prisma.batch.findUnique({
     where: { id: parseInt(String(id)) },
   });
-  if (!existing) {
+  if (!existing || existing.isDeleted) {
     throw createHttpError(StatusCodes.NOT_FOUND, 'Batch not found', {
       error: 'Batch not found',
     });
@@ -1007,25 +1009,43 @@ const updateBatch = async (id: number | string, batchData: BatchUpdateInput) => 
   });
 };
 
-const deleteBatch = async (id: number | string): Promise<void> => {
+/**
+ * Active stock is always protected, regardless of sales history. A
+ * zero-quantity batch with no sales history is hard-deleted (nothing
+ * references it). A zero-quantity batch WITH sales history is retired
+ * (isDeleted) instead of physically deleted — SaleItem.batchId is a
+ * required FK with ON DELETE RESTRICT, so the database itself would
+ * reject a hard delete here; retiring keeps the row (and its
+ * StockMovement history) intact for Sale History/Reports/Product
+ * History, which all resolve product/batch identity via a live join
+ * through this row, not a stored snapshot.
+ */
+const deleteBatch = async (id: number | string): Promise<{ softDeleted: boolean }> => {
   const existing = await prisma.batch.findUnique({
     where: { id: parseInt(String(id)) },
     include: { _count: { select: { saleItems: true } } },
   });
-  if (!existing) {
+  if (!existing || existing.isDeleted) {
     throw createHttpError(StatusCodes.NOT_FOUND, 'Batch not found', {
       error: 'Batch not found',
     });
   }
-  if (existing._count.saleItems > 0) {
-    throw createHttpError(StatusCodes.BAD_REQUEST, 'This batch has sales history and cannot be deleted. Set its quantity to 0 to retire it instead.', {
-      error: 'This batch has sales history and cannot be deleted. Set its quantity to 0 to retire it instead.',
-    });
+  if (existing.quantity > 0) {
+    const message = `This batch still has ${existing.quantity} unit(s) in stock. Reduce its quantity to 0 before deleting it.`;
+    throw createHttpError(StatusCodes.BAD_REQUEST, message, { error: message });
   }
-  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  if (existing._count.saleItems > 0) {
+    await prisma.batch.update({
+      where: { id: parseInt(String(id)) },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
+    return { softDeleted: true };
+  }
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.stockMovement.deleteMany({ where: { batchId: parseInt(String(id)) } });
     await tx.batch.delete({ where: { id: parseInt(String(id)) } });
   });
+  return { softDeleted: false };
 };
 
 // Helper function to escape CSV values according to RFC 4180

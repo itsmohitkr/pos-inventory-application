@@ -147,8 +147,11 @@ const updateBatch = async (req: Request, res: Response) => {
 
 const deleteBatch = async (req: Request, res: Response) => {
   const id = paramValue(req.params.id);
-  await productService.deleteBatch(id);
-  return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Batch deleted successfully');
+  const { softDeleted } = await productService.deleteBatch(id);
+  const message = softDeleted
+    ? 'Batch retired — hidden from inventory, sales history preserved'
+    : 'Batch deleted successfully';
+  return sendSuccessResponse(res, StatusCodes.OK, { softDeleted }, message);
 };
 
 const exportProducts = async (req: Request, res: Response) => {

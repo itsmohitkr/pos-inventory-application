@@ -39,7 +39,7 @@ export default function useProductList({
   debouncedSearch,
   onSearchChange,
 }: UseProductListArgs) {
-  const { dialogState, showError, showConfirm, closeDialog } = useCustomDialog();
+  const { dialogState, showError, showConfirm, showSuccess, closeDialog } = useCustomDialog();
 
   const [products, setProducts] = useState<SearchableProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -227,7 +227,8 @@ export default function useProductList({
     setSelectedProductDetails,
     setSelectedProductRefresh,
     showConfirm,
-    showError
+    showError,
+    showSuccess
   );
 
   // Lifecycle

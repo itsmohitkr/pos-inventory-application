@@ -302,4 +302,60 @@ describe('Product Domain API', () => {
             });
         });
     });
+
+    describe('DELETE /api/batches/:id', () => {
+        it('rejects deletion while the batch still has stock, regardless of sales history', async () => {
+            prisma.batch.findUnique.mockResolvedValue(asMock({
+                id: 1, quantity: 5, isDeleted: false, _count: { saleItems: 3 },
+            }));
+
+            const res = await request(app).delete('/api/batches/1');
+
+            expect(res.status).toBe(400);
+            expect(prisma.batch.update).not.toHaveBeenCalled();
+            expect(prisma.batch.delete).not.toHaveBeenCalled();
+        });
+
+        it('retires (soft-deletes) a zero-quantity batch that has sales history', async () => {
+            prisma.batch.findUnique.mockResolvedValue(asMock({
+                id: 1, quantity: 0, isDeleted: false, _count: { saleItems: 2 },
+            }));
+            prisma.batch.update.mockResolvedValue(asMock({ id: 1, isDeleted: true }));
+
+            const res = await request(app).delete('/api/batches/1');
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.softDeleted).toBe(true);
+            expect(prisma.batch.update).toHaveBeenCalledWith({
+                where: { id: 1 },
+                data: { isDeleted: true, deletedAt: expect.any(Date) },
+            });
+            expect(prisma.batch.delete).not.toHaveBeenCalled();
+        });
+
+        it('hard-deletes a zero-quantity batch with no sales history', async () => {
+            prisma.batch.findUnique.mockResolvedValue(asMock({
+                id: 1, quantity: 0, isDeleted: false, _count: { saleItems: 0 },
+            }));
+            prisma.$transaction.mockImplementation(async (cb) => cb(prisma));
+
+            const res = await request(app).delete('/api/batches/1');
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.softDeleted).toBe(false);
+            expect(prisma.stockMovement.deleteMany).toHaveBeenCalledWith({ where: { batchId: 1 } });
+            expect(prisma.batch.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+            expect(prisma.batch.update).not.toHaveBeenCalled();
+        });
+
+        it('treats an already-retired batch as not found', async () => {
+            prisma.batch.findUnique.mockResolvedValue(asMock({
+                id: 1, quantity: 0, isDeleted: true, _count: { saleItems: 2 },
+            }));
+
+            const res = await request(app).delete('/api/batches/1');
+
+            expect(res.status).toBe(404);
+        });
+    });
 });

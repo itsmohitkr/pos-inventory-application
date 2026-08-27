@@ -77,6 +77,11 @@ model Batch {
   wholesalePrice   Float?
   wholesaleMinQty  Int?
   expiryDate       DateTime?
+  /// Retired instead of physically deleted once it has sales history — the
+  /// row must stay so historical joins (Sale History, Reports, Product
+  /// History, Customer History) keep resolving product/batch identity.
+  isDeleted        Boolean         @default(false)
+  deletedAt        DateTime?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   product          Product         @relation(fields: [productId], references: [id])
@@ -84,6 +89,7 @@ model Batch {
   movements        StockMovement[]
 
   @@index([productId])
+  @@index([isDeleted])
 }
 
 model Customer {
