@@ -329,7 +329,9 @@ const processSale = async ({
     });
 
     if (movementData.length > 0) {
-      await tx.stockMovement.createMany({ data: movementData });
+      await tx.stockMovement.createMany({
+        data: movementData.map((movement) => ({ ...movement, saleId: sale.id })),
+      });
     }
 
     // 4. Update Customer Metrics if customerId is present
@@ -429,6 +431,7 @@ const processReturn = async (
           data: {
             productId: batch.productId,
             batchId: batch.id,
+            saleId: parseInt(String(saleId)),
             type: 'returned',
             quantity: item.quantity,
             note: 'Return',

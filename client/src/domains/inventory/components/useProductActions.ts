@@ -23,6 +23,7 @@ export const useProductActions = (
   const [quickInventoryOpen, setQuickInventoryOpen] = useState(false);
   const [quickInventoryBatch, setQuickInventoryBatch] = useState<Batch | null>(null);
   const [barcodePrintOpen, setBarcodePrintOpen] = useState(false);
+  const [isTogglingBatchTracking, setIsTogglingBatchTracking] = useState(false);
 
   const handleDelete = useCallback(
     async (id: number) => {
@@ -107,6 +108,29 @@ export const useProductActions = (
 
   const handleQuickInventoryClose = () => setQuickInventoryOpen(false);
 
+  const handleToggleBatchTracking = useCallback(
+    async (product: Product, enabled?: boolean) => {
+      if (isTogglingBatchTracking) return;
+      const targetState = enabled !== undefined ? enabled : !product.batchTrackingEnabled;
+      setIsTogglingBatchTracking(true);
+      try {
+        await inventoryService.updateProduct(product.id, {
+          batchTrackingEnabled: targetState,
+        });
+        fetchProducts();
+        fetchSummary();
+        setSelectedProductRefresh((prev: number) => prev + 1);
+      } catch (error) {
+        Sentry.captureException(error, { tags: { feature: 'inventory-toggle-batch-tracking' } });
+        console.error('Failed to toggle batch tracking:', error);
+        showError('Failed to update batch tracking: ' + getApiErrorMessage(error));
+      } finally {
+        setIsTogglingBatchTracking(false);
+      }
+    },
+    [isTogglingBatchTracking, fetchProducts, fetchSummary, setSelectedProductRefresh, showError]
+  );
+
   return {
     editOpen, setEditOpen,
     batchEditOpen, setBatchEditOpen,
@@ -120,5 +144,6 @@ export const useProductActions = (
     handleBatchEditClick, handleBatchEditSave, handleBatchDelete,
     handleAddStock, handleStockAdded,
     handleQuickInventoryOpen, handleQuickInventoryClose,
+    handleToggleBatchTracking, isTogglingBatchTracking,
   };
 };

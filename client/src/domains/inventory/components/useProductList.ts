@@ -48,7 +48,11 @@ export default function useProductList({
   const [selectedProductRefresh, setSelectedProductRefresh] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRange, setHistoryRange] = useState('thisMonth');
+  /** Only read when historyRange === 'custom'; ISO date strings from a date input. */
+  const [historyCustomStart, setHistoryCustomStart] = useState('');
+  const [historyCustomEnd, setHistoryCustomEnd] = useState('');
   const [historyData, setHistoryData] = useState<ProductHistory | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -281,15 +285,28 @@ export default function useProductList({
     return () => controller.abort();
   }, [selectedProduct?.id, selectedProductRefresh]);
 
+  const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
+
+  const buildHistoryParams = useCallback(
+    (page: number) =>
+      historyRange === 'custom'
+        ? { range: historyRange, startDate: historyCustomStart, endDate: historyCustomEnd, page }
+        : { range: historyRange, page },
+    [historyRange, historyCustomStart, historyCustomEnd]
+  );
+
   useEffect(() => {
     if (!historyOpen || !selectedProduct?.id) return undefined;
+    // Custom range needs both bounds before it's worth a request.
+    if (historyRange === 'custom' && (!historyCustomStart || !historyCustomEnd)) return undefined;
     const controller = new AbortController();
     const fetchHistory = async () => {
       setIsHistoryLoading(true);
+      setHistoryError(null);
       try {
         const data = await inventoryService.fetchProductHistory(
           selectedProduct.id,
-          { range: historyRange },
+          buildHistoryParams(1),
           { signal: controller.signal }
         );
         setHistoryData(data.data || null);
@@ -298,13 +315,40 @@ export default function useProductList({
         Sentry.captureException(error, { tags: { feature: 'inventory-product-history-fetch' } });
         console.error(error);
         setHistoryData(null);
+        setHistoryError(getApiErrorMessage(error, 'Failed to load product history'));
       } finally {
         if (!controller.signal.aborted) setIsHistoryLoading(false);
       }
     };
     fetchHistory();
     return () => controller.abort();
-  }, [historyOpen, historyRange, selectedProduct?.id]);
+  }, [historyOpen, historyRange, historyCustomStart, historyCustomEnd, selectedProduct?.id, buildHistoryParams]);
+
+  const loadMoreHistory = useCallback(async () => {
+    if (!selectedProduct?.id || isLoadingMoreHistory) return;
+    const pagination = historyData?.pagination;
+    if (!pagination || pagination.page >= pagination.totalPages) return;
+    setIsLoadingMoreHistory(true);
+    try {
+      const data = await inventoryService.fetchProductHistory(
+        selectedProduct.id,
+        buildHistoryParams(pagination.page + 1)
+      );
+      const nextPage = data.data;
+      if (!nextPage) return;
+      setHistoryData((prev) =>
+        prev
+          ? { ...nextPage, movements: [...prev.movements, ...nextPage.movements] }
+          : nextPage
+      );
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'inventory-product-history-load-more' } });
+      console.error(error);
+      showError(getApiErrorMessage(error, 'Failed to load more history'));
+    } finally {
+      setIsLoadingMoreHistory(false);
+    }
+  }, [selectedProduct?.id, isLoadingMoreHistory, historyData?.pagination, buildHistoryParams, showError]);
 
   // Computed values
   const averageMargin = useMemo(() => {
@@ -430,7 +474,10 @@ export default function useProductList({
     selectedProductDetails,
     historyOpen, setHistoryOpen,
     historyRange, setHistoryRange,
-    historyData, isHistoryLoading,
+    historyCustomStart, setHistoryCustomStart,
+    historyCustomEnd, setHistoryCustomEnd,
+    historyData, historyError, isHistoryLoading,
+    isLoadingMoreHistory, loadMoreHistory,
     sortBy, sortOrder,
     isLoadingBatches,
     summaryTotals, categoryCounts, uncategorizedCount, totalCount,

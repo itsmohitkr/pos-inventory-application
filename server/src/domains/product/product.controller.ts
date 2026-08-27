@@ -91,7 +91,9 @@ const getProductHistory = async (req: Request, res: Response) => {
   const range = queryStrOr(req.query.range, 'today');
   const startDate = queryStr(req.query.startDate);
   const endDate = queryStr(req.query.endDate);
-  const data = await productService.getProductHistory(id, { range, startDate, endDate });
+  const page = queryCount(req.query.page, 1);
+  const pageSize = queryCount(req.query.pageSize, 100);
+  const data = await productService.getProductHistory(id, { range, startDate, endDate, page, pageSize });
   return sendSuccessResponse(
     res,
     StatusCodes.OK,

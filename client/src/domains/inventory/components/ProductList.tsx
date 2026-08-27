@@ -257,6 +257,8 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
             onBatchEditClick={pl.handleBatchEditClick}
             onBatchDelete={pl.handleBatchDelete}
             onQuickInventoryOpen={pl.handleQuickInventoryOpen}
+            onToggleBatchTracking={pl.handleToggleBatchTracking}
+            isTogglingBatchTracking={pl.isTogglingBatchTracking}
             onClose={pl.handleProductDoubleClick}
           />
         </Paper>
@@ -267,9 +269,16 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
           onClose={pl.handleCloseHistory}
           product={pl.displayProduct}
           history={pl.historyData}
+          error={pl.historyError}
           loading={pl.isHistoryLoading}
           range={pl.historyRange}
           onRangeChange={pl.setHistoryRange}
+          customStart={pl.historyCustomStart}
+          customEnd={pl.historyCustomEnd}
+          onCustomStartChange={pl.setHistoryCustomStart}
+          onCustomEndChange={pl.setHistoryCustomEnd}
+          isLoadingMore={pl.isLoadingMoreHistory}
+          onLoadMore={pl.loadMoreHistory}
         />
         <EditProductDialog
           open={pl.editOpen}
