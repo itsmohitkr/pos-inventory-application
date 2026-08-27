@@ -346,8 +346,31 @@ jobs:
         run: |
           $setup = Get-ChildItem dist/*.exe | Select-Object -First 1
           Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
-          $exe = Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter 'Trovix.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $exe) { Write-Error 'Trovix.exe not found after install'; exit 1 }
+
+          # This installer is an "assisted" (non-one-click) NSIS build with no
+          # explicit `perMachine` setting, which defaults to a per-user install
+          # under %LOCALAPPDATA%\Programs. But electron-builder/NSIS silently
+          # switches to a per-machine install under Program Files when the
+          # installing process is elevated — and different GitHub-hosted
+          # runner images have been observed to run the default account with
+          # different elevation, so which path wins isn't guaranteed to stay
+          # fixed across runner-image updates. Check every plausible location
+          # instead of assuming one.
+          $searchRoots = @(
+            "$env:LOCALAPPDATA\Programs",
+            "$env:ProgramFiles",
+            "${env:ProgramFiles(x86)}"
+          ) | Where-Object { $_ -and (Test-Path $_) }
+
+          $exe = $searchRoots |
+            ForEach-Object { Get-ChildItem $_ -Recurse -Filter 'Trovix.exe' -ErrorAction SilentlyContinue } |
+            Select-Object -First 1
+
+          if (-not $exe) {
+            Write-Error "Trovix.exe not found after install. Searched: $($searchRoots -join ', ')"
+            exit 1
+          }
+          Write-Host "Found installed exe at $($exe.FullName)"
           echo "TROVIX_EXE=$($exe.FullName)" >> $env:GITHUB_ENV
 
       - name: Scenario 1 — fresh install boots and migrates
