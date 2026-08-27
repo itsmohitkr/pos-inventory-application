@@ -14,6 +14,9 @@ interface ProductDetailPanelProps {
   onBatchEditClick: (batch: Batch) => void;
   onBatchDelete: (batchId: number) => void;
   onQuickInventoryOpen: (batch: Batch) => void;
+  onToggleBatchTracking?: (product: Product, enabled?: boolean) => void;
+  /** Disables the batch-tracking switch while a toggle request is in flight. */
+  isTogglingBatchTracking?: boolean;
   onClose: () => void;
 }
 
@@ -27,6 +30,7 @@ import {
   CircularProgress,
   Chip,
   Slide,
+  Switch,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -47,6 +51,8 @@ const ProductDetailPanel = ({
   onBatchEditClick,
   onBatchDelete,
   onQuickInventoryOpen,
+  onToggleBatchTracking,
+  isTogglingBatchTracking,
   onClose,
 }: ProductDetailPanelProps) => {
   return (
@@ -61,6 +67,9 @@ const ProductDetailPanel = ({
           height: '100%',
           bgcolor: '#ffffff',
           borderLeft: '2px solid #cbd5e1',
+          borderTopLeftRadius: '16px',
+          borderBottomLeftRadius: '16px',
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 100,
@@ -108,24 +117,37 @@ const ProductDetailPanel = ({
             <Box
               sx={{
                 p: 2,
-                bgcolor: '#ffffff',
-                borderBottom: '1px solid #e2e8f0',
+                background: 'linear-gradient(135deg, #0b1d39 0%, #1b3e6f 100%)',
+                color: '#ffffff',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: 2,
+                boxShadow: '0 4px 12px rgba(11, 29, 57, 0.15)',
               }}
             >
               <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#0b1d39', mb: 0, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    mb: 0,
+                    lineHeight: 1.2,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {displayProduct.name}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500 }}>
+                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 500 }}>
                   Product Details
                 </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
                 {displayProduct.batchTrackingEnabled && (
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                     <IconButton
@@ -133,15 +155,16 @@ const ProductDetailPanel = ({
                       onClick={() => onAddStock(displayProduct)}
                       title="New Batch"
                       sx={{
-                        bgcolor: '#1f8a5b',
+                        bgcolor: '#10b981',
                         color: '#fff',
                         borderRadius: '6px',
-                        '&:hover': { bgcolor: '#166d47' },
+                        '&:hover': { bgcolor: '#059669' },
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
                       }}
                     >
                       <AddIcon fontSize="small" />
                     </IconButton>
-                    <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f8a5b' }}>
+                    <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#6ee7b7' }}>
                       Batch
                     </Typography>
                   </Box>
@@ -153,21 +176,21 @@ const ProductDetailPanel = ({
                     onClick={onOpenHistory}
                     title="Sales History"
                     sx={{
-                      bgcolor: '#f1f5f9',
-                      color: '#475569',
+                      bgcolor: 'rgba(255, 255, 255, 0.15)',
+                      color: '#ffffff',
                       borderRadius: '6px',
-                      border: '1px solid #e2e8f0',
-                      '&:hover': { bgcolor: '#e2e8f0' },
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.25)' },
                     }}
                   >
                     <HistoryIcon fontSize="small" />
                   </IconButton>
-                  <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#475569' }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'rgba(255, 255, 255, 0.85)' }}>
                     History
                   </Typography>
                 </Box>
 
-                <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 28, my: 'auto' }} />
+                <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 28, my: 'auto', borderColor: 'rgba(255, 255, 255, 0.2)' }} />
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                   <IconButton
@@ -175,16 +198,16 @@ const ProductDetailPanel = ({
                     size="small"
                     aria-label="Close"
                     sx={{
-                      bgcolor: '#fef2f2',
-                      color: '#ef4444',
+                      bgcolor: 'rgba(239, 68, 68, 0.2)',
+                      color: '#fca5a5',
                       borderRadius: '6px',
-                      border: '1px solid #fecaca',
-                      '&:hover': { bgcolor: '#fee2e2' },
+                      border: '1px solid rgba(239, 68, 68, 0.35)',
+                      '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.35)' },
                     }}
                   >
                     <CloseIcon fontSize="small" />
                   </IconButton>
-                  <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ef4444' }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#fca5a5' }}>
                     Close
                   </Typography>
                 </Box>
@@ -237,7 +260,15 @@ const ProductDetailPanel = ({
                       <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.65rem' }}>
                         Batch Tracking
                       </Typography>
-                      <Box sx={{ mt: 0.5 }}>
+                      <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Switch
+                          size="small"
+                          checked={!!displayProduct.batchTrackingEnabled}
+                          onChange={(e) => onToggleBatchTracking?.(displayProduct, e.target.checked)}
+                          disabled={!onToggleBatchTracking || isTogglingBatchTracking}
+                          color="success"
+                          inputProps={{ 'aria-label': 'Toggle batch tracking' }}
+                        />
                         <Chip
                           label={displayProduct.batchTrackingEnabled ? 'ENABLED' : 'DISABLED'}
                           size="small"
@@ -247,7 +278,7 @@ const ProductDetailPanel = ({
                             fontWeight: 700,
                             bgcolor: displayProduct.batchTrackingEnabled ? '#f0fdf4' : '#fef2f2',
                             color: displayProduct.batchTrackingEnabled ? '#15803d' : '#991b1b',
-                            border: `1px solid ${displayProduct.batchTrackingEnabled ? '#bbf7d0' : '#fecaca'}`
+                            border: `1px solid ${displayProduct.batchTrackingEnabled ? '#bbf7d0' : '#fecaca'}`,
                           }}
                         />
                       </Box>
