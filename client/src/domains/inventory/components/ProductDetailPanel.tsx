@@ -102,49 +102,12 @@ const ProductDetailPanel = ({
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        position: 'relative',
         height: '100%',
         bgcolor: '#ffffff',
         minWidth: 0,
-        ...(width && { width: `${width}px`, flexShrink: 0 }),
+        width: '100%',
       }}
     >
-      {/* Left Resize Handle */}
-      <Box
-        onMouseDown={(e) => {
-          e.preventDefault();
-          onResizeStart();
-        }}
-        sx={{
-          display: { xs: 'none', lg: 'flex' },
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '8px',
-          height: '100%',
-          cursor: 'col-resize',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10,
-          '&:hover .handle-bar': {
-            bgcolor: 'primary.main',
-            width: '4px',
-          },
-        }}
-      >
-        <Box
-          className="handle-bar"
-          sx={{
-            width: '2px',
-            height: '60px',
-            bgcolor: isResizing ? 'primary.main' : 'divider',
-            borderRadius: '4px',
-            transition: 'all 0.2s',
-            ...(isResizing && { width: '4px' }),
-          }}
-        />
-      </Box>
-
       {displayProduct ? (
         <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {/* Top Header Bar */}
@@ -206,6 +169,18 @@ const ProductDetailPanel = ({
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               >
+                {onEdit && (
+                  <MenuItem onClick={handleEditProduct} aria-label="Edit Product" sx={{ py: 1, px: 2 }}>
+                    <ListItemIcon sx={{ minWidth: 28, color: '#1f2937' }}>
+                      <EditIcon fontSize="small" data-testid="EditIcon" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Edit Product"
+                      primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500, color: '#1f2937' }}
+                    />
+                  </MenuItem>
+                )}
+
                 <MenuItem
                   onClick={() => {
                     handleCloseActionMenu();
@@ -222,18 +197,6 @@ const ProductDetailPanel = ({
                     primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500, color: '#1f2937' }}
                   />
                 </MenuItem>
-
-                {onEdit && (
-                  <MenuItem onClick={handleEditProduct} aria-label="Edit Product" sx={{ py: 1, px: 2 }}>
-                    <ListItemIcon sx={{ minWidth: 28, color: '#1f2937' }}>
-                      <EditIcon fontSize="small" data-testid="EditIcon" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Edit Product"
-                      primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500, color: '#1f2937' }}
-                    />
-                  </MenuItem>
-                )}
 
                 {onDelete && (
                   <MenuItem onClick={handleDeleteProduct} aria-label="Delete Product" sx={{ py: 1, px: 2 }}>

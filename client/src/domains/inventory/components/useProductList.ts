@@ -244,6 +244,9 @@ export default function useProductList({
   // Lifecycle
   useEffect(() => {
     setBarcodeOverride(null);
+    setSelectedProduct(null);
+    setSelectedProductDetails(null);
+    selection.resetSelection();
   }, [categoryFilter]);
 
   useEffect(() => {

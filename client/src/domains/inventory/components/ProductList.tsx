@@ -98,68 +98,107 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
     return (
       <Box
         sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            lg: `${pl.showCategories ? `${pl.leftPanelWidth}px ` : ''}1fr${
-              pl.displayProduct ? ` ${pl.rightPanelWidth}px` : ''
-            }`,
-          },
+          display: 'flex',
           gap: 1.5,
           height: '100%',
           minHeight: 0,
           alignItems: 'stretch',
         }}
       >
-        {/* Category Sidebar */}
+        {/* Category Sidebar (Card 1) */}
         {pl.showCategories && (
-          <CategorySidebar
-            sortedCategoryTree={pl.sortedCategoryTree}
-            categoryCounts={pl.categoryCounts}
-            expandedCategoryIds={pl.expandedCategoryIds}
-            categoryFilter={categoryFilter}
-            totalCount={pl.totalCount}
-            uncategorizedCount={pl.uncategorizedCount}
-            hasUncategorized={pl.hasUncategorized}
-            categorySortOrder={pl.categorySortOrder}
-            isResizingLeft={pl.isResizingRight}
-            contextMenu={pl.contextMenu}
-            activeCategory={pl.activeCategory}
-            addCategoryOpen={pl.addCategoryOpen}
-            newCategoryName={pl.newCategoryName}
-            categoryDialogMode={pl.categoryDialogMode}
-            categoryDialogParent={pl.categoryDialogParent}
-            onCategorySelect={pl.handleCategorySelect}
-            onCategorySortToggle={pl.handleCategorySortToggle}
-            onAddCategoryDialog={pl.openAddCategoryDialog}
-            onCategoryDragOver={pl.handleCategoryDragOver}
-            onCategoryDrop={pl.handleCategoryDrop}
-            onToggleExpand={pl.handleToggleExpand}
-            onOpenCategoryMenu={pl.openCategoryMenu}
-            onCloseContextMenu={pl.closeCategoryMenu}
-            onAddSubcategory={pl.openAddCategoryDialog}
-            onEditCategory={pl.openEditCategoryDialog}
-            onDeleteCategory={pl.handleDeleteCategory}
-            onCategoryDialogClose={() => pl.setAddCategoryOpen(false)}
-            onCategoryNameChange={pl.setNewCategoryName}
-            onSaveCategory={pl.handleSaveCategory}
-            onResizeStart={pl.handleResizeStartLeft}
-            onDoubleClick={pl.displayProduct ? pl.handleOpenHistory : undefined}
-            onToggleCategories={() => pl.setShowCategories(false)}
-          />
+          <Box
+            sx={{
+              width: { xs: '100%', lg: pl.leftPanelWidth },
+              minWidth: { lg: 180 },
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+            }}
+          >
+            <CategorySidebar
+              sortedCategoryTree={pl.sortedCategoryTree}
+              categoryCounts={pl.categoryCounts}
+              expandedCategoryIds={pl.expandedCategoryIds}
+              categoryFilter={categoryFilter}
+              totalCount={pl.totalCount}
+              uncategorizedCount={pl.uncategorizedCount}
+              hasUncategorized={pl.hasUncategorized}
+              categorySortOrder={pl.categorySortOrder}
+              isResizingLeft={pl.isResizingLeft}
+              contextMenu={pl.contextMenu}
+              activeCategory={pl.activeCategory}
+              addCategoryOpen={pl.addCategoryOpen}
+              newCategoryName={pl.newCategoryName}
+              categoryDialogMode={pl.categoryDialogMode}
+              categoryDialogParent={pl.categoryDialogParent}
+              onCategorySelect={pl.handleCategorySelect}
+              onCategorySortToggle={pl.handleCategorySortToggle}
+              onAddCategoryDialog={pl.openAddCategoryDialog}
+              onCategoryDragOver={pl.handleCategoryDragOver}
+              onCategoryDrop={pl.handleCategoryDrop}
+              onToggleExpand={pl.handleToggleExpand}
+              onOpenCategoryMenu={pl.openCategoryMenu}
+              onCloseContextMenu={pl.closeCategoryMenu}
+              onAddSubcategory={pl.openAddCategoryDialog}
+              onEditCategory={pl.openEditCategoryDialog}
+              onDeleteCategory={pl.handleDeleteCategory}
+              onCategoryDialogClose={() => pl.setAddCategoryOpen(false)}
+              onCategoryNameChange={pl.setNewCategoryName}
+              onSaveCategory={pl.handleSaveCategory}
+              onResizeStart={pl.handleResizeStartLeft}
+              onDoubleClick={pl.displayProduct ? pl.handleOpenHistory : undefined}
+              onToggleCategories={() => pl.setShowCategories(false)}
+            />
+          </Box>
         )}
 
-        {/* Product List */}
+        {/* Resizer Slider 1: Centered in gap between Card 1 & Card 2 */}
+        {pl.showCategories && (
+          <Box
+            onMouseDown={pl.handleResizeStartLeft}
+            sx={{
+              display: { xs: 'none', lg: 'flex' },
+              width: '12px',
+              mx: -1.5,
+              cursor: 'col-resize',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+              flexShrink: 0,
+              '&:hover .handle': {
+                bgcolor: 'primary.main',
+                width: '4px',
+              },
+            }}
+          >
+            <Box
+              className="handle"
+              sx={{
+                width: '2px',
+                height: '60px',
+                bgcolor: pl.isResizingLeft ? 'primary.main' : 'divider',
+                borderRadius: '4px',
+                transition: 'all 0.2s',
+                ...(pl.isResizingLeft && { width: '4px' }),
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Product List Table (Card 2) */}
         <Paper
           elevation={0}
           sx={{
+            flex: 1,
             borderRadius: '10px',
             border: '1px solid #e2e8f0',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
-            minWidth: 0
+            minWidth: 0,
           }}
         >
           {/* Header */}
@@ -251,25 +290,69 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
           />
         </Paper>
 
+        {/* Resizer Slider 2: Centered in gap between Card 2 & Card 3 */}
+        {pl.displayProduct && (
+          <Box
+            onMouseDown={pl.handleResizeStartRight}
+            sx={{
+              display: { xs: 'none', lg: 'flex' },
+              width: '12px',
+              mx: -1.5,
+              cursor: 'col-resize',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+              flexShrink: 0,
+              '&:hover .handle': {
+                bgcolor: 'primary.main',
+                width: '4px',
+              },
+            }}
+          >
+            <Box
+              className="handle"
+              sx={{
+                width: '2px',
+                height: '60px',
+                bgcolor: pl.isResizingRight ? 'primary.main' : 'divider',
+                borderRadius: '4px',
+                transition: 'all 0.2s',
+                ...(pl.isResizingRight && { width: '4px' }),
+              }}
+            />
+          </Box>
+        )}
+
         {/* Product Detail Panel (Card 3) */}
         {pl.displayProduct && (
-          <ProductDetailPanel
-            displayProduct={pl.displayProduct}
-            isLoadingBatches={pl.isLoadingBatches}
-            width={pl.rightPanelWidth}
-            isResizing={pl.isResizingRight}
-            onResizeStart={pl.handleResizeStartRight}
-            onAddStock={pl.handleAddStock}
-            onOpenHistory={pl.handleOpenHistory}
-            onBatchEditClick={pl.handleBatchEditClick}
-            onBatchDelete={pl.handleBatchDelete}
-            onQuickInventoryOpen={pl.handleQuickInventoryOpen}
-            onToggleBatchTracking={pl.handleToggleBatchTracking}
-            isTogglingBatchTracking={pl.isTogglingBatchTracking}
-            onClose={pl.handleProductDoubleClick}
-            onEdit={pl.handleEditClick}
-            onDelete={pl.handleDelete}
-          />
+          <Box
+            sx={{
+              width: { xs: '100%', lg: pl.rightPanelWidth },
+              minWidth: { lg: 320 },
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+            }}
+          >
+            <ProductDetailPanel
+              displayProduct={pl.displayProduct}
+              isLoadingBatches={pl.isLoadingBatches}
+              width={pl.rightPanelWidth}
+              isResizing={pl.isResizingRight}
+              onResizeStart={pl.handleResizeStartRight}
+              onAddStock={pl.handleAddStock}
+              onOpenHistory={pl.handleOpenHistory}
+              onBatchEditClick={pl.handleBatchEditClick}
+              onBatchDelete={pl.handleBatchDelete}
+              onQuickInventoryOpen={pl.handleQuickInventoryOpen}
+              onToggleBatchTracking={pl.handleToggleBatchTracking}
+              isTogglingBatchTracking={pl.isTogglingBatchTracking}
+              onClose={pl.handleProductDoubleClick}
+              onEdit={pl.handleEditClick}
+              onDelete={pl.handleDelete}
+            />
+          </Box>
         )}
 
         {/* Dialogs */}

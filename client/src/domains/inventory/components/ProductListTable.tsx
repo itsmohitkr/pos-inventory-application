@@ -50,13 +50,13 @@ const ProductListTable = ({
         transition: 'opacity 0.2s ease',
       }}
     >
-      <Table size="small" stickyHeader>
+      <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', minWidth: '600px' }}>
         <TableHead>
           <TableRow sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0' }}>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '50px', minWidth: '50px', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '5%', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               S.No.
             </TableCell>
-            <TableCell sx={{ px: 1.5, minWidth: '200px' }}>
+            <TableCell sx={{ px: 1.5, width: '40%' }}>
               <TableSortLabel
                 active={sortBy === 'name'}
                 direction={sortBy === 'name' ? sortOrder : 'asc'}
@@ -72,7 +72,7 @@ const ProductListTable = ({
                 Name
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ px: 1.5, width: '170px', minWidth: '150px' }}>
+            <TableCell sx={{ px: 1.5, width: '30%' }}>
               <TableSortLabel
                 active={sortBy === 'barcode'}
                 direction={sortBy === 'barcode' ? sortOrder : 'asc'}
@@ -88,7 +88,7 @@ const ProductListTable = ({
                 Barcode
               </TableSortLabel>
             </TableCell>
-            <TableCell align="right" sx={{ whiteSpace: 'nowrap', px: 1.5, width: '110px', minWidth: '90px' }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '10%' }}>
               <TableSortLabel
                 active={sortBy === 'stock'}
                 direction={sortBy === 'stock' ? sortOrder : 'asc'}
@@ -104,7 +104,7 @@ const ProductListTable = ({
                 Stock
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '160px', minWidth: '140px' }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '15%' }}>
               <TableSortLabel
                 active={sortBy === 'lastUpdatedAt'}
                 direction={sortBy === 'lastUpdatedAt' ? sortOrder : 'desc'}
