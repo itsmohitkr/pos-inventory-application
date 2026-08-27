@@ -94,7 +94,7 @@ const ProductHistoryMovementDetailsTab = ({
 
   return (
     <>
-      <Box sx={{ mb: 1 }}>
+      <Box sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end' }}>
         <ToggleButtonGroup
           size="small"
           exclusive
