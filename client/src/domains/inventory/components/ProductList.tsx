@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
 import type { Batch, Product } from '@/shared/types/models';
 import * as Sentry from '@sentry/react';
-import { Paper, Typography, Box, Chip, IconButton, Tooltip } from '@mui/material';
+import { Paper, Typography, Box, Chip, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import { ChevronRight as ChevronRightIcon } from '@mui/icons-material';
 
 import EditProductDialog from '@/domains/inventory/components/EditProductDialog';
@@ -311,6 +311,21 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
           product={pl.displayProduct}
         />
         <CustomDialog {...pl.dialogState} onClose={pl.closeDialog} />
+        <Snackbar
+          open={pl.notice.open}
+          autoHideDuration={3000}
+          onClose={() => pl.setNotice((current) => ({ ...current, open: false }))}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={() => pl.setNotice((current) => ({ ...current, open: false }))}
+            severity="success"
+            variant="filled"
+            sx={{ width: '100%' }}
+          >
+            {pl.notice.message}
+          </Alert>
+        </Snackbar>
       </Box>
     );
   }

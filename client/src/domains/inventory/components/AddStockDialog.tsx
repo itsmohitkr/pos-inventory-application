@@ -20,6 +20,8 @@ import {
   Typography,
   Box,
   Divider,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
@@ -31,7 +33,7 @@ import { getExpiryDateInputBounds } from '@/shared/utils/expiryDateBounds';
 const { min: expiryDateMin, max: expiryDateMax } = getExpiryDateInputBounds();
 
 const AddStockDialog = ({ open, onClose, product, onStockAdded }: AddStockDialogProps) => {
-  const { dialogState, showError, showSuccess, closeDialog } = useCustomDialog();
+  const { dialogState, showError, closeDialog } = useCustomDialog();
 
   const {
     stockData,
@@ -41,7 +43,9 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }: AddStockDialog
     handleSubmit,
     calculations,
     isFieldEmpty,
-  } = useAddStock({ product, open, onClose, onStockAdded, showError, showSuccess });
+    notice,
+    setNotice,
+  } = useAddStock({ product, open, onClose, onStockAdded, showError });
 
   const {
     sellingBelowCost,
@@ -283,6 +287,21 @@ const AddStockDialog = ({ open, onClose, product, onStockAdded }: AddStockDialog
         </DialogActions>
       </Dialog>
       <CustomDialog {...dialogState} onClose={closeDialog} />
+      <Snackbar
+        open={notice.open}
+        autoHideDuration={3000}
+        onClose={() => setNotice((current) => ({ ...current, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setNotice((current) => ({ ...current, open: false }))}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {notice.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

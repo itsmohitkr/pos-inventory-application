@@ -10,7 +10,6 @@ interface UseAddStockArgs {
   onClose: () => void;
   onStockAdded: () => void;
   showError: (message: string) => void;
-  showSuccess: (message: string) => void;
 }
 
 export const useAddStock = ({
@@ -19,8 +18,11 @@ export const useAddStock = ({
   onClose,
   onStockAdded,
   showError,
-  showSuccess,
 }: UseAddStockArgs) => {
+  /** Auto-dismissing toast for a successful submit — not a blocking dialog,
+   * so the cashier isn't required to click OK just to confirm what already
+   * happened. */
+  const [notice, setNotice] = useState({ open: false, message: '' });
   const [stockData, setStockData] = useState<Record<string, any>>({
     batch_code: '',
     quantity: '',
@@ -159,12 +161,15 @@ export const useAddStock = ({
         expiryDate: stockData.expiryDate || null,
       };
 
-      await inventoryService.addBatch(payload);
-      await showSuccess('Stock added successfully!');
-      
+      const result = await inventoryService.addBatch(payload);
+
       setFormSubmitted(false);
       if (onStockAdded) onStockAdded();
       onClose();
+      setNotice({
+        open: true,
+        message: result?.created ? 'New batch created successfully!' : 'Batch updated successfully!',
+      });
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-add-stock' } });
       console.error(error);
@@ -195,5 +200,7 @@ export const useAddStock = ({
     handleSubmit,
     calculations,
     isFieldEmpty,
+    notice,
+    setNotice,
   };
 };

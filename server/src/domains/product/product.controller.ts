@@ -118,9 +118,14 @@ const createProduct = async (req: Request, res: Response) => {
 
 const addBatch = async (req: Request, res: Response) => {
   const batch = await productService.addBatch(req.body);
-  return sendSuccessResponse(res, StatusCodes.CREATED, { id: batch.id }, 'Batch added', {
-    format: 'merge',
-  });
+  const message = batch.created ? 'New batch created' : 'Batch updated';
+  return sendSuccessResponse(
+    res,
+    StatusCodes.CREATED,
+    { id: batch.id, created: batch.created },
+    message,
+    { format: 'merge' }
+  );
 };
 
 const updateProduct = async (req: Request, res: Response) => {
@@ -147,8 +152,11 @@ const updateBatch = async (req: Request, res: Response) => {
 
 const deleteBatch = async (req: Request, res: Response) => {
   const id = paramValue(req.params.id);
-  await productService.deleteBatch(id);
-  return sendSuccessResponse(res, StatusCodes.OK, undefined, 'Batch deleted successfully');
+  const { softDeleted } = await productService.deleteBatch(id);
+  const message = softDeleted
+    ? 'Batch retired — hidden from inventory, sales history preserved'
+    : 'Batch deleted successfully';
+  return sendSuccessResponse(res, StatusCodes.OK, { softDeleted }, message);
 };
 
 const exportProducts = async (req: Request, res: Response) => {
