@@ -20,7 +20,8 @@ export const calculateSaleStats = (sale?: ReportSale | null): SaleStats => {
   let mrpDiscount = 0;
   sale.items?.forEach((item: ReportSaleItem) => {
     const mrp = item.mrp || item.sellingPrice;
-    mrpDiscount += (mrp - item.sellingPrice) * item.quantity;
+    const netQuantity = item.quantity - item.returnedQuantity;
+    mrpDiscount += (mrp - item.sellingPrice) * netQuantity;
   });
 
   const extraDiscount = sale.extraDiscount || 0;
@@ -29,7 +30,8 @@ export const calculateSaleStats = (sale?: ReportSale | null): SaleStats => {
   let subtotal = 0;
   sale.items?.forEach((item: ReportSaleItem) => {
     const mrp = item.mrp || item.sellingPrice;
-    subtotal += mrp * item.quantity;
+    const netQuantity = item.quantity - item.returnedQuantity;
+    subtotal += mrp * netQuantity;
   });
 
   const discountPercent = subtotal > 0 ? ((totalDiscount / subtotal) * 100).toFixed(2) : 0;

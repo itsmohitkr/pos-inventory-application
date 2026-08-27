@@ -86,7 +86,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b' }}>
-                Items: {selectedSale.items.reduce((sum, item) => sum + item.quantity, 0)}
+                Items: {selectedSale.items.length}
               </Typography>
               <Chip
                 label={selectedSale.paymentMethod || 'Cash'}
@@ -286,7 +286,18 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                         )}
                       </Box>
                     </TableCell>
-                    <TableCell align="center">{item.quantity}</TableCell>
+                    <TableCell align="center">
+                      {returnedQty > 0 ? (
+                        <Box component="span">
+                          <Box component="span" sx={{ textDecoration: 'line-through', opacity: 0.5, mr: 0.5 }}>
+                            {item.quantity}
+                          </Box>
+                          {item.quantity - returnedQty}
+                        </Box>
+                      ) : (
+                        item.quantity
+                      )}
+                    </TableCell>
                     <TableCell align="right">₹{mrp.toFixed(2)}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>₹{item.sellingPrice.toFixed(2)}</TableCell>
                     <TableCell align="right">

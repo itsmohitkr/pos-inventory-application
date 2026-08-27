@@ -198,7 +198,18 @@ const SaleDetailDialog = ({ selectedSale, onClose }: SaleDetailDialogProps) => {
                               )}
                             </Box>
                           </TableCell>
-                          <TableCell align="center" sx={{ fontWeight: 600 }}>{item.quantity}</TableCell>
+                          <TableCell align="center" sx={{ fontWeight: 600 }}>
+                            {returnedQty > 0 ? (
+                              <Box component="span">
+                                <Box component="span" sx={{ textDecoration: 'line-through', opacity: 0.5, mr: 0.5 }}>
+                                  {item.quantity}
+                                </Box>
+                                {item.quantity - returnedQty}
+                              </Box>
+                            ) : (
+                              item.quantity
+                            )}
+                          </TableCell>
                           <TableCell align="right" sx={{ color: '#64748b' }}>₹{item.mrp?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell align="right" sx={{ color: '#64748b' }}>₹{item.costPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 700, color: '#1e293b' }}>₹{item.sellingPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
