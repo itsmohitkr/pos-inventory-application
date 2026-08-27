@@ -120,26 +120,28 @@ export default function useProductList({
     const requestId = ++summaryRequestId.current;
     try {
       const isAllNoSearch = (categoryFilter === 'all' || !categoryFilter) && !debouncedSearch;
-      let totalsData, sidebarData;
 
       if (isAllNoSearch) {
         const data = await inventoryService.fetchSummary({ search: '', category: 'all' });
         if (summaryRequestId.current !== requestId) return;
-        totalsData = getResponseObject(data);
-        sidebarData = totalsData;
-      } else {
-        const [totalsRes, sidebarRes] = await Promise.all([
-          inventoryService.fetchSummary({ search: debouncedSearch, category: 'all' }),
-          inventoryService.fetchSummary({ search: '', category: 'all' }),
-        ]);
-        if (summaryRequestId.current !== requestId) return;
-        totalsData = getResponseObject(totalsRes);
-        sidebarData = getResponseObject(sidebarRes);
+        const totalsData = getResponseObject(data);
+        setSummaryTotals(
+          totalsData.totals || { productCount: 0, totalQty: 0, totalCost: 0, totalSelling: 0, totalMrp: 0 }
+        );
+        setCategoryCounts(totalsData.categoryCounts || {});
+        setUncategorizedCount(totalsData.uncategorizedCount || 0);
+        setTotalCount(totalsData.totalCount || 0);
+        return;
       }
 
-      setSummaryTotals(
-        totalsData.totals || { productCount: 0, totalQty: 0, totalCost: 0, totalSelling: 0, totalMrp: 0 }
-      );
+      // A category/search filter is active — effectiveSummaryTotals
+      // recomputes the displayed totals client-side from the already-loaded
+      // product list in that case (see below), so a server-scoped totals
+      // query here would only be fetched and discarded. Only the sidebar's
+      // always-global category counts are still needed.
+      const sidebarRes = await inventoryService.fetchSummary({ search: '', category: 'all' });
+      if (summaryRequestId.current !== requestId) return;
+      const sidebarData = getResponseObject(sidebarRes);
       setCategoryCounts(sidebarData.categoryCounts || {});
       setUncategorizedCount(sidebarData.uncategorizedCount || 0);
       setTotalCount(sidebarData.totalCount || 0);
@@ -359,20 +361,128 @@ export default function useProductList({
     }
   }, [selectedProduct?.id, isLoadingMoreHistory, historyData?.pagination, buildHistoryParams, showError]);
 
+  const effectiveSummaryTotals = useMemo<InventorySummaryTotals>(() => {
+    let catProducts = products;
+
+    if (barcodeOverride) {
+      // A scan bypasses category/search/stock filtering entirely, same as
+      // displayedProducts below — the summary must total just the one
+      // scanned product, not whatever was filtered before the scan.
+      catProducts = barcodeOverride;
+    } else {
+      // Mirrors displayedProducts' own rule below: search is global, so a
+      // search term overrides the category filter rather than combining with
+      // it. These two filters must stay in lockstep — if they diverge, the
+      // summary bar and the table it sits above show different numbers for
+      // the same on-screen state.
+      if (!debouncedSearch && categoryFilter && categoryFilter !== 'all') {
+        if (categoryFilter === 'uncategorized') {
+          catProducts = catProducts.filter((p) => !p.category || p.category.trim() === '');
+        } else {
+          const prefix = `${categoryFilter}/`;
+          catProducts = catProducts.filter(
+            (p) => p.category === categoryFilter || (p.category && p.category.startsWith(prefix))
+          );
+        }
+      }
+
+      if (debouncedSearch) {
+        const query = debouncedSearch.trim().toLowerCase();
+        catProducts = catProducts.filter((p) => {
+          const name = (p.name || '').toLowerCase();
+          // Pipe-separated, matching how barcodes are actually stored/searched
+          // elsewhere (see displayedProducts' _searchBarcodes below) — this
+          // used to split on ',' instead, which doesn't match this app's
+          // multi-barcode format at all.
+          const barcodes = Array.isArray(p.barcode)
+            ? p.barcode.map((b) => String(b).toLowerCase())
+            : (p.barcode || '').toLowerCase().split('|').map((b) => b.trim());
+          return name.includes(query) || barcodes.some((b) => b.includes(query));
+        });
+      }
+
+      if (stockFilter === 'low') {
+        catProducts = catProducts.filter(
+          (p) =>
+            p.lowStockWarningEnabled &&
+            (p.total_stock ?? 0) > 0 &&
+            (p.total_stock ?? 0) <= p.lowStockThreshold
+        );
+      } else if (stockFilter === 'zero') {
+        catProducts = catProducts.filter((p) => (p.total_stock ?? 0) === 0);
+      }
+    }
+
+    if (
+      !barcodeOverride &&
+      categoryFilter === 'all' &&
+      !debouncedSearch &&
+      stockFilter === 'all' &&
+      summaryTotals.productCount > 0
+    ) {
+      return summaryTotals;
+    }
+
+    const productCount = catProducts.length;
+    let totalQty = 0;
+    let totalCost = 0;
+    let totalSelling = 0;
+    let totalMrp = 0;
+
+    for (const p of catProducts) {
+      const qty = Number(p.total_stock) || 0;
+      totalQty += qty;
+
+      let cost = Number(p.total_cost) || 0;
+      let selling = Number(p.total_selling) || 0;
+      let mrp = Number(p.mrp) || 0;
+
+      if (!cost && p.batches && p.batches.length > 0) {
+        cost = p.batches.reduce((sum, b) => sum + (Number(b.costPrice) || 0) * (Number(b.quantity) || 0), 0);
+      } else if (!cost) {
+        cost = (Number(p.cost_price) || 0) * qty;
+      }
+
+      if (!selling && p.batches && p.batches.length > 0) {
+        selling = p.batches.reduce((sum, b) => sum + (Number(b.sellingPrice) || 0) * (Number(b.quantity) || 0), 0);
+      } else if (!selling) {
+        selling = (Number(p.selling_price) || 0) * qty;
+      }
+
+      if (!mrp && p.batches && p.batches.length > 0) {
+        mrp = p.batches.reduce((sum, b) => sum + (Number(b.mrp) || 0) * (Number(b.quantity) || 0), 0);
+      } else if (!mrp) {
+        mrp = (Number(p.mrp) || 0) * qty;
+      }
+
+      totalCost += cost;
+      totalSelling += selling;
+      totalMrp += mrp > selling ? mrp : selling;
+    }
+
+    return {
+      productCount,
+      totalQty,
+      totalCost,
+      totalSelling,
+      totalMrp,
+    };
+  }, [products, categoryFilter, debouncedSearch, stockFilter, summaryTotals, barcodeOverride]);
+
   // Computed values
   const averageMargin = useMemo(() => {
-    if (summaryTotals.totalSelling > 0) {
-      return (((summaryTotals.totalSelling - summaryTotals.totalCost) / summaryTotals.totalSelling) * 100).toFixed(1);
+    if (effectiveSummaryTotals.totalSelling > 0) {
+      return (((effectiveSummaryTotals.totalSelling - effectiveSummaryTotals.totalCost) / effectiveSummaryTotals.totalSelling) * 100).toFixed(1);
     }
     return '0.0';
-  }, [summaryTotals.totalCost, summaryTotals.totalSelling]);
+  }, [effectiveSummaryTotals.totalCost, effectiveSummaryTotals.totalSelling]);
 
   const averageDiscount = useMemo(() => {
-    if (summaryTotals.totalMrp > 0) {
-      return (((summaryTotals.totalMrp - summaryTotals.totalSelling) / summaryTotals.totalMrp) * 100).toFixed(1);
+    if (effectiveSummaryTotals.totalMrp > 0) {
+      return (((effectiveSummaryTotals.totalMrp - effectiveSummaryTotals.totalSelling) / effectiveSummaryTotals.totalMrp) * 100).toFixed(1);
     }
     return '0.0';
-  }, [summaryTotals.totalMrp, summaryTotals.totalSelling]);
+  }, [effectiveSummaryTotals.totalMrp, effectiveSummaryTotals.totalSelling]);
 
   const categoryLabel = categoryFilter === 'all' ? 'All Categories' : categoryFilter === 'uncategorized' ? 'Uncategorized' : categoryFilter;
   const displayProduct = selectedProductDetails || selectedProduct;
@@ -388,6 +498,7 @@ export default function useProductList({
 
   const handleReset = useCallback(() => {
     onCategoryChange('all');
+    setStockFilter('all');
     setSortBy('name');
     setSortOrder('asc');
     setSearchTerm('');
@@ -490,7 +601,7 @@ export default function useProductList({
     isLoadingMoreHistory, loadMoreHistory,
     sortBy, sortOrder,
     isLoadingBatches,
-    summaryTotals, categoryCounts, uncategorizedCount, totalCount,
+    summaryTotals: effectiveSummaryTotals, categoryCounts, uncategorizedCount, totalCount,
     stockFilter, setStockFilter,
     searchInputRef,
     // Computed

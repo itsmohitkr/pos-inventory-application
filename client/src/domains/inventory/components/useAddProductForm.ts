@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { getApiErrorMessage, type ApiError } from '@/shared/api/api';
+import { limitTwoDecimals } from '@/shared/utils/priceUtils';
 
 const INITIAL_BATCH = {
   batch_code: '', quantity: '', mrp: '', cost_price: '', selling_price: '',
@@ -84,9 +85,22 @@ export default function useAddProductForm({
       return next;
     });
 
+    let finalValue = value;
+    if (
+      typeof value === 'string' &&
+      [
+        'initialBatch.mrp',
+        'initialBatch.cost_price',
+        'initialBatch.selling_price',
+        'initialBatch.wholesalePrice',
+      ].includes(name)
+    ) {
+      finalValue = limitTwoDecimals(value);
+    }
+
     if (name === 'initialBatch.discount_percent') {
-      setDiscountInput(value);
-      const val = parseFloat(String(value));
+      setDiscountInput(finalValue);
+      const val = parseFloat(String(finalValue));
       if (!isNaN(val)) {
         const currentMrp = parseFloat(String(formData.initialBatch.mrp)) || 0;
         const newSelling = currentMrp * (1 - val / 100);
@@ -99,15 +113,15 @@ export default function useAddProductForm({
       const [parent, child] = name.split('.');
       setFormData((prev) => ({
         ...prev,
-        [parent]: { ...(prev[parent] as Record<string, unknown>), [child]: value },
+        [parent]: { ...(prev[parent] as Record<string, unknown>), [child]: finalValue },
       }));
       if (name === 'initialBatch.mrp' || name === 'initialBatch.selling_price') {
-        const m = name === 'initialBatch.mrp' ? parseFloat(String(value)) : parseFloat(String(formData.initialBatch.mrp || 0));
-        const s = name === 'initialBatch.selling_price' ? parseFloat(String(value)) : parseFloat(String(formData.initialBatch.selling_price || 0));
+        const m = name === 'initialBatch.mrp' ? parseFloat(String(finalValue)) : parseFloat(String(formData.initialBatch.mrp || 0));
+        const s = name === 'initialBatch.selling_price' ? parseFloat(String(finalValue)) : parseFloat(String(formData.initialBatch.selling_price || 0));
         setDiscountInput(m > 0 ? (((m - s) / m) * 100).toFixed(1) : '0');
       }
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: finalValue }));
     }
   };
 

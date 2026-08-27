@@ -101,9 +101,9 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            lg: pl.showCategories
-              ? `${pl.leftPanelWidth}px 1fr`
-              : '1fr',
+            lg: `${pl.showCategories ? `${pl.leftPanelWidth}px ` : ''}1fr${
+              pl.displayProduct ? ` ${pl.rightPanelWidth}px` : ''
+            }`,
           },
           gap: 1.5,
           height: '100%',
@@ -204,7 +204,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                   }}
                 />
               </Box>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'nowrap' }}>
                 <ProductSearchField
                   searchTerm={pl.searchTerm}
                   debouncedSearch={debouncedSearch}
@@ -221,6 +221,13 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                   }}
                   onReset={pl.handleReset}
                   displayedProductCount={pl.displayedProducts.length}
+                  hasActiveFilters={
+                    categoryFilter !== 'all' ||
+                    pl.searchTerm !== '' ||
+                    pl.stockFilter !== 'all' ||
+                    pl.sortBy !== 'name' ||
+                    pl.sortOrder !== 'asc'
+                  }
                 />
               </Box>
             </Box>
@@ -240,12 +247,12 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
             onSort={pl.handleSortRequest}
             onSelect={pl.handleRowClick}
             onDragStart={pl.handleListDragStart}
-            onEdit={pl.handleEditClick}
-            onDelete={pl.handleDelete}
             onDoubleClick={pl.handleProductDoubleClick}
           />
+        </Paper>
 
-          {/* Product Detail Sidebar (Local Overlay) */}
+        {/* Product Detail Panel (Card 3) */}
+        {pl.displayProduct && (
           <ProductDetailPanel
             displayProduct={pl.displayProduct}
             isLoadingBatches={pl.isLoadingBatches}
@@ -260,8 +267,10 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
             onToggleBatchTracking={pl.handleToggleBatchTracking}
             isTogglingBatchTracking={pl.isTogglingBatchTracking}
             onClose={pl.handleProductDoubleClick}
+            onEdit={pl.handleEditClick}
+            onDelete={pl.handleDelete}
           />
-        </Paper>
+        )}
 
         {/* Dialogs */}
         <ProductHistoryDialog

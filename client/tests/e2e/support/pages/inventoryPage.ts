@@ -117,13 +117,14 @@ export const createInventoryPage = (page: Page) => {
       await successDialog.getByRole('button', { name: 'OK' }).click();
     },
     openEditProductForm: async (productName: string) => {
-      // Close detail panel if open to prevent interception
-      const closeBtn = detailPanel.getByRole('button', { name: 'Close' });
-      if (await closeBtn.isVisible()) {
-        await closeBtn.click();
-      }
-      const row = getProductRow(productName);
-      await row.getByRole('button', { name: 'Edit Product' }).click();
+      // Edit/Delete now live behind the detail panel's "Product Actions"
+      // menu, not on the row itself — select the product first (the panel
+      // is a grid column now, not an overlay, so it no longer covers the
+      // list and there's nothing left to close before selecting).
+      await getProductRow(productName).click();
+      await expect(detailPanel).toContainText(new RegExp(productName, 'i'));
+      await detailPanel.getByRole('button', { name: 'Product Actions' }).click();
+      await page.getByRole('menuitem', { name: 'Edit Product' }).click();
       await expect(page.getByRole('dialog', { name: 'Edit Product Information' })).toBeVisible();
     },
     saveEditedProductName: async (newName: string) => {
@@ -137,13 +138,11 @@ export const createInventoryPage = (page: Page) => {
       await expect(detailPanel).toContainText(new RegExp(productName, 'i'));
     },
     deleteProduct: async (productName: string) => {
-      // Close detail panel if open to prevent interception
-      const closeBtn = detailPanel.getByRole('button', { name: 'Close' });
-      if (await closeBtn.isVisible()) {
-        await closeBtn.click();
-      }
-      const row = getProductRow(productName);
-      await row.getByRole('button', { name: 'Delete Product' }).click();
+      // Same "Product Actions" menu flow as openEditProductForm above.
+      await getProductRow(productName).click();
+      await expect(detailPanel).toContainText(new RegExp(productName, 'i'));
+      await detailPanel.getByRole('button', { name: 'Product Actions' }).click();
+      await page.getByRole('menuitem', { name: 'Delete Product' }).click();
       await Promise.all([
         page.waitForResponse(
           (response) =>

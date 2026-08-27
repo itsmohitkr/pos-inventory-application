@@ -30,6 +30,7 @@ import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import { getExpiryDateInputBounds } from '@/shared/utils/expiryDateBounds';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
+import { limitTwoDecimals } from '@/shared/utils/priceUtils';
 
 const { min: expiryDateMin, max: expiryDateMax } = getExpiryDateInputBounds();
 
@@ -75,9 +76,17 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
   }, [open, batch]);
 
   const handleChange = (name: string, value: string | boolean) => {
+    let finalValue = value;
+    if (
+      typeof value === 'string' &&
+      ['mrp', 'costPrice', 'sellingPrice', 'wholesalePrice'].includes(name)
+    ) {
+      finalValue = limitTwoDecimals(value);
+    }
+
     if (name === 'discount_percent') {
-      setDiscountInput(String(value));
-      const val = parseFloat(String(value));
+      setDiscountInput(String(finalValue));
+      const val = parseFloat(String(finalValue));
       if (!isNaN(val)) {
         const m = parseFloat(String(formData.mrp)) || 0;
         const newS = m * (1 - val / 100);
@@ -91,13 +100,13 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: finalValue,
     }));
 
     if (name === 'mrp' || name === 'sellingPrice') {
-      const m = name === 'mrp' ? parseFloat(String(value)) : parseFloat(formData.mrp || 0);
+      const m = name === 'mrp' ? parseFloat(String(finalValue)) : parseFloat(formData.mrp || 0);
       const s =
-        name === 'sellingPrice' ? parseFloat(String(value)) : parseFloat(formData.sellingPrice || 0);
+        name === 'sellingPrice' ? parseFloat(String(finalValue)) : parseFloat(formData.sellingPrice || 0);
       if (m > 0) {
         setDiscountInput((((m - s) / m) * 100).toFixed(1));
       } else {
