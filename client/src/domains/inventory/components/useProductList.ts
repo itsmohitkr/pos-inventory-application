@@ -25,6 +25,15 @@ interface SearchableProduct extends Product {
   _searchBarcodes?: string[];
 }
 
+/**
+ * What the right-hand panel is showing. A single value instead of a bare
+ * `isAddingProduct` boolean kept manually in sync with `selectedProduct` —
+ * every state-changing call site sets this one value instead of updating
+ * two things at once, so 'adding' and 'viewing' can't both be true from a
+ * call site that forgets to clear the other.
+ */
+type PanelMode = 'none' | 'viewing' | 'adding';
+
 interface UseProductListArgs {
   /** Selected category path, or 'all'. */
   categoryFilter: string;
@@ -53,6 +62,7 @@ export default function useProductList({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedProductDetails, setSelectedProductDetails] = useState<Product | null>(null);
+  const [panelMode, setPanelMode] = useState<PanelMode>('none');
   const [selectedProductRefresh, setSelectedProductRefresh] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRange, setHistoryRange] = useState('thisMonth');
@@ -214,11 +224,23 @@ export default function useProductList({
   }, [barcodeOverride, products, debouncedSearch, stockFilter, categoryFilter]);
 
   const selection = useProductSelection(displayedProducts, (product: Product | null) => {
-    if (product?.id === selectedProduct?.id) return;
+    if (product?.id === selectedProduct?.id && panelMode !== 'adding') return;
+    setPanelMode(product ? 'viewing' : 'none');
     setSelectedProduct(product);
     setSelectedProductDetails(null);
     setIsLoadingBatches(true);
   });
+
+  const handleOpenAddProduct = useCallback(() => {
+    setPanelMode('adding');
+    setSelectedProduct(null);
+    setSelectedProductDetails(null);
+    selection.resetSelection();
+  }, [selection]);
+
+  const handleCloseAddProduct = useCallback(() => {
+    setPanelMode('none');
+  }, []);
 
   const categoriesContext = useCategoryManagement(
     categoryFilter,
@@ -246,6 +268,7 @@ export default function useProductList({
     setBarcodeOverride(null);
     setSelectedProduct(null);
     setSelectedProductDetails(null);
+    setPanelMode('none');
     selection.resetSelection();
   }, [categoryFilter]);
 
@@ -262,7 +285,7 @@ export default function useProductList({
     const { fetchCategories } = categoriesContext;
     fetchCategories();
     return () => window.clearTimeout(focusTimer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoriesContext.fetchCategories]);
 
   useEffect(() => {
@@ -531,6 +554,7 @@ export default function useProductList({
     } else {
       selection.setSelectedIds(new Set([id]));
       selection.setLastSelectedId(id);
+      setPanelMode('viewing');
       setSelectedProduct(product);
       setSelectedProductDetails(null);
       setIsLoadingBatches(true);
@@ -596,6 +620,7 @@ export default function useProductList({
     searchTerm, setSearchTerm,
     selectedProduct,
     selectedProductDetails,
+    panelMode,
     historyOpen, setHistoryOpen,
     historyRange, setHistoryRange,
     historyCustomStart, setHistoryCustomStart,
@@ -613,6 +638,7 @@ export default function useProductList({
     // Handlers
     fetchProducts, fetchSummary,
     clearSearch, handleReset,
+    handleOpenAddProduct, handleCloseAddProduct,
     handleProductDoubleClick, handleListDragStart,
     handleOpenHistory, handleCloseHistory: () => setHistoryOpen(false),
     handleSortRequest, handleCategoryDrop,

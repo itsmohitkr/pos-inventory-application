@@ -30,6 +30,7 @@ import {
   TuneOutlined as ModeIcon,
 } from '@mui/icons-material';
 import ProductBatchTable from '@/domains/inventory/components/ProductBatchTable';
+import InventoryPanelShell from '@/domains/inventory/components/InventoryPanelShell';
 
 interface ProductDetailPanelProps {
   /** Null collapses the panel. */
@@ -92,148 +93,108 @@ const ProductDetailPanel = ({
     if (displayProduct) onDelete?.(displayProduct.id);
   };
 
+  const headerRight = displayProduct ? (
+    <>
+      <Tooltip title="Product Actions">
+        <IconButton
+          size="small"
+          onClick={handleOpenActionMenu}
+          aria-label="Product Actions"
+          sx={{
+            color: '#64748b',
+            borderRadius: '6px',
+            '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.08)', color: '#0f172a' },
+          }}
+        >
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      <Menu
+        anchorEl={actionMenuAnchor}
+        open={isActionMenuOpen}
+        onClose={handleCloseActionMenu}
+        slotProps={{
+          paper: {
+            elevation: 3,
+            sx: {
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              minWidth: 160,
+              py: 0.5,
+            },
+          },
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        {onEdit && (
+          <MenuItem onClick={handleEditProduct} aria-label="Edit Product" sx={{ py: 1, px: 2 }}>
+            <ListItemIcon sx={{ minWidth: 28, color: '#1f2937' }}>
+              <EditIcon fontSize="small" data-testid="EditIcon" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Edit Product"
+              primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500, color: '#1f2937' }}
+            />
+          </MenuItem>
+        )}
+
+        <MenuItem
+          onClick={() => {
+            handleCloseActionMenu();
+            onOpenHistory();
+          }}
+          aria-label="Product History"
+          sx={{ py: 1, px: 2 }}
+        >
+          <ListItemIcon sx={{ minWidth: 28, color: '#1f2937' }}>
+            <HistoryIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Product History"
+            primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500, color: '#1f2937' }}
+          />
+        </MenuItem>
+
+        {onDelete && (
+          <MenuItem onClick={handleDeleteProduct} aria-label="Delete Product" sx={{ py: 1, px: 2 }}>
+            <ListItemIcon sx={{ minWidth: 28, color: '#ef4444' }}>
+              <DeleteIcon fontSize="small" data-testid="DeleteIcon" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Delete Product"
+              primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500, color: '#ef4444' }}
+            />
+          </MenuItem>
+        )}
+      </Menu>
+
+      <Divider orientation="vertical" flexItem sx={{ my: 0.5, borderColor: '#e2e8f0' }} />
+
+      <Tooltip title="Close Details">
+        <IconButton
+          onClick={onClose}
+          size="small"
+          aria-label="Close"
+          sx={{
+            color: '#94a3b8',
+            borderRadius: '6px',
+            '&:hover': { bgcolor: '#fef2f2', color: '#ef4444' },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </>
+  ) : undefined;
+
   return (
-    <Paper
-      elevation={0}
-      data-testid="inventory-detail-panel"
-      sx={{
-        borderRadius: '10px',
-        border: '1px solid #e2e8f0',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        bgcolor: '#ffffff',
-        minWidth: 0,
-        width: '100%',
-      }}
-    >
+    <InventoryPanelShell title={displayProduct ? 'Product Details' : undefined} headerRight={headerRight}>
       {displayProduct ? (
-        <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          {/* Top Header Bar */}
-          <Box
-            sx={{
-              p: 1.5,
-              px: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1.5,
-              borderBottom: '1px solid #e2e8f0',
-              bgcolor: '#ffffff',
-              flexShrink: 0,
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                color: '#0b1d39',
-                fontSize: '0.85rem',
-              }}
-            >
-              Product Details
-            </Typography>
-
-            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-              <Tooltip title="Product Actions">
-                <IconButton
-                  size="small"
-                  onClick={handleOpenActionMenu}
-                  aria-label="Product Actions"
-                  sx={{
-                    color: '#64748b',
-                    borderRadius: '6px',
-                    '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.08)', color: '#0f172a' },
-                  }}
-                >
-                  <MoreVertIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-
-              <Menu
-                anchorEl={actionMenuAnchor}
-                open={isActionMenuOpen}
-                onClose={handleCloseActionMenu}
-                slotProps={{
-                  paper: {
-                    elevation: 3,
-                    sx: {
-                      borderRadius: '8px',
-                      border: '1px solid #e2e8f0',
-                      minWidth: 160,
-                      py: 0.5,
-                    },
-                  },
-                }}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-              >
-                {onEdit && (
-                  <MenuItem onClick={handleEditProduct} aria-label="Edit Product" sx={{ py: 1, px: 2 }}>
-                    <ListItemIcon sx={{ minWidth: 28, color: '#1f2937' }}>
-                      <EditIcon fontSize="small" data-testid="EditIcon" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Edit Product"
-                      primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500, color: '#1f2937' }}
-                    />
-                  </MenuItem>
-                )}
-
-                <MenuItem
-                  onClick={() => {
-                    handleCloseActionMenu();
-                    onOpenHistory();
-                  }}
-                  aria-label="Product History"
-                  sx={{ py: 1, px: 2 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 28, color: '#1f2937' }}>
-                    <HistoryIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Product History"
-                    primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500, color: '#1f2937' }}
-                  />
-                </MenuItem>
-
-                {onDelete && (
-                  <MenuItem onClick={handleDeleteProduct} aria-label="Delete Product" sx={{ py: 1, px: 2 }}>
-                    <ListItemIcon sx={{ minWidth: 28, color: '#ef4444' }}>
-                      <DeleteIcon fontSize="small" data-testid="DeleteIcon" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Delete Product"
-                      primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500, color: '#ef4444' }}
-                    />
-                  </MenuItem>
-                )}
-              </Menu>
-
-              <Divider orientation="vertical" flexItem sx={{ my: 0.5, borderColor: '#e2e8f0' }} />
-
-              <Tooltip title="Close Details">
-                <IconButton
-                  onClick={onClose}
-                  size="small"
-                  aria-label="Close"
-                  sx={{
-                    color: '#94a3b8',
-                    borderRadius: '6px',
-                    '&:hover': { bgcolor: '#fef2f2', color: '#ef4444' },
-                  }}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Box>
-
-          {/* Canvas Content Body */}
-          <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', p: 1.5, bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {/* Product Details Overview Card */}
-            <Paper
+        <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', p: 1.5, bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {/* Product Details Overview Card */}
+          <Paper
               elevation={0}
               sx={{
                 p: 1.5,
@@ -366,14 +327,13 @@ const ProductDetailPanel = ({
                 </Box>
               )}
             </Box>
-          </Box>
         </Box>
       ) : (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
           <CircularProgress />
         </Box>
       )}
-    </Paper>
+    </InventoryPanelShell>
   );
 };
 

@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes';
 import prisma = require('../../config/prisma');
 import type { Batch, Prisma } from '@prisma/client';
-import { createHttpError, AppError } from '../../shared/error/appError';
+import { createHttpError } from '../../shared/error/appError';
 import { getDateRange } from '../../shared/utils/dateUtils';
 import { getErrorMessage } from '../../shared/utils/errorMessage';
 import categoryService = require('../category/category.service');
@@ -630,9 +630,7 @@ const getProductByBarcode = async (barcode: string) => {
 };
 
 /**
- * Fields createOrUpdateProduct and bulkCreateProducts both read from an
- * initial-batch payload — structurally compatible with both callers'
- * (nominally different) initialBatch types.
+ * Fields createOrUpdateProduct reads from an initial-batch payload.
  */
 interface InitialBatchPricingInput {
   mrp?: number | string | null;
@@ -647,10 +645,8 @@ interface InitialBatchPricingInput {
 
 /**
  * Parses and validates the pricing/batch-code portion of an initial-batch
- * payload — the part createOrUpdateProduct and bulkCreateProducts compute
- * identically. Quantity is deliberately excluded: createOrUpdateProduct
- * validates it with validateQuantity and bulkCreateProducts does not, so
- * each caller still parses/validates quantity itself.
+ * payload. Quantity is deliberately excluded: createOrUpdateProduct
+ * validates it separately with validateQuantity.
  */
 const parseInitialBatchPricing = (
   initialBatch: InitialBatchPricingInput,
@@ -1546,109 +1542,6 @@ const getProductHistory = async (
   };
 };
 
-/**
- * What bulkCreateProducts reads from each element.
- *
- * NOTE: bulkCreateProductsBodySchema is `z.array(z.looseObject({}))` — the
- * request is validated as "an array of objects" and nothing more. These are
- * the fields the service expects, not fields validation guarantees. A
- * malformed entry still fails inside the transaction and rolls the whole
- * batch back, which is the existing behaviour.
- */
-interface BulkProductInput {
-  name: string;
-  barcode?: string | null;
-  category?: string | null;
-  enableBatchTracking?: boolean;
-  lowStockWarningEnabled?: boolean;
-  lowStockThreshold?: number | string | null;
-  initialBatch?: {
-    quantity?: number | string | null;
-    mrp?: number | string | null;
-    cost_price?: number | string | null;
-    selling_price?: number | string | null;
-    batch_code?: string | null;
-    expiryDate?: string | Date | null;
-    wholesaleEnabled?: boolean;
-    wholesalePrice?: number | string | null;
-    wholesaleMinQty?: number | string | null;
-  } | null;
-}
-
-const bulkCreateProducts = async (products: BulkProductInput[]) => {
-  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const results: {
-      success: boolean;
-      count: number;
-      errors: { row: number; message: string }[];
-    } = {
-      success: true,
-      count: 0,
-      errors: [],
-    };
-
-    for (let i = 0; i < products.length; i++) {
-      const prodData = products[i];
-      try {
-        const {
-          name,
-          barcode,
-          category,
-          initialBatch,
-          enableBatchTracking,
-          lowStockWarningEnabled,
-          lowStockThreshold,
-        } = prodData;
-
-        // Validate barcode uniqueness
-        if (barcode && barcode.trim()) {
-          await _validateBarcodesUniqueness(tx, barcode);
-        }
-
-        const product = await tx.product.create({
-          data: {
-            name,
-            barcode: barcode && barcode.trim() ? barcode : null,
-            category: normalizeCategory(category),
-            batchTrackingEnabled: enableBatchTracking === true,
-            lowStockWarningEnabled: lowStockWarningEnabled === true,
-            lowStockThreshold: lowStockWarningEnabled ? parseInt(String(lowStockThreshold)) || 0 : 0,
-          },
-        });
-
-        if (initialBatch) {
-          const qtyToAdd = parseInt(String(initialBatch.quantity)) || 0;
-          const parsed = parseInitialBatchPricing(initialBatch, product.batchTrackingEnabled);
-
-          await createBatchWithMovement(tx, {
-            productId: product.id,
-            batchCode: parsed.finalBatchCode,
-            quantity: qtyToAdd,
-            mrp: parsed.mrpValue,
-            costPrice: parsed.costValue,
-            sellingPrice: parsed.sellingValue,
-            wholesaleEnabled: initialBatch.wholesaleEnabled === true,
-            wholesalePrice: parsed.wholesalePrice,
-            wholesaleMinQty: parsed.wholesaleMinQty,
-            expiryDate: parsed.expiryDateValue,
-            note: 'Bulk Initial stock',
-            skipMovementWhenZero: true,
-          });
-        }
-        results.count++;
-      } catch (error) {
-        // If any product fails, we roll back the entire transaction by throwing
-        const message = `Error at item ${i + 1} (${prodData.name || 'Unknown'}): ${getErrorMessage(error)}`;
-        const statusCode = error instanceof AppError ? error.statusCode : StatusCodes.BAD_REQUEST;
-        throw createHttpError(statusCode, message, {
-          error: message,
-        });
-      }
-    }
-    return results;
-  });
-};
-
 export {
   getAllProducts,
   getAllProductsWithBatches,
@@ -1665,5 +1558,4 @@ export {
   importProducts,
   validateBarcodes,
   getProductHistory,
-  bulkCreateProducts,
 };

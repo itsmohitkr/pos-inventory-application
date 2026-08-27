@@ -19,17 +19,18 @@ describe('priceUtils', () => {
   });
 
   describe('formatPrice', () => {
-    it('formats values to exactly 2 decimal places string', () => {
+    it('formats integer values without trailing zeros and decimals to 2 decimal places', () => {
       expect(formatPrice(10.5)).toBe('10.50');
-      expect(formatPrice(100)).toBe('100.00');
+      expect(formatPrice(100)).toBe('100');
       expect(formatPrice('49.9')).toBe('49.90');
-      expect(formatPrice(99.999)).toBe('100.00');
+      expect(formatPrice(99.999)).toBe('100');
+      expect(formatPrice(100.75)).toBe('100.75');
     });
 
-    it('returns 0.00 for empty or invalid values', () => {
-      expect(formatPrice(null)).toBe('0.00');
-      expect(formatPrice(undefined)).toBe('0.00');
-      expect(formatPrice('abc')).toBe('0.00');
+    it('returns 0 for empty or invalid values', () => {
+      expect(formatPrice(null)).toBe('0');
+      expect(formatPrice(undefined)).toBe('0');
+      expect(formatPrice('abc')).toBe('0');
     });
   });
 });

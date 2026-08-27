@@ -21,6 +21,7 @@ import {
   Inventory2Outlined as InventoryIcon,
   WarningAmberOutlined as WarningIcon,
   RemoveCircleOutline as OutOfStockIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 
 interface ProductListToolbarProps {
@@ -33,6 +34,7 @@ interface ProductListToolbarProps {
    * onReset clears all of them, not just the stock filter, so the Reset
    * control must stay visible whenever any of them is active. */
   hasActiveFilters: boolean;
+  onAddProduct?: () => void;
 }
 
 const ProductListToolbar = ({
@@ -41,6 +43,7 @@ const ProductListToolbar = ({
   onReset,
   displayedProductCount,
   hasActiveFilters,
+  onAddProduct,
 }: ProductListToolbarProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
@@ -215,6 +218,32 @@ const ProductListToolbar = ({
             <RestartAltIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+      )}
+
+      {/* Add New Product Button */}
+      {onAddProduct && (
+        <Button
+          size="small"
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon fontSize="small" />}
+          onClick={onAddProduct}
+          sx={{
+            height: '36px',
+            textTransform: 'none',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            borderRadius: '6px',
+            px: 1.5,
+            whiteSpace: 'nowrap',
+            bgcolor: '#0b1d39',
+            '&:hover': {
+              bgcolor: '#1e293b',
+            },
+          }}
+        >
+          Add Product
+        </Button>
       )}
     </Box>
   );
