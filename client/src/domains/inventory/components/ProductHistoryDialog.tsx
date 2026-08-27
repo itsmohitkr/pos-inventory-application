@@ -176,7 +176,6 @@ const ProductHistoryDialog = ({
             pagination={history?.pagination}
             isLoadingMore={isLoadingMore}
             onLoadMore={onLoadMore}
-            productName={product?.name}
             formatDate={formatDate}
             formatTime={formatTime}
           />

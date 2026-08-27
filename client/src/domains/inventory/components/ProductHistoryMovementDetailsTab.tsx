@@ -19,8 +19,6 @@ interface ProductHistoryMovementDetailsTabProps {
   pagination?: StockMovementPagination;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
-  /** Used to name the exported CSV file. */
-  productName?: string;
   formatDate: (value?: string | null) => string;
   formatTime: (value?: string | null) => string;
 }
@@ -33,9 +31,6 @@ const movementTypeFilterOptions = [
   { value: 'adjustment_in', label: 'Adjust +' },
   { value: 'adjustment_out', label: 'Adjust -' },
 ];
-
-/** Quotes a CSV field and doubles any embedded quotes, per RFC 4180. */
-const escapeCsvField = (value: string | number): string => `"${String(value).replace(/"/g, '""')}"`;
 
 /**
  * Batch tracking is often off, so most movements' batch has no code — fall
@@ -88,7 +83,6 @@ const ProductHistoryMovementDetailsTab = ({
   pagination,
   isLoadingMore,
   onLoadMore,
-  productName,
   formatDate,
   formatTime,
 }: ProductHistoryMovementDetailsTabProps) => {
@@ -98,61 +92,23 @@ const ProductHistoryMovementDetailsTab = ({
       ? movements
       : movements.filter((movement) => movement.type === movementTypeFilter);
 
-  const totalCount = pagination?.totalCount ?? movements.length;
-  const exportLabel =
-    filteredMovements.length < totalCount
-      ? `Export Loaded (${filteredMovements.length} of ${totalCount})`
-      : 'Export CSV';
-
-  const handleExportCsv = () => {
-    const headers = ['Date', 'Time', 'Type', 'Qty', 'Batch', 'Sale #', 'Note'];
-    const rows = filteredMovements.map((movement) => [
-      escapeCsvField(formatDate(movement.createdAt)),
-      escapeCsvField(formatTime(movement.createdAt)),
-      escapeCsvField(movementLabel(movement.type)),
-      movement.quantity,
-      escapeCsvField(batchLabel(movement.batch)),
-      movement.saleId ?? '',
-      escapeCsvField(movement.note || ''),
-    ]);
-    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    const productLabel = (productName || 'product').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
-    link.download = `${productLabel}_history_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  };
-
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={movementTypeFilter}
-            onChange={(_event, value) => {
-              if (value) setMovementTypeFilter(value);
-            }}
-          >
-            {movementTypeFilterOptions.map((option) => (
-              <ToggleButton key={option.value} value={option.value}>
-                {option.label}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-        </Box>
-        <Button
+      <Box sx={{ mb: 1 }}>
+        <ToggleButtonGroup
           size="small"
-          variant="outlined"
-          onClick={handleExportCsv}
-          disabled={filteredMovements.length === 0}
+          exclusive
+          value={movementTypeFilter}
+          onChange={(_event, value) => {
+            if (value) setMovementTypeFilter(value);
+          }}
         >
-          {exportLabel}
-        </Button>
+          {movementTypeFilterOptions.map((option) => (
+            <ToggleButton key={option.value} value={option.value}>
+              {option.label}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
       </Box>
       <Table size="small">
         <TableHead>
