@@ -75,25 +75,33 @@ export const createInventoryPage = (page: Page) => {
       // uniqueness check (addBarcode) succeeded — checking the input's
       // enabled state instead would race the brief disabled-while-checking
       // window and could pass before the check even started. Scoped to the
-      // drawer (an MUI Drawer, not a Dialog — it has no aria-labelledby, so
-      // it can only be matched by role, not by name), since other products'
-      // 13-digit barcodes are already visible in the table behind it and
-      // would otherwise match too.
-      const addProductDialog = page.getByRole('dialog');
-      await addProductDialog.getByRole('button', { name: 'Generate' }).click();
-      await expect(addProductDialog.getByText(/^\d{13}$/)).toBeVisible({ timeout: 5000 });
+      // right-hand panel (an inline Paper now, not a Dialog or Drawer — it
+      // renders in-page via InventoryPanelShell, identified by its
+      // data-testid), since other products' 13-digit barcodes are already
+      // visible in the table behind it and would otherwise match too.
+      const addProductPanel = page.getByTestId('inventory-detail-panel');
+      await addProductPanel.getByRole('button', { name: 'Generate' }).click();
+      await expect(addProductPanel.getByText(/^\d{13}$/)).toBeVisible({ timeout: 5000 });
 
-      await page.getByLabel('Quantity').fill(quantity.toString());
+      // 'Initial Quantity' (not just 'Quantity') — the Inventory Alert
+      // Settings section's info icon has an aria-label containing the word
+      // "quantity" too ("Automatically flags product when quantity drops
+      // below the alert threshold."), which getByLabel's substring matching
+      // would otherwise also match, making the locator ambiguous.
+      await page.getByLabel('Initial Quantity').fill(quantity.toString());
       await page.getByLabel('MRP').fill(mrp.toString());
       await page.getByLabel('Cost Price').fill(costPrice.toString());
       await page.getByLabel('Selling Price').fill(sellingPrice.toString());
 
       if (expiryDate !== undefined) {
-        const batchSwitch = page.getByLabel('Enable batch tracking');
+        const batchSwitch = page.getByLabel('Enable Batch & Expiry Tracking');
         if (!(await batchSwitch.isChecked())) {
           await batchSwitch.click();
         }
-        const expiryInput = page.getByLabel('Expiry Date');
+        // getByLabel('Expiry Date') is ambiguous — the batch-tracking
+        // switch's info icon has an aria-label containing "expiry dates"
+        // too. Scoping to the textbox role excludes the (non-textbox) icon.
+        const expiryInput = page.getByRole('textbox', { name: 'Expiry Date' });
         await expect(expiryInput).toBeVisible({ timeout: 5000 });
         await expiryInput.fill(expiryDate);
       }
