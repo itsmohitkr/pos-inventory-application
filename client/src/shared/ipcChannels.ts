@@ -105,7 +105,6 @@ export const IPC = {
   PRODUCT_EXPORT: 'product:exportProducts',
   PRODUCT_IMPORT: 'product:importProducts',
   PRODUCT_VALIDATE_BARCODES: 'product:validateBarcodes',
-  PRODUCT_BULK_CREATE: 'product:bulkCreateProducts',
 
   AUTH_LOGIN: 'auth:login',
   AUTH_GET_ALL_USERS: 'auth:getAllUsers',

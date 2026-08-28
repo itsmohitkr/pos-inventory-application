@@ -199,14 +199,6 @@ const validateBarcodes = async (req: Request, res: Response) => {
   );
 };
 
-const bulkCreateProducts = async (req: Request, res: Response) => {
-  const { products } = req.body;
-  const result = await productService.bulkCreateProducts(products);
-  return sendSuccessResponse(res, StatusCodes.OK, result, 'Products created successfully', {
-    format: 'merge',
-  });
-};
-
 export = {
   getAllProducts: asyncHandler(getAllProducts),
   getProductSummary: asyncHandler(getProductSummary),
@@ -222,5 +214,4 @@ export = {
   importProducts: asyncHandler(importProducts),
   validateBarcodes: asyncHandler(validateBarcodes),
   getProductHistory: asyncHandler(getProductHistory),
-  bulkCreateProducts: asyncHandler(bulkCreateProducts),
 };

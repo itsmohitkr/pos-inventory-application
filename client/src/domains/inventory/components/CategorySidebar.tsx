@@ -84,7 +84,6 @@ const CategorySidebar = ({
   uncategorizedCount,
   hasUncategorized,
   categorySortOrder,
-  isResizingLeft,
   contextMenu,
   activeCategory,
   addCategoryOpen,
@@ -105,7 +104,6 @@ const CategorySidebar = ({
   onCategoryDialogClose,
   onCategoryNameChange,
   onSaveCategory,
-  onResizeStart,
   onDoubleClick,
   onToggleCategories,
 }: CategorySidebarProps) => {
@@ -170,7 +168,8 @@ const CategorySidebar = ({
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative',
+          height: '100%',
+          width: '100%',
         }}
       >
         <Box
@@ -236,40 +235,6 @@ const CategorySidebar = ({
           )}
           {sortedCategoryTree.map((category) => renderCategoryNode(category))}
         </List>
-        <Box
-          onMouseDown={(e) => {
-            e.preventDefault();
-            onResizeStart();
-          }}
-          sx={{
-            display: { xs: 'none', lg: 'flex' },
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '8px',
-            height: '100%',
-            cursor: 'col-resize',
-            alignItems: 'center',
-            justifyContent: 'center',
-            '&:hover .handle': {
-              bgcolor: 'primary.main',
-              width: '4px',
-            },
-            zIndex: 10,
-          }}
-        >
-          <Box
-            className="handle"
-            sx={{
-              width: '2px',
-              height: '60px',
-              bgcolor: isResizingLeft ? 'primary.main' : 'divider',
-              borderRadius: '4px',
-              transition: 'all 0.2s',
-              ...(isResizingLeft && { width: '4px' }),
-            }}
-          />
-        </Box>
       </Paper>
 
       <Menu

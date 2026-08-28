@@ -45,18 +45,34 @@ const ProductListTable = ({
       sx={{
         flex: 1,
         overflow: 'auto',
-        overflowX: 'scroll',
+        overflowX: 'auto',
         opacity: isPending ? 0.6 : 1,
         transition: 'opacity 0.2s ease',
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#cbd5e1 transparent',
+        '&::-webkit-scrollbar': {
+          height: '6px',
+          width: '6px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: '#cbd5e1',
+          borderRadius: '4px',
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+          background: '#94a3b8',
+        },
       }}
     >
-      <Table size="small" stickyHeader>
+      <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', minWidth: '760px' }}>
         <TableHead>
           <TableRow sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0' }}>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '50px', minWidth: '50px', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '5%', minWidth: '55px', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               S.No.
             </TableCell>
-            <TableCell sx={{ px: 1.5, minWidth: '200px' }}>
+            <TableCell sx={{ px: 1.5, width: '37%', minWidth: '220px' }}>
               <TableSortLabel
                 active={sortBy === 'name'}
                 direction={sortBy === 'name' ? sortOrder : 'asc'}
@@ -72,7 +88,7 @@ const ProductListTable = ({
                 Name
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ px: 1.5, width: '170px', minWidth: '150px' }}>
+            <TableCell sx={{ px: 1.5, width: '28%', minWidth: '190px' }}>
               <TableSortLabel
                 active={sortBy === 'barcode'}
                 direction={sortBy === 'barcode' ? sortOrder : 'asc'}
@@ -88,7 +104,7 @@ const ProductListTable = ({
                 Barcode
               </TableSortLabel>
             </TableCell>
-            <TableCell align="right" sx={{ whiteSpace: 'nowrap', px: 1.5, width: '110px', minWidth: '90px' }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '10%', minWidth: '85px' }}>
               <TableSortLabel
                 active={sortBy === 'stock'}
                 direction={sortBy === 'stock' ? sortOrder : 'asc'}
@@ -104,7 +120,7 @@ const ProductListTable = ({
                 Stock
               </TableSortLabel>
             </TableCell>
-            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '160px', minWidth: '140px' }}>
+            <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '20%', minWidth: '160px' }}>
               <TableSortLabel
                 active={sortBy === 'lastUpdatedAt'}
                 direction={sortBy === 'lastUpdatedAt' ? sortOrder : 'desc'}

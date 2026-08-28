@@ -86,17 +86,6 @@ const inventoryService = {
   },
 
   /**
-   * Bulk update products (e.g., via Excel upload)
-   */
-  bulkUpdate: async (products: RequestBody[], config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_BULK_CREATE, { products });
-    }
-    const response = await api.post('/api/products/bulk', { products }, config);
-    return response.data;
-  },
-
-  /**
    * Update an existing batch
    */
   updateBatch: async (id: number, batchData: RequestBody, config: RequestConfig = {}) => {

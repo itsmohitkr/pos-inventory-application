@@ -1,5 +1,5 @@
 import React from 'react';
-import { limitTwoDecimals } from '@/shared/utils/priceUtils';
+import { limitTwoDecimals, formatPrice } from '@/shared/utils/priceUtils';
 import {
   Grid,
   TextField,
@@ -9,7 +9,11 @@ import {
   FormControlLabel,
   Switch,
   Divider,
+  Tooltip,
+  Paper,
 } from '@mui/material';
+import { InfoOutlined as InfoIcon } from '@mui/icons-material';
+import { inputFieldSx } from '@/domains/inventory/components/inventoryFormStyles';
 
 /**
  * Price/qty props accept strings because callers pass raw form state; the
@@ -54,26 +58,35 @@ const WholesaleConfiguration = ({
 
   return (
     <Box sx={{ width: '100%' }}>
-      <FormControlLabel
-        control={
-          <Switch checked={wholesaleEnabled} onChange={(e) => onToggleChange(e.target.checked)} />
-        }
-        label={
-          <Typography variant="subtitle2" fontWeight={600}>
-            Enable Wholesale Pricing
-          </Typography>
-        }
-      />
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: 'block', mt: 0.5, mb: 1.5 }}
-      >
-        Enable this to set special discounted prices for bulk orders.
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: wholesaleEnabled ? 1.5 : 0 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={wholesaleEnabled}
+              onChange={(e) => onToggleChange(e.target.checked)}
+              sx={{
+                '& .MuiSwitch-switchBase.Mui-checked': {
+                  color: '#0b1d39',
+                },
+                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                  backgroundColor: '#0b1d39',
+                },
+              }}
+            />
+          }
+          label={
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#0f172a', fontSize: '0.875rem' }}>
+              Enable Wholesale Pricing
+            </Typography>
+          }
+        />
+        <Tooltip title="Enable this to set special discounted prices for bulk orders." arrow placement="top">
+          <InfoIcon sx={{ color: '#64748b', fontSize: '1rem', cursor: 'pointer', '&:hover': { color: '#0b1d39' } }} />
+        </Tooltip>
+      </Box>
 
       {wholesaleEnabled && (
-        <Grid container spacing={2}>
+        <Grid container spacing={2.5}>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
@@ -88,9 +101,10 @@ const WholesaleConfiguration = ({
               error={Boolean(wPriceError)}
               helperText={wPriceError}
               InputProps={{
-                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                startAdornment: <InputAdornment position="start" sx={{ color: '#0b1d39', fontWeight: 700 }}>₹</InputAdornment>,
                 inputProps: { min: 0, step: '0.01' },
               }}
+              sx={{ '& .MuiOutlinedInput-root': inputFieldSx }}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -107,40 +121,82 @@ const WholesaleConfiguration = ({
               error={Boolean(wQtyError)}
               helperText={wQtyError}
               InputProps={{ inputProps: { min: 1, step: 1 } }}
+              sx={{ '& .MuiOutlinedInput-root': inputFieldSx }}
             />
           </Grid>
+
+          {/* Small Summary Cards for Wholesale Savings and Wholesale Margin */}
           <Grid size={{ xs: 12 }}>
-            <Box
-              sx={{
-                p: 1.5,
-                borderRadius: 1.5,
-                bgcolor: 'rgba(2, 132, 199, 0.04)',
-                border: '1px dashed rgba(2, 132, 199, 0.2)',
-              }}
-            >
-              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" display="block">
+            <Grid container spacing={1.5}>
+              {/* Savings vs Retail Small Card */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 1.25,
+                    px: 1.5,
+                    bgcolor: '#f5f3ff',
+                    borderRadius: '6px',
+                    border: '1px solid #ede9fe',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.25,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 600, color: '#6d28d9', fontSize: '0.75rem' }}
+                  >
                     Savings vs Retail
                   </Typography>
-                  <Typography variant="subtitle2" color="primary.main" fontWeight={700}>
-                    ₹{wholesaleSavings.toFixed(2)} ({wholesalePricePercent.toFixed(1)}% less)
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" display="block">
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#7c3aed', fontSize: '0.88rem' }}>
+                      ₹{formatPrice(wholesaleSavings)}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#6d28d9', fontSize: '0.75rem' }}>
+                      {wholesalePricePercent.toFixed(1)}% less
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {/* Wholesale Margin Small Card */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 1.25,
+                    px: 1.5,
+                    bgcolor: wholesaleMarginPercent >= 0 ? '#f0fdf4' : '#fef2f2',
+                    borderRadius: '6px',
+                    border: '1px solid',
+                    borderColor: wholesaleMarginPercent >= 0 ? '#bbf7d0' : '#fecaca',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.25,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 600,
+                      color: wholesaleMarginPercent >= 0 ? '#15803d' : '#b91c1c',
+                      fontSize: '0.75rem',
+                    }}
+                  >
                     Wholesale Margin
                   </Typography>
-                  <Typography
-                    variant="subtitle2"
-                    color={wholesaleMarginPercent > 0 ? 'success.main' : 'error.main'}
-                    fontWeight={700}
-                  >
-                    {wholesaleMarginPercent.toFixed(1)}%
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: wholesaleMarginPercent >= 0 ? '#15803d' : '#b91c1c', fontSize: '0.88rem' }}>
+                      ₹{formatPrice(wholesaleMarginValue)}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: wholesaleMarginPercent >= 0 ? '#15803d' : '#b91c1c', fontSize: '0.75rem' }}>
+                      {wholesaleMarginPercent.toFixed(1)}%
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
+            </Grid>
           </Grid>
         </Grid>
       )}

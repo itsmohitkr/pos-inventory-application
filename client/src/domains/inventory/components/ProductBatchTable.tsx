@@ -95,7 +95,7 @@ const ProductBatchTable = ({
         )}
       </Box>
 
-      {/* Batch Cards Container (Autonomous Scroll Area) */}
+      {/* Batch Cards Container (Overlay scrollbar in right margin space) */}
       <Box
         sx={{
           flex: 1,
@@ -104,7 +104,24 @@ const ProductBatchTable = ({
           flexDirection: 'column',
           gap: 1.25,
           overflowY: 'auto',
-          pr: 0.5,
+          // @ts-expect-error - Chrome/Electron overlay scrollbar prevents layout shifting
+          overflowY: 'overlay',
+          pr: 0,
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#cbd5e1 transparent',
+          '&::-webkit-scrollbar': {
+            width: '5px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#cbd5e1',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: '#94a3b8',
+          },
         }}
       >
         {batches.map((batch) => {
@@ -134,7 +151,7 @@ const ProductBatchTable = ({
                 gap: 1.25,
                 transition: 'all 0.2s ease',
                 '&:hover': {
-                  borderColor: '#cbd5e1',
+                  borderColor: '#94a3b8',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 },
               }}
@@ -196,7 +213,7 @@ const ProductBatchTable = ({
                   <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
                     MRP
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#6366f1', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                     ₹{formatPrice(batch.mrp)}
                   </Typography>
                 </Box>
@@ -205,7 +222,7 @@ const ProductBatchTable = ({
                   <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
                     Cost (CP)
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#ea580c', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                     ₹{formatPrice(batch.costPrice)}
                   </Typography>
                 </Box>
@@ -214,7 +231,7 @@ const ProductBatchTable = ({
                   <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
                     Selling (SP)
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#0b1d39', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#059669', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
                     ₹{formatPrice(batch.sellingPrice)}
                   </Typography>
                 </Box>

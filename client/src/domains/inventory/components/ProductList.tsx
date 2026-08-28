@@ -2,7 +2,13 @@ import { forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
 import type { Batch, Product } from '@/shared/types/models';
 import * as Sentry from '@sentry/react';
 import { Paper, Typography, Box, Chip, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
-import { ChevronRight as ChevronRightIcon } from '@mui/icons-material';
+import {
+  ChevronRight as ChevronRightIcon,
+  Close as CloseIcon,
+  Add as AddIcon,
+} from '@mui/icons-material';
+
+import AddProductForm from '@/domains/inventory/components/AddProductForm';
 
 import EditProductDialog from '@/domains/inventory/components/EditProductDialog';
 import EditBatchDialog from '@/domains/inventory/components/EditBatchDialog';
@@ -14,6 +20,7 @@ import CustomDialog from '@/shared/components/CustomDialog';
 import ProductSummaryBar from '@/domains/inventory/components/ProductSummaryBar';
 import CategorySidebar from '@/domains/inventory/components/CategorySidebar';
 import ProductDetailPanel from '@/domains/inventory/components/ProductDetailPanel';
+import InventoryPanelShell from '@/domains/inventory/components/InventoryPanelShell';
 import ProductListTable from '@/domains/inventory/components/ProductListTable';
 import ProductListToolbar from '@/domains/inventory/components/ProductListToolbar';
 import ProductSearchField from '@/domains/inventory/components/ProductSearchField';
@@ -98,68 +105,107 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
     return (
       <Box
         sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            lg: `${pl.showCategories ? `${pl.leftPanelWidth}px ` : ''}1fr${
-              pl.displayProduct ? ` ${pl.rightPanelWidth}px` : ''
-            }`,
-          },
+          display: 'flex',
           gap: 1.5,
           height: '100%',
           minHeight: 0,
           alignItems: 'stretch',
         }}
       >
-        {/* Category Sidebar */}
+        {/* Category Sidebar (Card 1) */}
         {pl.showCategories && (
-          <CategorySidebar
-            sortedCategoryTree={pl.sortedCategoryTree}
-            categoryCounts={pl.categoryCounts}
-            expandedCategoryIds={pl.expandedCategoryIds}
-            categoryFilter={categoryFilter}
-            totalCount={pl.totalCount}
-            uncategorizedCount={pl.uncategorizedCount}
-            hasUncategorized={pl.hasUncategorized}
-            categorySortOrder={pl.categorySortOrder}
-            isResizingLeft={pl.isResizingRight}
-            contextMenu={pl.contextMenu}
-            activeCategory={pl.activeCategory}
-            addCategoryOpen={pl.addCategoryOpen}
-            newCategoryName={pl.newCategoryName}
-            categoryDialogMode={pl.categoryDialogMode}
-            categoryDialogParent={pl.categoryDialogParent}
-            onCategorySelect={pl.handleCategorySelect}
-            onCategorySortToggle={pl.handleCategorySortToggle}
-            onAddCategoryDialog={pl.openAddCategoryDialog}
-            onCategoryDragOver={pl.handleCategoryDragOver}
-            onCategoryDrop={pl.handleCategoryDrop}
-            onToggleExpand={pl.handleToggleExpand}
-            onOpenCategoryMenu={pl.openCategoryMenu}
-            onCloseContextMenu={pl.closeCategoryMenu}
-            onAddSubcategory={pl.openAddCategoryDialog}
-            onEditCategory={pl.openEditCategoryDialog}
-            onDeleteCategory={pl.handleDeleteCategory}
-            onCategoryDialogClose={() => pl.setAddCategoryOpen(false)}
-            onCategoryNameChange={pl.setNewCategoryName}
-            onSaveCategory={pl.handleSaveCategory}
-            onResizeStart={pl.handleResizeStartLeft}
-            onDoubleClick={pl.displayProduct ? pl.handleOpenHistory : undefined}
-            onToggleCategories={() => pl.setShowCategories(false)}
-          />
+          <Box
+            sx={{
+              width: { xs: '100%', lg: pl.leftPanelWidth },
+              minWidth: { lg: 180 },
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+            }}
+          >
+            <CategorySidebar
+              sortedCategoryTree={pl.sortedCategoryTree}
+              categoryCounts={pl.categoryCounts}
+              expandedCategoryIds={pl.expandedCategoryIds}
+              categoryFilter={categoryFilter}
+              totalCount={pl.totalCount}
+              uncategorizedCount={pl.uncategorizedCount}
+              hasUncategorized={pl.hasUncategorized}
+              categorySortOrder={pl.categorySortOrder}
+              isResizingLeft={pl.isResizingLeft}
+              contextMenu={pl.contextMenu}
+              activeCategory={pl.activeCategory}
+              addCategoryOpen={pl.addCategoryOpen}
+              newCategoryName={pl.newCategoryName}
+              categoryDialogMode={pl.categoryDialogMode}
+              categoryDialogParent={pl.categoryDialogParent}
+              onCategorySelect={pl.handleCategorySelect}
+              onCategorySortToggle={pl.handleCategorySortToggle}
+              onAddCategoryDialog={pl.openAddCategoryDialog}
+              onCategoryDragOver={pl.handleCategoryDragOver}
+              onCategoryDrop={pl.handleCategoryDrop}
+              onToggleExpand={pl.handleToggleExpand}
+              onOpenCategoryMenu={pl.openCategoryMenu}
+              onCloseContextMenu={pl.closeCategoryMenu}
+              onAddSubcategory={pl.openAddCategoryDialog}
+              onEditCategory={pl.openEditCategoryDialog}
+              onDeleteCategory={pl.handleDeleteCategory}
+              onCategoryDialogClose={() => pl.setAddCategoryOpen(false)}
+              onCategoryNameChange={pl.setNewCategoryName}
+              onSaveCategory={pl.handleSaveCategory}
+              onResizeStart={pl.handleResizeStartLeft}
+              onDoubleClick={pl.displayProduct ? pl.handleOpenHistory : undefined}
+              onToggleCategories={() => pl.setShowCategories(false)}
+            />
+          </Box>
         )}
 
-        {/* Product List */}
+        {/* Resizer Slider 1: Centered in gap between Card 1 & Card 2 */}
+        {pl.showCategories && (
+          <Box
+            onMouseDown={pl.handleResizeStartLeft}
+            sx={{
+              display: { xs: 'none', lg: 'flex' },
+              width: '12px',
+              mx: -1.5,
+              cursor: 'col-resize',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+              flexShrink: 0,
+              '&:hover .handle': {
+                bgcolor: 'primary.main',
+                width: '4px',
+              },
+            }}
+          >
+            <Box
+              className="handle"
+              sx={{
+                width: '2px',
+                height: '60px',
+                bgcolor: pl.isResizingLeft ? 'primary.main' : 'divider',
+                borderRadius: '4px',
+                transition: 'all 0.2s',
+                ...(pl.isResizingLeft && { width: '4px' }),
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Product List Table (Card 2) */}
         <Paper
           elevation={0}
           sx={{
+            flex: 1,
             borderRadius: '10px',
             border: '1px solid #e2e8f0',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
-            minWidth: 0
+            minWidth: 0,
           }}
         >
           {/* Header */}
@@ -173,7 +219,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                 justifyContent: 'space-between',
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {!pl.showCategories && (
                   <Tooltip title="Show Categories">
                     <IconButton
@@ -189,20 +235,14 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                     </IconButton>
                   </Tooltip>
                 )}
-                <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                  Products
-                </Typography>
-                <Chip
-                  label={pl.categoryLabel}
-                  size="small"
-                  sx={{
-                    bgcolor: 'rgba(31, 41, 55, 0.15)',
-                    color: '#1f2937',
-                    fontWeight: 600,
-                    fontSize: '0.7rem',
-                    height: '22px',
-                  }}
-                />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#0b1d39', lineHeight: 1.2 }}>
+                    Products
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: '#64748b', fontSize: '0.75rem', lineHeight: 1 }}>
+                    {pl.categoryLabel}
+                  </Typography>
+                </Box>
               </Box>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'nowrap' }}>
                 <ProductSearchField
@@ -228,6 +268,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                     pl.sortBy !== 'name' ||
                     pl.sortOrder !== 'asc'
                   }
+                  onAddProduct={pl.handleOpenAddProduct}
                 />
               </Box>
             </Box>
@@ -251,25 +292,107 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
           />
         </Paper>
 
-        {/* Product Detail Panel (Card 3) */}
-        {pl.displayProduct && (
-          <ProductDetailPanel
-            displayProduct={pl.displayProduct}
-            isLoadingBatches={pl.isLoadingBatches}
-            width={pl.rightPanelWidth}
-            isResizing={pl.isResizingRight}
-            onResizeStart={pl.handleResizeStartRight}
-            onAddStock={pl.handleAddStock}
-            onOpenHistory={pl.handleOpenHistory}
-            onBatchEditClick={pl.handleBatchEditClick}
-            onBatchDelete={pl.handleBatchDelete}
-            onQuickInventoryOpen={pl.handleQuickInventoryOpen}
-            onToggleBatchTracking={pl.handleToggleBatchTracking}
-            isTogglingBatchTracking={pl.isTogglingBatchTracking}
-            onClose={pl.handleProductDoubleClick}
-            onEdit={pl.handleEditClick}
-            onDelete={pl.handleDelete}
-          />
+        {/* Resizer Slider 2: Centered in gap between Card 2 & Card 3 */}
+        {pl.panelMode !== 'none' && (
+          <Box
+            onMouseDown={pl.handleResizeStartRight}
+            sx={{
+              display: { xs: 'none', lg: 'flex' },
+              width: '12px',
+              mx: -1.5,
+              cursor: 'col-resize',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+              flexShrink: 0,
+              '&:hover .handle': {
+                bgcolor: 'primary.main',
+                width: '4px',
+              },
+            }}
+          >
+            <Box
+              className="handle"
+              sx={{
+                width: '2px',
+                height: '60px',
+                bgcolor: pl.isResizingRight ? 'primary.main' : 'divider',
+                borderRadius: '4px',
+                transition: 'all 0.2s',
+                ...(pl.isResizingRight && { width: '4px' }),
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Product Detail / Add Product Panel (Card 3) */}
+        {pl.panelMode !== 'none' && (
+          <Box
+            sx={{
+              width: { xs: '100%', lg: pl.rightPanelWidth },
+              minWidth: { lg: 320 },
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+            }}
+          >
+            {pl.panelMode === 'adding' ? (
+              <InventoryPanelShell
+                title="Add New Product"
+                headerRight={
+                  <IconButton
+                    size="small"
+                    onClick={pl.handleCloseAddProduct}
+                    aria-label="Close"
+                    sx={{
+                      color: '#94a3b8',
+                      borderRadius: '6px',
+                      '&:hover': { bgcolor: '#fef2f2', color: '#ef4444' },
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                }
+              >
+                <Box
+                  sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <AddProductForm
+                    onProductAdded={() => {
+                      pl.fetchProducts();
+                      pl.fetchSummary();
+                      pl.handleCloseAddProduct();
+                    }}
+                    onClose={pl.handleCloseAddProduct}
+                  />
+                </Box>
+              </InventoryPanelShell>
+            ) : pl.displayProduct ? (
+              <ProductDetailPanel
+                displayProduct={pl.displayProduct}
+                isLoadingBatches={pl.isLoadingBatches}
+                width={pl.rightPanelWidth}
+                isResizing={pl.isResizingRight}
+                onResizeStart={pl.handleResizeStartRight}
+                onAddStock={pl.handleAddStock}
+                onOpenHistory={pl.handleOpenHistory}
+                onBatchEditClick={pl.handleBatchEditClick}
+                onBatchDelete={pl.handleBatchDelete}
+                onQuickInventoryOpen={pl.handleQuickInventoryOpen}
+                onToggleBatchTracking={pl.handleToggleBatchTracking}
+                isTogglingBatchTracking={pl.isTogglingBatchTracking}
+                onClose={pl.handleProductDoubleClick}
+                onEdit={pl.handleEditClick}
+                onDelete={pl.handleDelete}
+              />
+            ) : null}
+          </Box>
         )}
 
         {/* Dialogs */}

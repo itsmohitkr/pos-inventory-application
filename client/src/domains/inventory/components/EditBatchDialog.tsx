@@ -30,7 +30,7 @@ import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import { getExpiryDateInputBounds } from '@/shared/utils/expiryDateBounds';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
-import { limitTwoDecimals } from '@/shared/utils/priceUtils';
+import { limitTwoDecimals, formatPrice } from '@/shared/utils/priceUtils';
 
 const { min: expiryDateMin, max: expiryDateMax } = getExpiryDateInputBounds();
 
@@ -331,7 +331,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
                 >
                   Discount:{' '}
                   <Box component="span" sx={{ ml: 0.5, fontWeight: 800, color: '#ed6c02' }}>
-                    ₹{(mrp - sellingPrice).toFixed(2)} (
+                    ₹{formatPrice(mrp - sellingPrice)} (
                     {mrp > 0 ? (((mrp - sellingPrice) / mrp) * 100).toFixed(1) : 0}%)
                   </Box>
                 </Typography>
@@ -341,7 +341,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
                 >
                   Margin:{' '}
                   <Box component="span" sx={{ ml: 0.5, fontWeight: 800, color: '#2e7d32' }}>
-                    ₹{(sellingPrice - costPrice).toFixed(2)} (
+                    ₹{formatPrice(sellingPrice - costPrice)} (
                     {sellingPrice > 0
                       ? (((sellingPrice - costPrice) / sellingPrice) * 100).toFixed(1)
                       : 0}
@@ -354,7 +354,7 @@ const EditBatchDialog = ({ open, onClose, batch, onBatchUpdated }: EditBatchDial
                 >
                   Vendor Discount:{' '}
                   <Box component="span" sx={{ ml: 0.5, fontWeight: 800, color: '#0288d1' }}>
-                    ₹{(mrp - costPrice).toFixed(2)} (
+                    ₹{formatPrice(mrp - costPrice)} (
                     {mrp > 0 ? (((mrp - costPrice) / mrp) * 100).toFixed(1) : 0}%)
                   </Box>
                 </Typography>

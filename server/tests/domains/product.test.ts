@@ -183,23 +183,18 @@ describe('Product Domain API', () => {
             });
         });
 
-        it('skips the movement for a zero-quantity bulk row', async () => {
+        it('skips the movement for a zero-quantity CSV-imported row', async () => {
             runRealTransaction();
-            prisma.product.findFirst.mockResolvedValue(null);
-            prisma.product.findMany.mockResolvedValue(asMock([]));
             prisma.product.create.mockResolvedValue(asMock({
-                id: 1, name: 'Zero', batchTrackingEnabled: false,
+                id: 5, name: 'Zero', batchTrackingEnabled: false,
             }));
-            prisma.batch.create.mockResolvedValue(asMock({ id: 10, productId: 1, quantity: 0 }));
+            prisma.batch.create.mockResolvedValue(asMock({ id: 20, productId: 5, quantity: 0 }));
+
+            const csv = 'name,barcode,category,quantity,mrp,cost_price,selling_price\nZero,,,0,100,40,60\n';
 
             const res = await request(app)
-                .post('/api/products/bulk')
-                .send({
-                    products: [{
-                        name: 'Zero',
-                        initialBatch: { quantity: 0, mrp: 100, cost_price: 40, selling_price: 60 },
-                    }],
-                });
+                .post('/api/products/import')
+                .attach('file', Buffer.from(csv), 'products.csv');
 
             expect(res.status).toBe(200);
             // Batch row still created, but no ledger entry for zero stock.

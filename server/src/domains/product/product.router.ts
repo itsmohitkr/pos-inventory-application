@@ -9,7 +9,6 @@ import {
   GetAllProductsSchema,
   CreateProductSchema,
   GetProductSummarySchema,
-  BulkCreateProductsSchema,
   ValidateBarcodesSchema,
   GetProductByIdSchema,
   GetProductHistorySchema,
@@ -55,14 +54,6 @@ router
     handleUploadErrors(upload.single('file')),
     validateUploadedFile('file'),
     productController.importProducts
-  )
-  .all(methodNotAllowed);
-
-router
-  .route('/products/bulk')
-  .post(
-    validateRequest(BulkCreateProductsSchema),
-    productController.bulkCreateProducts
   )
   .all(methodNotAllowed);
 

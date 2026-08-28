@@ -106,12 +106,6 @@ export const GetProductSummarySchema = {
   }),
 };
 
-export const BulkCreateProductsSchema = {
-  body: z.object({
-    products: z.array(z.looseObject({})).min(1, 'At least one product is required'),
-  }),
-};
-
 export const ValidateBarcodesSchema = {
   body: z.object({
     barcodes: z.array(str().min(1, 'Barcode is required')).min(1, 'At least one barcode is required'),
@@ -185,4 +179,3 @@ export type CreateProductInput = z.infer<typeof CreateProductSchema.body>;
 export type UpdateProductInput = z.infer<typeof UpdateProductSchema.body>;
 export type AddBatchInput = z.infer<typeof AddBatchSchema.body>;
 export type UpdateBatchInput = z.infer<typeof UpdateBatchSchema.body>;
-export type BulkCreateProductsInput = z.infer<typeof BulkCreateProductsSchema.body>;

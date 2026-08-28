@@ -1,29 +1,22 @@
 import React, { useState, useRef, useTransition } from 'react';
 import * as Sentry from '@sentry/react';
-import { Box, Paper, Typography, Stack, Button, Container, Drawer, IconButton } from '@mui/material';
+import { Box, Paper, Typography, Stack, Button } from '@mui/material';
 import {
   FileUpload as UploadIcon,
   FileDownload as DownloadIcon,
   ViewList as ViewListIcon,
   LocalPrintshop as LocalPrintshopIcon,
-  Add as AddIcon,
-  ArrowBack as ArrowBackIcon,
-  Close as CloseIcon,
 } from '@mui/icons-material';
 import inventoryService from '@/shared/api/inventoryService';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
-import AddProductForm from '@/domains/inventory/components/AddProductForm';
 import ProductList from '@/domains/inventory/components/ProductList';
 import type { ProductListHandle } from '@/domains/inventory/components/ProductList';
 import BulkImportDialog from '@/domains/inventory/components/BulkImportDialog';
 import InventoryExcelView from '@/domains/inventory/components/InventoryExcelView';
-import BulkAddGrid from '@/domains/inventory/components/BulkAddGrid';
 import PriceListPanel from '@/domains/inventory/components/PriceListPanel';
 
 const InventoryPage = () => {
   const { showError } = useCustomDialog();
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [showBulkAdd, setShowBulkAdd] = useState(false);
   const [showPriceList, setShowPriceList] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [excelViewOpen, setExcelViewOpen] = useState(false);
@@ -46,19 +39,8 @@ const InventoryPage = () => {
     });
   };
 
-  const handleProductAdded = () => {
-    setInventoryKey((prev) => prev + 1);
-    if (inventoryRef.current?.refresh) {
-      inventoryRef.current.refresh();
-    }
-    setShowAddProduct(false);
-    setShowBulkAdd(false);
-  };
-
   const handleOpenPriceList = () => {
     setShowPriceList(true);
-    setShowAddProduct(false);
-    setShowBulkAdd(false);
   };
 
   const handleImportComplete = () => {
@@ -163,93 +145,20 @@ const InventoryPage = () => {
           >
             Price List
           </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setShowBulkAdd(true)}
-            sx={{ minWidth: 140 }}
-          >
-            Bulk Add
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setShowAddProduct(true)}
-            sx={{ minWidth: 140 }}
-          >
-            Add Product
-          </Button>
         </Stack>
       </Paper>
 
       <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 1.5, pb: 1.5 }}>
-        {showBulkAdd ? (
-          <BulkAddGrid
-            onProductsAdded={handleProductAdded}
-            onCancel={() => setShowBulkAdd(false)}
-          />
-        ) : (
-          <ProductList
-            key={inventoryKey}
-            ref={inventoryRef}
-            categoryFilter={categoryFilter}
-            onCategoryChange={handleCategoryChange}
-            debouncedSearch={debouncedSearch}
-            onSearchChange={handleSearchChange}
-            isPending={isPending}
-          />
-        )}
+        <ProductList
+          key={inventoryKey}
+          ref={inventoryRef}
+          categoryFilter={categoryFilter}
+          onCategoryChange={handleCategoryChange}
+          debouncedSearch={debouncedSearch}
+          onSearchChange={handleSearchChange}
+          isPending={isPending}
+        />
       </Box>
-
-      <Drawer
-        anchor="right"
-        open={showAddProduct}
-        onClose={() => setShowAddProduct(false)}
-        transitionDuration={{ enter: 280, exit: 220 }}
-        slotProps={{
-          backdrop: {
-            sx: {
-              bgcolor: 'rgba(15, 23, 42, 0.25)',
-            },
-          },
-        }}
-        PaperProps={{
-          sx: {
-            width: { xs: '100vw', sm: 550, md: 650 },
-            boxShadow: '-8px 0 24px rgba(0,0,0,0.12)',
-            borderLeft: '1px solid #e2e8f0',
-            bgcolor: '#ffffff',
-          },
-        }}
-      >
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <Box
-            sx={{
-              p: 2,
-              borderBottom: '1px solid #e2e8f0',
-              bgcolor: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-            }}
-          >
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#0b1d39' }}>
-              Add New Product
-            </Typography>
-            <IconButton onClick={() => setShowAddProduct(false)} size="small" sx={{ color: '#64748b' }}>
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          <Box sx={{ p: { xs: 2, md: 3 }, flexGrow: 1, overflowY: 'auto' }}>
-            <AddProductForm onProductAdded={handleProductAdded} onClose={() => setShowAddProduct(false)} />
-          </Box>
-        </Box>
-      </Drawer>
 
       <BulkImportDialog
         open={showImport}

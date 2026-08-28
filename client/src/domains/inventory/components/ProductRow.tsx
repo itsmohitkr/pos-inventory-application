@@ -57,12 +57,10 @@ const ProductRow = React.memo(
           '& td': { px: 1.5 },
         }}
       >
-        <TableCell
-          sx={{ px: 1.5, fontWeight: 600, color: 'text.secondary', width: '50px', minWidth: '50px' }}
-        >
+        <TableCell sx={{ px: 1.5, fontWeight: 600, color: 'text.secondary', width: '5%', minWidth: '55px', whiteSpace: 'nowrap' }}>
           {index + 1}
         </TableCell>
-        <TableCell sx={{ px: 1.5, minWidth: '200px' }}>
+        <TableCell sx={{ px: 1.5, width: '37%', minWidth: '220px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CircleIcon sx={{ fontSize: 10, color: statusColor, opacity: 0.8 }} />
             <Box sx={{ minWidth: 0, flex: 1 }}>
@@ -81,15 +79,15 @@ const ProductRow = React.memo(
             </Box>
           </Box>
         </TableCell>
-        <TableCell sx={{ px: 1.5, width: '170px', minWidth: '150px' }}>
+        <TableCell sx={{ px: 1.5, width: '28%', minWidth: '190px' }}>
           <BarcodeChips barcode={product.barcode} size="small" />
         </TableCell>
-        <TableCell align="right" sx={{ whiteSpace: 'nowrap', px: 1.5, width: '110px', minWidth: '90px' }}>
+        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '10%', minWidth: '85px' }}>
           <Typography variant="body2" sx={{ fontWeight: 700, color: statusColor }}>
             {product.total_stock}
           </Typography>
         </TableCell>
-        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '160px', minWidth: '140px' }}>
+        <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '20%', minWidth: '160px' }}>
           {product.lastUpdatedAt ? (
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>

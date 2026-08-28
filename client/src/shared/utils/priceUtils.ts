@@ -17,12 +17,19 @@ export const limitTwoDecimals = (value: string | number | undefined | null): str
 };
 
 /**
- * Formats any price value to max 2 decimal places.
- * e.g., 99.999 -> "100.00", 10.5 -> "10.50", "0" -> "0.00"
+ * Formats any price value dynamically:
+ * - If the price is a whole integer (e.g., 100 or "100.00"), returns integer "100".
+ * - If the price contains fractional decimals (e.g., 100.5 or 100.75), returns formatted "100.50" or "100.75".
  */
 export const formatPrice = (value: number | string | undefined | null): string => {
-  if (value === undefined || value === null || value === '') return '0.00';
+  if (value === undefined || value === null || value === '') return '0';
   const num = Number(value);
-  if (isNaN(num)) return '0.00';
-  return num.toFixed(2);
+  if (isNaN(num)) return '0';
+
+  const fixed = num.toFixed(2);
+  const roundedNum = Number(fixed);
+  if (Number.isInteger(roundedNum)) {
+    return roundedNum.toString();
+  }
+  return fixed;
 };

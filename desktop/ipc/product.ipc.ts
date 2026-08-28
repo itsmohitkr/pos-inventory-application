@@ -29,7 +29,6 @@ const {
   GetAllProductsSchema,
   CreateProductSchema,
   GetProductSummarySchema,
-  BulkCreateProductsSchema,
   ValidateBarcodesSchema,
   GetProductByIdSchema,
   GetProductHistorySchema,
@@ -244,16 +243,6 @@ export const registerProductIpc = (): void => {
       return buildSuccessPayload(StatusCodes.OK, { existingBarcodes }, 'Barcode validation completed', {
         format: 'merge',
       });
-    })
-  );
-
-  ipcMain.handle(IPC.PRODUCT_BULK_CREATE, async (_event, payload: { products?: unknown }) =>
-    withErrorHandling(async () => {
-      const { body } = validateIpcPayload(BulkCreateProductsSchema, { body: { products: payload?.products } });
-      const result = await productService.bulkCreateProducts(
-        (body as { products: Parameters<typeof productService.bulkCreateProducts>[0] }).products
-      );
-      return buildSuccessPayload(StatusCodes.OK, result, 'Products created successfully', { format: 'merge' });
     })
   );
 };

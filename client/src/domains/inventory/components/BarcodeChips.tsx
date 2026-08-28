@@ -27,25 +27,38 @@ const BarcodeChips = ({ barcode, size = 'small' }: BarcodeChipsProps) => {
       </Typography>
     );
 
+  // Group barcodes into rows of up to 2 barcodes per line
+  const rows: string[][] = [];
+  for (let i = 0; i < barcodes.length; i += 2) {
+    rows.push(barcodes.slice(i, i + 2));
+  }
+
   return (
-    <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
-      {barcodes.map((bc: string, idx: number) => (
-        <React.Fragment key={idx}>
-          <Typography
-            variant="body2"
-            sx={{
-              fontFamily: 'Inter, monospace',
-              fontSize: size === 'small' ? '0.8rem' : '0.9rem',
-              fontWeight: 500,
-              color: '#1f2937',
-            }}
-          >
-            {bc}
-          </Typography>
-          {idx < barcodes.length - 1 && (
-            <Typography sx={{ color: '#e2e8f0', fontWeight: 300 }}>|</Typography>
-          )}
-        </React.Fragment>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+      {rows.map((rowBarcodes, rowIndex) => (
+        <Box key={rowIndex} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          {rowBarcodes.map((bc, idx) => (
+            <React.Fragment key={idx}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontFamily: 'Inter, monospace',
+                  fontSize: size === 'small' ? '0.78rem' : '0.85rem',
+                  fontWeight: 500,
+                  color: '#1f2937',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {bc}
+              </Typography>
+              {idx < rowBarcodes.length - 1 && (
+                <Typography variant="caption" sx={{ color: '#cbd5e1', fontWeight: 300 }}>
+                  |
+                </Typography>
+              )}
+            </React.Fragment>
+          ))}
+        </Box>
       ))}
     </Box>
   );
