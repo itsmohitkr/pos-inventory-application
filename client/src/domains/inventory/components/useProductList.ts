@@ -531,6 +531,7 @@ export default function useProductList({
     if (searchInputRef.current) searchInputRef.current.value = '';
     onSearchChange('');
     setBarcodeOverride(null);
+    setPanelMode('none');
     setSelectedProduct(null);
     setSelectedProductDetails(null);
     setSelectedProductRefresh(0);
@@ -538,6 +539,7 @@ export default function useProductList({
   }, [onCategoryChange, onSearchChange, selection]);
 
   const handleProductDoubleClick = useCallback(() => {
+    setPanelMode('none');
     setSelectedProduct(null);
     setSelectedProductDetails(null);
   }, []);
