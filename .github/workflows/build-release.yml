@@ -81,6 +81,14 @@ jobs:
 
       - name: Build client
         working-directory: client
+        # VITE_SENTRY_DSN is inlined by Vite at build time — without it,
+        # client/src/main.tsx's `if (import.meta.env.VITE_SENTRY_DSN)` guard
+        # skips Sentry.init entirely and every Sentry.captureException call
+        # in the shipped app becomes a silent no-op. Reuses the same
+        # SENTRY_DSN secret already used by desktop/main.ts for the
+        # Electron-main-process SDK — same Sentry project, two processes.
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: npm run build
 
       # Upload sourcemaps once here from the final build output, not inside platform jobs
@@ -146,6 +154,8 @@ jobs:
 
       - name: Build client
         working-directory: client
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: npx vite build
 
       - name: Build server
@@ -214,6 +224,8 @@ jobs:
 
       - name: Build client
         working-directory: client
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: npx vite build
 
       - name: Build server
