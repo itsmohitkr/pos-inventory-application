@@ -11,6 +11,7 @@ import { formatPrice } from '@/shared/utils/priceUtils';
 import QuickStockForm from '@/domains/inventory/components/QuickStockForm';
 import EditBatchForm from '@/domains/inventory/components/EditBatchForm';
 import DeleteConfirmForm from '@/domains/inventory/components/DeleteConfirmForm';
+import { computePricingSummary } from '@/domains/inventory/components/pricingSummary';
 import type { BatchFormData } from '@/domains/inventory/components/batchFormValidation';
 
 type InlineMode = 'quick' | 'edit' | 'delete' | 'add' | null;
@@ -82,13 +83,18 @@ const BatchCard = ({
   const isEditActive = activeMode === 'edit';
   const isDeleteActive = activeMode === 'delete';
 
-  const margin =
-    batch.sellingPrice > 0
-      ? (((batch.sellingPrice - batch.costPrice) / batch.sellingPrice) * 100).toFixed(1)
-      : '0.0';
+  // Margin matches computePricingSummary's (unclamped) marginPercent exactly,
+  // so it's reused from there. Discount is kept as its own inline formula
+  // rather than computePricingSummary's discountPercent: that helper clamps
+  // negative discounts to 0, which would change what's displayed for any
+  // batch where sellingPrice > mrp (pre-existing data, or a batch saved
+  // before that combination was validated against) — not a change to make
+  // under a "no business logic changes" constraint.
+  const { marginPercent } = computePricingSummary(batch.mrp, batch.costPrice, batch.sellingPrice);
+  const margin = marginPercent.toFixed(1);
   const discount =
     batch.mrp > 0 ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1) : '0.0';
-  const numMargin = Number(margin);
+  const numMargin = marginPercent;
 
   return (
     <Paper

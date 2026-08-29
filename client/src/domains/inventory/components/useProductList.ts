@@ -126,41 +126,30 @@ export default function useProductList({
     }
   }, [sortBy, sortOrder]);
 
+  // Always requests the same global, unfiltered totals — search/category
+  // filtering of what's *displayed* is handled entirely client-side by
+  // effectiveSummaryTotals below, which only falls back to summaryTotals
+  // when no filter is active (see its early-return check). So this never
+  // needs to vary by debouncedSearch/categoryFilter, and doesn't depend on
+  // either.
   const fetchSummary = useCallback(async () => {
     const requestId = ++summaryRequestId.current;
     try {
-      const isAllNoSearch = (categoryFilter === 'all' || !categoryFilter) && !debouncedSearch;
-
-      if (isAllNoSearch) {
-        const data = await inventoryService.fetchSummary({ search: '', category: 'all' });
-        if (summaryRequestId.current !== requestId) return;
-        const totalsData = getResponseObject(data);
-        setSummaryTotals(
-          totalsData.totals || { productCount: 0, totalQty: 0, totalCost: 0, totalSelling: 0, totalMrp: 0 }
-        );
-        setCategoryCounts(totalsData.categoryCounts || {});
-        setUncategorizedCount(totalsData.uncategorizedCount || 0);
-        setTotalCount(totalsData.totalCount || 0);
-        return;
-      }
-
-      // A category/search filter is active — effectiveSummaryTotals
-      // recomputes the displayed totals client-side from the already-loaded
-      // product list in that case (see below), so a server-scoped totals
-      // query here would only be fetched and discarded. Only the sidebar's
-      // always-global category counts are still needed.
-      const sidebarRes = await inventoryService.fetchSummary({ search: '', category: 'all' });
+      const data = await inventoryService.fetchSummary({ search: '', category: 'all' });
       if (summaryRequestId.current !== requestId) return;
-      const sidebarData = getResponseObject(sidebarRes);
-      setCategoryCounts(sidebarData.categoryCounts || {});
-      setUncategorizedCount(sidebarData.uncategorizedCount || 0);
-      setTotalCount(sidebarData.totalCount || 0);
+      const totalsData = getResponseObject(data);
+      setSummaryTotals(
+        totalsData.totals || { productCount: 0, totalQty: 0, totalCost: 0, totalSelling: 0, totalMrp: 0 }
+      );
+      setCategoryCounts(totalsData.categoryCounts || {});
+      setUncategorizedCount(totalsData.uncategorizedCount || 0);
+      setTotalCount(totalsData.totalCount || 0);
     } catch (error) {
       if (isRequestCanceled(error)) return;
       Sentry.captureException(error, { tags: { feature: 'inventory-summary-fetch' } });
       console.error(error);
     }
-  }, [debouncedSearch, categoryFilter]);
+  }, []);
 
   // Compose with specialized hooks
   const layout = useInventoryLayout();
@@ -302,7 +291,7 @@ export default function useProductList({
 
   useEffect(() => {
     fetchSummary();
-  }, [debouncedSearch, categoryFilter, fetchSummary]);
+  }, [fetchSummary]);
 
   useEffect(() => {
     if (!selectedProduct?.id) {

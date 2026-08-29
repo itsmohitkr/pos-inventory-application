@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -64,10 +64,13 @@ const ProductHistoryMovementDetailsTab = ({
 }: ProductHistoryMovementDetailsTabProps) => {
   const [movementTypeFilter, setMovementTypeFilter] = useState('all');
 
-  const filteredMovements =
-    movementTypeFilter === 'all'
-      ? movements
-      : movements.filter((movement) => movement.type === movementTypeFilter);
+  const filteredMovements = useMemo(
+    () =>
+      movementTypeFilter === 'all'
+        ? movements
+        : movements.filter((movement) => movement.type === movementTypeFilter),
+    [movements, movementTypeFilter]
+  );
 
   const activeFilterObj = movementTypeFilterOptions.find((opt) => opt.value === movementTypeFilter);
   const activeFilterLabel = activeFilterObj?.label || 'All';
