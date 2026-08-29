@@ -63,6 +63,11 @@ model Product {
 
   @@index([category])
   @@index([isDeleted])
+  // Serves the product-list where clause, which always filters isDeleted
+  // and category together (buildWhereFilter/buildWhereSql in
+  // product.service.ts) — the single-column indexes above each only help
+  // one side of that filter.
+  @@index([isDeleted, category])
 }
 
 model Batch {
@@ -90,6 +95,14 @@ model Batch {
 
   @@index([productId])
   @@index([isDeleted])
+  // Serves every batch lookup that filters productId and isDeleted
+  // together (e.g. include: { batches: { where: { isDeleted: false } } }
+  // in product.service.ts, and the product-list LEFT JOIN) — the
+  // single-column indexes above each only help one side of that filter.
+  @@index([productId, isDeleted])
+  // Serves getExpiryReport's orderBy: { expiryDate: 'asc' } (and its
+  // optional where filter) in report.service.ts.
+  @@index([expiryDate])
 }
 
 model Customer {

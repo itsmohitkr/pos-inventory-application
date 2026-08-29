@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { getApiErrorMessage } from '@/shared/api/api';
-import type { Batch, Product } from '@/shared/types/models';
+import type { Product } from '@/shared/types/models';
 
 export const useProductActions = (
   fetchProducts: () => void,
@@ -19,13 +19,6 @@ export const useProductActions = (
    * action itself via showConfirm). */
   showNotification: (message: string) => void
 ) => {
-  const [editOpen, setEditOpen] = useState(false);
-  const [batchEditOpen, setBatchEditOpen] = useState(false);
-  const [addStockOpen, setAddStockOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
-  const [currentBatch, setCurrentBatch] = useState<Batch | null>(null);
-  const [quickInventoryOpen, setQuickInventoryOpen] = useState(false);
-  const [quickInventoryBatch, setQuickInventoryBatch] = useState<Batch | null>(null);
   const [barcodePrintOpen, setBarcodePrintOpen] = useState(false);
   const [isTogglingBatchTracking, setIsTogglingBatchTracking] = useState(false);
 
@@ -50,39 +43,23 @@ export const useProductActions = (
     [fetchProducts, fetchSummary, setSelectedProduct, setSelectedProductDetails, showConfirm, showError]
   );
 
-  const handleEditClick = useCallback((product: Product) => {
-    setCurrentProduct(product);
-    setEditOpen(true);
-  }, []);
-
   const handleEditSave = async () => {
     fetchProducts();
     fetchSummary();
     fetchCategories();
     setSelectedProductRefresh((prev: number) => prev + 1);
-    setEditOpen(false);
   };
 
-  const handleBatchEditClick = (batch: Batch) => {
-    setCurrentBatch({
-      ...batch,
-      expiryDate: batch.expiryDate ? new Date(batch.expiryDate).toISOString().split('T')[0] : '',
-    });
-    setBatchEditOpen(true);
-  };
-
-  const handleBatchEditSave = async () => {
-    fetchProducts();
-    fetchSummary();
-    setSelectedProductRefresh((value: number) => value + 1);
-    setBatchEditOpen(false);
-  };
-
-  const handleBatchDelete = async (batchId: number) => {
-    const confirmed = await showConfirm(
-      'Deleting this batch will remove it from the inventory view. If it still has stock, deletion will be blocked. If it has sales history, the batch will be retired (hidden from inventory) rather than erased — all existing sales, reports, and transaction history stay fully intact. Continue?'
-    );
-    if (!confirmed) return;
+  /**
+   * Deletes a batch and refreshes, with no confirmation step of its own and
+   * no showError modal — for callers (like ProductBatchTable's inline
+   * delete card) that already got explicit confirmation from the user and
+   * surface failures inline themselves. Rethrows on failure so the
+   * caller's own pending/loading state can react (e.g. keep an inline
+   * confirm card open, and show the message inline, instead of closing it
+   * as if it succeeded).
+   */
+  const deleteBatchConfirmed = async (batchId: number) => {
     try {
       const result = await inventoryService.deleteBatch(batchId);
       fetchProducts();
@@ -93,13 +70,8 @@ export const useProductActions = (
       }
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'inventory-delete-batch' } });
-      showError('Failed to delete batch: ' + getApiErrorMessage(error));
+      throw error;
     }
-  };
-
-  const handleAddStock = (product: Product) => {
-    setCurrentProduct(product);
-    setAddStockOpen(true);
   };
 
   const handleStockAdded = () => {
@@ -107,13 +79,6 @@ export const useProductActions = (
     fetchSummary();
     setSelectedProductRefresh((value: number) => value + 1);
   };
-
-  const handleQuickInventoryOpen = (batch: Batch) => {
-    setQuickInventoryBatch(batch);
-    setQuickInventoryOpen(true);
-  };
-
-  const handleQuickInventoryClose = () => setQuickInventoryOpen(false);
 
   const handleToggleBatchTracking = useCallback(
     async (product: Product, enabled?: boolean) => {
@@ -139,18 +104,10 @@ export const useProductActions = (
   );
 
   return {
-    editOpen, setEditOpen,
-    batchEditOpen, setBatchEditOpen,
-    addStockOpen, setAddStockOpen,
-    quickInventoryOpen, setQuickInventoryOpen,
     barcodePrintOpen, setBarcodePrintOpen,
-    currentProduct, setCurrentProduct,
-    currentBatch, setCurrentBatch,
-    quickInventoryBatch, setQuickInventoryBatch,
-    handleDelete, handleEditClick, handleEditSave,
-    handleBatchEditClick, handleBatchEditSave, handleBatchDelete,
-    handleAddStock, handleStockAdded,
-    handleQuickInventoryOpen, handleQuickInventoryClose,
+    handleDelete, handleEditSave,
+    deleteBatchConfirmed,
+    handleStockAdded,
     handleToggleBatchTracking, isTogglingBatchTracking,
   };
 };

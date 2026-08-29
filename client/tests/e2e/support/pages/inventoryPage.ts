@@ -133,13 +133,13 @@ export const createInventoryPage = (page: Page) => {
       await expect(detailPanel).toContainText(new RegExp(productName, 'i'));
       await detailPanel.getByRole('button', { name: 'Product Actions' }).click();
       await page.getByRole('menuitem', { name: 'Edit Product' }).click();
-      await expect(page.getByRole('dialog', { name: 'Edit Product Information' })).toBeVisible();
+      // InlineEditProductForm renders in-panel now, not a modal dialog.
+      await expect(detailPanel.getByText('Edit Product Information')).toBeVisible();
     },
     saveEditedProductName: async (newName: string) => {
-      const editDialog = page.getByRole('dialog', { name: 'Edit Product Information' });
-      await editDialog.getByLabel('Product Name').fill(newName);
-      await editDialog.getByRole('button', { name: 'Save Product' }).click();
-      await expect(editDialog).not.toBeVisible();
+      await detailPanel.getByLabel('Product Name').fill(newName);
+      await detailPanel.getByRole('button', { name: 'Save Product' }).click();
+      await expect(detailPanel.getByText('Edit Product Information')).not.toBeVisible();
     },
     selectProduct: async (productName: string) => {
       await getProductRow(new RegExp(productName, 'i')).click();
@@ -160,16 +160,20 @@ export const createInventoryPage = (page: Page) => {
       ]);
     },
     openQuickInventoryForProduct: async (productName: string) => {
+      // Quick Stock Update is an inline form on the batch card now, not a
+      // modal dialog — scoped to the panel since "Add Quantity" could
+      // otherwise match a field in another open inline form.
       await expect(detailPanel).toContainText(new RegExp(productName, 'i'));
       await detailPanel.locator('[data-testid^="inventory-quick-stock-"]').first().click();
-      await expect(page.getByRole('dialog', { name: 'Quick Inventory' })).toBeVisible();
+      await expect(detailPanel.getByLabel('Add Quantity')).toBeVisible();
     },
     addStockInQuickInventory: async (quantity: number | string) => {
-      const quickDialog = page.getByRole('dialog', { name: 'Quick Inventory' });
-      await quickDialog.getByLabel('Add quantity').fill(String(quantity));
-      await quickDialog.getByRole('button', { name: 'Update' }).click();
-      await expect(page.getByText('Stock updated')).toBeVisible();
-      await expect(quickDialog).not.toBeVisible({ timeout: 3000 });
+      await detailPanel.getByLabel('Add Quantity').fill(String(quantity));
+      await detailPanel.getByRole('button', { name: 'Update Stock' }).click();
+      // "Updated ✓" chip is the inline confirmation (see ProductBatchTable's
+      // isJustUpdated), and the form itself collapses on success.
+      await expect(detailPanel.getByText('Updated ✓')).toBeVisible({ timeout: 5000 });
+      await expect(detailPanel.getByLabel('Add Quantity')).not.toBeVisible({ timeout: 3000 });
     },
     expectSelectedProductTotalStock: async (quantity: number | string) => {
       await expect(page.getByTestId('inventory-detail-total-stock')).toHaveText(String(quantity));

@@ -126,44 +126,48 @@ export default function useProductList({
     }
   }, [sortBy, sortOrder]);
 
+  // Always requests the same global, unfiltered totals — search/category
+  // filtering of what's *displayed* is handled entirely client-side by
+  // effectiveSummaryTotals below, which only falls back to summaryTotals
+  // when no filter is active (see its early-return check). So this never
+  // needs to vary by debouncedSearch/categoryFilter, and doesn't depend on
+  // either.
   const fetchSummary = useCallback(async () => {
     const requestId = ++summaryRequestId.current;
     try {
-      const isAllNoSearch = (categoryFilter === 'all' || !categoryFilter) && !debouncedSearch;
-
-      if (isAllNoSearch) {
-        const data = await inventoryService.fetchSummary({ search: '', category: 'all' });
-        if (summaryRequestId.current !== requestId) return;
-        const totalsData = getResponseObject(data);
-        setSummaryTotals(
-          totalsData.totals || { productCount: 0, totalQty: 0, totalCost: 0, totalSelling: 0, totalMrp: 0 }
-        );
-        setCategoryCounts(totalsData.categoryCounts || {});
-        setUncategorizedCount(totalsData.uncategorizedCount || 0);
-        setTotalCount(totalsData.totalCount || 0);
-        return;
-      }
-
-      // A category/search filter is active — effectiveSummaryTotals
-      // recomputes the displayed totals client-side from the already-loaded
-      // product list in that case (see below), so a server-scoped totals
-      // query here would only be fetched and discarded. Only the sidebar's
-      // always-global category counts are still needed.
-      const sidebarRes = await inventoryService.fetchSummary({ search: '', category: 'all' });
+      const data = await inventoryService.fetchSummary({ search: '', category: 'all' });
       if (summaryRequestId.current !== requestId) return;
-      const sidebarData = getResponseObject(sidebarRes);
-      setCategoryCounts(sidebarData.categoryCounts || {});
-      setUncategorizedCount(sidebarData.uncategorizedCount || 0);
-      setTotalCount(sidebarData.totalCount || 0);
+      const totalsData = getResponseObject(data);
+      setSummaryTotals(
+        totalsData.totals || { productCount: 0, totalQty: 0, totalCost: 0, totalSelling: 0, totalMrp: 0 }
+      );
+      setCategoryCounts(totalsData.categoryCounts || {});
+      setUncategorizedCount(totalsData.uncategorizedCount || 0);
+      setTotalCount(totalsData.totalCount || 0);
     } catch (error) {
       if (isRequestCanceled(error)) return;
       Sentry.captureException(error, { tags: { feature: 'inventory-summary-fetch' } });
       console.error(error);
     }
-  }, [debouncedSearch, categoryFilter]);
+  }, []);
 
   // Compose with specialized hooks
   const layout = useInventoryLayout();
+
+  /** O(1) exact-barcode lookup for a scan, keyed by each pipe-separated
+   * barcode segment — mirrors usePOSSearch.ts's barcodeMap, but keeps the
+   * exact (not lowercased) match this page has always used, so scanning
+   * behaves identically to before, just without the O(n) scan per lookup. */
+  const barcodeMap = useMemo(() => {
+    const map = new Map<string, Product>();
+    for (const p of products) {
+      if (!p.barcode) continue;
+      for (const code of p.barcode.split('|')) {
+        map.set(code.trim(), p);
+      }
+    }
+    return map;
+  }, [products]);
 
   const displayedProducts = useMemo(() => {
     if (barcodeOverride) return barcodeOverride;
@@ -223,18 +227,37 @@ export default function useProductList({
     return [...namePrefix, ...barcodePrefix, ...nameContains, ...barcodeContains].slice(0, 1000);
   }, [barcodeOverride, products, debouncedSearch, stockFilter, categoryFilter]);
 
-  const selection = useProductSelection(displayedProducts, (product: Product | null) => {
+  const selectProduct = useCallback((product: Product | null) => {
     if (product?.id === selectedProduct?.id && panelMode !== 'adding') return;
     setPanelMode(product ? 'viewing' : 'none');
     setSelectedProduct(product);
     setSelectedProductDetails(null);
     setIsLoadingBatches(true);
-  });
+    // Reset synchronously in the same batch as selectedProduct, not via a
+    // round-trip through ProductDetailPanel's product-change effect — that
+    // effect fires one render cycle later, which raced the history-fetch
+    // effect below into fetching one extra product's history before the
+    // panel's own tab-reset effect got a chance to close it.
+    setHistoryOpen(false);
+  }, [selectedProduct?.id, panelMode]);
+
+  const selection = useProductSelection(displayedProducts, selectProduct);
+
+  /** Selects + highlights a product outside the normal row-click path (e.g.
+   * a barcode scan) — handleRowClick can't be reused here since it expects
+   * a real React.MouseEvent for its shift/ctrl-click logic. */
+  const selectProductProgrammatically = useCallback((product: Product) => {
+    const id = String(product.id);
+    selection.setSelectedIds(new Set([id]));
+    selection.setLastSelectedId(id);
+    selectProduct(product);
+  }, [selection, selectProduct]);
 
   const handleOpenAddProduct = useCallback(() => {
     setPanelMode('adding');
     setSelectedProduct(null);
     setSelectedProductDetails(null);
+    setHistoryOpen(false);
     selection.resetSelection();
   }, [selection]);
 
@@ -269,6 +292,7 @@ export default function useProductList({
     setSelectedProduct(null);
     setSelectedProductDetails(null);
     setPanelMode('none');
+    setHistoryOpen(false);
     selection.resetSelection();
   }, [categoryFilter]);
 
@@ -294,7 +318,7 @@ export default function useProductList({
 
   useEffect(() => {
     fetchSummary();
-  }, [debouncedSearch, categoryFilter, fetchSummary]);
+  }, [fetchSummary]);
 
   useEffect(() => {
     if (!selectedProduct?.id) {
@@ -535,6 +559,7 @@ export default function useProductList({
     setSelectedProduct(null);
     setSelectedProductDetails(null);
     setSelectedProductRefresh(0);
+    setHistoryOpen(false);
     selection.resetSelection();
   }, [onCategoryChange, onSearchChange, selection]);
 
@@ -542,6 +567,7 @@ export default function useProductList({
     setPanelMode('none');
     setSelectedProduct(null);
     setSelectedProductDetails(null);
+    setHistoryOpen(false);
   }, []);
 
   const handleOpenHistory = useCallback(() => {
@@ -560,6 +586,7 @@ export default function useProductList({
       setSelectedProduct(product);
       setSelectedProductDetails(null);
       setIsLoadingBatches(true);
+      setHistoryOpen(false);
     }
     e.dataTransfer.setData('text/plain', dragIds.join(','));
     e.dataTransfer.effectAllowed = 'move';
@@ -634,6 +661,8 @@ export default function useProductList({
     summaryTotals: effectiveSummaryTotals, categoryCounts, uncategorizedCount, totalCount,
     stockFilter, setStockFilter,
     searchInputRef,
+    barcodeMap,
+    selectProductProgrammatically,
     // Computed
     displayedProducts, averageMargin, averageDiscount,
     categoryLabel, displayProduct, hasUncategorized,

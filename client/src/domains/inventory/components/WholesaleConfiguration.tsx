@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { InfoOutlined as InfoIcon } from '@mui/icons-material';
 import { inputFieldSx } from '@/domains/inventory/components/inventoryFormStyles';
+import { blurNumberInputOnWheel } from '@/shared/utils/numberInputScroll';
 
 /**
  * Price/qty props accept strings because callers pass raw form state; the
@@ -102,7 +103,7 @@ const WholesaleConfiguration = ({
               helperText={wPriceError}
               InputProps={{
                 startAdornment: <InputAdornment position="start" sx={{ color: '#0b1d39', fontWeight: 700 }}>₹</InputAdornment>,
-                inputProps: { min: 0, step: '0.01' },
+                inputProps: { min: 0, step: '0.01', onWheel: blurNumberInputOnWheel },
               }}
               sx={{ '& .MuiOutlinedInput-root': inputFieldSx }}
             />
@@ -120,7 +121,7 @@ const WholesaleConfiguration = ({
               placeholder="10"
               error={Boolean(wQtyError)}
               helperText={wQtyError}
-              InputProps={{ inputProps: { min: 1, step: 1 } }}
+              InputProps={{ inputProps: { min: 1, step: 1, onWheel: blurNumberInputOnWheel } }}
               sx={{ '& .MuiOutlinedInput-root': inputFieldSx }}
             />
           </Grid>
@@ -133,27 +134,27 @@ const WholesaleConfiguration = ({
                 <Paper
                   elevation={0}
                   sx={{
-                    p: 1.25,
-                    px: 1.5,
+                    p: 0.75,
+                    px: 1,
                     bgcolor: '#f5f3ff',
-                    borderRadius: '6px',
+                    borderRadius: '5px',
                     border: '1px solid #ede9fe',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 0.25,
+                    gap: 0.15,
                   }}
                 >
                   <Typography
                     variant="caption"
-                    sx={{ fontWeight: 600, color: '#6d28d9', fontSize: '0.75rem' }}
+                    sx={{ fontWeight: 600, color: '#6d28d9', fontSize: '0.68rem', textTransform: 'none' }}
                   >
                     Savings vs Retail
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#7c3aed', fontSize: '0.88rem' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.25 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#7c3aed', fontSize: '0.78rem' }}>
                       ₹{formatPrice(wholesaleSavings)}
                     </Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#6d28d9', fontSize: '0.75rem' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#6d28d9', fontSize: '0.68rem' }}>
                       {wholesalePricePercent.toFixed(1)}% less
                     </Typography>
                   </Box>
@@ -165,15 +166,15 @@ const WholesaleConfiguration = ({
                 <Paper
                   elevation={0}
                   sx={{
-                    p: 1.25,
-                    px: 1.5,
+                    p: 0.75,
+                    px: 1,
                     bgcolor: wholesaleMarginPercent >= 0 ? '#f0fdf4' : '#fef2f2',
-                    borderRadius: '6px',
+                    borderRadius: '5px',
                     border: '1px solid',
                     borderColor: wholesaleMarginPercent >= 0 ? '#bbf7d0' : '#fecaca',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 0.25,
+                    gap: 0.15,
                   }}
                 >
                   <Typography
@@ -181,16 +182,17 @@ const WholesaleConfiguration = ({
                     sx={{
                       fontWeight: 600,
                       color: wholesaleMarginPercent >= 0 ? '#15803d' : '#b91c1c',
-                      fontSize: '0.75rem',
+                      fontSize: '0.68rem',
+                      textTransform: 'none',
                     }}
                   >
                     Wholesale Margin
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: wholesaleMarginPercent >= 0 ? '#15803d' : '#b91c1c', fontSize: '0.88rem' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.25 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: wholesaleMarginPercent >= 0 ? '#15803d' : '#b91c1c', fontSize: '0.78rem' }}>
                       ₹{formatPrice(wholesaleMarginValue)}
                     </Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: wholesaleMarginPercent >= 0 ? '#15803d' : '#b91c1c', fontSize: '0.75rem' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: wholesaleMarginPercent >= 0 ? '#15803d' : '#b91c1c', fontSize: '0.68rem' }}>
                       {wholesaleMarginPercent.toFixed(1)}%
                     </Typography>
                   </Box>

@@ -185,8 +185,34 @@ const getExpiryReport = async ({ startDate, endDate }: DateRangeFilter) => {
 };
 
 const getLowStockReport = async () => {
-  const products = await prisma.product.findMany({
-    where: { isDeleted: false },
+  // Two-phase instead of one fetch-all-then-filter-in-JS: phase 1 finds
+  // which products qualify using a cheap SQL SUM (mathematically identical
+  // to summing every batch's quantity in JS, since it isn't order-dependent
+  // and — matching the original query exactly — isn't filtered by
+  // Batch.isDeleted either); phase 2 re-fetches full batch data only for
+  // the (typically much smaller) qualifying set, with the exact same
+  // include/select shape the single-phase version used, so the "mrp from
+  // the most recently added batch" derivation below is untouched — it still
+  // reads product.batches in whatever order Prisma returns them, exactly as
+  // before, just for fewer products.
+  const [products, batchSums] = await Promise.all([
+    prisma.product.findMany({ where: { isDeleted: false } }),
+    prisma.batch.groupBy({ by: ['productId'], _sum: { quantity: true } }),
+  ]);
+
+  const totalQtyByProductId = new Map<number, number>();
+  for (const row of batchSums) {
+    totalQtyByProductId.set(row.productId, row._sum.quantity || 0);
+  }
+
+  const qualifyingIds = products
+    .filter((product) => (totalQtyByProductId.get(product.id) || 0) <= product.lowStockThreshold)
+    .map((product) => product.id);
+
+  if (qualifyingIds.length === 0) return [];
+
+  const qualifyingProducts = await prisma.product.findMany({
+    where: { id: { in: qualifyingIds } },
     include: {
       batches: {
         select: {
@@ -197,21 +223,39 @@ const getLowStockReport = async () => {
     },
   });
 
-  return products
-    .map((product) => {
-      const totalQuantity = product.batches.reduce((sum, batch) => sum + batch.quantity, 0);
+  return qualifyingProducts.map((product) => {
+    const totalQuantity = product.batches.reduce((sum, batch) => sum + batch.quantity, 0);
 
-      // Derive mrp from the most recently added batch if it exists
-      const mrp = product.batches.length > 0 ? product.batches[product.batches.length - 1].mrp : 0;
+    // Derive mrp from the most recently added batch if it exists
+    const mrp = product.batches.length > 0 ? product.batches[product.batches.length - 1].mrp : 0;
 
-      return {
-        ...product,
-        totalQuantity,
-        mrp,
-      };
-    })
-    .filter((product) => product.totalQuantity <= product.lowStockThreshold);
+    return {
+      ...product,
+      totalQuantity,
+      mrp,
+    };
+  });
 };
+
+/** Only the fields calculateSaleTotals (and its caller's own month/day
+ * bucketing) actually read — Sale/SaleItem carry several other columns
+ * (customerId, paymentMethod, batchId, isWholesale, mrp, ...) that
+ * getMonthlySales/getDailySales never touch. Narrowing the select cuts what
+ * crosses the wire for a full year/month of sales without changing which
+ * rows are fetched, their order, or any aggregation logic. */
+const monthlyDailySalesSelect = {
+  createdAt: true,
+  discount: true,
+  extraDiscount: true,
+  items: {
+    select: {
+      quantity: true,
+      returnedQuantity: true,
+      sellingPrice: true,
+      costPrice: true,
+    },
+  },
+} satisfies Prisma.SaleSelect;
 
 const getMonthlySales = async ({ year }: { year: number }) => {
   const startDate = new Date(year, 0, 1);
@@ -224,9 +268,7 @@ const getMonthlySales = async ({ year }: { year: number }) => {
         lte: endDate,
       },
     },
-    include: {
-      items: true,
-    },
+    select: monthlyDailySalesSelect,
   });
 
   // Initialize exactly 12 months inside the object mapping
@@ -279,9 +321,7 @@ const getDailySales = async ({ year, month }: { year: number; month: number }) =
         lte: endDate,
       },
     },
-    include: {
-      items: true,
-    },
+    select: monthlyDailySalesSelect,
   });
 
   const looseSales = await prisma.looseSale.findMany({

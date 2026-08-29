@@ -15,3 +15,42 @@ export const inputFieldSx = {
   '&:hover fieldset': { borderColor: '#94a3b8' },
   '&.Mui-focused fieldset': { borderColor: '#0b1d39' },
 };
+
+/**
+ * Accent-colored label for a batch-form field (focused-label color changes,
+ * default theme border/outline otherwise) — the New/Edit Batch fields in
+ * BatchFormFields.tsx all used this exact block with only the accent color
+ * ever varying, copy-pasted 7 times before being consolidated here.
+ */
+export const themedLabelSx = (accentColor: string) => ({
+  '& .MuiInputLabel-root': { color: '#475569', fontWeight: 600 },
+  '& .MuiInputLabel-root.Mui-focused': { color: accentColor, fontWeight: 700 },
+  '& .MuiOutlinedInput-root': { bgcolor: '#ffffff', borderRadius: '6px' },
+});
+
+/**
+ * Full accent-colored field `sx` (label + a colored outline, not just the
+ * label like `themedLabelSx` above) — the Quick Stock fields used this
+ * exact shape twice, differing only in accent color.
+ */
+export const themedFieldSx = (accentColor: string, borderColor: string) => ({
+  flex: 1,
+  minWidth: 120,
+  '& .MuiInputLabel-root': {
+    fontSize: '0.75rem',
+    color: '#475569',
+    fontWeight: 500,
+  },
+  '& .MuiInputLabel-root.Mui-focused': {
+    color: accentColor,
+    fontWeight: 700,
+  },
+  '& .MuiOutlinedInput-root': {
+    fontSize: '0.78rem',
+    bgcolor: '#ffffff',
+    borderRadius: '6px',
+    '& fieldset': { borderColor },
+    '&:hover fieldset': { borderColor: accentColor },
+    '&.Mui-focused fieldset': { borderColor: accentColor, borderWidth: '1.5px' },
+  },
+});

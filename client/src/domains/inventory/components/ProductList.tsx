@@ -10,11 +10,6 @@ import {
 
 import AddProductForm from '@/domains/inventory/components/AddProductForm';
 
-import EditProductDialog from '@/domains/inventory/components/EditProductDialog';
-import EditBatchDialog from '@/domains/inventory/components/EditBatchDialog';
-import AddStockDialog from '@/domains/inventory/components/AddStockDialog';
-import ProductHistoryDialog from '@/domains/inventory/components/ProductHistoryDialog';
-import QuickInventoryDialog from '@/domains/inventory/components/QuickInventoryDialog';
 import BarcodePrintDialog from '@/domains/inventory/components/BarcodePrintDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import ProductSummaryBar from '@/domains/inventory/components/ProductSummaryBar';
@@ -60,9 +55,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
         return;
       }
 
-      let found: Product | undefined = pl.products.find(
-        (p) => p.barcode && p.barcode.split('|').some((b) => b.trim() === val)
-      );
+      let found: Product | undefined = pl.barcodeMap.get(val);
 
       if (!found) {
         try {
@@ -89,6 +82,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
           return exists ? prev : [found, ...prev];
         });
         pl.setFilteredProducts([found]);
+        pl.selectProductProgrammatically(found);
       } else {
         pl.setFilteredProducts(null);
         pl.showError(`No product found for barcode: ${val}`);
@@ -380,63 +374,30 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                 width={pl.rightPanelWidth}
                 isResizing={pl.isResizingRight}
                 onResizeStart={pl.handleResizeStartRight}
-                onAddStock={pl.handleAddStock}
                 onOpenHistory={pl.handleOpenHistory}
-                onBatchEditClick={pl.handleBatchEditClick}
-                onBatchDelete={pl.handleBatchDelete}
-                onQuickInventoryOpen={pl.handleQuickInventoryOpen}
+                onCloseHistory={pl.handleCloseHistory}
+                onBatchDelete={pl.deleteBatchConfirmed}
+                onBatchUpdated={pl.handleStockAdded}
                 onToggleBatchTracking={pl.handleToggleBatchTracking}
                 isTogglingBatchTracking={pl.isTogglingBatchTracking}
                 onClose={pl.handleProductDoubleClick}
-                onEdit={pl.handleEditClick}
+                onEditProductUpdated={pl.handleEditSave}
                 onDelete={pl.handleDelete}
+                history={pl.historyData}
+                isHistoryLoading={pl.isHistoryLoading}
+                historyError={pl.historyError}
+                historyRange={pl.historyRange}
+                onHistoryRangeChange={pl.setHistoryRange}
+                historyCustomStart={pl.historyCustomStart}
+                historyCustomEnd={pl.historyCustomEnd}
+                onHistoryCustomStartChange={pl.setHistoryCustomStart}
+                onHistoryCustomEndChange={pl.setHistoryCustomEnd}
+                isLoadingMoreHistory={pl.isLoadingMoreHistory}
+                onLoadMoreHistory={pl.loadMoreHistory}
               />
             ) : null}
           </Box>
         )}
-
-        {/* Dialogs */}
-        <ProductHistoryDialog
-          open={pl.historyOpen}
-          onClose={pl.handleCloseHistory}
-          product={pl.displayProduct}
-          history={pl.historyData}
-          error={pl.historyError}
-          loading={pl.isHistoryLoading}
-          range={pl.historyRange}
-          onRangeChange={pl.setHistoryRange}
-          customStart={pl.historyCustomStart}
-          customEnd={pl.historyCustomEnd}
-          onCustomStartChange={pl.setHistoryCustomStart}
-          onCustomEndChange={pl.setHistoryCustomEnd}
-          isLoadingMore={pl.isLoadingMoreHistory}
-          onLoadMore={pl.loadMoreHistory}
-        />
-        <EditProductDialog
-          open={pl.editOpen}
-          onClose={() => pl.setEditOpen(false)}
-          product={pl.currentProduct}
-          onProductUpdated={pl.handleEditSave}
-        />
-        <EditBatchDialog
-          open={pl.batchEditOpen}
-          onClose={() => pl.setBatchEditOpen(false)}
-          batch={pl.currentBatch}
-          onBatchUpdated={pl.handleBatchEditSave}
-        />
-        <QuickInventoryDialog
-          open={pl.quickInventoryOpen}
-          onClose={pl.handleQuickInventoryClose}
-          batch={pl.quickInventoryBatch}
-          productName={pl.displayProduct?.name}
-          onUpdated={pl.handleStockAdded}
-        />
-        <AddStockDialog
-          open={pl.addStockOpen}
-          onClose={() => pl.setAddStockOpen(false)}
-          product={pl.currentProduct}
-          onStockAdded={pl.handleStockAdded}
-        />
         <BarcodePrintDialog
           open={pl.barcodePrintOpen}
           onClose={() => pl.setBarcodePrintOpen(false)}

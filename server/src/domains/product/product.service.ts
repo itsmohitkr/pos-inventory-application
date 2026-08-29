@@ -26,6 +26,19 @@ const normalizeSearch = (value: unknown): string => {
   return String(value).trim();
 };
 
+/** Mirrors the OR conditions below in plain JS, so a single fetched batch
+ * of candidate products can be re-checked per barcode without a second
+ * query — barcode is stored as a pipe-separated string on Product. */
+const _barcodeMatches = (productBarcode: string | null, singleBarcode: string): boolean => {
+  if (!productBarcode) return false;
+  return (
+    productBarcode === singleBarcode ||
+    productBarcode.startsWith(`${singleBarcode}|`) ||
+    productBarcode.endsWith(`|${singleBarcode}`) ||
+    productBarcode.includes(`|${singleBarcode}|`)
+  );
+};
+
 const _validateBarcodesUniqueness = async (
   tx: Prisma.TransactionClient,
   barcodeStr: string | null | undefined,
@@ -37,20 +50,29 @@ const _validateBarcodesUniqueness = async (
     .split('|')
     .map((b) => b.trim())
     .filter(Boolean);
-  for (const singleBarcode of barcodes) {
-    const existing = await tx.product.findFirst({
-      where: {
-        isDeleted: false,
-        ...(excludeProductId ? { id: { not: excludeProductId } } : {}),
-        OR: [
-          { barcode: singleBarcode },
-          { barcode: { startsWith: `${singleBarcode}|` } },
-          { barcode: { endsWith: `|${singleBarcode}` } },
-          { barcode: { contains: `|${singleBarcode}|` } },
-        ],
-      },
-    });
+  if (barcodes.length === 0) return;
 
+  // Single round trip for every barcode in this product instead of one
+  // query per barcode (previously N sequential queries per save, and
+  // #barcodes × #rows during CSV import) — fetch every product that could
+  // conflict with ANY of them, then replay the same per-barcode, in-order
+  // "first conflict wins" check in JS against that one result set.
+  const candidates = await tx.product.findMany({
+    where: {
+      isDeleted: false,
+      ...(excludeProductId ? { id: { not: excludeProductId } } : {}),
+      OR: barcodes.flatMap((singleBarcode) => [
+        { barcode: singleBarcode },
+        { barcode: { startsWith: `${singleBarcode}|` } },
+        { barcode: { endsWith: `|${singleBarcode}` } },
+        { barcode: { contains: `|${singleBarcode}|` } },
+      ]),
+    },
+    select: { name: true, barcode: true },
+  });
+
+  for (const singleBarcode of barcodes) {
+    const existing = candidates.find((candidate) => _barcodeMatches(candidate.barcode, singleBarcode));
     if (existing) {
       const conflictMessage = `BARCODE_CONFLICT: Barcode '${singleBarcode}' is already associated with product '${existing.name}'`;
       throw createHttpError(StatusCodes.CONFLICT, conflictMessage, { error: conflictMessage });
@@ -1067,9 +1089,15 @@ const escapeCSVValue = (value: unknown): string => {
 };
 
 const exportProducts = async () => {
+  // Every other product-listing method in this file filters isDeleted:false
+  // on both Product and Batch (see getAllProductsWithBatches/getProductById
+  // above) — this one didn't, so a soft-deleted product or a retired batch
+  // (see the Batch.isDeleted schema comment) was silently included in the
+  // exported CSV.
   const products = await prisma.product.findMany({
+    where: { isDeleted: false },
     include: {
-      batches: true,
+      batches: { where: { isDeleted: false } },
     },
   });
 
