@@ -1089,9 +1089,15 @@ const escapeCSVValue = (value: unknown): string => {
 };
 
 const exportProducts = async () => {
+  // Every other product-listing method in this file filters isDeleted:false
+  // on both Product and Batch (see getAllProductsWithBatches/getProductById
+  // above) — this one didn't, so a soft-deleted product or a retired batch
+  // (see the Batch.isDeleted schema comment) was silently included in the
+  // exported CSV.
   const products = await prisma.product.findMany({
+    where: { isDeleted: false },
     include: {
-      batches: true,
+      batches: { where: { isDeleted: false } },
     },
   });
 
