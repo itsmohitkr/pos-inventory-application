@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import * as Sentry from '@sentry/react';
 import type { Batch, Product } from '@/shared/types/models';
 import api, { getApiErrorMessage } from '@/shared/api/api';
@@ -87,31 +87,39 @@ export const useProductBatchTable = ({
     }
   }, [batchTrackingEnabled, inlineAction?.mode]);
 
-  const toggleInline = (batchId: number, mode: InlineMode, onOpen?: () => void) => {
+  // Stable (only changes when a row is actually toggled open/closed, never
+  // on keystrokes in an open form) so it — and the handlers below that wrap
+  // it — can be passed as a single shared reference to every row without
+  // defeating BatchCard's React.memo. See toggleQuick/toggleEdit/toggleDelete
+  // below: they're passed identically to every BatchCard, with the
+  // per-batch dispatch happening inside BatchCard's own click handler
+  // instead of via a fresh closure created per row on every render here.
+  const toggleInline = useCallback((batchId: number, mode: InlineMode, onOpen?: () => void) => {
     if (inlineAction?.batchId === batchId && inlineAction.mode === mode) {
       setInlineAction(null);
     } else {
       setInlineAction({ batchId, mode });
       onOpen?.();
     }
-  };
+  }, [inlineAction]);
 
-  const handleToggleInlineAdd = () => {
+  const handleToggleInlineAdd = useCallback(() => {
     toggleInline(0, 'add', () => {
       setAddBatchErrorMsg(null);
       addForm.reset(EMPTY_BATCH_FORM, '0');
     });
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toggleInline]);
 
-  const handleToggleInlineQuick = (batch: Batch) => {
+  const toggleQuick = useCallback((batch: Batch) => {
     toggleInline(batch.id, 'quick', () => {
       setAddQty('');
       setNewCostPrice(batch.costPrice ? String(batch.costPrice) : '');
       setQuickErrorMsg(null);
     });
-  };
+  }, [toggleInline]);
 
-  const handleToggleInlineEdit = (batch: Batch) => {
+  const toggleEdit = useCallback((batch: Batch) => {
     toggleInline(batch.id, 'edit', () => {
       setEditErrorMsg(null);
       const m = batch.mrp || 0;
@@ -119,13 +127,14 @@ export const useProductBatchTable = ({
       const initialDiscount = m > 0 ? (((m - s) / m) * 100).toFixed(1) : '0';
       editForm.reset(batchToFormData(batch), initialDiscount);
     });
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toggleInline]);
 
-  const handleToggleInlineDelete = (batch: Batch) => {
+  const toggleDelete = useCallback((batch: Batch) => {
     toggleInline(batch.id, 'delete', () => setDeleteErrorMsg(null));
-  };
+  }, [toggleInline]);
 
-  const closeInline = () => setInlineAction(null);
+  const closeInline = useCallback(() => setInlineAction(null), []);
 
   const handleSaveAddBatch = async () => {
     setAddBatchErrorMsg(null);
@@ -256,9 +265,9 @@ export const useProductBatchTable = ({
     inlineAction,
     closeInline,
     handleToggleInlineAdd,
-    handleToggleInlineQuick,
-    handleToggleInlineEdit,
-    handleToggleInlineDelete,
+    toggleQuick,
+    toggleEdit,
+    toggleDelete,
     justUpdatedBatchId,
 
     // Quick stock

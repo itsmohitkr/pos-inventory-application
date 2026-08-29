@@ -5,6 +5,13 @@ import { Add as AddIcon } from '@mui/icons-material';
 import BatchCard from '@/domains/inventory/components/BatchCard';
 import NewBatchForm from '@/domains/inventory/components/NewBatchForm';
 import { useProductBatchTable } from '@/domains/inventory/components/useProductBatchTable';
+import { EMPTY_BATCH_FORM } from '@/domains/inventory/components/batchFormValidation';
+
+/** Stable no-op passed to every inactive row's save/change callbacks, so
+ * those props stay reference-equal across renders (see BatchCard.tsx's
+ * React.memo) even though the real handlers change identity on every
+ * keystroke in whichever row is actually active. */
+const NOOP = () => {};
 
 interface ProductBatchTableProps {
   batches: Batch[];
@@ -93,37 +100,51 @@ const ProductBatchTable = ({
           />
         )}
 
-        {batches.map((batch) => (
-          <BatchCard
-            key={batch.id}
-            batch={batch}
-            batchTrackingEnabled={batchTrackingEnabled}
-            activeMode={t.inlineAction?.batchId === batch.id ? t.inlineAction.mode : null}
-            isJustUpdated={t.justUpdatedBatchId === batch.id}
-            onToggleQuick={() => t.handleToggleInlineQuick(batch)}
-            onToggleEdit={() => t.handleToggleInlineEdit(batch)}
-            onToggleDelete={() => t.handleToggleInlineDelete(batch)}
-            onCloseInline={t.closeInline}
-            addQty={t.addQty}
-            onAddQtyChange={t.setAddQty}
-            newCostPrice={t.newCostPrice}
-            onNewCostPriceChange={t.setNewCostPrice}
-            isAveragingEnabled={t.isAveragingEnabled}
-            quickErrorMsg={t.quickErrorMsg}
-            isSaving={t.isSaving}
-            onSaveQuick={() => t.handleSaveQuickStock(batch)}
-            editFormData={t.editForm.formData}
-            editDiscountInput={t.editForm.discountInput}
-            onEditChange={t.editForm.handleChange}
-            editSubmitted={t.editForm.submitted}
-            editErrorMsg={t.editErrorMsg}
-            isSavingEdit={t.isSavingEdit}
-            onSaveEdit={() => t.handleSaveEditBatch(batch)}
-            deleteErrorMsg={t.deleteErrorMsg}
-            isDeleting={t.isDeleting}
-            onConfirmDelete={() => t.handleConfirmDelete(batch.id)}
-          />
-        ))}
+        {batches.map((batch) => {
+          const isRowActive = t.inlineAction?.batchId === batch.id;
+          const activeMode = isRowActive ? t.inlineAction!.mode : null;
+          const isQuickActive = activeMode === 'quick';
+          const isEditActive = activeMode === 'edit';
+          const isDeleteActive = activeMode === 'delete';
+
+          return (
+            <BatchCard
+              key={batch.id}
+              batch={batch}
+              batchTrackingEnabled={batchTrackingEnabled}
+              activeMode={activeMode}
+              isJustUpdated={t.justUpdatedBatchId === batch.id}
+              onToggleQuick={t.toggleQuick}
+              onToggleEdit={t.toggleEdit}
+              onToggleDelete={t.toggleDelete}
+              onCloseInline={t.closeInline}
+              // Quick-stock/edit/delete form state and save handlers below
+              // are gated to this row's active mode: an inactive row always
+              // gets the same constant/no-op values, so its BatchCard props
+              // stay reference-equal across renders (see React.memo in
+              // BatchCard.tsx) even while the active row's live values
+              // change on every keystroke.
+              addQty={isQuickActive ? t.addQty : ''}
+              onAddQtyChange={t.setAddQty}
+              newCostPrice={isQuickActive ? t.newCostPrice : ''}
+              onNewCostPriceChange={t.setNewCostPrice}
+              isAveragingEnabled={t.isAveragingEnabled}
+              quickErrorMsg={isQuickActive ? t.quickErrorMsg : null}
+              isSaving={isQuickActive ? t.isSaving : false}
+              onSaveQuick={isQuickActive ? () => t.handleSaveQuickStock(batch) : NOOP}
+              editFormData={isEditActive ? t.editForm.formData : EMPTY_BATCH_FORM}
+              editDiscountInput={isEditActive ? t.editForm.discountInput : '0'}
+              onEditChange={isEditActive ? t.editForm.handleChange : NOOP}
+              editSubmitted={isEditActive ? t.editForm.submitted : false}
+              editErrorMsg={isEditActive ? t.editErrorMsg : null}
+              isSavingEdit={isEditActive ? t.isSavingEdit : false}
+              onSaveEdit={isEditActive ? () => t.handleSaveEditBatch(batch) : NOOP}
+              deleteErrorMsg={isDeleteActive ? t.deleteErrorMsg : null}
+              isDeleting={isDeleteActive ? t.isDeleting : false}
+              onConfirmDelete={isDeleteActive ? () => t.handleConfirmDelete(batch.id) : NOOP}
+            />
+          );
+        })}
       </Box>
     </Box>
   );

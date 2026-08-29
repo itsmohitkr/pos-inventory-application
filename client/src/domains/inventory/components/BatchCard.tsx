@@ -21,9 +21,9 @@ interface BatchCardProps {
   batchTrackingEnabled: boolean;
   activeMode: InlineMode;
   isJustUpdated: boolean;
-  onToggleQuick: () => void;
-  onToggleEdit: () => void;
-  onToggleDelete: () => void;
+  onToggleQuick: (batch: Batch) => void;
+  onToggleEdit: (batch: Batch) => void;
+  onToggleDelete: (batch: Batch) => void;
   onCloseInline: () => void;
 
   // Quick stock
@@ -51,7 +51,7 @@ interface BatchCardProps {
   onConfirmDelete: () => void;
 }
 
-const BatchCard = ({
+const BatchCardImpl = ({
   batch,
   batchTrackingEnabled,
   activeMode,
@@ -273,7 +273,7 @@ const BatchCard = ({
           <Tooltip title="Quick Stock Update (Inline)">
             <IconButton
               size="small"
-              onClick={onToggleQuick}
+              onClick={() => onToggleQuick(batch)}
               data-testid={`inventory-quick-stock-${batch.id}`}
               aria-label="Quick Stock Update"
               sx={{
@@ -290,7 +290,7 @@ const BatchCard = ({
           <Tooltip title="Edit Batch Details (Inline)">
             <IconButton
               size="small"
-              onClick={onToggleEdit}
+              onClick={() => onToggleEdit(batch)}
               aria-label="Edit Batch Details"
               sx={{
                 bgcolor: isEditActive ? '#2563eb' : 'rgba(37, 99, 235, 0.1)',
@@ -306,7 +306,7 @@ const BatchCard = ({
           <Tooltip title="Delete Batch (Inline)">
             <IconButton
               size="small"
-              onClick={onToggleDelete}
+              onClick={() => onToggleDelete(batch)}
               aria-label="Delete Batch"
               sx={{
                 border: '1px solid #fecaca',
@@ -363,5 +363,12 @@ const BatchCard = ({
     </Paper>
   );
 };
+
+// Memoized so a keystroke in one row's inline form doesn't re-render every
+// other row — relies on ProductBatchTable.tsx gating each row's form-state
+// and save-handler props to stable constants/no-ops when that row isn't the
+// active one (see the comment there), since those are the only props that
+// would otherwise change identity on every keystroke regardless of row.
+const BatchCard = React.memo(BatchCardImpl);
 
 export default BatchCard;
