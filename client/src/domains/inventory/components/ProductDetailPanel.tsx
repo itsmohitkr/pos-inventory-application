@@ -1,4 +1,4 @@
-import type { Batch, Product } from '@/shared/types/models';
+import type { Product } from '@/shared/types/models';
 import type { ProductHistory } from '@/domains/inventory/components/inventoryTypes';
 import React, { useState } from 'react';
 import {
@@ -39,22 +39,20 @@ interface ProductDetailPanelProps {
   width: number;
   isResizing: boolean;
   onResizeStart: () => void;
-  onAddStock: (product: Product) => void;
   /** Opens/fetches the history for the currently displayed product. */
   onOpenHistory: () => void;
   /** Called when the panel leaves the history tab (switches to Batches, or
    * the displayed product changes), so the history-fetch effect in
    * useProductList stops re-firing on every subsequent product selection. */
   onCloseHistory?: () => void;
-  onBatchEditClick: (batch: Batch) => void;
   onBatchDelete: (batchId: number) => Promise<void>;
-  onQuickInventoryOpen?: (batch: Batch) => void;
   onBatchUpdated?: () => void;
   onToggleBatchTracking?: (product: Product, enabled?: boolean) => void;
   /** Disables the batch-tracking switch while a toggle request is in flight. */
   isTogglingBatchTracking?: boolean;
   onClose: () => void;
-  onEdit?: (product: Product) => void;
+  /** Whether the "Edit Product" menu item is offered. Defaults to true. */
+  showEditAction?: boolean;
   onEditProductUpdated?: () => void;
   onDelete?: (id: number) => void;
 
@@ -75,17 +73,14 @@ interface ProductDetailPanelProps {
 const ProductDetailPanel = ({
   displayProduct,
   isLoadingBatches,
-  onAddStock,
   onOpenHistory,
   onCloseHistory,
-  onBatchEditClick,
   onBatchDelete,
-  onQuickInventoryOpen,
   onBatchUpdated,
   onToggleBatchTracking,
   isTogglingBatchTracking,
   onClose,
-  onEdit,
+  showEditAction = true,
   onEditProductUpdated,
   onDelete,
   history,
@@ -172,7 +167,7 @@ const ProductDetailPanel = ({
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        {onEdit && (
+        {showEditAction && (
           <MenuItem onClick={handleEditProduct} aria-label="Edit Product" sx={{ py: 1, px: 2 }}>
             <ListItemIcon sx={{ minWidth: 28, color: '#1f2937' }}>
               <EditIcon fontSize="small" data-testid="EditIcon" />
@@ -444,9 +439,6 @@ const ProductDetailPanel = ({
                   batches={displayProduct.batches}
                   product={displayProduct}
                   batchTrackingEnabled={displayProduct.batchTrackingEnabled}
-                  onAddStock={() => onAddStock(displayProduct)}
-                  onQuickInventoryOpen={onQuickInventoryOpen}
-                  onBatchEditClick={onBatchEditClick}
                   onBatchDelete={onBatchDelete}
                   onBatchUpdated={onBatchUpdated}
                 />

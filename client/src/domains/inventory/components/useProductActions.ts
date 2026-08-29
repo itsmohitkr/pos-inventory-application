@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { getApiErrorMessage } from '@/shared/api/api';
-import type { Batch, Product } from '@/shared/types/models';
+import type { Product } from '@/shared/types/models';
 
 export const useProductActions = (
   fetchProducts: () => void,
@@ -43,26 +43,12 @@ export const useProductActions = (
     [fetchProducts, fetchSummary, setSelectedProduct, setSelectedProductDetails, showConfirm, showError]
   );
 
-  // Editing a product (name, category, barcodes, etc.) now happens fully
-  // inline via InlineEditProductForm, owned by ProductDetailPanel — this
-  // handler no longer opens anything itself. It stays as a stable,
-  // no-op-bodied callback because ProductDetailPanel still uses its mere
-  // presence (truthy `onEdit`) to decide whether to show the "Edit
-  // Product" menu item at all.
-  const handleEditClick = useCallback((_product: Product) => {}, []);
-
   const handleEditSave = async () => {
     fetchProducts();
     fetchSummary();
     fetchCategories();
     setSelectedProductRefresh((prev: number) => prev + 1);
   };
-
-  // Same as handleEditClick: batch editing is fully inline in
-  // ProductBatchTable now. Kept as a stable callback since
-  // ProductBatchTable still calls onBatchEditClick as part of its own
-  // inline-edit toggle.
-  const handleBatchEditClick = (_batch: Batch) => {};
 
   /**
    * Deletes a batch and refreshes, with no confirmation step of its own and
@@ -88,34 +74,11 @@ export const useProductActions = (
     }
   };
 
-  const handleBatchDelete = async (batchId: number) => {
-    const confirmed = await showConfirm(
-      'Deleting this batch will remove it from the inventory view. If it still has stock, deletion will be blocked. If it has sales history, the batch will be retired (hidden from inventory) rather than erased — all existing sales, reports, and transaction history stay fully intact. Continue?'
-    );
-    if (!confirmed) return;
-    try {
-      await deleteBatchConfirmed(batchId);
-    } catch (error) {
-      showError('Failed to delete batch: ' + getApiErrorMessage(error));
-    }
-  };
-
-  // Adding stock to an existing batch is fully inline in ProductBatchTable
-  // now ("New Batch" form). Kept as a stable no-op callback since
-  // ProductBatchTable also uses onAddStock's mere presence to decide
-  // whether to show its "New Batch" button at all.
-  const handleAddStock = (_product: Product) => {};
-
   const handleStockAdded = () => {
     fetchProducts();
     fetchSummary();
     setSelectedProductRefresh((value: number) => value + 1);
   };
-
-  // Quick stock updates are fully inline in ProductBatchTable now. Kept as
-  // a stable callback since ProductBatchTable still calls
-  // onQuickInventoryOpen as part of its own inline-quick-update toggle.
-  const handleQuickInventoryOpen = (_batch: Batch) => {};
 
   const handleToggleBatchTracking = useCallback(
     async (product: Product, enabled?: boolean) => {
@@ -142,10 +105,9 @@ export const useProductActions = (
 
   return {
     barcodePrintOpen, setBarcodePrintOpen,
-    handleDelete, handleEditClick, handleEditSave,
-    handleBatchEditClick, handleBatchDelete, deleteBatchConfirmed,
-    handleAddStock, handleStockAdded,
-    handleQuickInventoryOpen,
+    handleDelete, handleEditSave,
+    deleteBatchConfirmed,
+    handleStockAdded,
     handleToggleBatchTracking, isTogglingBatchTracking,
   };
 };

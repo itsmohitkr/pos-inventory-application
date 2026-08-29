@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import inventoryService from '@/shared/api/inventoryService';
 import { getApiErrorMessage, type ApiError } from '@/shared/api/api';
 import { limitTwoDecimals } from '@/shared/utils/priceUtils';
+import { computePricingSummary } from '@/domains/inventory/components/pricingSummary';
 import type { Product } from '@/shared/types/models';
 
 const INITIAL_BATCH = {
@@ -349,12 +350,10 @@ export default function useAddProductForm({
   const sellingPrice = Number(formData.initialBatch.selling_price) || 0;
   const costPrice = Number(formData.initialBatch.cost_price) || 0;
   const sellingInvalid = sellingPrice < costPrice || sellingPrice > mrp;
-  const discountValue = Math.max(0, mrp - sellingPrice);
-  const discountPercent = mrp > 0 ? (discountValue / mrp) * 100 : 0;
-  const marginValue = sellingPrice - costPrice;
-  const marginPercent = sellingPrice > 0 ? (marginValue / sellingPrice) * 100 : 0;
-  const vendorDiscountValue = Math.max(0, mrp - costPrice);
-  const vendorDiscountPercent = mrp > 0 ? (vendorDiscountValue / mrp) * 100 : 0;
+  const {
+    discountValue, discountPercent, marginValue, marginPercent,
+    vendorDiscountValue, vendorDiscountPercent,
+  } = computePricingSummary(mrp, costPrice, sellingPrice);
 
   return {
     formData, setFormData,

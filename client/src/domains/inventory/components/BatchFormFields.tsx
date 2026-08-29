@@ -3,16 +3,28 @@ import { Box, TextField, InputAdornment } from '@mui/material';
 import { formatPrice } from '@/shared/utils/priceUtils';
 import { getExpiryDateInputBounds } from '@/shared/utils/expiryDateBounds';
 import { blurNumberInputOnWheel } from '@/shared/utils/numberInputScroll';
+import { themedLabelSx } from '@/domains/inventory/components/inventoryFormStyles';
+import { computePricingSummary } from '@/domains/inventory/components/pricingSummary';
+import type { BatchFormData, BatchFormValidity } from '@/domains/inventory/components/batchFormValidation';
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
 import PricingSummaryCard from '@/domains/inventory/components/PricingSummaryCard';
 
 const { min: expiryDateMin, max: expiryDateMax } = getExpiryDateInputBounds();
+const BLUE = '#2563eb';
+const blueFieldSx = themedLabelSx(BLUE);
 
 interface BatchFormFieldsProps {
-  formData: Record<string, any>;
+  formData: BatchFormData;
   discountInput: string;
   onChange: (name: string, value: string | boolean) => void;
   batchTrackingEnabled?: boolean;
+  /** Computed once by the parent via getBatchFormValidity — the single
+   * source of truth also used for the Save button's disabled state, so
+   * the field-level errors shown here and the button can't disagree. */
+  validity: BatchFormValidity;
+  /** Show wholesale required-field errors inline (only once a save has
+   * been attempted, matching the deleted AddStockDialog's behavior). */
+  showErrors?: boolean;
 }
 
 export const BatchFormFields = ({
@@ -20,29 +32,22 @@ export const BatchFormFields = ({
   discountInput,
   onChange,
   batchTrackingEnabled = false,
+  validity,
+  showErrors = false,
 }: BatchFormFieldsProps) => {
   const mrp = Number(formData.mrp) || 0;
   const costPrice = Number(formData.costPrice) || 0;
   const sellingPrice = Number(formData.sellingPrice) || 0;
-  const quantity = Number(formData.quantity);
 
-  const discountValue = mrp > 0 && sellingPrice > 0 ? Math.max(0, mrp - sellingPrice) : 0;
-  const discountPercent = mrp > 0 ? Math.max(0, ((mrp - sellingPrice) / mrp) * 100) : 0;
+  const {
+    discountValue, discountPercent, marginValue, marginPercent,
+    vendorDiscountValue, vendorDiscountPercent,
+  } = computePricingSummary(mrp, costPrice, sellingPrice);
 
-  const marginValue = sellingPrice - costPrice;
-  const marginPercent = sellingPrice > 0 ? ((sellingPrice - costPrice) / sellingPrice) * 100 : 0;
-
-  const vendorDiscountValue = mrp > 0 && costPrice > 0 ? Math.max(0, mrp - costPrice) : 0;
-  const vendorDiscountPercent = mrp > 0 ? Math.max(0, ((mrp - costPrice) / mrp) * 100) : 0;
-
-  const sellingBelowCost = sellingPrice > 0 && costPrice > 0 && sellingPrice < costPrice;
-  const sellingAboveMrp = sellingPrice > 0 && mrp > 0 && sellingPrice > mrp;
-  const sellingInvalid = sellingBelowCost || sellingAboveMrp;
-  // Empty is invalid too, not just negative/NaN — an empty Quantity field
-  // used to silently save as 0 (Number('') || 0), which could zero out a
-  // batch's real stock if someone cleared the field to retype it and got
-  // interrupted before finishing.
-  const qtyInvalid = formData.quantity === '' || isNaN(quantity) || quantity < 0;
+  const {
+    mrpInvalid, costPriceInvalid, sellingPriceInvalid,
+    sellingBelowCost, sellingAboveMrp, sellingInvalid, qtyInvalid,
+  } = validity;
 
   return (
     <>
@@ -95,12 +100,7 @@ export const BatchFormFields = ({
               value={formData.batchCode}
               onChange={(e) => onChange('batchCode', e.target.value)}
               placeholder="e.g. B002 (optional)"
-              sx={{
-                flex: 1,
-                '& .MuiInputLabel-root': { color: '#475569', fontWeight: 600 },
-                '& .MuiInputLabel-root.Mui-focused': { color: '#2563eb', fontWeight: 700 },
-                '& .MuiOutlinedInput-root': { bgcolor: '#ffffff', borderRadius: '6px' },
-              }}
+              sx={{ flex: 1, ...blueFieldSx }}
             />
           )}
           <TextField
@@ -114,12 +114,7 @@ export const BatchFormFields = ({
             onChange={(e) => onChange('quantity', e.target.value)}
             error={qtyInvalid}
             helperText={qtyInvalid ? (formData.quantity === '' ? 'Quantity is required' : 'Must be 0 or greater') : ''}
-            sx={{
-              flex: 1,
-              '& .MuiInputLabel-root': { color: '#475569', fontWeight: 600 },
-              '& .MuiInputLabel-root.Mui-focused': { color: '#2563eb', fontWeight: 700 },
-              '& .MuiOutlinedInput-root': { bgcolor: '#ffffff', borderRadius: '6px' },
-            }}
+            sx={{ flex: 1, ...blueFieldSx }}
           />
         </Box>
 
@@ -137,14 +132,9 @@ export const BatchFormFields = ({
             }}
             value={formData.mrp}
             onChange={(e) => onChange('mrp', e.target.value)}
-            error={sellingAboveMrp}
-            helperText={sellingAboveMrp ? 'MRP must be ≥ Selling Price' : ''}
-            sx={{
-              flex: 1,
-              '& .MuiInputLabel-root': { color: '#475569', fontWeight: 600 },
-              '& .MuiInputLabel-root.Mui-focused': { color: '#2563eb', fontWeight: 700 },
-              '& .MuiOutlinedInput-root': { bgcolor: '#ffffff', borderRadius: '6px' },
-            }}
+            error={mrpInvalid || sellingAboveMrp}
+            helperText={mrpInvalid ? 'MRP is required' : sellingAboveMrp ? 'MRP must be ≥ Selling Price' : ''}
+            sx={{ flex: 1, ...blueFieldSx }}
           />
           <TextField
             fullWidth
@@ -158,14 +148,9 @@ export const BatchFormFields = ({
             }}
             value={formData.costPrice}
             onChange={(e) => onChange('costPrice', e.target.value)}
-            error={sellingBelowCost}
-            helperText={sellingBelowCost ? 'CP must be ≤ Selling Price' : ''}
-            sx={{
-              flex: 1,
-              '& .MuiInputLabel-root': { color: '#475569', fontWeight: 600 },
-              '& .MuiInputLabel-root.Mui-focused': { color: '#2563eb', fontWeight: 700 },
-              '& .MuiOutlinedInput-root': { bgcolor: '#ffffff', borderRadius: '6px' },
-            }}
+            error={costPriceInvalid || sellingBelowCost}
+            helperText={costPriceInvalid ? 'Cost Price is required' : sellingBelowCost ? 'CP must be ≤ Selling Price' : ''}
+            sx={{ flex: 1, ...blueFieldSx }}
           />
         </Box>
 
@@ -183,12 +168,7 @@ export const BatchFormFields = ({
             }}
             value={discountInput}
             onChange={(e) => onChange('discount_percent', e.target.value)}
-            sx={{
-              flex: 1,
-              '& .MuiInputLabel-root': { color: '#475569', fontWeight: 600 },
-              '& .MuiInputLabel-root.Mui-focused': { color: '#2563eb', fontWeight: 700 },
-              '& .MuiOutlinedInput-root': { bgcolor: '#ffffff', borderRadius: '6px' },
-            }}
+            sx={{ flex: 1, ...blueFieldSx }}
           />
           <TextField
             fullWidth
@@ -202,20 +182,17 @@ export const BatchFormFields = ({
             }}
             value={formData.sellingPrice}
             onChange={(e) => onChange('sellingPrice', e.target.value)}
-            error={sellingInvalid}
+            error={sellingPriceInvalid || sellingInvalid}
             helperText={
-              sellingInvalid
-                ? sellingBelowCost
-                  ? 'Selling Price must be ≥ Cost Price'
-                  : 'Selling Price must be ≤ MRP'
-                : ''
+              sellingPriceInvalid
+                ? 'Selling Price is required'
+                : sellingInvalid
+                  ? sellingBelowCost
+                    ? 'Selling Price must be ≥ Cost Price'
+                    : 'Selling Price must be ≤ MRP'
+                  : ''
             }
-            sx={{
-              flex: 1,
-              '& .MuiInputLabel-root': { color: '#475569', fontWeight: 600 },
-              '& .MuiInputLabel-root.Mui-focused': { color: '#2563eb', fontWeight: 700 },
-              '& .MuiOutlinedInput-root': { bgcolor: '#ffffff', borderRadius: '6px' },
-            }}
+            sx={{ flex: 1, ...blueFieldSx }}
           />
         </Box>
 
@@ -230,12 +207,7 @@ export const BatchFormFields = ({
             inputProps={{ min: expiryDateMin, max: expiryDateMax }}
             value={formData.expiryDate}
             onChange={(e) => onChange('expiryDate', e.target.value)}
-            sx={{
-              flex: 1,
-              '& .MuiInputLabel-root': { color: '#475569', fontWeight: 600 },
-              '& .MuiInputLabel-root.Mui-focused': { color: '#2563eb', fontWeight: 700 },
-              '& .MuiOutlinedInput-root': { bgcolor: '#ffffff', borderRadius: '6px' },
-            }}
+            sx={{ flex: 1, ...blueFieldSx }}
           />
         </Box>
       </Box>
@@ -250,6 +222,7 @@ export const BatchFormFields = ({
         onMinQtyChange={(val) => onChange('wholesaleMinQty', val)}
         sellingPrice={formData.sellingPrice}
         costPrice={formData.costPrice}
+        showErrors={showErrors}
       />
     </>
   );

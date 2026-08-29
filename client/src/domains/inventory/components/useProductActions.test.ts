@@ -155,58 +155,44 @@ describe('useProductActions handleToggleBatchTracking', () => {
   });
 });
 
-describe('useProductActions handleBatchDelete', () => {
+describe('useProductActions deleteBatchConfirmed', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('does nothing when the user cancels the confirm dialog', async () => {
-    const { result, showConfirm } = setup();
-    showConfirm.mockResolvedValueOnce(false);
-
-    await act(async () => {
-      await result.current.handleBatchDelete(1);
-    });
-
-    expect(mockedDeleteBatch).not.toHaveBeenCalled();
-  });
-
-  it('refreshes and shows no extra message for a plain (hard) delete', async () => {
-    const { result, showConfirm, fetchProducts, fetchSummary, showNotification } = setup();
-    showConfirm.mockResolvedValueOnce(true);
+  it('refreshes and shows no notification for a plain (hard) delete', async () => {
+    const { result, fetchProducts, fetchSummary, setSelectedProductRefresh, showNotification } = setup();
     mockedDeleteBatch.mockResolvedValueOnce({ data: { softDeleted: false } });
 
     await act(async () => {
-      await result.current.handleBatchDelete(1);
+      await result.current.deleteBatchConfirmed(1);
     });
 
     expect(mockedDeleteBatch).toHaveBeenCalledWith(1);
     expect(fetchProducts).toHaveBeenCalled();
     expect(fetchSummary).toHaveBeenCalled();
+    expect(setSelectedProductRefresh).toHaveBeenCalled();
     expect(showNotification).not.toHaveBeenCalled();
   });
 
-  it('shows a retire-specific success message when the batch was soft-deleted', async () => {
-    const { result, showConfirm, showNotification } = setup();
-    showConfirm.mockResolvedValueOnce(true);
+  it('shows a retire-specific notification when the batch was soft-deleted', async () => {
+    const { result, showNotification } = setup();
     mockedDeleteBatch.mockResolvedValueOnce({ data: { softDeleted: true } });
 
     await act(async () => {
-      await result.current.handleBatchDelete(1);
+      await result.current.deleteBatchConfirmed(1);
     });
 
     expect(showNotification).toHaveBeenCalledWith(expect.stringContaining('retired'));
   });
 
-  it('shows an error when deletion fails, e.g. the batch still has stock', async () => {
-    const { result, showConfirm, showError } = setup();
-    showConfirm.mockResolvedValueOnce(true);
+  it('rethrows on failure so the caller can react, without showing its own error', async () => {
+    const { result, showError } = setup();
     mockedDeleteBatch.mockRejectedValueOnce(new Error('This batch still has 5 unit(s) in stock.'));
 
-    await act(async () => {
-      await result.current.handleBatchDelete(1);
-    });
-
-    expect(showError).toHaveBeenCalledWith(expect.stringContaining('Failed to delete batch'));
+    await expect(result.current.deleteBatchConfirmed(1)).rejects.toThrow(
+      'This batch still has 5 unit(s) in stock.'
+    );
+    expect(showError).not.toHaveBeenCalled();
   });
 });
