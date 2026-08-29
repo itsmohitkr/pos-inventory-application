@@ -229,12 +229,19 @@ export default function useProductList({
     setSelectedProduct(product);
     setSelectedProductDetails(null);
     setIsLoadingBatches(true);
+    // Reset synchronously in the same batch as selectedProduct, not via a
+    // round-trip through ProductDetailPanel's product-change effect — that
+    // effect fires one render cycle later, which raced the history-fetch
+    // effect below into fetching one extra product's history before the
+    // panel's own tab-reset effect got a chance to close it.
+    setHistoryOpen(false);
   });
 
   const handleOpenAddProduct = useCallback(() => {
     setPanelMode('adding');
     setSelectedProduct(null);
     setSelectedProductDetails(null);
+    setHistoryOpen(false);
     selection.resetSelection();
   }, [selection]);
 
@@ -269,6 +276,7 @@ export default function useProductList({
     setSelectedProduct(null);
     setSelectedProductDetails(null);
     setPanelMode('none');
+    setHistoryOpen(false);
     selection.resetSelection();
   }, [categoryFilter]);
 
@@ -535,6 +543,7 @@ export default function useProductList({
     setSelectedProduct(null);
     setSelectedProductDetails(null);
     setSelectedProductRefresh(0);
+    setHistoryOpen(false);
     selection.resetSelection();
   }, [onCategoryChange, onSearchChange, selection]);
 
@@ -542,6 +551,7 @@ export default function useProductList({
     setPanelMode('none');
     setSelectedProduct(null);
     setSelectedProductDetails(null);
+    setHistoryOpen(false);
   }, []);
 
   const handleOpenHistory = useCallback(() => {
@@ -560,6 +570,7 @@ export default function useProductList({
       setSelectedProduct(product);
       setSelectedProductDetails(null);
       setIsLoadingBatches(true);
+      setHistoryOpen(false);
     }
     e.dataTransfer.setData('text/plain', dragIds.join(','));
     e.dataTransfer.effectAllowed = 'move';

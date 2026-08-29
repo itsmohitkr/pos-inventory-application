@@ -13,7 +13,6 @@ import AddProductForm from '@/domains/inventory/components/AddProductForm';
 import EditProductDialog from '@/domains/inventory/components/EditProductDialog';
 import EditBatchDialog from '@/domains/inventory/components/EditBatchDialog';
 import AddStockDialog from '@/domains/inventory/components/AddStockDialog';
-import ProductHistoryDialog from '@/domains/inventory/components/ProductHistoryDialog';
 import QuickInventoryDialog from '@/domains/inventory/components/QuickInventoryDialog';
 import BarcodePrintDialog from '@/domains/inventory/components/BarcodePrintDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
@@ -382,6 +381,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                 onResizeStart={pl.handleResizeStartRight}
                 onAddStock={pl.handleAddStock}
                 onOpenHistory={pl.handleOpenHistory}
+                onCloseHistory={pl.handleCloseHistory}
                 onBatchEditClick={pl.handleBatchEditClick}
                 onBatchDelete={pl.handleBatchDelete}
                 onQuickInventoryOpen={pl.handleQuickInventoryOpen}
@@ -390,28 +390,21 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                 onClose={pl.handleProductDoubleClick}
                 onEdit={pl.handleEditClick}
                 onDelete={pl.handleDelete}
+                history={pl.historyData}
+                isHistoryLoading={pl.isHistoryLoading}
+                historyError={pl.historyError}
+                historyRange={pl.historyRange}
+                onHistoryRangeChange={pl.setHistoryRange}
+                historyCustomStart={pl.historyCustomStart}
+                historyCustomEnd={pl.historyCustomEnd}
+                onHistoryCustomStartChange={pl.setHistoryCustomStart}
+                onHistoryCustomEndChange={pl.setHistoryCustomEnd}
+                isLoadingMoreHistory={pl.isLoadingMoreHistory}
+                onLoadMoreHistory={pl.loadMoreHistory}
               />
             ) : null}
           </Box>
         )}
-
-        {/* Dialogs */}
-        <ProductHistoryDialog
-          open={pl.historyOpen}
-          onClose={pl.handleCloseHistory}
-          product={pl.displayProduct}
-          history={pl.historyData}
-          error={pl.historyError}
-          loading={pl.isHistoryLoading}
-          range={pl.historyRange}
-          onRangeChange={pl.setHistoryRange}
-          customStart={pl.historyCustomStart}
-          customEnd={pl.historyCustomEnd}
-          onCustomStartChange={pl.setHistoryCustomStart}
-          onCustomEndChange={pl.setHistoryCustomEnd}
-          isLoadingMore={pl.isLoadingMoreHistory}
-          onLoadMore={pl.loadMoreHistory}
-        />
         <EditProductDialog
           open={pl.editOpen}
           onClose={() => pl.setEditOpen(false)}

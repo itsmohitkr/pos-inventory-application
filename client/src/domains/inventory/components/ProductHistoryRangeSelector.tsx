@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Box,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   TextField,
@@ -46,16 +45,27 @@ const ProductHistoryRangeSelector = ({
   onCustomStartChange,
   onCustomEndChange,
 }: ProductHistoryRangeSelectorProps) => (
-  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-    <FormControl size="small" sx={{ minWidth: 150 }}>
-      <InputLabel>Time Frame</InputLabel>
+  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+    <FormControl size="small" sx={{ minWidth: 140 }}>
       <Select
         value={range}
-        label="Time Frame"
         onChange={(event: SelectChangeEvent) => onRangeChange(event.target.value)}
+        displayEmpty
+        inputProps={{ 'aria-label': 'Time Frame' }}
+        sx={{
+          height: 30,
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          color: '#0b1d39',
+          bgcolor: '#ffffff',
+          borderRadius: '6px',
+          '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+          '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+          '& .MuiSelect-select': { py: 0.25, px: 1.25, display: 'flex', alignItems: 'center' },
+        }}
       >
         {rangeOptions.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
+          <MenuItem key={option.value} value={option.value} sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
             {option.label}
           </MenuItem>
         ))}
@@ -66,18 +76,40 @@ const ProductHistoryRangeSelector = ({
         <TextField
           type="date"
           size="small"
-          label="From"
-          InputLabelProps={{ shrink: true }}
           value={customStart || ''}
           onChange={(e) => onCustomStartChange?.(e.target.value)}
+          inputProps={{ 'aria-label': 'Start Date' }}
+          sx={{
+            width: 130,
+            '& .MuiOutlinedInput-root': {
+              height: 30,
+              fontSize: '0.75rem',
+              borderRadius: '6px',
+              bgcolor: '#ffffff',
+              '& fieldset': { borderColor: '#e2e8f0' },
+              '&:hover fieldset': { borderColor: '#cbd5e1' },
+            },
+            '& input': { py: 0.25, px: 1 },
+          }}
         />
         <TextField
           type="date"
           size="small"
-          label="To"
-          InputLabelProps={{ shrink: true }}
           value={customEnd || ''}
           onChange={(e) => onCustomEndChange?.(e.target.value)}
+          inputProps={{ 'aria-label': 'End Date' }}
+          sx={{
+            width: 130,
+            '& .MuiOutlinedInput-root': {
+              height: 30,
+              fontSize: '0.75rem',
+              borderRadius: '6px',
+              bgcolor: '#ffffff',
+              '& fieldset': { borderColor: '#e2e8f0' },
+              '&:hover fieldset': { borderColor: '#cbd5e1' },
+            },
+            '& input': { py: 0.25, px: 1 },
+          }}
         />
       </>
     )}

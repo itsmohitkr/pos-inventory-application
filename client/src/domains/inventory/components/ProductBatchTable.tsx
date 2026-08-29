@@ -39,61 +39,46 @@ const ProductBatchTable = ({
 }: ProductBatchTableProps) => {
   return (
     <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      {/* Section Header */}
-      <Box
-        sx={{
-          py: 0.5,
-          pb: 1.25,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0b1d39', fontSize: '0.85rem' }}>
-            Lots & Batches
-          </Typography>
-
-          <Chip
-            label={`${batches.length} ${batches.length === 1 ? 'batch' : 'batches'}`}
-            size="small"
-            sx={{
-              height: 20,
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              bgcolor: 'rgba(31, 41, 55, 0.08)',
-              color: '#1f2937',
-            }}
-          />
-        </Box>
-
-        {batchTrackingEnabled && onAddStock && (
+      {/* Section Action Bar */}
+      {batchTrackingEnabled && onAddStock && (
+        <Box
+          sx={{
+            py: 0.5,
+            pb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            flexShrink: 0,
+          }}
+        >
           <Button
             size="small"
             variant="outlined"
             color="inherit"
-            startIcon={<AddIcon fontSize="small" />}
+            startIcon={<AddIcon sx={{ fontSize: 16 }} />}
             onClick={onAddStock}
             sx={{
-              height: '32px',
+              height: '30px',
               textTransform: 'none',
-              fontSize: '0.78rem',
-              fontWeight: 500,
+              fontSize: '0.75rem',
+              fontWeight: 600,
               borderColor: '#e2e8f0',
-              color: '#1f2937',
+              color: '#0b1d39',
+              bgcolor: '#ffffff',
               borderRadius: '6px',
-              px: 1.5,
+              px: 1.25,
+              py: 0.25,
+              boxShadow: 'none',
               '&:hover': {
                 borderColor: '#cbd5e1',
-                bgcolor: 'rgba(31, 41, 55, 0.05)',
+                bgcolor: '#f8fafc',
               },
             }}
           >
             New Batch
           </Button>
-        )}
-      </Box>
+        </Box>
+      )}
 
       {/* Batch Cards Container (Overlay scrollbar in right margin space) */}
       <Box
