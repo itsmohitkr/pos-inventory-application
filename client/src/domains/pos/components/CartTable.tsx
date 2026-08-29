@@ -20,55 +20,11 @@ import {
   ShoppingCart as ShoppingCartIcon,
 } from '@mui/icons-material';
 import {
-  getBatchCodeDisplay,
   getCartItemDiscount,
   getCartItemTotal,
   getCartRowId,
   shouldHighlightCartRow,
 } from '@/domains/pos/components/cartTableUtils';
-
-const ShortBatchCode = ({ batchCode }: { batchCode?: string | null }) => {
-  const batchDisplay = getBatchCodeDisplay(batchCode);
-
-  if (batchDisplay.type === 'missing') {
-    return (
-      <Typography variant="caption" color="text.secondary">
-        {batchDisplay.label}
-      </Typography>
-    );
-  }
-
-  if (batchDisplay.type === 'full') {
-    return (
-      <Chip
-        label={batchDisplay.label}
-        size="small"
-        variant="outlined"
-        sx={{
-          fontFamily: 'monospace',
-          fontSize: '0.7rem',
-          height: '18px',
-        }}
-      />
-    );
-  }
-
-  return (
-    <Tooltip title={`Batch: ${batchDisplay.fullLabel}`} arrow placement="top">
-      <Chip
-        label={batchDisplay.label}
-        size="small"
-        variant="outlined"
-        sx={{
-          fontFamily: 'monospace',
-          fontSize: '0.7rem',
-          height: '18px',
-          cursor: 'help',
-        }}
-      />
-    </Tooltip>
-  );
-};
 
 interface CartTableProps {
   cart: CartItem[];
@@ -212,7 +168,6 @@ const CartTable = ({
                       )}
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
-                      <ShortBatchCode batchCode={item.batch_code} />
                       {item.isOnSale && item.sellingPrice > item.price && (
                         <Typography
                           variant="caption"
