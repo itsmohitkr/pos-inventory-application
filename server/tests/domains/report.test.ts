@@ -141,7 +141,18 @@ describe('Report Domain API', () => {
 
     describe('GET /api/reports/low-stock', () => {
         it('should return products below their low stock threshold', async () => {
-            prisma.product.findMany.mockResolvedValue(asMock([
+            // Phase 1: every non-deleted product (no batches yet) + a SQL-side
+            // sum of quantity per product, used to find which ones qualify.
+            prisma.product.findMany.mockResolvedValueOnce(asMock([
+                { id: 1, name: 'Low Cola', isDeleted: false, lowStockThreshold: 10 },
+                { id: 2, name: 'Plenty Soda', isDeleted: false, lowStockThreshold: 5 },
+            ]));
+            (prisma.batch.groupBy as unknown as jest.Mock).mockResolvedValue(asMock([
+                { productId: 1, _sum: { quantity: 3 } },
+                { productId: 2, _sum: { quantity: 50 } },
+            ]));
+            // Phase 2: full batch data re-fetched only for the qualifying product.
+            prisma.product.findMany.mockResolvedValueOnce(asMock([
                 {
                     id: 1,
                     name: 'Low Cola',
@@ -158,6 +169,21 @@ describe('Report Domain API', () => {
             expect(res.body.length).toBe(1);
             expect(res.body[0].name).toBe('Low Cola');
             expect(res.body[0].totalQuantity).toBe(3);
+        });
+
+        it('should skip the second query and return an empty list when nothing qualifies', async () => {
+            prisma.product.findMany.mockResolvedValueOnce(asMock([
+                { id: 2, name: 'Plenty Soda', isDeleted: false, lowStockThreshold: 5 },
+            ]));
+            (prisma.batch.groupBy as unknown as jest.Mock).mockResolvedValue(asMock([
+                { productId: 2, _sum: { quantity: 50 } },
+            ]));
+
+            const res = await request(app).get('/api/reports/low-stock');
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual([]);
+            expect(prisma.product.findMany).toHaveBeenCalledTimes(1);
         });
     });
 
