@@ -121,80 +121,7 @@ const ProductHistoryPanelContent = ({
         </Alert>
       )}
 
-      {/* Audit Totals Micro-Cards */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 0.75,
-        }}
-      >
-        <Paper elevation={0} sx={{ p: 0.85, px: 1, textAlign: 'center', bgcolor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
-          <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600, fontSize: '0.68rem', display: 'block' }}>
-            Added
-          </Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#15803d', fontSize: '0.82rem' }}>
-            +{totals.added}
-          </Typography>
-        </Paper>
-
-        <Paper elevation={0} sx={{ p: 0.85, px: 1, textAlign: 'center', bgcolor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px' }}>
-          <Typography variant="caption" sx={{ color: '#991b1b', fontWeight: 600, fontSize: '0.68rem', display: 'block' }}>
-            Sold
-          </Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#b91c1c', fontSize: '0.82rem' }}>
-            -{totals.sold}
-          </Typography>
-        </Paper>
-
-        <Paper elevation={0} sx={{ p: 0.85, px: 1, textAlign: 'center', bgcolor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '6px' }}>
-          <Typography variant="caption" sx={{ color: '#075985', fontWeight: 600, fontSize: '0.68rem', display: 'block' }}>
-            Returned
-          </Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0284c7', fontSize: '0.82rem' }}>
-            +{totals.returned}
-          </Typography>
-        </Paper>
-
-        <Paper elevation={0} sx={{ p: 0.85, px: 1, textAlign: 'center', bgcolor: '#fffbe6', border: '1px solid #ffe58f', borderRadius: '6px' }}>
-          <Typography variant="caption" sx={{ color: '#873800', fontWeight: 600, fontSize: '0.68rem', display: 'block' }}>
-            Adjust +
-          </Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#d46b08', fontSize: '0.82rem' }}>
-            +{totals.adjustmentIn}
-          </Typography>
-        </Paper>
-
-        <Paper elevation={0} sx={{ p: 0.85, px: 1, textAlign: 'center', bgcolor: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '6px' }}>
-          <Typography variant="caption" sx={{ color: '#6b21a8', fontWeight: 600, fontSize: '0.68rem', display: 'block' }}>
-            Adjust -
-          </Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#7e22ce', fontSize: '0.82rem' }}>
-            -{totals.adjustmentOut}
-          </Typography>
-        </Paper>
-
-        <Paper
-          elevation={0}
-          sx={{
-            p: 0.85,
-            px: 1,
-            textAlign: 'center',
-            bgcolor: totals.net >= 0 ? '#059669' : '#dc2626',
-            borderRadius: '6px',
-            color: '#ffffff',
-          }}
-        >
-          <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.68rem', display: 'block', opacity: 0.9 }}>
-            Net Change
-          </Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: '0.82rem' }}>
-            {totals.net >= 0 ? `+${totals.net}` : totals.net}
-          </Typography>
-        </Paper>
-      </Box>
-
-      {/* Sub-Tabs for Daily Summary & Movement Details */}
+      {/* Sub-Tabs for Audit Statistics, Daily Summary & Movement Details */}
       <Paper elevation={0} sx={{ borderRadius: '8px', border: '1px solid #e2e8f0', bgcolor: '#ffffff', p: 1, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ borderBottom: '1px solid #e2e8f0', mb: 1 }}>
           <Tabs
@@ -215,17 +142,100 @@ const ProductHistoryPanelContent = ({
               '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0', bgcolor: '#0b1d39' },
             }}
           >
+            <Tab label="Audit Statistics" />
             <Tab label={`Daily Summary (${summaryByDate.length})`} />
             <Tab label={`Movement Details (${movements.length})`} />
           </Tabs>
         </Box>
 
         <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          {/* Tab 1: Audit Statistics */}
           {activeSubTab === 0 && (
+            <Box sx={{ p: 0.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0b1d39', fontSize: '0.82rem' }}>
+                Audit Totals Summary
+              </Typography>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 1,
+                }}
+              >
+                <Paper elevation={0} sx={{ p: 1.25, px: 1.5, textAlign: 'center', bgcolor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
+                  <Typography variant="caption" sx={{ color: '#166534', fontWeight: 600, fontSize: '0.72rem', display: 'block', mb: 0.25 }}>
+                    Added
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#15803d', fontSize: '1.05rem' }}>
+                    +{totals.added}
+                  </Typography>
+                </Paper>
+
+                <Paper elevation={0} sx={{ p: 1.25, px: 1.5, textAlign: 'center', bgcolor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px' }}>
+                  <Typography variant="caption" sx={{ color: '#991b1b', fontWeight: 600, fontSize: '0.72rem', display: 'block', mb: 0.25 }}>
+                    Sold
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#b91c1c', fontSize: '1.05rem' }}>
+                    -{totals.sold}
+                  </Typography>
+                </Paper>
+
+                <Paper elevation={0} sx={{ p: 1.25, px: 1.5, textAlign: 'center', bgcolor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px' }}>
+                  <Typography variant="caption" sx={{ color: '#075985', fontWeight: 600, fontSize: '0.72rem', display: 'block', mb: 0.25 }}>
+                    Returned
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#0284c7', fontSize: '1.05rem' }}>
+                    +{totals.returned}
+                  </Typography>
+                </Paper>
+
+                <Paper elevation={0} sx={{ p: 1.25, px: 1.5, textAlign: 'center', bgcolor: '#fffbe6', border: '1px solid #ffe58f', borderRadius: '8px' }}>
+                  <Typography variant="caption" sx={{ color: '#873800', fontWeight: 600, fontSize: '0.72rem', display: 'block', mb: 0.25 }}>
+                    Adjust +
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#d46b08', fontSize: '1.05rem' }}>
+                    +{totals.adjustmentIn}
+                  </Typography>
+                </Paper>
+
+                <Paper elevation={0} sx={{ p: 1.25, px: 1.5, textAlign: 'center', bgcolor: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px' }}>
+                  <Typography variant="caption" sx={{ color: '#6b21a8', fontWeight: 600, fontSize: '0.72rem', display: 'block', mb: 0.25 }}>
+                    Adjust -
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#7e22ce', fontSize: '1.05rem' }}>
+                    -{totals.adjustmentOut}
+                  </Typography>
+                </Paper>
+
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 1.25,
+                    px: 1.5,
+                    textAlign: 'center',
+                    bgcolor: totals.net >= 0 ? '#059669' : '#dc2626',
+                    borderRadius: '8px',
+                    color: '#ffffff',
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.72rem', display: 'block', opacity: 0.9, mb: 0.25 }}>
+                    Net Change
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1.05rem' }}>
+                    {totals.net >= 0 ? `+${totals.net}` : totals.net}
+                  </Typography>
+                </Paper>
+              </Box>
+            </Box>
+          )}
+
+          {/* Tab 2: Daily Summary */}
+          {activeSubTab === 1 && (
             <ProductHistoryDailySummaryTab summaryByDate={summaryByDate} formatDate={formatDate} />
           )}
 
-          {activeSubTab === 1 && (
+          {/* Tab 3: Movement Details */}
+          {activeSubTab === 2 && (
             <ProductHistoryMovementDetailsTab
               movements={movements}
               pagination={history?.pagination}

@@ -10,10 +10,6 @@ import {
 
 import AddProductForm from '@/domains/inventory/components/AddProductForm';
 
-import EditProductDialog from '@/domains/inventory/components/EditProductDialog';
-import EditBatchDialog from '@/domains/inventory/components/EditBatchDialog';
-import AddStockDialog from '@/domains/inventory/components/AddStockDialog';
-import QuickInventoryDialog from '@/domains/inventory/components/QuickInventoryDialog';
 import BarcodePrintDialog from '@/domains/inventory/components/BarcodePrintDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import ProductSummaryBar from '@/domains/inventory/components/ProductSummaryBar';
@@ -383,12 +379,14 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
                 onOpenHistory={pl.handleOpenHistory}
                 onCloseHistory={pl.handleCloseHistory}
                 onBatchEditClick={pl.handleBatchEditClick}
-                onBatchDelete={pl.handleBatchDelete}
+                onBatchDelete={pl.deleteBatchConfirmed}
                 onQuickInventoryOpen={pl.handleQuickInventoryOpen}
+                onBatchUpdated={pl.handleStockAdded}
                 onToggleBatchTracking={pl.handleToggleBatchTracking}
                 isTogglingBatchTracking={pl.isTogglingBatchTracking}
                 onClose={pl.handleProductDoubleClick}
                 onEdit={pl.handleEditClick}
+                onEditProductUpdated={pl.handleEditSave}
                 onDelete={pl.handleDelete}
                 history={pl.historyData}
                 isHistoryLoading={pl.isHistoryLoading}
@@ -405,31 +403,6 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
             ) : null}
           </Box>
         )}
-        <EditProductDialog
-          open={pl.editOpen}
-          onClose={() => pl.setEditOpen(false)}
-          product={pl.currentProduct}
-          onProductUpdated={pl.handleEditSave}
-        />
-        <EditBatchDialog
-          open={pl.batchEditOpen}
-          onClose={() => pl.setBatchEditOpen(false)}
-          batch={pl.currentBatch}
-          onBatchUpdated={pl.handleBatchEditSave}
-        />
-        <QuickInventoryDialog
-          open={pl.quickInventoryOpen}
-          onClose={pl.handleQuickInventoryClose}
-          batch={pl.quickInventoryBatch}
-          productName={pl.displayProduct?.name}
-          onUpdated={pl.handleStockAdded}
-        />
-        <AddStockDialog
-          open={pl.addStockOpen}
-          onClose={() => pl.setAddStockOpen(false)}
-          product={pl.currentProduct}
-          onStockAdded={pl.handleStockAdded}
-        />
         <BarcodePrintDialog
           open={pl.barcodePrintOpen}
           onClose={() => pl.setBarcodePrintOpen(false)}

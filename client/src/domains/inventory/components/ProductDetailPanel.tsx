@@ -27,6 +27,7 @@ import {
   LayersOutlined as BatchIcon,
 } from '@mui/icons-material';
 import ProductBatchTable from '@/domains/inventory/components/ProductBatchTable';
+import InlineEditProductForm from '@/domains/inventory/components/InlineEditProductForm';
 import InventoryPanelShell from '@/domains/inventory/components/InventoryPanelShell';
 import ProductHistoryPanelContent from '@/domains/inventory/components/ProductHistoryPanelContent';
 
@@ -46,13 +47,15 @@ interface ProductDetailPanelProps {
    * useProductList stops re-firing on every subsequent product selection. */
   onCloseHistory?: () => void;
   onBatchEditClick: (batch: Batch) => void;
-  onBatchDelete: (batchId: number) => void;
-  onQuickInventoryOpen: (batch: Batch) => void;
+  onBatchDelete: (batchId: number) => Promise<void>;
+  onQuickInventoryOpen?: (batch: Batch) => void;
+  onBatchUpdated?: () => void;
   onToggleBatchTracking?: (product: Product, enabled?: boolean) => void;
   /** Disables the batch-tracking switch while a toggle request is in flight. */
   isTogglingBatchTracking?: boolean;
   onClose: () => void;
   onEdit?: (product: Product) => void;
+  onEditProductUpdated?: () => void;
   onDelete?: (id: number) => void;
 
   // Embedded History Props
@@ -78,10 +81,12 @@ const ProductDetailPanel = ({
   onBatchEditClick,
   onBatchDelete,
   onQuickInventoryOpen,
+  onBatchUpdated,
   onToggleBatchTracking,
   isTogglingBatchTracking,
   onClose,
   onEdit,
+  onEditProductUpdated,
   onDelete,
   history,
   isHistoryLoading = false,
@@ -105,10 +110,12 @@ const ProductDetailPanel = ({
   // history-fetch effect in useProductList into fetching one extra product's
   // history first. useProductList resets historyOpen itself, synchronously
   // alongside selectedProduct, at every call site that changes the selection.
+  const [isEditingProduct, setIsEditingProduct] = useState(false);
   const [lastProductId, setLastProductId] = useState(displayProduct?.id);
   if (displayProduct?.id !== lastProductId) {
     setLastProductId(displayProduct?.id);
     setPanelTab('batches');
+    setIsEditingProduct(false);
   }
 
   const handleOpenActionMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -122,7 +129,7 @@ const ProductDetailPanel = ({
 
   const handleEditProduct = () => {
     handleCloseActionMenu();
-    if (displayProduct) onEdit?.(displayProduct);
+    setIsEditingProduct(true);
   };
 
   const handleDeleteProduct = () => {
@@ -213,107 +220,169 @@ const ProductDetailPanel = ({
     <InventoryPanelShell title={displayProduct ? 'Product Details' : undefined} headerRight={headerRight}>
       {displayProduct ? (
         <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', p: 1.5, bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-          {/* Product Details Overview Card */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 1.5,
-              px: 2,
-              bgcolor: '#ffffff',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1.25,
-              flexShrink: 0,
-            }}
-          >
-            {/* Product Name Header */}
-            <Typography
-              variant="h6"
+          {/* Product Details Overview / Inline Edit Card */}
+          {isEditingProduct ? (
+            <InlineEditProductForm
+              product={displayProduct}
+              onClose={() => setIsEditingProduct(false)}
+              onProductUpdated={() => {
+                setIsEditingProduct(false);
+                onEditProductUpdated?.();
+              }}
+            />
+          ) : (
+            <Paper
+              elevation={0}
               sx={{
-                fontWeight: 700,
-                color: '#0b1d39',
-                fontSize: '0.95rem',
-                lineHeight: 1.2,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                p: 1.5,
+                px: 2,
+                bgcolor: '#ffffff',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.25,
+                flexShrink: 0,
               }}
             >
-              {displayProduct.name}
-            </Typography>
-
-            <Divider sx={{ borderColor: '#f1f5f9' }} />
-
-            {/* Overview Fields Grid */}
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 1.5,
-                alignItems: 'center',
-              }}
-            >
-              {/* Cell 1: Category */}
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
-                  Category
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                  {displayProduct.category || 'Uncategorized'}
-                </Typography>
-              </Box>
-
-              {/* Cell 2: Total Quantity */}
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
-                  Total Qty
-                </Typography>
+              {/* Product Name Header */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 <Typography
-                  variant="body2"
-                  data-testid="inventory-detail-total-stock"
+                  variant="h6"
                   sx={{
-                    fontWeight: 800,
-                    fontSize: '0.9rem',
-                    color: (displayProduct.total_stock ?? 0) > 0 ? '#059669' : '#ef4444',
+                    fontWeight: 700,
+                    color: '#0b1d39',
+                    fontSize: '0.95rem',
+                    lineHeight: 1.2,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {displayProduct.total_stock}
+                  {displayProduct.name}
                 </Typography>
-              </Box>
 
-              {/* Cell 3: Batch Tracking */}
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
-                  Batch Tracking
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Switch
-                    size="small"
-                    checked={!!displayProduct.batchTrackingEnabled}
-                    onChange={(e) => onToggleBatchTracking?.(displayProduct, e.target.checked)}
-                    disabled={!onToggleBatchTracking || isTogglingBatchTracking}
-                    color="primary"
-                    inputProps={{ 'aria-label': 'Toggle batch tracking' }}
-                    sx={{ transform: 'scale(0.75)', ml: -0.5 }}
-                  />
-                  <Chip
-                    label={displayProduct.batchTrackingEnabled ? 'ENABLED' : 'DISABLED'}
-                    size="small"
-                    sx={{
-                      height: 18,
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      bgcolor: displayProduct.batchTrackingEnabled ? 'rgba(16, 185, 129, 0.12)' : '#f1f5f9',
-                      color: displayProduct.batchTrackingEnabled ? '#059669' : '#64748b',
-                      border: 'none',
-                    }}
-                  />
+                {/* Single Row Allocated for Barcodes (Horizontal Layout) */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', mt: 0.25 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase' }}>
+                    Barcodes:
+                  </Typography>
+                  {displayProduct.barcode ? (
+                    displayProduct.barcode.split('|').filter(Boolean).map((code, idx) => (
+                      <Chip
+                        key={idx}
+                        label={code}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          fontSize: '0.72rem',
+                          fontWeight: 500,
+                          bgcolor: '#f1f5f9',
+                          color: '#334155',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '4px',
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <Typography variant="caption" sx={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.72rem' }}>
+                      None
+                    </Typography>
+                  )}
                 </Box>
               </Box>
-            </Box>
-          </Paper>
+
+              <Divider sx={{ borderColor: '#f1f5f9' }} />
+
+              {/* Overview Fields Grid */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 1.5,
+                  alignItems: 'center',
+                }}
+              >
+                {/* Cell 1: Category */}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
+                    Category
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
+                    {displayProduct.category || 'Uncategorized'}
+                  </Typography>
+                </Box>
+
+                {/* Cell 2: Total Quantity */}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
+                    Total Qty
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    data-testid="inventory-detail-total-stock"
+                    sx={{
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
+                      color: ((displayProduct.total_stock ?? 0) > 0) ? '#059669' : '#ef4444',
+                    }}
+                  >
+                    {displayProduct.total_stock ?? 0}
+                  </Typography>
+                </Box>
+
+                {/* Cell 3: Low Stock Warning */}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
+                    Low Stock Warning
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Chip
+                      label={displayProduct.lowStockWarningEnabled ? `≤ ${displayProduct.lowStockThreshold || 2}` : 'OFF'}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        bgcolor: displayProduct.lowStockWarningEnabled ? 'rgba(234, 88, 12, 0.12)' : '#f1f5f9',
+                        color: displayProduct.lowStockWarningEnabled ? '#ea580c' : '#64748b',
+                        border: 'none',
+                      }}
+                    />
+                  </Box>
+                </Box>
+
+                {/* Cell 4: Batch Tracking Status */}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
+                    Batch Tracking
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Switch
+                      size="small"
+                      checked={Boolean(displayProduct.batchTrackingEnabled)}
+                      onChange={(e) => onToggleBatchTracking?.(displayProduct, e.target.checked)}
+                      disabled={isTogglingBatchTracking}
+                      inputProps={{ 'aria-label': 'Toggle batch tracking' }}
+                      sx={{ transform: 'scale(0.75)', ml: -0.5 }}
+                    />
+                    <Chip
+                      label={displayProduct.batchTrackingEnabled ? 'ENABLED' : 'DISABLED'}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        bgcolor: displayProduct.batchTrackingEnabled ? 'rgba(16, 185, 129, 0.12)' : '#f1f5f9',
+                        color: displayProduct.batchTrackingEnabled ? '#059669' : '#64748b',
+                        border: 'none',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+            </Paper>
+          )}
 
           {/* Card 3 Sub-Tabs Navigation */}
           <Paper elevation={0} sx={{ border: '1px solid #e2e8f0', bgcolor: '#ffffff', borderRadius: '8px', px: 1, flexShrink: 0 }}>
@@ -365,7 +434,7 @@ const ProductDetailPanel = ({
                 flexDirection: 'column',
               }}
             >
-              {isLoadingBatches ? (
+              {isLoadingBatches && (!displayProduct.batches || displayProduct.batches.length === 0) ? (
                 <Box sx={{ py: 6, textAlign: 'center' }}>
                   <CircularProgress size={24} />
                   <Typography variant="body2" sx={{ mt: 2, color: '#64748b' }}>Loading batch data...</Typography>
@@ -373,11 +442,13 @@ const ProductDetailPanel = ({
               ) : displayProduct.batches && displayProduct.batches.length > 0 ? (
                 <ProductBatchTable
                   batches={displayProduct.batches}
+                  product={displayProduct}
                   batchTrackingEnabled={displayProduct.batchTrackingEnabled}
                   onAddStock={() => onAddStock(displayProduct)}
                   onQuickInventoryOpen={onQuickInventoryOpen}
                   onBatchEditClick={onBatchEditClick}
                   onBatchDelete={onBatchDelete}
+                  onBatchUpdated={onBatchUpdated}
                 />
               ) : (
                 <Box sx={{ py: 6, textAlign: 'center' }}>

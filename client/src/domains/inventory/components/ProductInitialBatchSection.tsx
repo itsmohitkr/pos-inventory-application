@@ -22,11 +22,12 @@ interface ProductInitialBatchSectionProps {
 }
 
 import React from 'react';
-import { Box, Typography, Grid, TextField, InputAdornment, Switch, FormControlLabel, Divider, Tooltip, Paper } from '@mui/material';
+import { Box, Typography, Grid, TextField, InputAdornment, Switch, FormControlLabel, Divider, Tooltip } from '@mui/material';
 import { SwapHoriz as SwapHorizIcon, InfoOutlined as InfoIcon } from '@mui/icons-material';
 import { getExpiryDateInputBounds } from '@/shared/utils/expiryDateBounds';
 import { formatPrice } from '@/shared/utils/priceUtils';
 import { inputFieldSx } from '@/domains/inventory/components/inventoryFormStyles';
+import PricingSummaryCard from '@/domains/inventory/components/PricingSummaryCard';
 
 const { min: expiryDateMin, max: expiryDateMax } = getExpiryDateInputBounds();
 
@@ -251,105 +252,40 @@ const ProductInitialBatchSection = ({
       {/* 3 Small Summary Cards for Discount, Margin, and Vendor Discount */}
       <Grid size={{ xs: 12 }}>
         <Grid container spacing={1.5}>
-          {/* Discount Small Card */}
           <Grid size={{ xs: 12, sm: 4 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 1.25,
-                px: 1.5,
-                bgcolor: '#fff7ed',
-                borderRadius: '6px',
-                border: '1px solid #ffedd5',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 0.25,
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{ fontWeight: 600, color: '#c2410c', fontSize: '0.75rem' }}
-              >
-                Discount
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#ea580c', fontSize: '0.88rem' }}>
-                  ₹{formatPrice(discountValue)}
-                </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: '#c2410c', fontSize: '0.75rem' }}>
-                  {discountPercent.toFixed(1)}%
-                </Typography>
-              </Box>
-            </Paper>
+            <PricingSummaryCard
+              label="Discount"
+              value={`₹${formatPrice(discountValue)}`}
+              percent={`${discountPercent.toFixed(1)}%`}
+              bgcolor="#fff7ed"
+              borderColor="#ffedd5"
+              labelColor="#c2410c"
+              valueColor="#ea580c"
+            />
           </Grid>
 
-          {/* Margin Small Card */}
           <Grid size={{ xs: 12, sm: 4 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 1.25,
-                px: 1.5,
-                bgcolor: marginValue >= 0 ? '#f0fdf4' : '#fef2f2',
-                borderRadius: '6px',
-                border: '1px solid',
-                borderColor: marginValue >= 0 ? '#bbf7d0' : '#fecaca',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 0.25,
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 600,
-                  color: marginValue >= 0 ? '#15803d' : '#b91c1c',
-                  fontSize: '0.75rem',
-                }}
-              >
-                Margin
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: marginValue >= 0 ? '#15803d' : '#b91c1c', fontSize: '0.88rem' }}>
-                  ₹{formatPrice(marginValue)}
-                </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: marginValue >= 0 ? '#15803d' : '#b91c1c', fontSize: '0.75rem' }}>
-                  {marginPercent.toFixed(1)}%
-                </Typography>
-              </Box>
-            </Paper>
+            <PricingSummaryCard
+              label="Margin"
+              value={`₹${formatPrice(marginValue)}`}
+              percent={`${marginPercent.toFixed(1)}%`}
+              bgcolor={marginValue >= 0 ? '#f0fdf4' : '#fef2f2'}
+              borderColor={marginValue >= 0 ? '#bbf7d0' : '#fecaca'}
+              labelColor={marginValue >= 0 ? '#15803d' : '#b91c1c'}
+              valueColor={marginValue >= 0 ? '#15803d' : '#b91c1c'}
+            />
           </Grid>
 
-          {/* Vendor Discount Small Card */}
           <Grid size={{ xs: 12, sm: 4 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 1.25,
-                px: 1.5,
-                bgcolor: '#f0f9ff',
-                borderRadius: '6px',
-                border: '1px solid #bae6fd',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 0.25,
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{ fontWeight: 600, color: '#0369a1', fontSize: '0.75rem' }}
-              >
-                Vendor Discount
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0284c7', fontSize: '0.88rem' }}>
-                  ₹{formatPrice(vendorDiscountValue)}
-                </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: '#0369a1', fontSize: '0.75rem' }}>
-                  {vendorDiscountPercent.toFixed(1)}%
-                </Typography>
-              </Box>
-            </Paper>
+            <PricingSummaryCard
+              label="Vendor Discount"
+              value={`₹${formatPrice(vendorDiscountValue)}`}
+              percent={`${vendorDiscountPercent.toFixed(1)}%`}
+              bgcolor="#f0f9ff"
+              borderColor="#bae6fd"
+              labelColor="#0369a1"
+              valueColor="#0284c7"
+            />
           </Grid>
         </Grid>
       </Grid>
