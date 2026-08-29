@@ -6,6 +6,7 @@ import {
   Delete as DeleteIcon,
   AddCircleOutline as AddStockIcon,
   Event as ExpiryIcon,
+  Storefront as WholesaleIcon,
 } from '@mui/icons-material';
 import { formatPrice } from '@/shared/utils/priceUtils';
 import QuickStockForm from '@/domains/inventory/components/QuickStockForm';
@@ -94,7 +95,6 @@ const BatchCardImpl = ({
   const margin = marginPercent.toFixed(1);
   const discount =
     batch.mrp > 0 ? (((batch.mrp - batch.sellingPrice) / batch.mrp) * 100).toFixed(1) : '0.0';
-  const numMargin = marginPercent;
 
   return (
     <Paper
@@ -189,72 +189,108 @@ const BatchCardImpl = ({
         />
       </Box>
 
-      {/* Pricing & Financial Metrics Grid: MRP, CP, SP, Margin, Discount */}
-      <Box
+      {/* Unified Pricing & Financial Metrics Container */}
+      <Paper
+        elevation={0}
         sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: 0.75,
           bgcolor: '#f8fafc',
-          p: 1,
           borderRadius: '6px',
-          border: 'none',
-          alignItems: 'center',
+          border: '1px solid #e2e8f0',
+          overflow: 'hidden',
         }}
       >
-        <Box>
-          <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
-            MRP
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: '#6366f1', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-            ₹{formatPrice(batch.mrp)}
-          </Typography>
+        {/* 5 Financial Metrics Grid: MRP, CP, SP, Margin, Discount */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: 0.75,
+            p: 1,
+            alignItems: 'center',
+          }}
+        >
+          <Box>
+            <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+              MRP
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: '#334155', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+              ₹{formatPrice(batch.mrp)}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+              Cost (CP)
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: '#ea580c', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+              ₹{formatPrice(batch.costPrice)}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+              Selling (SP)
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 800, color: '#059669', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+              ₹{formatPrice(batch.sellingPrice)}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+              Margin
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: '#334155', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+              {margin}%
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+              Discount
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: '#334155', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+              {discount}%
+            </Typography>
+          </Box>
         </Box>
 
-        <Box>
-          <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
-            Cost (CP)
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: '#ea580c', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-            ₹{formatPrice(batch.costPrice)}
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
-            Selling (SP)
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 800, color: '#059669', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
-            ₹{formatPrice(batch.sellingPrice)}
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
-            Margin
-          </Typography>
-          <Typography
-            variant="body2"
+        {/* Integrated Wholesale Rate Banner */}
+        {batch.wholesaleEnabled && Boolean(batch.wholesalePrice) && (
+          <Box
             sx={{
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              whiteSpace: 'nowrap',
-              color: numMargin > 20 ? '#059669' : numMargin > 10 ? '#d97706' : '#ef4444',
+              bgcolor: '#f8fafc',
+              borderTop: '1px solid #e2e8f0',
+              px: 1.25,
+              py: 0.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
             }}
           >
-            {margin}%
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.62rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
-            Discount
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: '#2563eb', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-            {discount}%
-          </Typography>
-        </Box>
-      </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <WholesaleIcon sx={{ fontSize: 14, color: '#64748b' }} />
+              <Typography variant="caption" sx={{ fontWeight: 600, color: '#64748b', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                Wholesale Price:
+              </Typography>
+            </Box>
+            <Chip
+              label={`Min ${batch.wholesaleMinQty || 1} Units @ ₹${formatPrice(batch.wholesalePrice)}`}
+              size="small"
+              sx={{
+                height: 22,
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                bgcolor: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                borderRadius: '5px',
+                px: 0.5,
+              }}
+            />
+          </Box>
+        )}
+      </Paper>
 
       <Divider sx={{ borderColor: '#f1f5f9' }} />
 
