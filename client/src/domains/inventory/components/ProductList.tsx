@@ -55,9 +55,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
         return;
       }
 
-      let found: Product | undefined = pl.products.find(
-        (p) => p.barcode && p.barcode.split('|').some((b) => b.trim() === val)
-      );
+      let found: Product | undefined = pl.barcodeMap.get(val);
 
       if (!found) {
         try {
@@ -84,6 +82,7 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
           return exists ? prev : [found, ...prev];
         });
         pl.setFilteredProducts([found]);
+        pl.selectProductProgrammatically(found);
       } else {
         pl.setFilteredProducts(null);
         pl.showError(`No product found for barcode: ${val}`);

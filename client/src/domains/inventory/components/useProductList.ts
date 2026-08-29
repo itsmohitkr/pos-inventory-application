@@ -154,6 +154,21 @@ export default function useProductList({
   // Compose with specialized hooks
   const layout = useInventoryLayout();
 
+  /** O(1) exact-barcode lookup for a scan, keyed by each pipe-separated
+   * barcode segment — mirrors usePOSSearch.ts's barcodeMap, but keeps the
+   * exact (not lowercased) match this page has always used, so scanning
+   * behaves identically to before, just without the O(n) scan per lookup. */
+  const barcodeMap = useMemo(() => {
+    const map = new Map<string, Product>();
+    for (const p of products) {
+      if (!p.barcode) continue;
+      for (const code of p.barcode.split('|')) {
+        map.set(code.trim(), p);
+      }
+    }
+    return map;
+  }, [products]);
+
   const displayedProducts = useMemo(() => {
     if (barcodeOverride) return barcodeOverride;
     let baseProducts = products;
@@ -212,7 +227,7 @@ export default function useProductList({
     return [...namePrefix, ...barcodePrefix, ...nameContains, ...barcodeContains].slice(0, 1000);
   }, [barcodeOverride, products, debouncedSearch, stockFilter, categoryFilter]);
 
-  const selection = useProductSelection(displayedProducts, (product: Product | null) => {
+  const selectProduct = useCallback((product: Product | null) => {
     if (product?.id === selectedProduct?.id && panelMode !== 'adding') return;
     setPanelMode(product ? 'viewing' : 'none');
     setSelectedProduct(product);
@@ -224,7 +239,19 @@ export default function useProductList({
     // effect below into fetching one extra product's history before the
     // panel's own tab-reset effect got a chance to close it.
     setHistoryOpen(false);
-  });
+  }, [selectedProduct?.id, panelMode]);
+
+  const selection = useProductSelection(displayedProducts, selectProduct);
+
+  /** Selects + highlights a product outside the normal row-click path (e.g.
+   * a barcode scan) — handleRowClick can't be reused here since it expects
+   * a real React.MouseEvent for its shift/ctrl-click logic. */
+  const selectProductProgrammatically = useCallback((product: Product) => {
+    const id = String(product.id);
+    selection.setSelectedIds(new Set([id]));
+    selection.setLastSelectedId(id);
+    selectProduct(product);
+  }, [selection, selectProduct]);
 
   const handleOpenAddProduct = useCallback(() => {
     setPanelMode('adding');
@@ -634,6 +661,8 @@ export default function useProductList({
     summaryTotals: effectiveSummaryTotals, categoryCounts, uncategorizedCount, totalCount,
     stockFilter, setStockFilter,
     searchInputRef,
+    barcodeMap,
+    selectProductProgrammatically,
     // Computed
     displayedProducts, averageMargin, averageDiscount,
     categoryLabel, displayProduct, hasUncategorized,
