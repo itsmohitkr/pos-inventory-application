@@ -303,7 +303,7 @@ const ExpenseManagement = () => {
           dueAmount={em.selectedPurchase?.dueAmount}
           paymentForm={em.paymentForm}
           onPaymentFormChange={(u) => em.setPaymentForm((prev) => ({ ...prev, ...u }))}
-          minDate={em.selectedPurchase?.date ? splitIsoDate(em.selectedPurchase.date) : ''}
+          minDate={splitIsoDate(em.selectedPurchase?.date)}
         />
         <PaymentHistoryDialog
           open={em.paymentHistoryDialogOpen}
@@ -335,7 +335,7 @@ const ExpenseManagement = () => {
           onEditFormChange={(u: Partial<PaymentFormState>) =>
             em.setEditPaymentForm((prev) => ({ ...prev, ...u }))
           }
-          minDate={em.selectedPurchase?.date ? splitIsoDate(em.selectedPurchase.date) : ''}
+          minDate={splitIsoDate(em.selectedPurchase?.date)}
         />
         <RecordPaymentDialog
           open={em.expensePaymentDialogOpen}
