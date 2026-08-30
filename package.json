@@ -60,7 +60,8 @@
       "!node_modules/.cache",
       "!.env",
       "!client/.env",
-      "!server/.env"
+      "!server/.env",
+      "!client/dist/**/*.map"
     ],
     "asarUnpack": [
       "server/dist/**/*",

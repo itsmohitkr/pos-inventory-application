@@ -47,6 +47,7 @@ const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
     const ignoreNextChangeRef = useRef(false);
     const [animating, setAnimating] = React.useState(false);
     const [typewriterBarcode, setTypewriterBarcode] = React.useState('');
+    const [open, setOpen] = React.useState(false);
 
     const completeSelection = React.useCallback(
       (product: Product | null, displayValue: string) => {
@@ -187,7 +188,9 @@ const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
           onInputChange={(event, newInputValue) => {
             onSearchInputChange(newInputValue);
           }}
-          open={searchQuery.length > 0}
+          open={open && searchQuery.length > 0}
+          onOpen={() => setOpen(true)}
+          onClose={() => setOpen(false)}
           onHighlightChange={(_event, option) => {
             highlightedOptionRef.current = option;
           }}
