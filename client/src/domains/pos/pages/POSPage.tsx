@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import POS from '@/domains/pos/components/POS';
+import ScopedErrorBoundary from '@/shared/components/ScopedErrorBoundary';
 import type {
   PrinterInfo,
   ReceiptSettings,
@@ -24,13 +25,15 @@ const POSPage = ({
 }: POSPageProps) => {
   return (
     <Box sx={{ bgcolor: 'background.default', height: '100%', overflow: 'hidden' }}>
-      <POS
-        receiptSettings={receiptSettings}
-        shopName={shopName}
-        shopMetadata={shopMetadata}
-        printers={printers}
-        defaultPrinter={defaultPrinter}
-      />
+      <ScopedErrorBoundary label="POS">
+        <POS
+          receiptSettings={receiptSettings}
+          shopName={shopName}
+          shopMetadata={shopMetadata}
+          printers={printers}
+          defaultPrinter={defaultPrinter}
+        />
+      </ScopedErrorBoundary>
     </Box>
   );
 };
