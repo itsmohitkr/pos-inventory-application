@@ -59,7 +59,7 @@ const SaleHistory = ({
     storageKey: 'saleHistoryRightPanelWidth',
     defaultWidth: 450,
     min: 320,
-    max: typeof window !== 'undefined' ? window.innerWidth * 0.6 : 900,
+    maxRatio: 0.6,
   });
 
   const timeframes = [

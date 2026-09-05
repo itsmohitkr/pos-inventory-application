@@ -39,7 +39,30 @@
       "Bash(curl -s https://www.githubstatus.com/api/v2/incidents/unresolved.json)",
       "Bash(gh release *)",
       "Bash(xxd client/src/shared/utils/expiryDateBounds.ts)",
-      "Bash(grep -n 'total_stock\\\\|SUM\\(\\\\|$queryRaw' /Users/mokumar/Downloads/trovix-pos-application/server/src/domains/product/product.service.ts)"
+      "Bash(grep -n 'total_stock\\\\|SUM\\(\\\\|$queryRaw' /Users/mokumar/Downloads/trovix-pos-application/server/src/domains/product/product.service.ts)",
+      "Bash(echo \"EXIT $?\")",
+      "mcp__claude_ai_sentry-mcp__find_organizations",
+      "mcp__claude_ai_sentry-mcp__find_projects",
+      "mcp__claude_ai_sentry-mcp__search_issues",
+      "mcp__claude_ai_sentry-mcp__get_sentry_resource",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('package.json','utf8'\\)\\); console.log\\('valid JSON'\\)\")",
+      "Bash(timeout 60 bash -c 'until curl -sf http://localhost:5173 >/dev/null; do sleep 1; done')",
+      "Bash(timeout 60 bash -c 'until curl -sf http://localhost:5001/api/settings >/dev/null; do sleep 1; done')",
+      "Bash(node -e \"console.log\\(require\\('playwright/package.json'\\).version\\)\")",
+      "Bash(node /tmp/drive-inventory.mjs)",
+      "Bash(node drive-inventory.mjs)",
+      "Bash(node drive-inventory2.mjs)",
+      "Bash(node drive-inventory3.mjs)",
+      "Bash(node drive-inventory4.mjs)",
+      "Bash(lsof -i :5001 -sTCP:LISTEN)",
+      "Bash(lsof -i :5173 -sTCP:LISTEN)",
+      "Bash(sqlite3 pos.db \".tables\")",
+      "Bash(sqlite3 pos.db \"SELECT migration_name FROM _prisma_migrations ORDER BY started_at DESC LIMIT 10;\")",
+      "Bash(pkill -f \"nodemon\")",
+      "Bash(jobs)",
+      "Bash(lsof -nP -iTCP:5001 -sTCP:LISTEN)",
+      "Bash(lsof -nP -iTCP:5173 -sTCP:LISTEN)",
+      "Bash(ps -p 99099 -o pid,ppid,command)"
     ]
   }
 }

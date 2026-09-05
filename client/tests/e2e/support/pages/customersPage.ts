@@ -26,8 +26,8 @@ export const createCustomersPage = (page: Page) => {
       await expect(page.locator('tr', { hasText: name })).toHaveCount(0);
     },
     openEditCustomer: async (name: string) => {
-      const row = page.locator('tr', { hasText: name }).first();
-      await row.getByRole('button', { name: 'Edit Details' }).click();
+      await page.locator('tr', { hasText: name }).first().click();
+      await page.getByRole('button', { name: 'Edit Details' }).click();
       await expect(page.getByRole('dialog', { name: 'Edit Customer' })).toBeVisible();
     },
     submitEditCustomer: async ({ name, phone }: { name?: string; phone?: string }) => {
@@ -45,8 +45,8 @@ export const createCustomersPage = (page: Page) => {
       await page.getByRole('button', { name: 'Close' }).last().click();
     },
     previewCustomerCard: async (name: string) => {
-      const row = page.locator('tr', { hasText: name }).first();
-      await row.getByRole('button', { name: 'Preview Card' }).click();
+      await page.locator('tr', { hasText: name }).first().click();
+      await page.getByRole('button', { name: 'Preview Card' }).click();
       await expect(page.getByRole('dialog', { name: 'Premium Card Preview' })).toBeVisible();
     },
     closePreview: async () => {

@@ -4,6 +4,12 @@ Electron desktop POS (Point of Sale) — "Where Retail Meets Intelligence". Pack
 
 ---
 
+## Verification discipline
+
+Always verify claims against the actual source code before acting on them — including claims from this file, from prior conversation summaries, from a subagent's report, or from your own memory of the codebase. Documentation and summaries drift out of date; a function, file, or behavior described here may have been renamed, moved, or removed since. Before recommending, fixing, or building on top of something specific (a function name, a file path, a line of logic, a migration precedent), grep or read the current file to confirm it still exists and still works the way it's described. This is especially important before implementing a fix, cutting a release, or making a claim about *why* something behaves a certain way — trace it in the live code rather than assuming a description (including one in this document) is still accurate.
+
+---
+
 ## Project Structure
 
 ```

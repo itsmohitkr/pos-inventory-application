@@ -1,16 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TablePagination, Paper, Typography, Skeleton, Chip, Box, IconButton, Tooltip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Paper,
+  Typography,
+  Skeleton,
+  Chip,
+  Box,
+  TableSortLabel,
 } from '@mui/material';
-import { Visibility as PreviewIcon, Edit as EditIcon } from '@mui/icons-material';
-import { TableSortLabel } from '@mui/material';
-import CustomerCardPreview from './CustomerCardPreview';
+import CustomerListSearchField from './CustomerListSearchField';
+import CustomerListToolbar from './CustomerListToolbar';
+import CustomerSummaryBar from './CustomerSummaryBar';
+import { DEFAULT_CUSTOMER_SORT } from '@/domains/customers/hooks/useCustomers';
+import { formatDateDisplay } from '@/utils/dateUtils';
 import type { Customer } from '@/shared/api/customerService';
 
 interface CustomerListTableProps {
   customers: Customer[];
-  /** Total matching rows on the server, not the length of `customers`. */
   total: number;
   page: number;
   limit: number;
@@ -21,76 +33,187 @@ interface CustomerListTableProps {
   setOrder: (order: 'asc' | 'desc') => void;
   onPageChange: (page: number) => void;
   onRowClick: (customer: Customer) => void;
-  onEdit: (customer: Customer) => void;
+  selectedCustomer?: Customer | null;
+  search: string;
+  onSearchChange: (value: string) => void;
+  onResetFilters: () => void;
 }
 
-const CustomerListTable = ({
-  customers, total, page, limit, isLoading,
-  sortBy, setSortBy, order, setOrder,
-  onPageChange, onRowClick, onEdit,
+export const CustomerListTable = ({
+  customers,
+  total,
+  page,
+  limit,
+  isLoading,
+  sortBy,
+  setSortBy,
+  order,
+  setOrder,
+  onPageChange,
+  onRowClick,
+  selectedCustomer,
+  search,
+  onSearchChange,
+  onResetFilters,
 }: CustomerListTableProps) => {
-  const [previewCustomer, setPreviewCustomer] = React.useState<Customer | null>(null);
-
-  const handlePreview = (e: React.MouseEvent, customer: Customer) => {
-    e.stopPropagation();
-    setPreviewCustomer(customer);
-  };
-
   const handleSort = (property: string) => {
     const isAsc = sortBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setSortBy(property);
   };
 
-  if (isLoading && customers.length === 0) {
-    return (
-      <Box sx={{ p: 2 }}>
-        {[...Array(8)].map((_, i) => <Skeleton key={i} height={52} sx={{ mb: 1 }} />)}
-      </Box>
-    );
-  }
-
   const columns = [
     { id: 'name', label: 'Name' },
     { id: 'phone', label: 'Phone Number' },
     { id: 'customerBarcode', label: 'Barcode' },
-    { id: 'purchases', label: 'Purchases', align: 'right' },
-    { id: 'totalSpend', label: 'Total Value', align: 'right' },
+    { id: 'purchases', label: 'Purchases' },
+    { id: 'totalSpend', label: 'Total Value' },
     { id: 'lastVisit', label: 'Last Visit' },
     { id: 'createdAt', label: 'Joined' },
   ];
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return '—';
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = String(date.getFullYear()).slice(-2);
-    return `${day}/${month}/${year}`;
-  };
+  const formatDate = (dateString?: string | null) => (dateString ? formatDateDisplay(dateString) : '—');
+
+  const hasActiveFilters = Boolean(
+    search || sortBy !== DEFAULT_CUSTOMER_SORT.sortBy || order !== DEFAULT_CUSTOMER_SORT.order
+  );
+
+  const initialLoading = isLoading && customers.length === 0;
+
+  // Avoid a skeleton flash for fast (local) fetches — only show it once
+  // loading has genuinely taken a moment.
+  const [showLoadingSkeleton, setShowLoadingSkeleton] = useState(false);
+  useEffect(() => {
+    if (!initialLoading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowLoadingSkeleton(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowLoadingSkeleton(true), 200);
+    return () => clearTimeout(timer);
+  }, [initialLoading]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          flex: 1, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          borderRadius: '12px', 
-          border: '1px solid #e2e8f0', 
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <Paper
+        elevation={0}
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
-          bgcolor: '#ffffff'
+          bgcolor: '#ffffff',
+          position: 'relative',
+          minWidth: 0,
         }}
       >
-        <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
+        {/* Table Card Header matching Inventory ProductList */}
+        <Box
+          sx={{
+            p: 1.5,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 1.5,
+              justifyContent: 'space-between',
+            }}
+          >
+            {/* Title & subtitle */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  color: '#0b1d39',
+                  lineHeight: 1.2,
+                }}
+              >
+                Customers
+              </Typography>
+              {initialLoading ? (
+                showLoadingSkeleton ? <Skeleton variant="text" width={140} height={16} /> : <Box sx={{ height: 16 }} />
+              ) : (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: '#64748b',
+                    fontSize: '0.75rem',
+                    lineHeight: 1,
+                  }}
+                >
+                  All Registered ({total.toLocaleString()})
+                </Typography>
+              )}
+            </Box>
+
+            {/* Search and Toolbar controls */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+              <CustomerListSearchField
+                value={search}
+                onChange={onSearchChange}
+                onClear={() => onSearchChange('')}
+              />
+              <CustomerListToolbar
+                sortBy={sortBy}
+                order={order}
+                onSortChange={(newSort, newOrder) => {
+                  setSortBy(newSort);
+                  setOrder(newOrder);
+                }}
+                onReset={onResetFilters}
+                hasActiveFilters={hasActiveFilters}
+              />
+            </Box>
+          </Box>
+
+          {/* Metric Summary Bar */}
+          {initialLoading ? (
+            showLoadingSkeleton ? <Skeleton variant="rounded" height={64} /> : <Box sx={{ height: 64 }} />
+          ) : (
+            <CustomerSummaryBar totalCount={total} customers={customers} />
+          )}
+        </Box>
+
+        {/* Main Table Container */}
+        <TableContainer sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
+                <TableCell
+                  align="left"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    whiteSpace: 'nowrap',
+                    color: '#475569',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    py: 1.25,
+                    px: 1.5,
+                    width: '5%',
+                    minWidth: '50px',
+                  }}
+                >
+                  S.No.
+                </TableCell>
                 {columns.map((column) => (
                   <TableCell
                     key={column.id}
-                    align={column.align as 'left' | 'right' | 'center' | undefined}
+                    align="left"
                     sortDirection={sortBy === column.id ? order : false}
                     sx={{
                       fontWeight: 700,
@@ -100,7 +223,8 @@ const CustomerListTable = ({
                       color: '#475569',
                       fontSize: '0.75rem',
                       textTransform: 'uppercase',
-                      py: 1.5
+                      py: 1.25,
+                      px: 1.5,
                     }}
                   >
                     <TableSortLabel
@@ -108,144 +232,152 @@ const CustomerListTable = ({
                       direction={sortBy === column.id ? order : 'asc'}
                       onClick={() => handleSort(column.id)}
                       sx={{
-                        '&.Mui-active': { color: '#0f172a' },
-                        '& .MuiTableSortLabel-icon': { color: '#0f172a !important', opacity: 1 }
+                        '&.Mui-active': { color: '#0b1d39' },
+                        '& .MuiTableSortLabel-icon': { color: '#0b1d39 !important', opacity: 1 },
                       }}
                     >
                       {column.label}
                     </TableSortLabel>
                   </TableCell>
                 ))}
-                <TableCell
-                  sx={{
-                    fontWeight: 700,
-                    bgcolor: '#f8fafc',
-                    borderBottom: '1px solid #e2e8f0',
-                    color: '#475569',
-                    fontSize: '0.75rem',
-                    textTransform: 'uppercase',
-                    py: 1.5
-                  }}
-                  align="right"
-                >
-                  Actions
-                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {customers.length === 0 ? (
+              {initialLoading ? (
+                showLoadingSkeleton
+                  ? [...Array(8)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={8} sx={{ py: 1.25, px: 1.5 }}>
+                          <Skeleton height={28} />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : null
+              ) : customers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
-                    <Typography variant="body2" sx={{ color: '#94a3b8', fontWeight: 700 }}>NO CUSTOMERS FOUND</Typography>
-                    <Typography variant="caption" sx={{ color: '#cbd5e1' }}>Try adjusting your search criteria</Typography>
+                  <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                    <Typography variant="body2" sx={{ color: '#94a3b8', fontWeight: 700 }}>
+                      NO CUSTOMERS FOUND
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#cbd5e1' }}>
+                      Try adjusting your search criteria
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                customers.map((c) => (
-                  <TableRow
-                    key={c.id}
-                    hover
-                    onClick={() => onRowClick(c)}
-                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#f8fafc' } }}
-                  >
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b' }}>{c.name || '—'}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>{c.phone}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={c.customerBarcode}
-                        size="small"
-                        sx={{ 
-                          fontFamily: 'monospace', 
-                          fontSize: '0.65rem', 
-                          fontWeight: 800,
-                          bgcolor: '#f1f5f9',
-                          color: '#475569',
-                          borderRadius: '4px'
+                customers.map((c, idx) => {
+                  const isSelected = selectedCustomer?.id === c.id;
+                  return (
+                    <TableRow
+                      key={c.id}
+                      hover
+                      onClick={() => onRowClick(c)}
+                      sx={{
+                        cursor: 'pointer',
+                        bgcolor: isSelected ? 'rgba(11, 29, 57, 0.08)' : 'transparent',
+                        '&:hover': {
+                          bgcolor: isSelected ? 'rgba(11, 29, 57, 0.12)' : '#f8fafc',
+                        },
+                        transition: 'background-color 0.15s ease',
+                      }}
+                    >
+                      {/* S.No. */}
+                      <TableCell
+                        sx={{
+                          py: 1.25,
+                          px: 1.5,
+                          fontWeight: 600,
+                          color: '#64748b',
+                          fontSize: '0.78rem',
+                          width: '5%',
+                          minWidth: '50px',
+                          whiteSpace: 'nowrap',
                         }}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {c._count?.sales ?? 0}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#0f172a' }}>
-                        ₹{c.totalSpend?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
-                        {formatDate(c.lastVisit)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
-                        {formatDate(c.createdAt)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-                          <Tooltip title="Preview Card">
-                            <IconButton
-                              size="small"
-                              onClick={(e) => handlePreview(e, c)}
-                              aria-label="Preview Card"
-                              sx={{
-                                bgcolor: 'rgba(59, 130, 246, 0.1)',
-                                color: '#3b82f6',
-                                '&:hover': { bgcolor: 'rgba(59, 130, 246, 0.2)' },
-                              }}
-                            >
-                              <PreviewIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Typography
-                            variant="caption"
-                            sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#3b82f6' }}
-                          >
-                            Preview
+                      >
+                        {(page - 1) * limit + idx + 1}
+                      </TableCell>
+
+                      {/* Name */}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          {c.name || '—'}
+                        </Typography>
+                      </TableCell>
+
+                      {/* Phone */}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569', fontSize: '0.82rem' }}>
+                          {c.phone}
+                        </Typography>
+                      </TableCell>
+
+                      {/* Barcode */}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        {c.customerBarcode ? (
+                          <Chip
+                            label={c.customerBarcode}
+                            size="small"
+                            sx={{
+                              fontFamily: 'monospace',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              bgcolor: '#f1f5f9',
+                              color: '#334155',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '4px',
+                              height: 22,
+                            }}
+                          />
+                        ) : (
+                          <Typography variant="caption" sx={{ color: '#94a3b8' }}>
+                            —
                           </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-                          <Tooltip title="Edit Details">
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit(c);
-                              }}
-                              aria-label="Edit Details"
-                              sx={{
-                                bgcolor: 'rgba(31, 41, 55, 0.08)',
-                                color: '#1f2937',
-                                '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.15)' },
-                              }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Typography
-                            variant="caption"
-                            sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}
-                          >
-                            Edit
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))
+                        )}
+                      </TableCell>
+
+                      {/* Purchases */}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                          {c._count?.sales ?? 0}
+                        </Typography>
+                      </TableCell>
+
+                      {/* Total Value */}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                          ₹{c.totalSpend?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+                        </Typography>
+                      </TableCell>
+
+                      {/* Last Visit */}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.78rem' }}>
+                          {formatDate(c.lastVisit)}
+                        </Typography>
+                      </TableCell>
+
+                      {/* Joined */}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.78rem' }}>
+                          {formatDate(c.createdAt)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </TableContainer>
 
+        {/* Pagination Footer */}
         <Box sx={{ borderTop: '1px solid #e2e8f0', bgcolor: '#ffffff' }}>
           <TablePagination
             component="div"
@@ -255,18 +387,12 @@ const CustomerListTable = ({
             rowsPerPageOptions={[limit]}
             onPageChange={(_, newPage) => onPageChange(newPage + 1)}
             sx={{
-              '& .MuiTablePagination-toolbar': { minHeight: 48 },
-              '& .MuiTypography-root': { fontWeight: 700, color: '#64748b', fontSize: '0.75rem' }
+              '& .MuiTablePagination-toolbar': { minHeight: 44, px: 2 },
+              '& .MuiTypography-root': { fontWeight: 600, color: '#64748b', fontSize: '0.75rem' },
             }}
           />
         </Box>
       </Paper>
-      <CustomerCardPreview
-        open={!!previewCustomer}
-        onClose={() => setPreviewCustomer(null)}
-        customer={previewCustomer}
-        shopName="My Shop"
-      />
     </Box>
   );
 };

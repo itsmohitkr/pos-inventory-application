@@ -5,17 +5,42 @@ interface UseResizablePanelArgs {
   storageKey: string;
   defaultWidth: number;
   min: number;
-  max: number;
+  /** Fixed upper bound in pixels. Mutually exclusive with `maxRatio`. */
+  max?: number;
+  /**
+   * Upper bound as a fraction of window.innerWidth, recomputed on every
+   * pointer move (so it stays correct across a window resize, unlike a
+   * `max` snapshotted once at mount). Mutually exclusive with `max`.
+   */
+  maxRatio?: number;
+  /** Pixels subtracted from the raw pointer-derived width. Defaults to 24. */
+  offset?: number;
+  /** Which edge event.clientX is measured from. Defaults to 'right'. */
+  anchor?: 'left' | 'right';
 }
 
+const readStoredWidth = (storageKey: string, defaultWidth: number): number => {
+  const stored = Number(localStorage.getItem(storageKey));
+  return Number.isFinite(stored) && stored > 0 ? stored : defaultWidth;
+};
+
 /**
- * A draggable-width right-hand panel, generalized from
- * client/src/domains/pos/hooks/usePOSLayout.ts's resize slice. Kept
- * standalone rather than importing that hook so POS's own behavior stays
- * untouched — this is a second, independent instance of the same pattern.
+ * A draggable-width panel, generalized from
+ * client/src/domains/pos/hooks/usePOSLayout.ts's resize slice. The dragged
+ * width is always clamped to [min, effectiveMax] (rather than frozen once
+ * the pointer leaves that range) — a single, predictable strategy shared by
+ * every caller (SaleHistory, Inventory's two panels, Customers).
  */
-export const useResizablePanel = ({ storageKey, defaultWidth, min, max }: UseResizablePanelArgs) => {
-  const [width, setWidth] = useState(() => Number(localStorage.getItem(storageKey)) || defaultWidth);
+export const useResizablePanel = ({
+  storageKey,
+  defaultWidth,
+  min,
+  max,
+  maxRatio,
+  offset = 24,
+  anchor = 'right',
+}: UseResizablePanelArgs) => {
+  const [width, setWidth] = useState(() => readStoredWidth(storageKey, defaultWidth));
   const [isResizing, setIsResizing] = useState(false);
 
   const startResizing = useCallback((e: React.MouseEvent) => {
@@ -29,15 +54,14 @@ export const useResizablePanel = ({ storageKey, defaultWidth, min, max }: UseRes
 
   const resize = useCallback(
     (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = window.innerWidth - e.clientX - 24;
-        if (newWidth > min && newWidth < max) {
-          setWidth(newWidth);
-          localStorage.setItem(storageKey, newWidth.toString());
-        }
-      }
+      if (!isResizing) return;
+      const rawWidth = anchor === 'left' ? e.clientX - offset : window.innerWidth - e.clientX - offset;
+      const effectiveMax = maxRatio !== undefined ? window.innerWidth * maxRatio : (max ?? Infinity);
+      const nextWidth = Math.max(min, Math.min(effectiveMax, rawWidth));
+      setWidth(nextWidth);
+      localStorage.setItem(storageKey, nextWidth.toString());
     },
-    [isResizing, min, max, storageKey]
+    [isResizing, min, max, maxRatio, offset, anchor, storageKey]
   );
 
   useEffect(() => {

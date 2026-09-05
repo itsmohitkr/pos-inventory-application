@@ -69,7 +69,7 @@ interface CategorySidebarProps {
   onCategoryDialogClose: () => void;
   onCategoryNameChange: (name: string) => void;
   onSaveCategory: () => void;
-  onResizeStart: () => void;
+  onResizeStart: (event: React.MouseEvent) => void;
   onDoubleClick?: () => void;
   onToggleCategories: () => void;
 }
