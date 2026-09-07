@@ -6,25 +6,27 @@ import {
   Paper,
   TableContainer,
   Table,
-  TableHead,
   TableRow,
   TableCell,
   TableBody,
+  TableFooter,
   IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-  TableFooter,
 } from '@mui/material';
-import { DeleteOutline } from '@mui/icons-material';
+import { Receipt as ReceiptIcon, DeleteOutline } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from '@/domains/reporting/components/ExportOptions';
 import posService from '@/shared/api/posService';
 import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
+import ReportTableEmptyState from '@/domains/reporting/components/ReportTableEmptyState';
+import ReportTablePagination from '@/domains/reporting/components/ReportTablePagination';
+import { usePagedTable } from '@/domains/reporting/components/usePagedTable';
 
 /** A loose-sale row from GET /api/reports/loose-sales. */
 export interface LooseSaleRow {
@@ -53,6 +55,15 @@ const LooseSalesReportPanel = ({
     requestSort,
     sortConfig,
   } = useSortableTable(data || [], { key: 'createdAt', direction: 'desc' });
+
+  const {
+    page,
+    rowsPerPage,
+    paginatedItems: paginatedData,
+    setPage,
+    handleRowsPerPageChange,
+  } = usePagedTable(sortedData, [data]);
+
   const [deleteId, setDeleteId] = React.useState<number | null>(null);
 
   const handleDelete = async () => {
@@ -67,6 +78,7 @@ const LooseSalesReportPanel = ({
       alert('Failed to delete loose sale.');
     }
   };
+
   const handleExportPDF = () => {
     if (!data || data.length === 0) return;
 
@@ -79,8 +91,9 @@ const LooseSalesReportPanel = ({
     doc.text(`Timeframe: ${timeframeLabel || ''}`, 14, 28);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34);
 
-    const tableColumn = ['Date', 'Item Name', 'Price (₹)'];
-    const tableRows = (data || []).map((item) => [
+    const tableColumn = ['S.No.', 'Date', 'Item Name', 'Price (₹)'];
+    const tableRows = (data || []).map((item, index) => [
+      index + 1,
       new Date(item.createdAt).toLocaleString(),
       item.itemName || 'Loose Item',
       item.price.toFixed(2),
@@ -92,7 +105,7 @@ const LooseSalesReportPanel = ({
       startY: 40,
       theme: 'striped',
       styles: { fontSize: 10 },
-      headStyles: { fillColor: [245, 158, 11] },
+      headStyles: { fillColor: [11, 29, 57] },
     });
 
     doc.save(`loose_sales_report_${(timeframeLabel || '').replace(/\s+/g, '_').toLowerCase()}.pdf`);
@@ -110,9 +123,8 @@ const LooseSalesReportPanel = ({
     );
   }
 
-
-
   const totalRevenue = (data || []).reduce((sum, item) => sum + item.price, 0);
+  const avgSale = data && data.length > 0 ? totalRevenue / data.length : 0;
 
   return (
     <Box
@@ -133,72 +145,78 @@ const LooseSalesReportPanel = ({
         <Box
           className="no-print"
           sx={{
-            p: 2,
+            p: 1.5,
             flexShrink: 0,
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: 2,
             flexWrap: 'wrap',
+            gap: 1.5,
+            justifyContent: 'space-between',
             borderBottom: '1px solid #e2e8f0',
             bgcolor: '#ffffff',
           }}
         >
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                color: '#0b1d39',
+                lineHeight: 1.2,
+              }}
+            >
               Loose Sales History
-              <Box
-                component="span"
-                sx={{
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: 'primary.main',
-                  bgcolor: 'primary.lighter',
-                  px: 1,
-                  borderRadius: 1,
-                }}
-              >
-                ({sortedData.length})
-              </Box>
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              One-time sales bypassed from regular inventory
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                color: '#64748b',
+                fontSize: '0.75rem',
+                lineHeight: 1,
+              }}
+            >
+              One-time sales ({sortedData.length})
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <ExportOptions onExportPDF={handleExportPDF} onPrint={handlePrint} />
           </Box>
         </Box>
 
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 1000 }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 800 }}>
             <SortableTableHead
               columns={[
+                { id: 'sno', label: 'S.NO.', sx: { width: '5%' } },
                 { id: 'createdAt', label: 'DATE & TIME' },
                 { id: 'itemName', label: 'ITEM NAME / NOTES' },
                 { id: 'price', label: 'PRICE (₹)', align: 'right' },
-                { id: 'actions', label: 'ACTIONS', align: 'right' },
+                { id: 'actions', label: '', align: 'center', sortable: false, sx: { width: '8%' } },
               ]}
               sortConfig={sortConfig}
               requestSort={requestSort}
             />
             <TableBody>
               {sortedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
-                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
-                      No loose sales found for this period.
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                <ReportTableEmptyState
+                  colSpan={5}
+                  icon={<ReceiptIcon />}
+                  title="No loose sales recorded"
+                  subtitle="No one-time sales were bypassed during this period"
+                />
               ) : (
-                sortedData.map((item) => (
+                paginatedData.map((item, index) => (
                   <TableRow key={item.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontSize: '0.8rem' }}>
+                      {page * rowsPerPage + index + 1}
+                    </TableCell>
+                    <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
                         {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                         {item.createdAt
                           ? new Date(item.createdAt).toLocaleTimeString([], {
                               hour: '2-digit',
@@ -207,12 +225,19 @@ const LooseSalesReportPanel = ({
                           : ''}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>{item.itemName || 'Loose Item'}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, fontSize: '0.8125rem' }}>
+                      {item.itemName || 'Loose Item'}
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.8125rem' }}>
                       ₹{item.price.toFixed(2)}
                     </TableCell>
-                    <TableCell align="right">
-                      <IconButton size="small" color="error" onClick={() => setDeleteId(item.id)}>
+                    <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => setDeleteId(item.id)}
+                        sx={{ color: '#dc2626' }}
+                        aria-label="Delete loose sale"
+                      >
                         <DeleteOutline fontSize="small" />
                       </IconButton>
                     </TableCell>
@@ -225,17 +250,19 @@ const LooseSalesReportPanel = ({
                 position: 'sticky',
                 bottom: 0,
                 zIndex: 10,
-                bgcolor: '#f1f5f9', // Slate background to match Profit & Margin
+                bgcolor: '#f8fafc',
               }}
             >
-              <TableRow sx={{ '&:hover': { bgcolor: '#f1f5f9' } }}>
+              <TableRow sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
                 <TableCell
-                  colSpan={2}
+                  colSpan={3}
                   sx={{
                     fontWeight: 700,
                     color: 'text.secondary',
-                    py: 1.5,
-                    borderTop: '1px solid #e2e8f0'
+                    py: 1.25,
+                    px: 1.5,
+                    fontSize: '0.8125rem',
+                    borderTop: '2px solid #e2e8f0',
                   }}
                 >
                   Total Current Period
@@ -244,33 +271,37 @@ const LooseSalesReportPanel = ({
                   align="right"
                   sx={{
                     fontWeight: 700,
-                    color: '#1e293b',
-                    py: 1.5,
-                    fontSize: '1rem',
-                    borderTop: '1px solid #e2e8f0'
+                    color: '#0b1d39',
+                    py: 1.25,
+                    px: 1.5,
+                    fontSize: '0.875rem',
+                    borderTop: '2px solid #e2e8f0',
                   }}
                 >
-                  ₹ {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  ₹{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </TableCell>
-                <TableCell sx={{ borderTop: '1px solid #e2e8f0' }} />
+                <TableCell sx={{ borderTop: '2px solid #e2e8f0' }} />
               </TableRow>
             </TableFooter>
           </Table>
         </TableContainer>
+        <ReportTablePagination
+          count={sortedData.length}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Paper>
 
-      <Dialog open={Boolean(deleteId)} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: '#b91c1c' }}>Delete Loose Sale</DialogTitle>
+      <Dialog open={deleteId !== null} onClose={() => setDeleteId(null)}>
+        <DialogTitle>Delete Loose Sale</DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to permanently delete this loose sale record?
-          </Typography>
+          Are you sure you want to delete this loose sale entry? This cannot be undone.
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteId(null)} color="inherit">
-            Cancel
-          </Button>
-          <Button onClick={handleDelete} color="error" variant="contained" sx={{ fontWeight: 600 }}>
+        <DialogActions>
+          <Button onClick={() => setDeleteId(null)}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained">
             Delete
           </Button>
         </DialogActions>

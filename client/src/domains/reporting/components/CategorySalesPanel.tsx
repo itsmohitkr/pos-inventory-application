@@ -18,9 +18,12 @@ import {
   TextField,
   InputAdornment,
 } from '@mui/material';
-import { FilterAlt } from '@mui/icons-material';
 import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
+import { Category as CategoryIcon } from '@mui/icons-material';
+import ReportTableEmptyState from '@/domains/reporting/components/ReportTableEmptyState';
+import ReportTablePagination from '@/domains/reporting/components/ReportTablePagination';
+import { usePagedTable } from '@/domains/reporting/components/usePagedTable';
 
 /** Sale rows from /api/reports; shape firms up once the server is typed. */
 /** The reports endpoint's enriched sale row. */
@@ -84,6 +87,14 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
     sortConfig,
   } = useSortableTable(categoryList, { key: 'totalSales', direction: 'desc' });
 
+  const {
+    page,
+    rowsPerPage,
+    paginatedItems: paginatedData,
+    setPage,
+    handleRowsPerPageChange,
+  } = usePagedTable(sortedData, [sales, selectedCategory]);
+
   const totals = React.useMemo(() => {
     return categoryList.reduce(
       (acc, cat) => ({
@@ -98,7 +109,7 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
 
   React.useEffect(() => {
     setSelectedIndex(0);
-  }, [selectedCategory]);
+  }, [selectedCategory, page]);
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,32 +120,38 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
         target?.role === 'combobox'
       )
         return;
-      if (categoryList.length === 0) return;
+      if (paginatedData.length === 0) return;
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((prev) => {
-          const next = Math.min(prev + 1, categoryList.length - 1);
+        if (selectedIndex < paginatedData.length - 1) {
+          const next = selectedIndex + 1;
+          setSelectedIndex(next);
           document
             .getElementById(`cat-row-${next}`)
             ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-          return next;
-        });
+        } else if ((page + 1) * rowsPerPage < categoryList.length) {
+          setPage(page + 1);
+          setSelectedIndex(0);
+        }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((prev) => {
-          const prevIdx = Math.max(prev - 1, 0);
+        if (selectedIndex > 0) {
+          const prevIdx = selectedIndex - 1;
+          setSelectedIndex(prevIdx);
           document
             .getElementById(`cat-row-${prevIdx}`)
             ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-          return prevIdx;
-        });
+        } else if (page > 0) {
+          setPage(page - 1);
+          setSelectedIndex(rowsPerPage - 1);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [categoryList]);
+  }, [paginatedData, selectedIndex, page, rowsPerPage, categoryList.length, setPage]);
 
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -168,40 +185,42 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
         <Box
           className="no-print"
           sx={{
-            p: 2,
-            flexShrink: 0,
+            p: 1.5,
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: 2,
             flexWrap: 'wrap',
+            gap: 1.5,
+            justifyContent: 'space-between',
             borderBottom: '1px solid #e2e8f0',
             bgcolor: '#ffffff',
           }}
         >
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                color: '#0b1d39',
+                lineHeight: 1.2,
+              }}
+            >
               Category Sales Performance
-              <Box
-                component="span"
-                sx={{
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: 'primary.main',
-                  bgcolor: 'primary.lighter',
-                  px: 1,
-                  borderRadius: 1,
-                }}
-              >
-                ({sortedData.length})
-              </Box>
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Performance metrics grouped by category
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                color: '#64748b',
+                fontSize: '0.75rem',
+                lineHeight: 1,
+              }}
+            >
+              All Categories ({sortedData.length})
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Autocomplete
               size="small"
               options={['All Categories', ...allCategories]}
@@ -210,54 +229,47 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Search Category"
-                  placeholder="Type to filter..."
+                  placeholder="Filter Category..."
                   sx={{
-                    minWidth: 240,
+                    minWidth: 200,
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: '10px',
-                      bgcolor: '#f8fafc',
-                      fontWeight: 600,
+                      height: '36px',
+                      borderRadius: '6px',
+                      bgcolor: '#ffffff',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
                       '& fieldset': { borderColor: '#e2e8f0' },
                       '&:hover fieldset': { borderColor: '#cbd5e1' },
-                      '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '2px' },
+                      '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '1px' },
                     },
-                    '& .MuiInputLabel-root': { fontWeight: 500, color: '#64748b' },
-                  }}
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FilterAlt sx={{ fontSize: 18, color: '#94a3b8' }} />
-                      </InputAdornment>
-                    ),
                   }}
                 />
               )}
               sx={{
                 '& .MuiAutocomplete-option': {
                   fontSize: '0.85rem',
-                  fontWeight: 500,
-                  py: 1,
+                  py: 0.75,
                 },
               }}
             />
           </Box>
         </Box>
+
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 1200, tableLayout: 'fixed' }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 1000, tableLayout: 'fixed' }}>
             <SortableTableHead
               columns={[
+                { id: 'sno', label: 'S.NO.', sx: { width: '5%', minWidth: '50px' }, sortable: false },
                 { id: 'name', label: 'CATEGORY NAME', sx: { width: '25%' } },
                 { id: 'itemCount', label: 'ITEMS SOLD', align: 'center', sx: { width: '12%' } },
-                { id: 'totalCost', label: 'TOTAL COST', align: 'right', sx: { width: '15%' } },
-                { id: 'totalSales', label: 'TOTAL SALES', align: 'right', sx: { width: '15%' } },
-                { id: 'totalProfit', label: 'TOTAL PROFIT', align: 'right', sx: { width: '15%' } },
+                { id: 'totalCost', label: 'TOTAL COST', align: 'right', sx: { width: '14%' } },
+                { id: 'totalSales', label: 'TOTAL SALES', align: 'right', sx: { width: '14%' } },
+                { id: 'totalProfit', label: 'TOTAL PROFIT', align: 'right', sx: { width: '14%' } },
                 {
                   id: 'margin',
                   label: 'AVG. MARGIN',
                   align: 'right',
-                  sx: { width: '18%' },
+                  sx: { width: '16%' },
                   getter: (cat) =>
                     cat.totalSales > 0 ? (cat.totalProfit / cat.totalSales) * 100 : 0,
                 },
@@ -266,58 +278,70 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
               requestSort={requestSort}
             />
             <TableBody>
-              {sortedData.map((cat, idx) => (
-                <TableRow
-                  key={cat.name}
-                  id={`cat-row-${idx}`}
-                  hover
-                  selected={selectedIndex === idx}
-                  sx={{
-                    cursor: 'pointer',
-                    '&.Mui-selected': { bgcolor: 'rgba(25, 118, 210, 0.08)' },
-                  }}
-                  onClick={() => setSelectedIndex(idx)}
-                >
-                  <TableCell sx={{ fontWeight: 700 }}>{cat.name}</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>{cat.itemCount}</TableCell>
-                  <TableCell align="right" sx={{ color: '#64748b' }}>
-                    ₹{cat.totalCost.toFixed(2)}
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>
-                    ₹{cat.totalSales.toFixed(2)}
-                  </TableCell>
-                  <TableCell align="right" sx={{ color: '#2e7d32', fontWeight: 700 }}>
-                    ₹{cat.totalProfit.toFixed(2)}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Chip
-                      label={`${((cat.totalProfit / cat.totalSales) * 100).toFixed(1)}%`}
-                      size="small"
-                      sx={{
-                        fontWeight: 700,
-                        bgcolor: cat.totalProfit / cat.totalSales > 0.2 ? '#e8f5e9' : '#f0f4f8',
-                        color: cat.totalProfit / cat.totalSales > 0.2 ? '#2e7d32' : '#1a73e8',
-                      }}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
+              {paginatedData.map((cat, idx) => {
+                const globalIdx = page * rowsPerPage + idx;
+                return (
+                  <TableRow
+                    key={cat.name}
+                    id={`cat-row-${idx}`}
+                    hover
+                    selected={selectedIndex === idx}
+                    sx={{
+                      cursor: 'pointer',
+                      '&.Mui-selected': { bgcolor: 'rgba(11, 29, 57, 0.08)' },
+                      '&:hover': { bgcolor: selectedIndex === idx ? 'rgba(11, 29, 57, 0.12)' : '#f8fafc' },
+                    }}
+                    onClick={() => setSelectedIndex(idx)}
+                  >
+                    <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#64748b', fontSize: '0.78rem', width: '5%', minWidth: '50px', whiteSpace: 'nowrap' }}>
+                      {globalIdx + 1}
+                    </TableCell>
+                    <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{cat.name}</TableCell>
+                    <TableCell align="center" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{cat.itemCount}</TableCell>
+                    <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#64748b', fontSize: '0.85rem' }}>
+                      ₹{cat.totalCost.toFixed(2)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
+                      ₹{cat.totalSales.toFixed(2)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#16a34a', fontWeight: 700, fontSize: '0.85rem' }}>
+                      ₹{cat.totalProfit.toFixed(2)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
+                      <Chip
+                        label={`${((cat.totalProfit / cat.totalSales) * 100).toFixed(1)}%`}
+                        size="small"
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: '0.68rem',
+                          height: 22,
+                          bgcolor: cat.totalProfit / cat.totalSales > 0.2 ? '#e8f5e9' : '#f0f4f8',
+                          color: cat.totalProfit / cat.totalSales > 0.2 ? '#16a34a' : '#0b1d39',
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {categoryList.length > 0 && (
                 <TableRow
                   sx={{
                     position: 'sticky',
                     bottom: 0,
                     zIndex: 2,
-                    '&:hover': { bgcolor: 'transparent' },
+                    bgcolor: '#f8fafc',
+                    '&:hover': { bgcolor: '#f8fafc' },
                   }}
                 >
                   <TableCell
+                    colSpan={2}
                     sx={{
-                      fontWeight: 800,
+                      fontWeight: 700,
                       color: '#475569',
-                      py: 2,
-                      bgcolor: '#f1f5f9',
-                      borderTop: '2px solid #e2e8f0',
+                      py: 1.25,
+                      px: 1.5,
+                      borderTop: '1px solid #e2e8f0',
+                      fontSize: '0.8rem',
                     }}
                   >
                     TOTAL SUMMARY
@@ -325,10 +349,12 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
                   <TableCell
                     align="center"
                     sx={{
-                      fontWeight: 800,
+                      fontWeight: 700,
                       color: '#0f172a',
-                      bgcolor: '#f1f5f9',
-                      borderTop: '2px solid #e2e8f0',
+                      py: 1.25,
+                      px: 1.5,
+                      borderTop: '1px solid #e2e8f0',
+                      fontSize: '0.85rem',
                     }}
                   >
                     {totals.itemCount}
@@ -336,10 +362,12 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
                   <TableCell
                     align="right"
                     sx={{
-                      fontWeight: 800,
+                      fontWeight: 700,
                       color: '#64748b',
-                      bgcolor: '#f1f5f9',
-                      borderTop: '2px solid #e2e8f0',
+                      py: 1.25,
+                      px: 1.5,
+                      borderTop: '1px solid #e2e8f0',
+                      fontSize: '0.85rem',
                     }}
                   >
                     ₹{totals.totalCost.toFixed(2)}
@@ -347,10 +375,12 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
                   <TableCell
                     align="right"
                     sx={{
-                      fontWeight: 800,
+                      fontWeight: 700,
                       color: '#0f172a',
-                      bgcolor: '#f1f5f9',
-                      borderTop: '2px solid #e2e8f0',
+                      py: 1.25,
+                      px: 1.5,
+                      borderTop: '1px solid #e2e8f0',
+                      fontSize: '0.85rem',
                     }}
                   >
                     ₹{totals.totalSales.toFixed(2)}
@@ -358,39 +388,47 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
                   <TableCell
                     align="right"
                     sx={{
-                      fontWeight: 800,
+                      fontWeight: 700,
                       color: '#16a34a',
-                      bgcolor: '#f1f5f9',
-                      borderTop: '2px solid #e2e8f0',
+                      py: 1.25,
+                      px: 1.5,
+                      borderTop: '1px solid #e2e8f0',
+                      fontSize: '0.85rem',
                     }}
                   >
                     ₹{totals.totalProfit.toFixed(2)}
                   </TableCell>
                   <TableCell
                     align="right"
-                    sx={{ bgcolor: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}
+                    sx={{ py: 1.25, px: 1.5, borderTop: '1px solid #e2e8f0' }}
                   >
                     <Chip
                       label={`${totals.totalSales > 0 ? ((totals.totalProfit / totals.totalSales) * 100).toFixed(1) : 0}%`}
                       size="small"
                       color="primary"
-                      sx={{ fontWeight: 800 }}
+                      sx={{ fontWeight: 700, height: 22, fontSize: '0.68rem' }}
                     />
                   </TableCell>
                 </TableRow>
               )}
               {categoryList.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-                    <Typography color="text.secondary">
-                      No category data available for this period.
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                <ReportTableEmptyState
+                  colSpan={7}
+                  icon={<CategoryIcon />}
+                  title="No category sales found"
+                  subtitle="Try selecting a different timeframe or category filter"
+                />
               )}
             </TableBody>
           </Table>
         </TableContainer>
+        <ReportTablePagination
+          count={sortedData.length}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Paper>
     </Box>
   );

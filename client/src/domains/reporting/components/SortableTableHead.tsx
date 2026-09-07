@@ -37,14 +37,16 @@ const SortableTableHead = ({ columns, sortConfig, requestSort }: SortableTableHe
             key={col.id}
             align={col.align || 'left'}
             sx={{
-              fontWeight: 800,
-              bgcolor: '#f1f5f9', // Slightly darker background for better contrast
-              color: '#334155',    // Professional Slate color
-              py: 1.5,             // Slightly more padding for elegance
-              borderBottom: '2px solid #e2e8f0',
-              fontSize: '0.8rem',
+              fontWeight: 700,
+              bgcolor: '#f8fafc',
+              color: '#475569',
+              py: 1.25,
+              px: 1.5,
+              borderBottom: '1px solid #e2e8f0',
+              fontSize: '0.75rem',
               letterSpacing: '0.5px',
-              whiteSpace: 'nowrap', // Prevent header text from wrapping
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
               ...col.sx,
             }}
             sortDirection={sortConfig?.key === col.id ? sortConfig.direction : false}
@@ -58,10 +60,11 @@ const SortableTableHead = ({ columns, sortConfig, requestSort }: SortableTableHe
                 sx={{
                   color: 'inherit !important',
                   '&.MuiTableSortLabel-active': {
-                    color: '#0f172a !important', // Darker color when active
+                    color: '#0b1d39 !important',
                   },
                   '& .MuiTableSortLabel-icon': {
-                    color: '#94a3b8 !important', // Distinct sort icon color
+                    color: '#0b1d39 !important',
+                    opacity: 1,
                   },
                 }}
               >

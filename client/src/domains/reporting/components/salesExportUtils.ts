@@ -34,11 +34,10 @@ export const exportSalesToPDF = (
   const tableColumn = [
     'Date & Time',
     'Order ID',
-    'Cost',
-    'Amount',
+    'Cost Price',
+    'Selling Price',
     'Profit',
     'Margin',
-    'Payment',
     'Status',
   ];
   const tableRows: RowInput[] = [];
@@ -57,7 +56,6 @@ export const exportSalesToPDF = (
       `Rs ${(sale.netTotalAmount || 0).toFixed(2)}`,
       `Rs ${(sale.profit || 0).toFixed(2)}`,
       `${margin}%`,
-      sale.paymentMethod || 'Cash',
       display.label,
     ];
     tableRows.push(rowData);
@@ -84,7 +82,7 @@ export const exportSalesToPDF = (
       styles: { fontStyle: 'bold', fillColor: [241, 245, 249] },
     },
     { content: `${avgMargin}%`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-    { content: '', colSpan: 2, styles: { fillColor: [241, 245, 249] } },
+    { content: '', colSpan: 1, styles: { fillColor: [241, 245, 249] } },
   ]);
 
   autoTable(doc, {
@@ -93,7 +91,7 @@ export const exportSalesToPDF = (
     startY: 40,
     theme: 'striped',
     styles: { fontSize: 10 },
-    headStyles: { fillColor: [25, 118, 210] },
+    headStyles: { fillColor: [11, 29, 57] },
   });
 
   doc.save(`sales_history_${timeframeLabel.replace(/\s+/g, '_').toLowerCase()}.pdf`);
