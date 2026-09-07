@@ -130,7 +130,6 @@ const SalesListPanel = ({
                 PAYMENT
               </TableCell>
               <TableCell
-                align="center"
                 sx={{ fontWeight: 800, bgcolor: '#f8fafc', minWidth: 110 }}
               >
                 STATUS
@@ -211,7 +210,7 @@ const SalesListPanel = ({
                       <Typography variant="body2" color="text.secondary">—</Typography>
                     )}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell>
                     {isPos ? (
                       (() => {
                         const refundStatus = getRefundStatus(sale.items);
