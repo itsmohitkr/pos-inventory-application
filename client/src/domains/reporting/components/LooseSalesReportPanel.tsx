@@ -124,7 +124,6 @@ const LooseSalesReportPanel = ({
   }
 
   const totalRevenue = (data || []).reduce((sum, item) => sum + item.price, 0);
-  const avgSale = data && data.length > 0 ? totalRevenue / data.length : 0;
 
   return (
     <Box
