@@ -1,11 +1,12 @@
 import { StrictMode, useEffect } from 'react';
 import * as Sentry from "@sentry/react";
-import { 
-  createRoutesFromElements, 
-  matchRoutes, 
-  useLocation, 
-  useNavigationType 
+import {
+  createRoutesFromElements,
+  matchRoutes,
+  useLocation,
+  useNavigationType
 } from "react-router-dom";
+import type { ApiError } from '@/shared/api/api';
 
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
@@ -25,6 +26,18 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
     environment: import.meta.env.MODE || "production",
+    beforeSend(event, hint) {
+      // Expected API rejections (wrong password, validation failures, etc.)
+      // surface as 4xx responses and are handled/shown to the user inline —
+      // they are not application bugs, so don't let them pollute Sentry.
+      // A 5xx or a status-less error (network drop, thrown before the
+      // request completed) is still a real problem worth reporting.
+      const status = (hint.originalException as ApiError | undefined)?.response?.status;
+      if (status && status < 500) {
+        return null;
+      }
+      return event;
+    },
   });
 }
 

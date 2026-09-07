@@ -1,60 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useResizablePanel } from '@/shared/hooks/useResizablePanel';
 
 export const useInventoryLayout = () => {
-  const [leftPanelWidth, setLeftPanelWidth] = useState(
-    () => Number(localStorage.getItem('inventoryLeftPanelWidth')) || 280
-  );
-  const [rightPanelWidth, setRightPanelWidth] = useState(
-    () => Number(localStorage.getItem('inventoryRightPanelWidth')) || 360
-  );
+  const left = useResizablePanel({
+    storageKey: 'inventoryLeftPanelWidth',
+    defaultWidth: 280,
+    min: 80,
+    maxRatio: 0.4,
+    offset: 40,
+    anchor: 'left',
+  });
+  const right = useResizablePanel({
+    storageKey: 'inventoryRightPanelWidth',
+    defaultWidth: 360,
+    min: 100,
+    maxRatio: 0.5,
+    offset: 40,
+    anchor: 'right',
+  });
   const [showCategories, setShowCategories] = useState(true);
-  const [isResizingLeft, setIsResizingLeft] = useState(false);
-  const [isResizingRight, setIsResizingRight] = useState(false);
-
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      if (isResizingLeft) {
-        const nextWidth = Math.max(80, Math.min(window.innerWidth * 0.4, event.clientX - 40));
-        setLeftPanelWidth(nextWidth);
-        localStorage.setItem('inventoryLeftPanelWidth', nextWidth.toString());
-      }
-      if (isResizingRight) {
-        const nextWidth = Math.max(
-          100,
-          Math.min(window.innerWidth * 0.5, window.innerWidth - event.clientX - 40)
-        );
-        setRightPanelWidth(nextWidth);
-        localStorage.setItem('inventoryRightPanelWidth', nextWidth.toString());
-      }
-    };
-    const handleMouseUp = () => {
-      setIsResizingLeft(false);
-      setIsResizingRight(false);
-      document.body.style.cursor = 'default';
-    };
-    if (isResizingLeft || isResizingRight) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'default';
-    };
-  }, [isResizingLeft, isResizingRight]);
-
-  const handleResizeStartLeft = useCallback(() => setIsResizingLeft(true), []);
-  const handleResizeStartRight = useCallback(() => setIsResizingRight(true), []);
 
   return {
-    leftPanelWidth,
-    rightPanelWidth,
+    leftPanelWidth: left.width,
+    rightPanelWidth: right.width,
     showCategories,
     setShowCategories,
-    handleResizeStartLeft,
-    handleResizeStartRight,
-    isResizingLeft,
-    isResizingRight,
+    handleResizeStartLeft: left.startResizing,
+    handleResizeStartRight: right.startResizing,
+    isResizingLeft: left.isResizing,
+    isResizingRight: right.isResizing,
   };
 };

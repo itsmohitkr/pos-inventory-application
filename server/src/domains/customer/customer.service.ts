@@ -76,6 +76,9 @@ const updateCustomer = async (id: number, { name, phone }: UpdateCustomerInput) 
       ...(name !== undefined && { name: name || null }),
       ...(phone !== undefined && { phone }),
     },
+    include: {
+      _count: { select: { sales: true } },
+    },
   });
 
   return updated;

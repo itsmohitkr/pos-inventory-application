@@ -1,10 +1,12 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import * as Sentry from '@sentry/react';
 import customerService from '@/shared/api/customerService';
 import type {
   Customer,
   CustomerPurchaseHistory,
 } from '@/shared/api/customerService';
+
+export const DEFAULT_CUSTOMER_SORT = { sortBy: 'createdAt', order: 'desc' as const };
 
 export const useCustomers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -17,8 +19,9 @@ export const useCustomers = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [sortBy, setSortBy] = useState<string>('createdAt');
-  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  const historyRequestIdRef = useRef<number | null>(null);
+  const [sortBy, setSortBy] = useState<string>(DEFAULT_CUSTOMER_SORT.sortBy);
+  const [order, setOrder] = useState<'asc' | 'desc'>(DEFAULT_CUSTOMER_SORT.order);
 
   const LIMIT = 50;
 
@@ -61,18 +64,25 @@ export const useCustomers = () => {
     setSelectedCustomer(customer);
     setHistoryData(null);
     setIsLoadingHistory(true);
+    const requestId = customer.id;
+    historyRequestIdRef.current = requestId;
     try {
       const res = await customerService.getPurchaseHistory(customer.id);
+      if (historyRequestIdRef.current !== requestId) return;
       setHistoryData(res);
     } catch (err) {
+      if (historyRequestIdRef.current !== requestId) return;
       Sentry.captureException(err, { tags: { feature: 'customer-history-fetch' } });
       console.error('Failed to fetch purchase history', err);
     } finally {
-      setIsLoadingHistory(false);
+      if (historyRequestIdRef.current === requestId) {
+        setIsLoadingHistory(false);
+      }
     }
   }, []);
 
   const closeHistory = useCallback(() => {
+    historyRequestIdRef.current = null;
     setSelectedCustomer(null);
     setHistoryData(null);
   }, []);
@@ -86,7 +96,8 @@ export const useCustomers = () => {
   }, []);
 
   const handleSaveEdit = useCallback(async (id: number, data: Partial<Customer>) => {
-    await customerService.update(id, data);
+    const updated = await customerService.update(id, data);
+    setSelectedCustomer((prev) => (prev && prev.id === id ? updated : prev));
     fetchCustomers(page, search);
   }, [fetchCustomers, page, search]);
 

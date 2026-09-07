@@ -38,7 +38,7 @@ interface ProductDetailPanelProps {
   /** Panel width in px, driven by the drag handle. */
   width: number;
   isResizing: boolean;
-  onResizeStart: () => void;
+  onResizeStart: (event: React.MouseEvent) => void;
   /** Opens/fetches the history for the currently displayed product. */
   onOpenHistory: () => void;
   /** Called when the panel leaves the history tab (switches to Batches, or
@@ -231,9 +231,9 @@ const ProductDetailPanel = ({
               sx={{
                 p: 1.5,
                 px: 2,
-                bgcolor: '#ffffff',
+                bgcolor: '#f0f4f8',
                 borderRadius: '8px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #d9e2ec',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 1.25,
@@ -245,7 +245,7 @@ const ProductDetailPanel = ({
                 <Typography
                   variant="h6"
                   sx={{
-                    fontWeight: 700,
+                    fontWeight: 800,
                     color: '#0b1d39',
                     fontSize: '0.95rem',
                     lineHeight: 1.2,
@@ -271,10 +271,10 @@ const ProductDetailPanel = ({
                         sx={{
                           height: 20,
                           fontSize: '0.72rem',
-                          fontWeight: 500,
-                          bgcolor: '#f1f5f9',
-                          color: '#334155',
-                          border: '1px solid #e2e8f0',
+                          fontWeight: 600,
+                          bgcolor: '#ffffff',
+                          color: '#0b1d39',
+                          border: '1px solid #cbd5e1',
                           borderRadius: '4px',
                         }}
                       />
@@ -287,7 +287,7 @@ const ProductDetailPanel = ({
                 </Box>
               </Box>
 
-              <Divider sx={{ borderColor: '#f1f5f9' }} />
+              <Divider sx={{ borderColor: '#d9e2ec' }} />
 
               {/* Overview Fields Grid */}
               <Box
@@ -300,17 +300,17 @@ const ProductDetailPanel = ({
               >
                 {/* Cell 1: Category */}
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
                     Category
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#0b1d39', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
                     {displayProduct.category || 'Uncategorized'}
                   </Typography>
                 </Box>
 
                 {/* Cell 2: Total Quantity */}
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
                     Total Qty
                   </Typography>
                   <Typography
@@ -319,7 +319,7 @@ const ProductDetailPanel = ({
                     sx={{
                       fontWeight: 800,
                       fontSize: '0.9rem',
-                      color: ((displayProduct.total_stock ?? 0) > 0) ? '#059669' : '#ef4444',
+                      color: ((displayProduct.total_stock ?? 0) > 0) ? '#15803d' : '#ef4444',
                     }}
                   >
                     {displayProduct.total_stock ?? 0}
@@ -328,7 +328,7 @@ const ProductDetailPanel = ({
 
                 {/* Cell 3: Low Stock Warning */}
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
                     Low Stock Warning
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -339,9 +339,9 @@ const ProductDetailPanel = ({
                         height: 18,
                         fontSize: '0.6rem',
                         fontWeight: 700,
-                        bgcolor: displayProduct.lowStockWarningEnabled ? 'rgba(234, 88, 12, 0.12)' : '#f1f5f9',
+                        bgcolor: displayProduct.lowStockWarningEnabled ? 'rgba(234, 88, 12, 0.12)' : '#ffffff',
                         color: displayProduct.lowStockWarningEnabled ? '#ea580c' : '#64748b',
-                        border: 'none',
+                        border: '1px solid #cbd5e1',
                       }}
                     />
                   </Box>
@@ -349,7 +349,7 @@ const ProductDetailPanel = ({
 
                 {/* Cell 4: Batch Tracking Status */}
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
                     Batch Tracking
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -379,24 +379,24 @@ const ProductDetailPanel = ({
             </Paper>
           )}
 
-          {/* Card 3 Sub-Tabs Navigation */}
-          <Paper elevation={0} sx={{ border: '1px solid #e2e8f0', bgcolor: '#ffffff', borderRadius: '8px', px: 1, flexShrink: 0 }}>
+          {/* Sub-Views Navigation Matching History Tabs */}
+          <Box sx={{ borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
             <Tabs
               value={panelTab}
-              onChange={(_e, val) => {
-                setPanelTab(val);
-                if (val === 'history') onOpenHistory();
+              onChange={(_event, value) => {
+                setPanelTab(value);
+                if (value === 'history') onOpenHistory();
                 else onCloseHistory?.();
               }}
               sx={{
-                minHeight: 38,
+                minHeight: 34,
                 '& .MuiTab-root': {
                   textTransform: 'none',
                   fontWeight: 700,
-                  fontSize: '0.82rem',
-                  minHeight: 38,
-                  py: 0.5,
-                  px: 1.5,
+                  fontSize: '0.78rem',
+                  minHeight: 34,
+                  py: 0.25,
+                  px: 1.25,
                   color: '#64748b',
                   '&.Mui-selected': { color: '#0b1d39' },
                 },
@@ -407,7 +407,23 @@ const ProductDetailPanel = ({
                 value="batches"
                 icon={<BatchIcon sx={{ fontSize: 16 }} />}
                 iconPosition="start"
-                label={`Lots & Batches (${displayProduct.batches?.length || 0})`}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <span>Lots & Batches</span>
+                    <Chip
+                      label={displayProduct.batches?.length || 0}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        bgcolor: panelTab === 'batches' ? 'rgba(11, 29, 57, 0.08)' : '#f1f5f9',
+                        color: panelTab === 'batches' ? '#0b1d39' : '#64748b',
+                        borderRadius: '4px',
+                      }}
+                    />
+                  </Box>
+                }
               />
               <Tab
                 value="history"
@@ -416,7 +432,7 @@ const ProductDetailPanel = ({
                 label="Product History"
               />
             </Tabs>
-          </Paper>
+          </Box>
 
           {/* Sub-Tab 1: Lots & Batches View */}
           {panelTab === 'batches' && (

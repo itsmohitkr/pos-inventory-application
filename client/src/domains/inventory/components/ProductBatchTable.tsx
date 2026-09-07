@@ -38,7 +38,7 @@ const ProductBatchTable = ({
     <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Section Action Bar */}
       {batchTrackingEnabled && t.inlineAction?.mode !== 'add' && (
-        <Box sx={{ py: 0.5, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
+        <Box sx={{ pt: 0, pb: 1.25, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
           <Button
             size="small"
             variant="outlined"
