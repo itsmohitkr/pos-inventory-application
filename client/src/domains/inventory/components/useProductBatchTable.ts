@@ -4,6 +4,7 @@ import type { Batch, Product } from '@/shared/types/models';
 import api, { getApiErrorMessage } from '@/shared/api/api';
 import inventoryService from '@/shared/api/inventoryService';
 import { getWeightedAverageCostEnabled } from '@/shared/utils/paymentSettings';
+import { splitIsoDate } from '@/shared/utils/isoDate';
 import { useBatchFormState } from '@/domains/inventory/components/useBatchFormState';
 import { useJustUpdatedFlash } from '@/domains/inventory/components/useJustUpdatedFlash';
 import {
@@ -28,7 +29,7 @@ const batchToFormData = (batch: Batch): BatchFormData => ({
   wholesaleEnabled: batch.wholesaleEnabled || false,
   wholesalePrice: batch.wholesalePrice ?? '',
   wholesaleMinQty: batch.wholesaleMinQty ?? '',
-  expiryDate: batch.expiryDate ? batch.expiryDate.split('T')[0] : '',
+  expiryDate: splitIsoDate(batch.expiryDate),
 });
 
 interface UseProductBatchTableArgs {
