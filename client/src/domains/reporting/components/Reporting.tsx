@@ -17,6 +17,7 @@ const Reporting = () => {
     lowStockData,
     looseSalesData,
     loading,
+    initialLoading,
     tabValue,
     dateRange,
     timeframes,
@@ -93,7 +94,7 @@ const Reporting = () => {
           </Stack>
         </Paper>
 
-        {loading ? (
+        {initialLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
             <CircularProgress size={40} thickness={4} />
           </Box>

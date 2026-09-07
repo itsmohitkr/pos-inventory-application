@@ -115,7 +115,7 @@ const LooseSalesReportPanel = ({
     window.print();
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Typography color="text.secondary">Loading loose sales data...</Typography>

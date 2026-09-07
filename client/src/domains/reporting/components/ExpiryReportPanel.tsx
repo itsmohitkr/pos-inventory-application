@@ -144,7 +144,7 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
     return { expired, critical, soon, totalUnits };
   }, [filteredData, nowMs]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Typography color="text.secondary">Loading expiry data...</Typography>

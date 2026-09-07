@@ -39,6 +39,12 @@ export const useReportingData = (reportType?: string) => {
   const [lowStockData, setLowStockData] = useState<LowStockRow[] | null>(null);
   const [looseSalesData, setLooseSalesData] = useState<LooseSaleRow[] | null>(null);
   const [loading, setLoading] = useState(false);
+  // Tracks whether any fetch has ever completed. Used to show the full-page
+  // spinner only on first mount — switching report types after that should
+  // update the existing sidebar/content in place instead of unmounting and
+  // remounting them (each panel already renders its own inline "Loading..."
+  // state via the `loading` prop while `reportType` in-flight data catches up).
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [dateRange, setDateRange] = useState<ReportDateRange>({
     startDate: '',
@@ -99,6 +105,7 @@ export const useReportingData = (reportType?: string) => {
       } finally {
         if (!config.signal?.aborted) {
           setLoading(false);
+          setHasLoadedOnce(true);
         }
       }
     },
@@ -169,6 +176,7 @@ export const useReportingData = (reportType?: string) => {
     lowStockData,
     looseSalesData,
     loading,
+    initialLoading: loading && !hasLoadedOnce,
     tabValue,
     dateRange,
     timeframes,

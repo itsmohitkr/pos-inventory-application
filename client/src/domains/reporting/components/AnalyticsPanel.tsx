@@ -23,7 +23,7 @@ const AnalyticsPanel = ({ reportData, loading, reportType }: AnalyticsPanelProps
     [reportData?.expenses, reportData?.purchases]
   );
 
-  if (loading) {
+  if (loading && !reportData) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 10 }}>
         <CircularProgress size={60} thickness={4} />

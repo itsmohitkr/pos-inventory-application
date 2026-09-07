@@ -116,7 +116,7 @@ const ItemSalesReportPanel = ({
   const handleExportPDF = () => exportItemSalesToPDF(filteredAggregatedData, filteredTotals, timeframeLabel || '');
   const handlePrint = () => window.print();
 
-  if (loading) {
+  if (loading && !sales) {
     return (
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Typography color="text.secondary">Loading item sales data...</Typography>

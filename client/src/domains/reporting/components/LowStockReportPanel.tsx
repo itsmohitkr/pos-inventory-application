@@ -145,7 +145,7 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
     }
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Typography color="text.secondary">Loading low stock data...</Typography>
