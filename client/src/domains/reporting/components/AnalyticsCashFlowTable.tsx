@@ -1,8 +1,8 @@
 import React from 'react';
 import {
   Box,
-  Typography,
   Paper,
+  Typography,
   Table,
   TableBody,
   TableCell,
@@ -12,13 +12,15 @@ import {
   TableRow,
   Autocomplete,
   TextField,
-  IconButton,
   InputAdornment,
 } from '@mui/material';
 import {
-  Visibility as ViewIcon,
   FilterAlt as FilterIcon,
+  AccountBalanceWallet as AccountBalanceWalletIcon,
 } from '@mui/icons-material';
+import ReportTableEmptyState from '@/domains/reporting/components/ReportTableEmptyState';
+import ReportTablePagination from '@/domains/reporting/components/ReportTablePagination';
+import { usePagedTable } from '@/domains/reporting/components/usePagedTable';
 
 import type { CashFlowItem } from './analyticsUtils';
 
@@ -45,10 +47,18 @@ const AnalyticsCashFlowTable = ({
     return cashFlowItems.filter(item => item.label === filterValue);
   }, [cashFlowItems, filterValue]);
 
+  const {
+    page,
+    rowsPerPage,
+    paginatedItems,
+    setPage,
+    handleRowsPerPageChange,
+  } = usePagedTable(filteredItems, [cashFlowItems, filterValue]);
+
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Category Filter Search */}
-      <Box sx={{ mb: 2.5, display: 'flex', justifyContent: 'flex-start' }}>
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-start' }}>
         <Autocomplete
           options={categories}
           value={filterValue}
@@ -62,16 +72,19 @@ const AnalyticsCashFlowTable = ({
                 width: 320,
                 '& .MuiOutlinedInput-root': {
                   bgcolor: '#f8fafc',
-                  borderRadius: '10px',
-                  fontWeight: 600,
+                  borderRadius: '6px',
+                  height: 36,
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
                   '& fieldset': { borderColor: '#e2e8f0' },
+                  '&.Mui-focused fieldset': { borderColor: '#0b1d39' },
                 },
               }}
               InputProps={{
                 ...params.InputProps,
                 startAdornment: (
                   <InputAdornment position="start">
-                    <FilterIcon sx={{ color: '#94a3b8', fontSize: '1.1rem' }} />
+                    <FilterIcon sx={{ color: '#94a3b8', fontSize: '1rem' }} />
                   </InputAdornment>
                 ),
               }}
@@ -80,28 +93,54 @@ const AnalyticsCashFlowTable = ({
         />
       </Box>
 
-      <TableContainer
+      <Paper
+        elevation={0}
         sx={{
           border: '1px solid #e2e8f0',
           borderRadius: '10px',
-          overflow: 'auto',
-          height: { xs: '500px', md: 'calc(100vh - 460px)' },
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
           bgcolor: '#ffffff',
         }}
       >
-        <Table stickyHeader>
+        <TableContainer
+          sx={{
+            overflow: 'auto',
+            flex: 1,
+            maxHeight: 'calc(100vh - 360px)',
+          }}
+        >
+          <Table size="small" stickyHeader>
           <TableHead>
-            {/* Main Headers */}
             <TableRow>
               <TableCell
                 sx={{
-                  fontWeight: 800,
-                  color: '#334155',
-                  bgcolor: '#f1f5f9',
-                  py: 1.5,
-                  fontSize: '0.8rem',
-                  letterSpacing: '0.5px',
-                  borderBottom: '2px solid #e2e8f0',
+                  fontWeight: 700,
+                  color: '#475569',
+                  bgcolor: '#f8fafc',
+                  py: 1.25,
+                  px: 1.5,
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.04em',
+                  borderBottom: '1px solid #e2e8f0',
+                  width: '5%',
+                  minWidth: '50px',
+                }}
+              >
+                S.NO.
+              </TableCell>
+              <TableCell
+                sx={{
+                  fontWeight: 700,
+                  color: '#475569',
+                  bgcolor: '#f8fafc',
+                  py: 1.25,
+                  px: 1.5,
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.04em',
+                  borderBottom: '1px solid #e2e8f0',
                 }}
               >
                 PARTICULARS
@@ -109,134 +148,109 @@ const AnalyticsCashFlowTable = ({
               <TableCell
                 align="right"
                 sx={{
-                  fontWeight: 800,
-                  color: '#334155',
-                  bgcolor: '#f1f5f9',
-                  py: 1.5,
-                  fontSize: '0.8rem',
-                  letterSpacing: '0.5px',
-                  borderBottom: '2px solid #e2e8f0',
+                  fontWeight: 700,
+                  color: '#475569',
+                  bgcolor: '#f8fafc',
+                  py: 1.25,
+                  px: 1.5,
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.04em',
+                  borderBottom: '1px solid #e2e8f0',
                 }}
               >
                 AMOUNT (₹)
               </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  fontWeight: 800,
-                  color: '#334155',
-                  bgcolor: '#f1f5f9',
-                  py: 1.5,
-                  fontSize: '0.8rem',
-                  letterSpacing: '0.5px',
-                  borderBottom: '2px solid #e2e8f0',
-                  width: '80px',
-                }}
-              >
-                ACTIONS
-              </TableCell>
             </TableRow>
-            {/* Gross Income Sub-Header - Sticky */}
-            {!filterValue && (
-              <TableRow>
-                <TableCell
-                  sx={{
-                    fontWeight: 700,
-                    color: '#1e293b',
-                    bgcolor: '#ffffff',
-                    borderBottom: '1px solid #e2e8f0',
-                    py: 2,
-                    zIndex: 2,
-                    position: 'sticky',
-                    top: 48,
-                  }}
-                >
-                  Total Sales (Gross Income)
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontWeight: 800,
-                    color: '#16a34a',
-                    bgcolor: '#ffffff',
-                    borderBottom: '1px solid #e2e8f0',
-                    py: 2,
-                    fontSize: '1rem',
-                    zIndex: 2,
-                    position: 'sticky',
-                    top: 48,
-                  }}
-                >
-                  + ₹ {totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    bgcolor: '#ffffff',
-                    borderBottom: '1px solid #e2e8f0',
-                    position: 'sticky',
-                    top: 48,
-                    zIndex: 2,
-                  }}
-                />
-              </TableRow>
-            )}
           </TableHead>
           <TableBody>
-            {filteredItems.map((item) => (
-              <TableRow key={item.id} hover>
-                <TableCell sx={{ color: '#64748b', pl: 4, py: 1.5 }}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                      {item.type === 'Expense' ? 'Expense' : 'Purchase'}: {item.label}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
-                        {item.date instanceof Date
-                          ? item.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
-                          : item.date}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                        {item.date instanceof Date
-                          ? item.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                          : ''}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </TableCell>
-                <TableCell align="right" sx={{ color: '#dc2626', fontWeight: 700, fontSize: '0.9rem' }}>
-                  - ₹ {item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </TableCell>
-                <TableCell align="center">
-                  <IconButton
-                    size="small"
-                    sx={{
-                      color: '#6366f1',
-                      bgcolor: 'rgba(99, 102, 241, 0.08)',
-                      '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.15)' },
-                    }}
-                  >
-                    <ViewIcon fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+            {filteredItems.length === 0 && (Boolean(filterValue) || totalSales === 0) ? (
+              <ReportTableEmptyState
+                colSpan={3}
+                icon={<AccountBalanceWalletIcon />}
+                title="No cash flow entries found"
+                subtitle={filterValue ? 'Try selecting a different vendor or category filter' : 'No cash flow activity recorded for this period'}
+              />
+            ) : (
+              <>
+                {!filterValue && (
+                  <TableRow sx={{ bgcolor: 'rgba(22, 163, 74, 0.04)' }}>
+                    <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontSize: '0.8rem' }}>
+                      -
+                    </TableCell>
+                    <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 700, color: '#166534', fontSize: '0.8125rem' }}>
+                      Total Sales (Gross Income)
+                    </TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{
+                        py: 1.25,
+                        px: 1.5,
+                        fontWeight: 700,
+                        color: '#16a34a',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      + ₹{totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {filteredItems.length === 0 && !filterValue && totalSales > 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center" sx={{ py: 4, color: 'text.secondary', fontSize: '0.8125rem' }}>
+                      No purchases or expenses recorded for this period.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {paginatedItems.map((item, index) => (
+                  <TableRow key={item.id} hover>
+                    <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontSize: '0.8rem' }}>
+                      {page * rowsPerPage + index + 1}
+                    </TableCell>
+                    <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b', fontSize: '0.8125rem' }}>
+                          {item.type === 'Expense' ? 'Expense' : 'Purchase'}: {item.label}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.75rem' }}>
+                            {item.date instanceof Date
+                              ? item.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
+                              : item.date}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                            {item.date instanceof Date
+                              ? item.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : ''}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#dc2626', fontWeight: 700, fontSize: '0.8125rem' }}>
+                      - ₹{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
+            )}
           </TableBody>
           <TableFooter
             sx={{
               position: 'sticky',
               bottom: 0,
               zIndex: 10,
-              bgcolor: '#f0fdf4',
+              bgcolor: '#f8fafc',
             }}
           >
-            <TableRow>
+            <TableRow sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
               <TableCell
+                colSpan={2}
                 sx={{
-                  fontWeight: 900,
-                  fontSize: '1.1rem',
-                  color: '#166534',
-                  borderTop: '2px solid #bbf7d0',
-                  py: 2,
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  color: 'text.secondary',
+                  borderTop: '2px solid #e2e8f0',
+                  py: 1.25,
+                  px: 1.5,
                 }}
               >
                 TOTAL MONEY IN SHOP (NET BALANCE)
@@ -244,21 +258,29 @@ const AnalyticsCashFlowTable = ({
               <TableCell
                 align="right"
                 sx={{
-                  fontWeight: 900,
-                  fontSize: '1.1rem',
+                  fontWeight: 800,
+                  fontSize: '0.875rem',
                   color: '#166534',
-                  borderTop: '2px solid #bbf7d0',
-                  py: 2,
+                  borderTop: '2px solid #e2e8f0',
+                  py: 1.25,
+                  px: 1.5,
                 }}
               >
-                ₹ {totalCashBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                ₹{totalCashBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </TableCell>
-              <TableCell sx={{ borderTop: '2px solid #bbf7d0' }} />
             </TableRow>
           </TableFooter>
         </Table>
       </TableContainer>
-    </Box>
+      <ReportTablePagination
+        count={filteredItems.length}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setPage}
+        onRowsPerPageChange={handleRowsPerPageChange}
+      />
+    </Paper>
+  </Box>
   );
 };
 

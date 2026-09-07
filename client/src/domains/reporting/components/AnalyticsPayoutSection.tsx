@@ -126,9 +126,9 @@ const AnalyticsPayoutSection = ({
                 <Box
                   sx={{
                     p: 1,
-                    borderRadius: '8px',
-                    bgcolor: 'rgba(99, 102, 241, 0.1)',
-                    color: '#6366f1',
+                    borderRadius: '6px',
+                    bgcolor: 'rgba(11, 29, 57, 0.08)',
+                    color: '#0b1d39',
                     display: 'flex',
                   }}
                 >
@@ -151,13 +151,17 @@ const AnalyticsPayoutSection = ({
                   sx={{
                     width: 100,
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: '8px',
+                      borderRadius: '6px',
+                      height: 36,
+                      fontSize: '0.875rem',
                       fontWeight: 700,
                       bgcolor: '#f8fafc',
+                      '& fieldset': { borderColor: '#e2e8f0' },
+                      '&.Mui-focused fieldset': { borderColor: '#0b1d39' },
                     },
                   }}
                 />
-                <Typography sx={{ color: '#64748b', fontWeight: 600 }}>% of Net Profit</Typography>
+                <Typography sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.875rem' }}>% of Net Profit</Typography>
               </Box>
             </Paper>
 

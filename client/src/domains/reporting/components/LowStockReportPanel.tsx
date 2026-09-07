@@ -19,12 +19,16 @@ import {
   TextField,
   InputAdornment,
 } from '@mui/material';
-import { FilterAlt } from '@mui/icons-material';
+import { FilterAlt, CheckCircleOutline as CheckCircleOutlineIcon } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from '@/domains/reporting/components/ExportOptions';
 import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
+import ReportTableEmptyState from '@/domains/reporting/components/ReportTableEmptyState';
+import ReportTablePagination from '@/domains/reporting/components/ReportTablePagination';
+import ReportSummaryBar from '@/domains/reporting/components/ReportSummaryBar';
+import { usePagedTable } from '@/domains/reporting/components/usePagedTable';
 
 /** A product row from GET /api/reports/low-stock. */
 export interface LowStockRow {
@@ -78,6 +82,23 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
     direction: 'asc',
   });
 
+  const {
+    page,
+    rowsPerPage,
+    paginatedItems: paginatedData,
+    setPage,
+    handleRowsPerPageChange,
+  } = usePagedTable(sortedData, [data, selectedCategory]);
+
+  const zeroStockCount = useMemo(
+    () => filteredData.filter((i) => (i.totalQuantity || 0) === 0).length,
+    [filteredData]
+  );
+  const warningStockCount = useMemo(
+    () => filteredData.filter((i) => (i.totalQuantity || 0) > 0).length,
+    [filteredData]
+  );
+
   const handleExportPDF = () => {
     const itemsToExport =
       selectedItems.length > 0
@@ -110,7 +131,7 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
       startY: 40,
       theme: 'striped',
       styles: { fontSize: 10 },
-      headStyles: { fillColor: [25, 118, 210] },
+      headStyles: { fillColor: [11, 29, 57] },
     });
 
     doc.save(`vendor_order_${selectedCategory.replace(/\s+/g, '_').toLowerCase()}.pdf`);
@@ -124,7 +145,7 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
     }
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Typography color="text.secondary">Loading low stock data...</Typography>
@@ -151,97 +172,126 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
         <Box
           className="no-print"
           sx={{
-            p: 2,
-            flexShrink: 0,
+            p: 1.5,
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 2,
-            flexWrap: 'wrap',
+            flexDirection: 'column',
+            gap: 1.5,
             borderBottom: '1px solid #e2e8f0',
             bgcolor: '#ffffff',
           }}
         >
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
-              Low Stock Report
-              <Box
-                component="span"
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 1.5,
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+              <Typography
+                variant="body1"
                 sx={{
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: 'primary.main',
-                  bgcolor: 'primary.lighter',
-                  px: 1,
-                  borderRadius: 1,
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  color: '#0b1d39',
+                  lineHeight: 1.2,
                 }}
               >
-                ({filteredData.length})
-              </Box>
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Products currently below their minimum inventory threshold
-            </Typography>
+                Low Stock Report
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  lineHeight: 1,
+                }}
+              >
+                All Threshold Warnings ({filteredData.length})
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Autocomplete
+                size="small"
+                options={categories}
+                value={selectedCategory}
+                onChange={(event, newValue) => setSelectedCategory(newValue || 'All Categories')}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Filter Category..."
+                    sx={{
+                      minWidth: 200,
+                      '& .MuiOutlinedInput-root': {
+                        height: '36px',
+                        borderRadius: '6px',
+                        bgcolor: '#ffffff',
+                        fontSize: '0.85rem',
+                        fontWeight: 500,
+                        '& fieldset': { borderColor: '#e2e8f0' },
+                        '&:hover fieldset': { borderColor: '#cbd5e1' },
+                        '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '1px' },
+                      },
+                    }}
+                  />
+                )}
+                sx={{
+                  '& .MuiAutocomplete-option': {
+                    fontSize: '0.85rem',
+                    py: 0.75,
+                  },
+                }}
+              />
+              <ExportOptions
+                onExportPDF={handleExportPDF}
+                onPrint={handlePrint}
+                selectedCount={selectedItems.length}
+              />
+            </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Autocomplete
-              size="small"
-              options={categories}
-              value={selectedCategory}
-              onChange={(event, newValue) => setSelectedCategory(newValue || 'All Categories')}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Search Category"
-                  placeholder="Type to filter..."
-                  sx={{
-                    minWidth: 240,
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '10px',
-                      bgcolor: '#f8fafc',
-                      fontWeight: 600,
-                      '& fieldset': { borderColor: '#e2e8f0' },
-                      '&:hover fieldset': { borderColor: '#cbd5e1' },
-                      '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '2px' },
-                    },
-                    '& .MuiInputLabel-root': { fontWeight: 500, color: '#64748b' },
-                  }}
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FilterAlt sx={{ fontSize: 18, color: '#94a3b8' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              )}
-              sx={{
-                '& .MuiAutocomplete-option': {
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  py: 1,
-                },
-              }}
-            />
-            <ExportOptions
-              onExportPDF={handleExportPDF}
-              onPrint={handlePrint}
-              selectedCount={selectedItems.length}
-            />
-          </Box>
+          <ReportSummaryBar
+            stats={[
+              {
+                label: 'Low Stock SKUs',
+                value: filteredData.length.toLocaleString(),
+                accentColor: '#f59e0b',
+              },
+              {
+                label: 'Out of Stock (Zero)',
+                value: zeroStockCount.toLocaleString(),
+                accentColor: '#ef4444',
+              },
+              {
+                label: 'Warning Stock',
+                value: warningStockCount.toLocaleString(),
+                accentColor: '#7c3aed',
+              },
+              {
+                label: 'Selected for Order',
+                value: `${selectedItems.length} items`,
+                accentColor: '#3b82f6',
+              },
+            ]}
+          />
         </Box>
 
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 1000, tableLayout: 'fixed' }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 1000, tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
                 <TableCell
                   padding="checkbox"
                   sx={{
-                    bgcolor: '#f1f5f9',
-                    borderBottom: '2px solid #e2e8f0',
+                    bgcolor: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    py: 1.25,
+                    px: 1.5,
+                    width: '40px',
                     zIndex: 3,
                   }}
                 >
@@ -258,60 +308,69 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    fontWeight: 800,
-                    color: '#334155',
-                    bgcolor: '#f1f5f9',
-                    py: 1.5,
-                    borderBottom: '2px solid #e2e8f0',
-                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: '#475569',
+                    bgcolor: '#f8fafc',
+                    py: 1.25,
+                    px: 1.5,
+                    borderBottom: '1px solid #e2e8f0',
+                    fontSize: '0.75rem',
                     letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
-                    width: '35px',
+                    width: '5%',
+                    minWidth: '50px',
                   }}
                 >
                   S.NO
                 </TableCell>
                 <TableCell
                   sx={{
-                    fontWeight: 800,
-                    color: '#334155',
-                    bgcolor: '#f1f5f9',
-                    py: 1.5,
-                    borderBottom: '2px solid #e2e8f0',
-                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: '#475569',
+                    bgcolor: '#f8fafc',
+                    py: 1.25,
+                    px: 1.5,
+                    borderBottom: '1px solid #e2e8f0',
+                    fontSize: '0.75rem',
                     letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
-                    width: '45%',
+                    width: '42%',
                   }}
                 >
                   PRODUCT
                 </TableCell>
                 <TableCell
                   sx={{
-                    fontWeight: 800,
-                    color: '#334155',
-                    bgcolor: '#f1f5f9',
-                    py: 1.5,
-                    borderBottom: '2px solid #e2e8f0',
-                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: '#475569',
+                    bgcolor: '#f8fafc',
+                    py: 1.25,
+                    px: 1.5,
+                    borderBottom: '1px solid #e2e8f0',
+                    fontSize: '0.75rem',
                     letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
-                    width: '10%',
+                    width: '18%',
                   }}
                 >
                   CATEGORY
                 </TableCell>
                 <TableCell
                   sx={{
-                    fontWeight: 800,
-                    color: '#334155',
-                    bgcolor: '#f1f5f9',
-                    py: 1.5,
-                    borderBottom: '2px solid #e2e8f0',
-                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: '#475569',
+                    bgcolor: '#f8fafc',
+                    py: 1.25,
+                    px: 1.5,
+                    borderBottom: '1px solid #e2e8f0',
+                    fontSize: '0.75rem',
                     letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
-                    width: '10%',
+                    width: '12%',
                   }}
                   align="right"
                 >
@@ -319,15 +378,17 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    fontWeight: 800,
-                    color: '#334155',
-                    bgcolor: '#f1f5f9',
-                    py: 1.5,
-                    borderBottom: '2px solid #e2e8f0',
-                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: '#475569',
+                    bgcolor: '#f8fafc',
+                    py: 1.25,
+                    px: 1.5,
+                    borderBottom: '1px solid #e2e8f0',
+                    fontSize: '0.75rem',
                     letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
-                    width: '10%',
+                    width: '11%',
                   }}
                   align="center"
                 >
@@ -335,13 +396,15 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
                 </TableCell>
                 <TableCell
                   sx={{
-                    fontWeight: 800,
-                    color: '#334155',
-                    bgcolor: '#f1f5f9',
-                    py: 1.5,
-                    borderBottom: '2px solid #e2e8f0',
-                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: '#475569',
+                    bgcolor: '#f8fafc',
+                    py: 1.25,
+                    px: 1.5,
+                    borderBottom: '1px solid #e2e8f0',
+                    fontSize: '0.75rem',
                     letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
                     width: '12%',
                   }}
@@ -353,15 +416,14 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
             </TableHead>
             <TableBody>
               {sortedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
-                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
-                      No products are currently low on stock.
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                <ReportTableEmptyState
+                  colSpan={7}
+                  icon={<CheckCircleOutlineIcon sx={{ color: '#16a34a' }} />}
+                  title="All stock levels are healthy"
+                  subtitle="No products are currently below their minimum threshold"
+                />
               ) : (
-                sortedData.map((item, index) => {
+                paginatedData.map((item, index) => {
                   const isItemSelected = selectedItems.includes(item.id);
                   return (
                     <TableRow
@@ -369,39 +431,48 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
                       hover
                       selected={isItemSelected}
                       onClick={() => handleToggleSelect(item.id)}
-                      sx={{ cursor: 'pointer' }}
+                      sx={{
+                        cursor: 'pointer',
+                        '&.Mui-selected': { bgcolor: 'rgba(11, 29, 57, 0.08)' },
+                        '&:hover': {
+                          bgcolor: isItemSelected ? 'rgba(11, 29, 57, 0.12)' : '#f8fafc',
+                        },
+                      }}
                     >
-                      <TableCell padding="checkbox">
+                      <TableCell padding="checkbox" sx={{ py: 1.25, px: 1.5 }}>
                         <Checkbox size="small" checked={isItemSelected} />
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 500, color: 'text.secondary' }}>
-                        {index + 1}
+                      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#64748b', fontSize: '0.78rem', width: '5%', minWidth: '50px' }}>
+                        {page * rowsPerPage + index + 1}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>{item.name}</TableCell>
-                      <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{item.name}</TableCell>
+                      <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontWeight: 500, fontSize: '0.85rem' }}>
                         {item.category || 'Uncategorized'}
                       </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>
+                      <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
                         ₹{item.mrp?.toFixed(2) || '0.00'}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
                         <Typography
+                          variant="body2"
                           sx={{
                             fontWeight: 700,
-                            color: item.totalQuantity === 0 ? '#d32f2f' : '#ed6c02',
+                            color: item.totalQuantity === 0 ? '#dc2626' : '#d97706',
                           }}
                         >
                           {item.totalQuantity}
                         </Typography>
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
                         <Chip
                           label={item.totalQuantity === 0 ? 'Out of Stock' : 'Low Stock'}
                           size="small"
                           sx={{
                             fontWeight: 700,
+                            fontSize: '0.68rem',
+                            height: 22,
                             bgcolor: item.totalQuantity === 0 ? '#fef2f2' : '#fff7ed',
-                            color: item.totalQuantity === 0 ? '#991b1b' : '#9a3412',
+                            color: item.totalQuantity === 0 ? '#dc2626' : '#d97706',
                             border: `1px solid ${item.totalQuantity === 0 ? '#fee2e2' : '#ffedd5'}`,
                           }}
                         />
@@ -413,6 +484,13 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
             </TableBody>
           </Table>
         </TableContainer>
+        <ReportTablePagination
+          count={sortedData.length}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Paper>
     </Box>
   );

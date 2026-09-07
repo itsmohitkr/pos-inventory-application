@@ -24,7 +24,8 @@ interface ReportingContentProps {
   /** Index into `timeframes`; 8 is the custom range. */
   tabValue: number;
   timeframes: ReportTimeframe[];
-  onSelectSale: (sale: ReportSale) => void;
+  selectedSale?: ReportSale | null;
+  onSelectSale: (sale: ReportSale | null) => void;
   onRefreshLooseSales: () => void;
 }
 
@@ -37,6 +38,7 @@ const ReportingContent = ({
   loading,
   tabValue,
   timeframes,
+  selectedSale,
   onSelectSale,
   onRefreshLooseSales,
 }: ReportingContentProps) => {
@@ -50,6 +52,7 @@ const ReportingContent = ({
         <SalesHistory
           sales={reportData?.sales}
           timeframeLabel={timeframes[tabValue]?.label}
+          selectedSale={selectedSale}
           onSelectSale={onSelectSale}
         />
       ) : reportType === 'category_sales' ? (

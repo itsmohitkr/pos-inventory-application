@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Typography, Box, CircularProgress, Paper, Stack, Container } from '@mui/material';
 
 import ReportSidebar from '@/domains/reporting/components/ReportSidebar';
-import SaleDetailDialog from '@/domains/reporting/components/SaleDetailDialog';
 import ReportingTimeframeControls from '@/domains/reporting/components/ReportingTimeframeControls';
 import ReportingContent from '@/domains/reporting/components/ReportingContent';
 import { useReportingData } from '@/domains/reporting/components/useReportingData';
@@ -18,6 +17,7 @@ const Reporting = () => {
     lowStockData,
     looseSalesData,
     loading,
+    initialLoading,
     tabValue,
     dateRange,
     timeframes,
@@ -30,73 +30,73 @@ const Reporting = () => {
   return (
     <Box
       sx={{
-        bgcolor: 'background.default',
+        bgcolor: '#f8fafc',
         height: '100%',
-        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
       }}
     >
-      <Paper
-        elevation={0}
+      <Container
+        maxWidth={false}
         sx={{
-          m: 1.5,
-          px: 2.5,
-          py: 1.75,
-          bgcolor: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '10px',
+          py: 1.5,
+          px: { xs: 1.5, sm: 2 },
+          flex: 1,
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexShrink: 0,
+          flexDirection: 'column',
+          minHeight: 0,
         }}
       >
-        <Box>
-          <Typography
-            variant="h4"
-            sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}
+        {/* Top Control Bar */}
+        <Paper
+          elevation={0}
+          className="no-print"
+          sx={{
+            p: 1.25,
+            px: 2,
+            mb: 1.5,
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
+            flexShrink: 0,
+          }}
+        >
+          <Stack
+            direction={{ xs: 'column', lg: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'flex-start', lg: 'center' }}
+            spacing={1.5}
           >
-            Reports & Analytics
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Gain insights into your sales, profits, and inventory trends.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-          <ReportingTimeframeControls
-            reportType={reportType}
-            tabValue={tabValue}
-            timeframes={timeframes}
-            dateRange={dateRange}
-            onTabChange={handleTabChange}
-            onDateRangeChange={(key: string, value: string) =>
-              setDateRange((prev) => ({
-                ...prev,
-                [key]: value,
-              }))
-            }
-            onApplyCustomRange={handleApplyCustomRange}
-          />
-        </Stack>
-      </Paper>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#0b1d39', fontSize: '1.1rem' }}>
+                Reports & Analytics
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.75rem' }}>
+                Financial auditing, inventory risk, and real-time operations
+              </Typography>
+            </Box>
 
-      <Container
-        disableGutters
-        maxWidth={false}
-        sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, px: 1.5, pb: 1.5 }}
-      >
-        {loading && !reportData && !expiryData && !lowStockData && !looseSalesData ? (
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              flex: 1,
-            }}
-          >
-            <CircularProgress size={60} thickness={4} />
+            <ReportingTimeframeControls
+              reportType={reportType}
+              tabValue={tabValue}
+              timeframes={timeframes}
+              dateRange={dateRange}
+              onTabChange={handleTabChange}
+              onDateRangeChange={(key: string, value: string) =>
+                setDateRange((prev) => ({
+                  ...prev,
+                  [key]: value,
+                }))
+              }
+              onApplyCustomRange={handleApplyCustomRange}
+            />
+          </Stack>
+        </Paper>
+
+        {initialLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+            <CircularProgress size={40} thickness={4} />
           </Box>
         ) : (
           <Box
@@ -108,7 +108,13 @@ const Reporting = () => {
               minHeight: 0,
             }}
           >
-            <ReportSidebar reportType={reportType} onReportTypeChange={setReportType} />
+            <ReportSidebar
+              reportType={reportType}
+              onReportTypeChange={(newType) => {
+                setSelectedSale(null);
+                setReportType(newType);
+              }}
+            />
 
             <ReportingContent
               reportType={reportType}
@@ -119,13 +125,12 @@ const Reporting = () => {
               loading={loading}
               tabValue={tabValue}
               timeframes={timeframes}
+              selectedSale={selectedSale}
               onSelectSale={setSelectedSale}
               onRefreshLooseSales={refreshLooseSales}
             />
           </Box>
         )}
-
-        <SaleDetailDialog selectedSale={selectedSale} onClose={() => setSelectedSale(null)} />
       </Container>
     </Box>
   );

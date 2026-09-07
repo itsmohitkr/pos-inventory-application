@@ -14,12 +14,16 @@ import {
   TextField,
   InputAdornment,
 } from '@mui/material';
-import { FilterAlt } from '@mui/icons-material';
+import { FilterAlt, CheckCircleOutline as CheckCircleOutlineIcon } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExportOptions from '@/domains/reporting/components/ExportOptions';
 import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
+import ReportTableEmptyState from '@/domains/reporting/components/ReportTableEmptyState';
+import ReportTablePagination from '@/domains/reporting/components/ReportTablePagination';
+import ReportSummaryBar from '@/domains/reporting/components/ReportSummaryBar';
+import { usePagedTable } from '@/domains/reporting/components/usePagedTable';
 
 /**
  * A batch row from GET /api/reports/expiry — batch fields plus the product
@@ -66,6 +70,14 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
     sortConfig,
   } = useSortableTable(filteredData || [], { key: 'expiryDate', direction: 'asc' });
 
+  const {
+    page,
+    rowsPerPage,
+    paginatedItems: paginatedData,
+    setPage,
+    handleRowsPerPageChange,
+  } = usePagedTable(sortedData, [data, selectedCategory]);
+
   // Reference point for "days until expiry". Read once per data load rather
   // than per row during render: reading the clock inside the row map made every
   // row's countdown depend on when React happened to re-render it, so two rows
@@ -103,7 +115,7 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
       startY: 46,
       theme: 'striped',
       styles: { fontSize: 10 },
-      headStyles: { fillColor: [25, 118, 210] },
+      headStyles: { fillColor: [11, 29, 57] },
     });
 
     doc.save(`expiry_report_${selectedCategory.toLowerCase().replace(/\s+/g, '_')}_${(timeframeLabel || '').replace(/\s+/g, '_').toLowerCase()}.pdf`);
@@ -113,7 +125,26 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
     window.print();
   };
 
-  if (loading) {
+  const stats = React.useMemo(() => {
+    let expired = 0;
+    let critical = 0;
+    let soon = 0;
+    let totalUnits = 0;
+
+    (filteredData || []).forEach((batch) => {
+      const days = Math.ceil(
+        (new Date(batch.expiryDate as string).getTime() - nowMs) / (1000 * 60 * 60 * 24)
+      );
+      totalUnits += batch.quantity || 0;
+      if (days <= 0) expired += 1;
+      else if (days <= 7) critical += 1;
+      else if (days <= 30) soon += 1;
+    });
+
+    return { expired, critical, soon, totalUnits };
+  }, [filteredData, nowMs]);
+
+  if (loading && !data) {
     return (
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Typography color="text.secondary">Loading expiry data...</Typography>
@@ -140,107 +171,134 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
         <Box
           className="no-print"
           sx={{
-            p: 2,
-            flexShrink: 0,
+            p: 1.5,
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 2,
-            flexWrap: 'wrap',
+            flexDirection: 'column',
+            gap: 1.5,
             borderBottom: '1px solid #e2e8f0',
             bgcolor: '#ffffff',
           }}
         >
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
-              Expiring Products
-              <Box
-                component="span"
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 1.5,
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+              <Typography
+                variant="body1"
                 sx={{
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: 'primary.main',
-                  bgcolor: 'primary.lighter',
-                  px: 1,
-                  borderRadius: 1,
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  color: '#0b1d39',
+                  lineHeight: 1.2,
                 }}
               >
-                ({sortedData.length})
-              </Box>
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Inventory items reaching their expiration date soon
-            </Typography>
+                Expiring Products
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                  lineHeight: 1,
+                }}
+              >
+                All Expiring Batches ({sortedData.length})
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Autocomplete
+                size="small"
+                options={categories}
+                value={selectedCategory}
+                onChange={(event, newValue) => setSelectedCategory(newValue || 'All Categories')}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Filter Category..."
+                    sx={{
+                      minWidth: 200,
+                      '& .MuiOutlinedInput-root': {
+                        height: '36px',
+                        borderRadius: '6px',
+                        bgcolor: '#ffffff',
+                        fontSize: '0.85rem',
+                        fontWeight: 500,
+                        '& fieldset': { borderColor: '#e2e8f0' },
+                        '&:hover fieldset': { borderColor: '#cbd5e1' },
+                        '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '1px' },
+                      },
+                    }}
+                  />
+                )}
+                sx={{
+                  '& .MuiAutocomplete-option': {
+                    fontSize: '0.85rem',
+                    py: 0.75,
+                  },
+                }}
+              />
+              <ExportOptions onExportPDF={handleExportPDF} onPrint={handlePrint} />
+            </Box>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Autocomplete
-              size="small"
-              options={categories}
-              value={selectedCategory}
-              onChange={(event, newValue) => setSelectedCategory(newValue || 'All Categories')}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Search Category"
-                  placeholder="Type to filter..."
-                  sx={{
-                    minWidth: 240,
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '10px',
-                      bgcolor: '#f8fafc',
-                      fontWeight: 600,
-                      '& fieldset': { borderColor: '#e2e8f0' },
-                      '&:hover fieldset': { borderColor: '#cbd5e1' },
-                      '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '2px' },
-                    },
-                    '& .MuiInputLabel-root': { fontWeight: 500, color: '#64748b' },
-                  }}
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FilterAlt sx={{ fontSize: 18, color: '#94a3b8' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              )}
-              sx={{
-                '& .MuiAutocomplete-option': {
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  py: 1,
-                },
-              }}
-            />
-            <ExportOptions onExportPDF={handleExportPDF} onPrint={handlePrint} />
-          </Box>
+
+          <ReportSummaryBar
+            stats={[
+              {
+                label: 'Already Expired',
+                value: stats.expired.toLocaleString(),
+                accentColor: '#ef4444',
+              },
+              {
+                label: 'Critical (< 7 Days)',
+                value: stats.critical.toLocaleString(),
+                accentColor: '#d97706',
+              },
+              {
+                label: 'Expiring in 30 Days',
+                value: stats.soon.toLocaleString(),
+                accentColor: '#7c3aed',
+              },
+              {
+                label: 'Units at Risk',
+                value: stats.totalUnits.toLocaleString(),
+                accentColor: '#3b82f6',
+              },
+            ]}
+          />
         </Box>
 
         <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 1100, tableLayout: 'fixed' }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 1000, tableLayout: 'fixed' }}>
             <SortableTableHead
               columns={[
-                { id: 'productName', label: 'PRODUCT' },
-                { id: 'category', label: 'CATEGORY' },
-                { id: 'batchCode', label: 'BATCH' },
-                { id: 'quantity', label: 'QNTY LEFT', align: 'center' },
-                { id: 'expiryDate', label: 'EXPIRY DATE', align: 'right' },
+                { id: 'sno', label: 'S.NO.', sx: { width: '5%', minWidth: '50px' }, sortable: false },
+                { id: 'productName', label: 'PRODUCT', sx: { width: '32%' } },
+                { id: 'category', label: 'CATEGORY', sx: { width: '18%' } },
+                { id: 'batchCode', label: 'BATCH CODE', sx: { width: '15%' } },
+                { id: 'quantity', label: 'QTY LEFT', align: 'center', sx: { width: '12%' } },
+                { id: 'expiryDate', label: 'EXPIRY DATE', align: 'right', sx: { width: '18%' } },
               ]}
               sortConfig={sortConfig}
               requestSort={requestSort}
             />
             <TableBody>
               {sortedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
-                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
-                      No products expiring in this timeframe.
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                <ReportTableEmptyState
+                  colSpan={6}
+                  icon={<CheckCircleOutlineIcon sx={{ color: '#16a34a' }} />}
+                  title="No expiring batches found"
+                  subtitle="No products are expiring within the selected window"
+                />
               ) : (
-                sortedData.map((batch) => {
+                paginatedData.map((batch, index) => {
                   const daysUntilExpiry = Math.ceil(
                     (new Date(batch.expiryDate as string).getTime() - nowMs) /
                     (1000 * 60 * 60 * 24)
@@ -248,37 +306,41 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
                   const isCritical = daysUntilExpiry <= 7;
 
                   return (
-                    <TableRow key={batch.id} hover>
-                      <TableCell sx={{ fontWeight: 700 }}>{batch.productName}</TableCell>
-                      <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                    <TableRow key={batch.id} hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#64748b', fontSize: '0.78rem', width: '5%', minWidth: '50px', whiteSpace: 'nowrap' }}>
+                        {page * rowsPerPage + index + 1}
+                      </TableCell>
+                      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{batch.productName}</TableCell>
+                      <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontWeight: 500, fontSize: '0.85rem' }}>
                         {batch.category}
                       </TableCell>
-                      <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                      <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontWeight: 500, fontSize: '0.85rem' }}>
                         {batch.batchCode || '-'}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 700, color: batch.quantity <= 5 ? '#d32f2f' : 'inherit' }}
+                          sx={{ fontWeight: 700, fontSize: '0.85rem', color: batch.quantity <= 5 ? '#dc2626' : 'inherit' }}
                         >
                           {batch.quantity}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
                         <Box
                           sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}
                         >
                           <Typography
                             variant="body2"
-                            sx={{ fontWeight: 600, color: isCritical ? '#d32f2f' : 'inherit' }}
+                            sx={{ fontWeight: 600, fontSize: '0.85rem', color: isCritical ? '#dc2626' : 'inherit' }}
                           >
                             {new Date(batch.expiryDate as string).toLocaleDateString()}
                           </Typography>
                           <Typography
                             variant="caption"
                             sx={{
-                              color: isCritical ? '#d32f2f' : 'text.secondary',
-                              fontWeight: isCritical ? 700 : 400,
+                              color: isCritical ? '#dc2626' : 'text.secondary',
+                              fontWeight: isCritical ? 700 : 500,
+                              fontSize: '0.72rem',
                             }}
                           >
                             {daysUntilExpiry > 0 ? `in ${daysUntilExpiry} days` : 'Expired'}
@@ -292,6 +354,13 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
             </TableBody>
           </Table>
         </TableContainer>
+        <ReportTablePagination
+          count={sortedData.length}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
       </Paper>
     </Box>
   );

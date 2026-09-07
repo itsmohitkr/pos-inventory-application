@@ -37,19 +37,35 @@ const ExportOptions = ({ onExportPDF, onPrint, selectedCount = 0 }: ExportOption
   return (
     <>
       <Button
+        size="small"
         variant="contained"
         color="primary"
-        startIcon={<DownloadIcon />}
+        startIcon={<DownloadIcon fontSize="small" />}
         onClick={handleClick}
-        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+        sx={{
+          height: '36px',
+          borderRadius: '6px',
+          textTransform: 'none',
+          fontSize: '0.8rem',
+          fontWeight: 600,
+          px: 1.5,
+          whiteSpace: 'nowrap',
+          bgcolor: '#0b1d39',
+          '&:hover': {
+            bgcolor: '#1e293b',
+          },
+        }}
       >
         <Badge
           badgeContent={selectedCount}
           color="error"
           sx={{
             '& .MuiBadge-badge': {
-              right: -10,
+              right: -8,
               top: 0,
+              fontSize: '0.65rem',
+              height: 16,
+              minWidth: 16,
             },
           }}
         >
@@ -60,12 +76,16 @@ const ExportOptions = ({ onExportPDF, onPrint, selectedCount = 0 }: ExportOption
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            mt: 1,
-            minWidth: 180,
-            border: '1px solid #e2e8f0',
+        slotProps={{
+          paper: {
+            elevation: 3,
+            sx: {
+              borderRadius: '8px',
+              mt: 0.5,
+              minWidth: 180,
+              border: '1px solid #e2e8f0',
+              py: 0.5,
+            },
           },
         }}
       >
