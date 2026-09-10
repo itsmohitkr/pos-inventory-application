@@ -61,6 +61,7 @@ export const useStoreSettings = ({
     if (tabParam === 'features') return 1;
     if (tabParam === 'payment') return 2;
     if (tabParam === 'display') return 4;
+    if (tabParam === 'users') return 5;
     return 0;
   };
 
@@ -73,6 +74,7 @@ export const useStoreSettings = ({
     else if (tabParam === 'features') setTabValue(1);
     else if (tabParam === 'payment') setTabValue(2);
     else if (tabParam === 'display') setTabValue(4);
+    else if (tabParam === 'users') setTabValue(5);
   }, [searchParams]);
 
   // Bill & Receipt Settings State
@@ -246,7 +248,7 @@ export const useStoreSettings = ({
       setWipeConfirmPhrase('');
     }
     setTabValue(newValue);
-    const tabNames = ['account', 'features', 'payment', 'bill', 'display'];
+    const tabNames = ['account', 'features', 'payment', 'bill', 'display', 'users'];
     if (tabNames[newValue]) {
       setSearchParams({ tab: tabNames[newValue] }, { replace: true });
     }

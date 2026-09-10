@@ -45,10 +45,15 @@ export const createAppShellPage = (page: Page) => {
       if ((await settingsButton.getAttribute('aria-expanded')) !== 'true') {
         await settingsButton.click();
       }
-      await page.getByRole('menuitem', { name: 'Manage Users' }).click();
-      const userDialog = page.getByRole('dialog', { name: 'User Management' });
-      await expect(userDialog).toBeVisible();
-      return userDialog;
+      const storeSettingsBtn = page.getByRole('menuitem', { name: 'Store Settings' });
+      await storeSettingsBtn.scrollIntoViewIfNeeded();
+      await storeSettingsBtn.click();
+      await page.getByRole('tab', { name: 'User Management' }).click();
+      const userContainer = page.locator('[data-testid="user-management-tab"], [role="dialog"]').filter({
+        has: page.getByRole('button', { name: 'Add User' }),
+      });
+      await expect(userContainer).toBeVisible();
+      return userContainer;
     },
     openChangePasswordDialog: async () => {
       await openSidebarIfCollapsed(page);

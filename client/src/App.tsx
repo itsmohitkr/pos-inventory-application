@@ -22,7 +22,6 @@ const SaleHistory        = lazy(() => import('@/domains/saleHistory/components/S
 const PromotionManagement = lazy(() => import('@/domains/promotions/components/PromotionManagement'));
 const CustomersPage      = lazy(() => import('@/domains/customers/pages/CustomersPage'));
 const StoreSettingsPage  = lazy(() => import('@/domains/settings/pages/StoreSettingsPage'));
-import UserManagementDialog from '@/domains/auth/components/UserManagementDialog';
 import CustomDialog from '@/shared/components/CustomDialog';
 import AdminElevationDialog from '@/domains/auth/components/AdminElevationDialog';
 import GlobalSidebar from '@/shared/components/GlobalSidebar';
@@ -61,7 +60,6 @@ function App() {
     fetchSettings,
   } = useSettings(showError);
 
-  const [showUserManagementDialog, setShowUserManagementDialog] = useState(false);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
   const [showAdminLoginDialog, setShowAdminLoginDialog] = useState(false);
 
@@ -163,7 +161,6 @@ function App() {
             onOpenSettings={() => navigate('/settings')}
             onChangePassword={() => setShowChangePasswordDialog(true)}
             onAdminLogin={() => setShowAdminLoginDialog(true)}
-            onManageUsers={() => setShowUserManagementDialog(true)}
             onFullscreenToggle={handleFullscreenToggle}
             onLogout={handleLogout}
           />
@@ -269,15 +266,6 @@ function App() {
         onClose={() => setShowChangePasswordDialog(false)}
         currentUser={currentUser}
         showSuccess={showSuccess}
-      />
-
-      <UserManagementDialog
-        open={showUserManagementDialog}
-        onClose={() => {
-          setShowUserManagementDialog(false);
-          window.dispatchEvent(new Event('pos-refocus'));
-        }}
-        currentUser={currentUser}
       />
 
       <AdminElevationDialog

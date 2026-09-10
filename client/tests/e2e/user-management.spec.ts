@@ -46,4 +46,45 @@ test.describe('User Management flows', () => {
 
     await expectHealthyPage(page, failures);
   });
+
+  test('admin can reset a user\'s password, with client-side validation', async ({ page }) => {
+    const failures = collectRuntimeFailures(page);
+    const appShellPage = createAppShellPage(page);
+    const usersPage = createUsersPage(page);
+
+    await appShellPage.openUserManagementDialog();
+    await usersPage.expectLoaded();
+
+    await usersPage.openAddUserDialog();
+    await usersPage.submitNewUser({
+      username: 'janedoe',
+      password: 'password123',
+      role: 'cashier',
+    });
+    await usersPage.expectUserVisible('janedoe');
+
+    // Mismatched passwords are rejected without calling the API.
+    await usersPage.openResetPasswordDialog('janedoe');
+    await usersPage.submitResetPassword({
+      newPassword: 'newpassword123',
+      confirmPassword: 'doesNotMatch123',
+    });
+    await usersPage.expectResetPasswordError(/do not match/i);
+
+    // Too-short passwords are rejected too.
+    await usersPage.submitResetPassword({
+      newPassword: 'short1',
+      confirmPassword: 'short1',
+    });
+    await usersPage.expectResetPasswordError(/at least 8 characters/i);
+
+    // A valid, matching password succeeds and closes the dialog.
+    await usersPage.submitResetPassword({
+      newPassword: 'newpassword123',
+      confirmPassword: 'newpassword123',
+    });
+    await usersPage.expectResetPasswordDialogClosed();
+
+    await expectHealthyPage(page, failures);
+  });
 });

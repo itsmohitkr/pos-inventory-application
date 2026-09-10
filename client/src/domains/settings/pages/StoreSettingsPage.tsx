@@ -13,6 +13,7 @@ import {
   Payment as PaymentIcon,
   DisplaySettings as DisplayIcon,
   ReceiptLong as ReceiptIcon,
+  People as PeopleIcon,
   Save as SaveIcon,
   RestartAlt as ResetIcon,
   DeleteForever as DeleteForeverIcon,
@@ -33,6 +34,7 @@ import POSFeaturesTab from '@/domains/settings/components/POSFeaturesTab';
 import PaymentSettingsPanel from '@/domains/settings/components/PaymentSettingsPanel';
 import DisplaySettingsTab from '@/domains/settings/components/DisplaySettingsTab';
 import CustomizeBillTab from '@/domains/settings/components/CustomizeBillTab';
+import UserManagementTab from '@/domains/settings/components/UserManagementTab';
 import WipeDatabaseConfirmation from '@/domains/settings/components/WipeDatabaseConfirmation';
 
 import { useStoreSettings } from './useStoreSettings';
@@ -163,6 +165,7 @@ const StoreSettingsPage = ({
           handleWipeDatabase();
           return;
         }
+        if (tabValue === 5) return;
         event.preventDefault();
         handleSave();
       }}
@@ -294,6 +297,11 @@ const StoreSettingsPage = ({
                 iconPosition="start"
                 label="Display & Zoom"
               />
+              <Tab
+                icon={<PeopleIcon sx={{ fontSize: 19, mr: 1 }} />}
+                iconPosition="start"
+                label="User Management"
+              />
             </Tabs>
           </Box>
 
@@ -333,7 +341,7 @@ const StoreSettingsPage = ({
               bgcolor: '#ffffff',
             }}
           >
-            <Box sx={{ maxWidth: tabValue === 3 ? '1200px' : '960px', mx: 'auto', width: '100%' }}>
+            <Box sx={{ maxWidth: tabValue === 3 ? '1200px' : tabValue === 5 ? '1100px' : '960px', mx: 'auto', width: '100%' }}>
               {/* Tab 0: Account Details */}
               {tabValue === 0 && !showWipeConfirm && (
                 <AccountDetailsTab
@@ -430,6 +438,11 @@ const StoreSettingsPage = ({
                   setUiZoom={setUiZoom}
                 />
               )}
+
+              {/* Tab 5: User Management */}
+              {tabValue === 5 && !showWipeConfirm && (
+                <UserManagementTab currentUser={currentUser} />
+              )}
             </Box>
           </Box>
 
@@ -451,11 +464,13 @@ const StoreSettingsPage = ({
             <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500 }}>
               {showWipeConfirm
                 ? 'Warning: Database wipe is permanent and cannot be undone.'
-                : 'All settings take effect across connected POS registers upon saving.'}
+                : tabValue === 5
+                  ? 'User accounts and permission changes take effect immediately.'
+                  : 'All settings take effect across connected POS registers upon saving.'}
             </Typography>
 
             <Stack direction="row" spacing={1.5} alignItems="center">
-              {!showWipeConfirm ? (
+              {!showWipeConfirm && tabValue !== 5 ? (
                 <>
                   <Button
                     variant="outlined"
@@ -500,7 +515,7 @@ const StoreSettingsPage = ({
                     {isSaving ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </>
-              ) : (
+              ) : showWipeConfirm ? (
                 <>
                   <Button
                     variant="outlined"
@@ -537,7 +552,7 @@ const StoreSettingsPage = ({
                     {wipeLoading ? 'Wiping...' : 'Confirm & Wipe Database'}
                   </Button>
                 </>
-              )}
+              ) : null}
             </Stack>
           </Box>
         </Paper>

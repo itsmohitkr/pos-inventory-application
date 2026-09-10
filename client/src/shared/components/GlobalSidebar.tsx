@@ -27,7 +27,6 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Store as StoreIcon,
-  People as PeopleIcon,
   Lock as LockIcon,
   Logout as LogoutIcon,
   Fullscreen as FullscreenIcon,
@@ -62,7 +61,6 @@ interface GlobalSidebarProps {
   onPosClick?: () => void;
   onToggleSidebar?: () => void;
   onOpenSettings?: () => void;
-  onManageUsers?: () => void;
   onChangePassword?: () => void;
   onAdminLogin?: () => void;
   onFullscreenToggle?: () => void;
@@ -232,7 +230,6 @@ const GlobalSidebar = ({
   onPosClick,
   onToggleSidebar,
   onOpenSettings,
-  onManageUsers,
   onChangePassword,
   onAdminLogin,
   onFullscreenToggle,
@@ -521,12 +518,6 @@ const GlobalSidebar = ({
                   linkTo="/settings"
                   onClick={onOpenSettings}
                   isActive={isSettingsRoute}
-                />
-
-                <SidebarMenuItem
-                  icon={<PeopleIcon fontSize="small" />}
-                  label="Manage Users"
-                  onClick={onManageUsers}
                 />
 
                 <SidebarMenuItem

@@ -40,7 +40,7 @@ export const UpdateUserSchema = {
     .object({
       role: z.enum(ROLES, { error: 'Role must be admin, cashier, or salesman' }).optional(),
       status: z.enum(STATUSES, { error: 'Status must be active or inactive' }).optional(),
-      password: z.string().min(1, 'Password is required').max(255, 'Password is too long').optional(),
+      password: z.string().min(8, 'Password must be at least 8 characters').max(255, 'Password is too long').optional(),
     })
     .refine(atLeastOneField, {
       message: AT_LEAST_ONE_FIELD_MESSAGE,
