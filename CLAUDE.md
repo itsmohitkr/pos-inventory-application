@@ -206,6 +206,9 @@ For barcode labels specifically, `document.body.classList.add('is-printing-label
 - Receipt print (Pay & Print / Last Receipt) → `usePOSSale.ts` (`handlePayAndPrint`, `handlePrintLastReceipt`)
 - Receipt print (Sales History) → `SaleHistory.tsx` (`handlePrintReceipt`)
 - Receipt print (Bill Preview dialog) → `ReceiptPreviewDialog.tsx` (`printPreview`)
+- Receipt print (Customize Bill settings tab) → `CustomizeBillTab.tsx` (`handlePrintTest`) — intentionally
+  mirrors `ReceiptPreviewDialog.tsx`'s `printPreview` logic, since this settings
+  screen no longer renders that dialog after the Store Settings redesign
 - Barcode label print → `BarcodePrintDialog.tsx` (`handlePrint`)
 - Price list print → `PriceListPanel.tsx` (`handlePrint`)
 

@@ -4,7 +4,6 @@ import type { SaleStats } from '@/domains/saleHistory/components/saleHistoryStat
 import {
   Box,
   Typography,
-  Paper,
   Chip,
   TableContainer,
   Table,
@@ -13,6 +12,7 @@ import {
   TableCell,
   TableBody,
 } from '@mui/material';
+import InventoryPanelShell from '@/domains/inventory/components/InventoryPanelShell';
 interface POSSaleDetailsPanelProps {
   selectedSale?: ReportSale | null;
   stats: SaleStats;
@@ -21,196 +21,343 @@ interface POSSaleDetailsPanelProps {
 const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) => {
   if (!selectedSale) {
     return (
-      <Paper
-        sx={{
-          p: 4,
-          textAlign: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flex: 1,
-          border: '1px solid #e2e8f0',
-          bgcolor: '#ffffff',
-          borderRadius: '10px',
-        }}
-      >
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39', mb: 1 }}>
-            No Transaction Selected
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#475569' }}>
-            Select a POS sale from the list to view its full details.
-          </Typography>
+      <InventoryPanelShell>
+        <Box
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flex: 1,
+            height: '100%',
+          }}
+        >
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39', mb: 1 }}>
+              No Transaction Selected
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#475569' }}>
+              Select a POS sale from the list to view its full details.
+            </Typography>
+          </Box>
         </Box>
-      </Paper>
+      </InventoryPanelShell>
     );
   }
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1.5,
-        height: '100%',
-        overflow: 'hidden',
-      }}
+    <InventoryPanelShell
+      title={`Order Details - ORD-${selectedSale.id}`}
+      headerRight={
+        <Chip
+          label={selectedSale.paymentMethod || 'Cash'}
+          size="small"
+          variant="outlined"
+          sx={{
+            height: 22,
+            fontWeight: 700,
+            fontSize: '0.68rem',
+            color: selectedSale.paymentMethod === 'Cash' ? '#0b1d39' : '#1e293b',
+            borderColor: selectedSale.paymentMethod === 'Cash' ? '#0b1d39' : '#cbd5e1',
+          }}
+        />
+      }
     >
-      <Paper
+      <Box
         sx={{
-          p: 1.25,
-          borderRadius: '10px',
-          border: '1px solid #e2e8f0',
+          flex: 1,
+          minHeight: 0,
+          overflow: 'hidden',
           bgcolor: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
+        {/* Order Stats & Metadata Section touching left-to-right */}
         <Box
           sx={{
+            p: 1.5,
+            px: 2,
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
             display: 'flex',
-            alignItems: 'stretch',
-            justifyContent: 'space-between',
-            gap: 2,
-            whiteSpace: 'nowrap',
+            flexDirection: 'column',
+            gap: 1.25,
+            flexShrink: 0,
           }}
         >
-          <Box sx={{ minWidth: 180 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1a73e8' }}>
-              Order ORD-{selectedSale.id}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-              {new Date(selectedSale.createdAt).toLocaleDateString()}{' '}
-              {new Date(selectedSale.createdAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b' }}>
-                Items: {selectedSale.items.length}
+          {/* Metadata Row */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.78rem' }}>
+                {new Date(selectedSale.createdAt).toLocaleDateString()}{' · '}{new Date(selectedSale.createdAt).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </Typography>
               <Chip
-                label={selectedSale.paymentMethod || 'Cash'}
+                label={`${selectedSale.items.length} ${selectedSale.items.length === 1 ? 'Item' : 'Items'}`}
                 size="small"
-                variant="outlined"
                 sx={{
                   height: 20,
+                  fontSize: '0.7rem',
                   fontWeight: 700,
-                  fontSize: '0.65rem',
-                  color: selectedSale.paymentMethod === 'Cash' ? '#0b1d39' : '#1e293b',
-                  borderColor: selectedSale.paymentMethod === 'Cash' ? '#0b1d39' : '#cbd5e1',
+                  bgcolor: 'rgba(11, 29, 57, 0.06)',
+                  color: '#0b1d39',
+                  borderRadius: '4px',
                 }}
               />
             </Box>
           </Box>
+
+          {/* Consistent Stat Cards Grid */}
           <Box
             sx={{
-              flex: 1,
-              p: 1.25,
-              borderRadius: '8px',
-              bgcolor: '#3b82f60A',
-              border: '1px solid #3b82f633',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: 1.25,
             }}
           >
-            <Typography
-              variant="caption"
+            {/* Total Value Card */}
+            <Box
               sx={{
-                fontWeight: 500,
-                display: 'block',
-                color: '#3b82f6',
-                textTransform: 'uppercase',
-                fontSize: '0.85rem',
-                letterSpacing: '0.5px',
-                mb: 0.5
+                border: '1px solid',
+                borderColor: '#3b82f633',
+                borderRadius: '8px',
+                py: 1,
+                px: 1.25,
+                bgcolor: '#3b82f60A',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                minWidth: 0,
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: '#3b82f61A',
+                  borderColor: '#3b82f666',
+                },
               }}
             >
-              TOTAL VALUE
-            </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 500, color: '#0b1d39', fontSize: '0.85rem', lineHeight: 1 }}>
-              ₹{stats.total.toFixed(2)}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              flex: 1.4,
-              p: 1.25,
-              borderRadius: '8px',
-              bgcolor: '#f43f5e0A',
-              border: '1px solid #f43f5e33',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-            }}
-          >
-            <Typography
-              variant="caption"
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#3b82f6',
+                  textTransform: 'uppercase',
+                  fontSize: '0.68rem',
+                  letterSpacing: '0.5px',
+                  fontWeight: 600,
+                  display: 'block',
+                  mb: 0.25,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                Total Value
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: '#0b1d39',
+                  fontSize: '0.92rem',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                ₹{stats.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Typography>
+            </Box>
+
+            {/* Total Discount Card */}
+            <Box
               sx={{
-                fontWeight: 500,
-                display: 'block',
-                color: '#f43f5e',
-                textTransform: 'uppercase',
-                fontSize: '0.85rem',
-                letterSpacing: '0.5px',
-                mb: 0.5
+                border: '1px solid',
+                borderColor: '#f43f5e33',
+                borderRadius: '8px',
+                py: 1,
+                px: 1.25,
+                bgcolor: '#f43f5e0A',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                minWidth: 0,
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: '#f43f5e1A',
+                  borderColor: '#f43f5e66',
+                },
               }}
             >
-              TOTAL DISCOUNT
-            </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 500, color: '#0b1d39', fontSize: '0.85rem', lineHeight: 1 }}>
-              ₹{(stats.totalDiscount ?? 0).toFixed(2)}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 500,
-                color: '#64748b',
-                display: 'block',
-                whiteSpace: 'normal',
-                lineHeight: 1.2,
-                mt: 0.75,
-                fontSize: '0.75rem'
-              }}
-            >
-              ₹{stats.mrpDiscount.toFixed(2)} MRP + ₹{stats.extraDiscount.toFixed(2)} Extra ·{' '}
-              {stats.discountPercent}% of MRP
-            </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#f43f5e',
+                  textTransform: 'uppercase',
+                  fontSize: '0.68rem',
+                  letterSpacing: '0.5px',
+                  fontWeight: 600,
+                  display: 'block',
+                  mb: 0.25,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                Total Discount
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: '#0b1d39',
+                  fontSize: '0.92rem',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                ₹{(stats.totalDiscount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 500,
+                  color: '#64748b',
+                  display: 'block',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  mt: 0.25,
+                  fontSize: '0.68rem',
+                }}
+              >
+                ₹{stats.mrpDiscount.toFixed(2)} MRP + ₹{stats.extraDiscount.toFixed(2)} Extra · {stats.discountPercent}%
+              </Typography>
+            </Box>
           </Box>
         </Box>
-      </Paper>
 
-      <Paper
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
-        <Box sx={{ p: 2, borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+        {/* Section Header: Products */}
+        <Box
+          sx={{
+            p: 1.25,
+            px: 2,
+            borderBottom: '1px solid #e2e8f0',
+            bgcolor: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexShrink: 0,
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#0b1d39' }}>
             Products ({selectedSale.items.length})
           </Typography>
         </Box>
-        <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
-          <Table size="small" stickyHeader>
+
+        {/* Products Table touching from left to right */}
+        <TableContainer sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <Table size="small" stickyHeader sx={{ width: '100%' }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>PRODUCT</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                <TableCell
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#475569',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    py: 1.25,
+                    pl: 2,
+                    pr: 1.5,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  PRODUCT
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#475569',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    py: 1.25,
+                    px: 1.5,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   QTY
                 </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#475569',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    py: 1.25,
+                    px: 1.5,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   MRP
                 </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#475569',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    py: 1.25,
+                    px: 1.5,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   PRICE
                 </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#475569',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    py: 1.25,
+                    px: 1.5,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   MRP DISCOUNT
                 </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, bgcolor: '#f8fafc' }}>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    color: '#475569',
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    py: 1.25,
+                    pl: 1.5,
+                    pr: 2,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   EXTRA DISCOUNT
                 </TableCell>
               </TableRow>
@@ -223,7 +370,25 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                 const returnedQty = item.returnedQuantity || 0;
 
                 return (
-                  <TableRow key={item.id}>
+                  <TableRow
+                    key={item.id}
+                    hover
+                    sx={{
+                      '&:hover': { bgcolor: '#f8fafc' },
+                      '& td': {
+                        py: 1,
+                        px: 1.5,
+                        borderBottom: '1px solid #f1f5f9',
+                        fontSize: '0.82rem',
+                      },
+                      '& td:first-of-type': {
+                        pl: 2,
+                      },
+                      '& td:last-of-type': {
+                        pr: 2,
+                      },
+                    }}
+                  >
                     <TableCell sx={{ fontWeight: 600 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <span>{item.productName}</span>
@@ -234,7 +399,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                             sx={{
                               bgcolor: '#22ab7dff',
                               color: 'white',
-                              fontWeight: 900,
+                              fontWeight: 800,
                               fontSize: '0.65rem',
                               height: 20,
                               borderRadius: '4px',
@@ -302,16 +467,16 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                     <TableCell align="right" sx={{ fontWeight: 700 }}>₹{item.sellingPrice.toFixed(2)}</TableCell>
                     <TableCell align="right">
                       <Box>
-                        <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 700 }}>
+                        <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 700, fontSize: '0.82rem' }}>
                           ₹{itemDiscount.toFixed(2)}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                           ({itemDiscountPercent}%)
                         </Typography>
                       </Box>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 700 }}>
+                      <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 700, fontSize: '0.82rem' }}>
                         ₹0.00
                       </Typography>
                     </TableCell>
@@ -321,8 +486,8 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
             </TableBody>
           </Table>
         </TableContainer>
-      </Paper>
-    </Box>
+      </Box>
+    </InventoryPanelShell>
   );
 };
 

@@ -1,7 +1,7 @@
 import type { AuthUser } from '@/shared/types/auth';
-import React, { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import * as Sentry from '@sentry/react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Box, LinearProgress } from '@mui/material';
 
 // Pages and Components — POS and auth are eager (critical path)
@@ -10,7 +10,6 @@ import LoginPage from '@/domains/auth/components/LoginPage';
 import OnboardingWizard from '@/domains/onboarding/components/OnboardingWizard';
 
 const REQUIRED_ONBOARDING_VERSION = 1;
-import ReceiptPreviewDialog from '@/domains/pos/components/ReceiptPreviewDialog';
 
 // Admin/back-office routes loaded on first navigation
 const InventoryPage      = lazy(() => import('@/domains/inventory/pages/InventoryPage'));
@@ -22,46 +21,18 @@ const Refund             = lazy(() => import('@/domains/refund/components/Refund
 const SaleHistory        = lazy(() => import('@/domains/saleHistory/components/SaleHistory'));
 const PromotionManagement = lazy(() => import('@/domains/promotions/components/PromotionManagement'));
 const CustomersPage      = lazy(() => import('@/domains/customers/pages/CustomersPage'));
-import UserManagementDialog from '@/domains/auth/components/UserManagementDialog';
-import AccountDetailsDialog from '@/domains/settings/components/AccountDetailsDialog';
+const StoreSettingsPage  = lazy(() => import('@/domains/settings/pages/StoreSettingsPage'));
 import CustomDialog from '@/shared/components/CustomDialog';
 import AdminElevationDialog from '@/domains/auth/components/AdminElevationDialog';
-import GlobalAppBar from '@/shared/components/GlobalAppBar';
+import GlobalSidebar from '@/shared/components/GlobalSidebar';
+import TopHeader from '@/shared/components/TopHeader';
 import AppLayout from '@/shared/components/AppLayout';
-import SettingsMenu from '@/domains/settings/components/SettingsMenu';
 import ChangePasswordDialog from '@/domains/auth/components/ChangePasswordDialog';
 
 // Hooks
 import { useAuth } from '@/domains/auth/hooks/useAuth';
 import { useSettings } from '@/domains/settings/hooks/useSettings';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
-
-const SAMPLE_SALE = {
-  id: 1001,
-  createdAt: new Date().toISOString(),
-  discount: 10,
-  totalAmount: 190,
-  items: [
-    {
-      quantity: 2,
-      sellingPrice: 40,
-      batch: {
-        mrp: 50,
-        expiryDate: null as string | null,
-        product: { name: 'Sample Tea 200g', barcode: '8900000000011' },
-      },
-    },
-    {
-      quantity: 1,
-      sellingPrice: 120,
-      batch: {
-        mrp: 140,
-        expiryDate: null,
-        product: { name: 'Sample Milk 1L', barcode: '8900000000012' },
-      },
-    },
-  ],
-};
 
 function App() {
   const navigate = useNavigate();
@@ -79,10 +50,7 @@ function App() {
   const {
     shopName,
     receiptSettings,
-    draftReceiptSettings,
-    setDraftReceiptSettings,
     shopMetadata,
-    monochromeMode,
     printers,
     defaultPrinter,
     handleShopMetadataChange,
@@ -92,22 +60,27 @@ function App() {
     fetchSettings,
   } = useSettings(showError);
 
-  const [settingsAnchorEl, setSettingsAnchorEl] = useState<HTMLElement | null>(null);
-  const [showAccountDialog, setShowAccountDialog] = useState(false);
-  const [showBillDialog, setShowBillDialog] = useState(false);
-  const [showUserManagementDialog, setShowUserManagementDialog] = useState(false);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
   const [showAdminLoginDialog, setShowAdminLoginDialog] = useState(false);
 
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Force the sidebar open whenever the route changes away from /pos, but
+  // otherwise leave it alone so the manual collapse/expand toggle still
+  // works. Adjusted during render (comparing to the previous pathname)
+  // rather than in a useEffect, per React's guidance for state that needs
+  // to react to a prop/route change without an extra render cycle.
+  const [prevPathname, setPrevPathname] = useState(location.pathname);
+  if (location.pathname !== prevPathname) {
+    setPrevPathname(location.pathname);
+    if (location.pathname !== '/pos') {
+      setIsSidebarOpen(true);
+    }
+  }
+
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState('');
-
-  const handleOpenSettingsMenu = (event: React.MouseEvent<HTMLElement>) =>
-    setSettingsAnchorEl(event.currentTarget);
-  const handleCloseSettingsMenu = () => {
-    setSettingsAnchorEl(null);
-    window.dispatchEvent(new Event('pos-refocus'));
-  };
 
   const handleLogin = (user: AuthUser) => {
     authLogin(user);
@@ -121,7 +94,7 @@ function App() {
       } else {
         await document.documentElement.requestFullscreen();
       }
-      handleCloseSettingsMenu();
+      window.dispatchEvent(new Event('pos-refocus'));
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'fullscreen-toggle' } });
       console.error('Fullscreen toggle failed:', error);
@@ -170,18 +143,40 @@ function App() {
     canAccessCustomers: isAdmin,
   };
 
+  const isPosRoute = location.pathname === '/pos';
+
   return (
     <AppLayout
-      monochromeMode={monochromeMode}
+      sidebar={
+        isSidebarOpen ? (
+          <GlobalSidebar
+            shopName={shopName}
+            currentUser={currentUser}
+            isAdmin={isAdmin}
+            onAdminLogout={handleAdminLogout}
+            adminLogoutTimer={adminLogoutTimer}
+            permissions={permissions}
+            onPosClick={() => setIsSidebarOpen(false)}
+            onToggleSidebar={() => setIsSidebarOpen(false)}
+            onOpenSettings={() => navigate('/settings')}
+            onChangePassword={() => setShowChangePasswordDialog(true)}
+            onAdminLogin={() => setShowAdminLoginDialog(true)}
+            onFullscreenToggle={handleFullscreenToggle}
+            onLogout={handleLogout}
+          />
+        ) : null
+      }
       appBar={
-        <GlobalAppBar
-          shopName={shopName}
-          currentUser={currentUser}
-          onAdminLogout={handleAdminLogout}
-          adminLogoutTimer={adminLogoutTimer}
-          onOpenSettingsMenu={handleOpenSettingsMenu}
-          permissions={permissions}
-        />
+        !isSidebarOpen ? (
+          <TopHeader
+            shopName={shopName}
+            onOpenSidebar={() => setIsSidebarOpen(true)}
+            currentUser={currentUser}
+            adminLogoutTimer={adminLogoutTimer}
+            onAdminLogout={handleAdminLogout}
+            showUserInfo={!isPosRoute}
+          />
+        ) : null
       }
     >
       <Suspense fallback={<LinearProgress sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999 }} />}>
@@ -244,89 +239,33 @@ function App() {
         {permissions.canAccessCustomers && (
           <Route path="/customers" element={<CustomersPage />} />
         )}
+        {isAdmin && (
+          <Route
+            path="/settings"
+            element={
+              <StoreSettingsPage
+                shopName={shopName}
+                shopMetadata={shopMetadata}
+                onMetadataChange={handleShopMetadataChange}
+                currentUser={currentUser}
+                showSuccess={showSuccess}
+                showError={showError}
+                receiptSettings={receiptSettings}
+                onSaveBillSettings={handleSaveBillSettings}
+                printers={printers}
+                defaultPrinter={defaultPrinter}
+              />
+            }
+          />
+        )}
       </Routes>
       </Suspense>
-
-      <SettingsMenu
-        anchorEl={settingsAnchorEl}
-        open={Boolean(settingsAnchorEl)}
-        onClose={handleCloseSettingsMenu}
-        onFullscreenToggle={handleFullscreenToggle}
-        // KNOWN BUG (pre-existing, unchanged): useSettings never returns
-        // isFullscreen, so this was always undefined. SettingsMenu does
-        // disabled={!isFullscreen}, which leaves "Exit Fullscreen"
-        // permanently disabled. Fixing needs real fullscreen state.
-        isFullscreen={undefined}
-        isAdmin={isAdmin}
-        onOpenBillDialog={() => {
-          setShowBillDialog(true);
-          setDraftReceiptSettings({ ...receiptSettings, customShopName: shopName });
-        }}
-        onChangePassword={() => setShowChangePasswordDialog(true)}
-        onAdminLogin={() => setShowAdminLoginDialog(true)}
-        onManageUsers={() => setShowUserManagementDialog(true)}
-        onOpenSettings={() => setShowAccountDialog(true)}
-        onLogout={handleLogout}
-        currentUser={currentUser}
-      />
-
-      <AccountDetailsDialog
-        open={showAccountDialog}
-        onClose={() => {
-          setShowAccountDialog(false);
-          window.dispatchEvent(new Event('pos-refocus'));
-        }}
-        shopName={shopName}
-        shopMetadata={shopMetadata}
-        onMetadataChange={handleShopMetadataChange}
-        currentUser={currentUser}
-      />
 
       <ChangePasswordDialog
         open={showChangePasswordDialog}
         onClose={() => setShowChangePasswordDialog(false)}
         currentUser={currentUser}
         showSuccess={showSuccess}
-      />
-
-      <ReceiptPreviewDialog
-        open={showBillDialog}
-        onClose={() => {
-          setShowBillDialog(false);
-          window.dispatchEvent(new Event('pos-refocus'));
-        }}
-        lastSale={SAMPLE_SALE}
-        receiptSettings={draftReceiptSettings}
-        onSettingChange={(field: string) =>
-          setDraftReceiptSettings((prev) => ({ ...prev, [field]: !prev[field] }))
-        }
-        onTextSettingChange={(field: string, value: unknown) =>
-          setDraftReceiptSettings((prev) => ({ ...prev, [field]: value }))
-        }
-        onSave={async () => {
-          const success = await handleSaveBillSettings(draftReceiptSettings);
-          if (success) {
-            setShowBillDialog(false);
-            showSuccess('Bill settings saved successfully');
-            window.dispatchEvent(new Event('pos-refocus'));
-          }
-        }}
-        isAdmin={isAdmin}
-        showPrint={false}
-        showShopNameField={false}
-        saveLabel="Save settings"
-        shopMetadata={shopMetadata}
-        printers={printers}
-        defaultPrinter={defaultPrinter}
-      />
-
-      <UserManagementDialog
-        open={showUserManagementDialog}
-        onClose={() => {
-          setShowUserManagementDialog(false);
-          window.dispatchEvent(new Event('pos-refocus'));
-        }}
-        currentUser={currentUser}
       />
 
       <AdminElevationDialog

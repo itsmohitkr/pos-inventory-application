@@ -11,7 +11,6 @@ const STORAGE_KEYS = {
   receipt: RECEIPT_STORAGE_KEYS.receipt,
   shopName: RECEIPT_STORAGE_KEYS.shopName,
   uiZoom: 'posUiZoom',
-  monochromeMode: 'posMonochromeMode',
 };
 
 const getStoredShopName = () => {
@@ -99,9 +98,6 @@ export const useSettings = (showError?: (message: string) => void) => {
   const [uiZoom, setUiZoom] = useState(
     () => Number(localStorage.getItem(STORAGE_KEYS.uiZoom)) || 100
   );
-  const [monochromeMode, setMonochromeMode] = useState(
-    () => localStorage.getItem(STORAGE_KEYS.monochromeMode) === 'true'
-  );
   const [printers, setPrinters] = useState<PrinterInfo[]>([]);
   const [defaultPrinter, setDefaultPrinter] = useState<string | null>(null);
 
@@ -152,21 +148,9 @@ export const useSettings = (showError?: (message: string) => void) => {
   }, [fetchSettings]);
 
   useEffect(() => {
-    const handleSettingsUpdated = () => {
-      setMonochromeMode(localStorage.getItem(STORAGE_KEYS.monochromeMode) === 'true');
-    };
-    window.addEventListener('pos-settings-updated', handleSettingsUpdated);
-    return () => window.removeEventListener('pos-settings-updated', handleSettingsUpdated);
-  }, []);
-
-  useEffect(() => {
     document.documentElement.style.fontSize = `${uiZoom}%`;
     localStorage.setItem(STORAGE_KEYS.uiZoom, uiZoom.toString());
   }, [uiZoom]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.monochromeMode, monochromeMode.toString());
-  }, [monochromeMode]);
 
   useEffect(() => {
     const handleZoomUpdated = () => {
@@ -266,8 +250,6 @@ export const useSettings = (showError?: (message: string) => void) => {
     shopMetadata,
     uiZoom,
     setUiZoom,
-    monochromeMode,
-    setMonochromeMode,
     printers,
     defaultPrinter,
     refreshPrinters,

@@ -1,5 +1,4 @@
-import React from 'react';
-import { Box, Typography, Chip } from '@mui/material';
+import { Box, Typography, Chip, Tooltip } from '@mui/material';
 
 interface BarcodeChipsProps {
   /** Pipe-separated barcodes, as stored on Product.barcode. */
@@ -27,39 +26,41 @@ const BarcodeChips = ({ barcode, size = 'small' }: BarcodeChipsProps) => {
       </Typography>
     );
 
-  // Group barcodes into rows of up to 2 barcodes per line
-  const rows: string[][] = [];
-  for (let i = 0; i < barcodes.length; i += 2) {
-    rows.push(barcodes.slice(i, i + 2));
-  }
+  const [firstBarcode, ...remainingBarcodes] = barcodes;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-      {rows.map((rowBarcodes, rowIndex) => (
-        <Box key={rowIndex} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          {rowBarcodes.map((bc, idx) => (
-            <React.Fragment key={idx}>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontFamily: 'Inter, monospace',
-                  fontSize: size === 'small' ? '0.78rem' : '0.85rem',
-                  fontWeight: 500,
-                  color: '#1f2937',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {bc}
-              </Typography>
-              {idx < rowBarcodes.length - 1 && (
-                <Typography variant="caption" sx={{ color: '#cbd5e1', fontWeight: 300 }}>
-                  |
-                </Typography>
-              )}
-            </React.Fragment>
-          ))}
-        </Box>
-      ))}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+      <Typography
+        variant="caption"
+        sx={{
+          fontFamily: 'Inter, monospace',
+          fontSize: size === 'small' ? '0.78rem' : '0.85rem',
+          fontWeight: 500,
+          color: '#1f2937',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {firstBarcode}
+      </Typography>
+      {remainingBarcodes.length > 0 && (
+        <Tooltip title={remainingBarcodes.join(', ')}>
+          <Chip
+            label={`+${remainingBarcodes.length}`}
+            size="small"
+            sx={{
+              height: 18,
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              bgcolor: '#eef2f7',
+              color: '#475569',
+              flexShrink: 0,
+              '& .MuiChip-label': { px: 0.75 },
+            }}
+          />
+        </Tooltip>
+      )}
     </Box>
   );
 };

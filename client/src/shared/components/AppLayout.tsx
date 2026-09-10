@@ -3,26 +3,40 @@ import { Box } from '@mui/material';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
-  /** Applies the `monochrome` CSS class used by the thermal-printer theme. */
-  monochromeMode?: boolean;
   appBar?: React.ReactNode;
+  sidebar?: React.ReactNode;
 }
 
-const AppLayout = ({ children, monochromeMode, appBar }: AppLayoutProps) => {
+const AppLayout = ({ children, appBar, sidebar }: AppLayoutProps) => {
   return (
     <Box
-      className={monochromeMode ? 'monochrome' : ''}
       sx={{
-        flexGrow: 1,
+        width: '100vw',
         height: '100vh',
         overflow: 'hidden',
         bgcolor: 'background.default',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
       }}
     >
-      {appBar}
-      <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>{children}</Box>
+      {sidebar}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          height: '100vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          minWidth: 0,
+        }}
+      >
+        {appBar}
+        <Box sx={{ flexGrow: 1, overflow: 'hidden', height: '100%', position: 'relative' }}>
+          {children}
+        </Box>
+      </Box>
     </Box>
   );
 };

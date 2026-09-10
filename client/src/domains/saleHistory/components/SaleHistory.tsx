@@ -326,7 +326,7 @@ const SaleHistory = ({
               />
             </Box>
 
-            {/* Vertical Resizer Slider */}
+            {/* Vertical Resizer Slider matching Customers and Inventory */}
             <Box
               onMouseDown={startResizing}
               sx={{
@@ -337,6 +337,7 @@ const SaleHistory = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 10,
+                flexShrink: 0,
                 '&:hover .handle': {
                   bgcolor: 'primary.main',
                   width: '4px',

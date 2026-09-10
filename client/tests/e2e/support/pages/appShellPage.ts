@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { openSidebarIfCollapsed } from '../sidebarNav';
 
 const PRIMARY_NAV_LINKS = [
   'POS',
@@ -22,24 +23,43 @@ export const createAppShellPage = (page: Page) => {
       await expect(settingsButton).toBeVisible();
     },
     navigateTo: async (linkName: string) => {
+      await openSidebarIfCollapsed(page);
       await page.getByRole('link', { name: linkName }).click();
     },
     openSettingsDialog: async () => {
-      await settingsButton.click();
-      await page.getByRole('menuitem', { name: 'Settings' }).click();
-      const settingsDialog = page.getByRole('dialog', { name: 'Settings' });
-      await expect(settingsDialog).toBeVisible();
-      return settingsDialog;
+      await openSidebarIfCollapsed(page);
+      if ((await settingsButton.getAttribute('aria-expanded')) !== 'true') {
+        await settingsButton.click();
+      }
+      const storeSettingsBtn = page.getByRole('menuitem', { name: 'Store Settings' });
+      await storeSettingsBtn.scrollIntoViewIfNeeded();
+      await storeSettingsBtn.click();
+      const settingsContainer = page.locator('[data-testid="store-settings-page"], [role="dialog"]').filter({
+        has: page.getByRole('tab', { name: 'Payment' }),
+      });
+      await expect(settingsContainer).toBeVisible();
+      return settingsContainer;
     },
     openUserManagementDialog: async () => {
-      await settingsButton.click();
-      await page.getByRole('menuitem', { name: 'Manage Users' }).click();
-      const userDialog = page.getByRole('dialog', { name: 'User Management' });
-      await expect(userDialog).toBeVisible();
-      return userDialog;
+      await openSidebarIfCollapsed(page);
+      if ((await settingsButton.getAttribute('aria-expanded')) !== 'true') {
+        await settingsButton.click();
+      }
+      const storeSettingsBtn = page.getByRole('menuitem', { name: 'Store Settings' });
+      await storeSettingsBtn.scrollIntoViewIfNeeded();
+      await storeSettingsBtn.click();
+      await page.getByRole('tab', { name: 'User Management' }).click();
+      const userContainer = page.locator('[data-testid="user-management-tab"], [role="dialog"]').filter({
+        has: page.getByRole('button', { name: 'Add User' }),
+      });
+      await expect(userContainer).toBeVisible();
+      return userContainer;
     },
     openChangePasswordDialog: async () => {
-      await settingsButton.click();
+      await openSidebarIfCollapsed(page);
+      if ((await settingsButton.getAttribute('aria-expanded')) !== 'true') {
+        await settingsButton.click();
+      }
       await page.getByRole('menuitem', { name: 'Change Password' }).click();
       const pwdDialog = page.getByRole('dialog', { name: 'Change Password' });
       await expect(pwdDialog).toBeVisible();
@@ -47,8 +67,10 @@ export const createAppShellPage = (page: Page) => {
     },
     closeSettingsDialog: async () => {
       const settingsDialog = page.getByRole('dialog');
-      await page.getByRole('button', { name: 'Cancel' }).first().click();
-      await expect(settingsDialog).not.toBeVisible();
+      if ((await settingsDialog.count()) > 0 && (await settingsDialog.first().isVisible())) {
+        await page.getByRole('button', { name: 'Cancel' }).first().click();
+        await expect(settingsDialog).not.toBeVisible();
+      }
     },
   };
 };

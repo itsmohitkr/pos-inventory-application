@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   clearBrowserStorage,
   collectRuntimeFailures,
@@ -69,6 +69,19 @@ test.describe('Admin route rendering', () => {
 
     await appShellPage.navigateTo('Dashboard');
     await dashboardPage.expectLoaded();
+
+    await expectHealthyPage(page, failures);
+  });
+
+  test('settings page renders store settings flat workspace', async ({ page }) => {
+    const failures = collectRuntimeFailures(page);
+    const appShellPage = createAppShellPage(page);
+    await appShellPage.openSettingsDialog();
+    await expect(page.locator('[data-testid="store-settings-page"]')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Account' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'POS Features' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Payment' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Display & Zoom' })).toBeVisible();
 
     await expectHealthyPage(page, failures);
   });
