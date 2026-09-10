@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { openSidebarIfCollapsed } from '../sidebarNav';
 
 interface NewProductFields {
   name: string;
@@ -26,6 +27,7 @@ export const createInventoryPage = (page: Page) => {
 
   return {
     goto: async () => {
+      await openSidebarIfCollapsed(page);
       await page.getByRole('link', { name: 'Inventory' }).click();
       await expect(page).toHaveURL(/#\/inventory/);
       await expect(addProductButton).toBeVisible();

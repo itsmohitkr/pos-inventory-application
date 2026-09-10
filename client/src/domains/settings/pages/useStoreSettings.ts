@@ -123,9 +123,6 @@ export const useStoreSettings = ({
 
   // Display & Zoom
   const [uiZoom, setUiZoom] = useState(Number(localStorage.getItem('posUiZoom')) || 100);
-  const [monochrome, setMonochrome] = useState(
-    localStorage.getItem('posMonochromeMode') === 'true'
-  );
 
   // POS Features
   const [looseSaleEnabled, setLooseSaleEnabled] = useState(
@@ -269,7 +266,6 @@ export const useStoreSettings = ({
       });
 
       localStorage.setItem('posUiZoom', uiZoom.toString());
-      localStorage.setItem('posMonochromeMode', monochrome.toString());
       localStorage.setItem('posLooseSaleEnabled', looseSaleEnabled.toString());
       localStorage.setItem(STORAGE_KEYS.enableFullscreen, JSON.stringify(fullscreenEnabled));
       localStorage.setItem(STORAGE_KEYS.enableChangeCalculator, JSON.stringify(changeCalculatorEnabled));
@@ -342,7 +338,6 @@ export const useStoreSettings = ({
       setBillSettings(receiptSettings);
     }
     setUiZoom(Number(localStorage.getItem('posUiZoom')) || 100);
-    setMonochrome(localStorage.getItem('posMonochromeMode') === 'true');
     setLooseSaleEnabled(localStorage.getItem('posLooseSaleEnabled') === 'true');
     setFullscreenEnabled(getFullscreenEnabled());
     setChangeCalculatorEnabledState(getChangeCalculatorEnabled());
@@ -452,8 +447,6 @@ export const useStoreSettings = ({
 
     uiZoom,
     setUiZoom,
-    monochrome,
-    setMonochrome,
 
     looseSaleEnabled,
     setLooseSaleEnabled,

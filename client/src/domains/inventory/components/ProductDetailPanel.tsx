@@ -240,8 +240,8 @@ const ProductDetailPanel = ({
                 flexShrink: 0,
               }}
             >
-              {/* Product Name Header */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {/* Product Name Header & Category Subtitle */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                 <Typography
                   variant="h6"
                   sx={{
@@ -256,12 +256,41 @@ const ProductDetailPanel = ({
                 >
                   {displayProduct.name}
                 </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: '#64748b',
+                    fontWeight: 600,
+                    fontSize: '0.78rem',
+                    lineHeight: 1.2,
+                    textTransform: 'capitalize',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {displayProduct.category || 'Uncategorized'}
+                </Typography>
+              </Box>
 
-                {/* Single Row Allocated for Barcodes (Horizontal Layout) */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', mt: 0.25 }}>
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase' }}>
-                    Barcodes:
-                  </Typography>
+              <Divider sx={{ borderColor: '#d9e2ec' }} />
+
+              {/* Barcodes Row with indented wrapping */}
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: '#64748b',
+                    fontWeight: 600,
+                    fontSize: '0.68rem',
+                    textTransform: 'uppercase',
+                    pt: '2px',
+                    flexShrink: 0,
+                  }}
+                >
+                  Barcodes:
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
                   {displayProduct.barcode ? (
                     displayProduct.barcode.split('|').filter(Boolean).map((code, idx) => (
                       <Chip
@@ -280,7 +309,7 @@ const ProductDetailPanel = ({
                       />
                     ))
                   ) : (
-                    <Typography variant="caption" sx={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.72rem' }}>
+                    <Typography variant="caption" sx={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.72rem', pt: '2px' }}>
                       None
                     </Typography>
                   )}
@@ -293,20 +322,11 @@ const ProductDetailPanel = ({
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
                   gap: 1.5,
                   alignItems: 'center',
                 }}
               >
-                {/* Cell 1: Category */}
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', display: 'block', mb: 0.25 }}>
-                    Category
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#0b1d39', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                    {displayProduct.category || 'Uncategorized'}
-                  </Typography>
-                </Box>
 
                 {/* Cell 2: Total Quantity */}
                 <Box sx={{ minWidth: 0 }}>

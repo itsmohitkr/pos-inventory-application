@@ -607,40 +607,29 @@ const GlobalSidebar = ({
                 border: '1px solid rgba(255, 255, 255, 0.08)',
               }}
             >
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  color: '#ffffff',
-                  fontSize: '0.85rem',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.2,
-                  textTransform: 'capitalize',
-                }}
-              >
-                {formatUserName(currentUser?.username)}
-              </Typography>
-              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
-                <Chip
-                  label={currentUser?.role || 'user'}
-                  size="small"
+              <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
+                <Typography
+                  variant="body2"
                   sx={{
-                    height: 18,
-                    fontSize: '0.62rem',
                     fontWeight: 600,
-                    textTransform: 'uppercase',
-                    bgcolor:
-                      currentUser?.role === 'admin'
-                        ? 'rgba(242, 181, 68, 0.2)'
-                        : 'rgba(255, 255, 255, 0.1)',
-                    color:
-                      currentUser?.role === 'admin'
-                        ? '#f2b544'
-                        : 'rgba(255, 255, 255, 0.8)',
+                    color: '#ffffff',
+                    fontSize: '0.85rem',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.2,
                   }}
-                />
+                >
+                  <Box component="span" sx={{ textTransform: 'capitalize' }}>
+                    {formatUserName(currentUser?.username)}
+                  </Box>{' '}
+                  <Box
+                    component="span"
+                    sx={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500, textTransform: 'capitalize' }}
+                  >
+                    ({currentUser?.role || 'user'})
+                  </Box>
+                </Typography>
                 <Chip
                   label="Elevated"
                   size="small"
@@ -738,31 +727,18 @@ const GlobalSidebar = ({
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                   lineHeight: 1.2,
-                  textTransform: 'capitalize',
                 }}
               >
-                {formatUserName(currentUser?.username)}
+                <Box component="span" sx={{ textTransform: 'capitalize' }}>
+                  {formatUserName(currentUser?.username)}
+                </Box>{' '}
+                <Box
+                  component="span"
+                  sx={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500, textTransform: 'capitalize' }}
+                >
+                  ({currentUser?.role || 'user'})
+                </Box>
               </Typography>
-              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.35 }}>
-                <Chip
-                  label={currentUser?.role || 'user'}
-                  size="small"
-                  sx={{
-                    height: 17,
-                    fontSize: '0.6rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    bgcolor:
-                      currentUser?.role === 'admin'
-                        ? 'rgba(242, 181, 68, 0.2)'
-                        : 'rgba(255, 255, 255, 0.1)',
-                    color:
-                      currentUser?.role === 'admin'
-                        ? '#f2b544'
-                        : 'rgba(255, 255, 255, 0.8)',
-                  }}
-                />
-              </Stack>
             </Box>
 
             {/* Visible Sign Out Button (text + icon, distinct color) */}

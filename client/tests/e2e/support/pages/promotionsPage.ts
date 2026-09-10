@@ -1,10 +1,12 @@
 import { expect, type Page } from '@playwright/test';
+import { openSidebarIfCollapsed } from '../sidebarNav';
 
 export const createPromotionsPage = (page: Page) => {
   const thresholdPanelTitle = page.getByText('Order Threshold Promotions');
 
   return {
     goto: async () => {
+      await openSidebarIfCollapsed(page);
       await page.getByRole('link', { name: 'Promotions' }).click();
       await expect(page).toHaveURL(/#\/promotions/);
       await expect(thresholdPanelTitle).toBeVisible();

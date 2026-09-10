@@ -52,7 +52,6 @@ function App() {
     shopName,
     receiptSettings,
     shopMetadata,
-    monochromeMode,
     printers,
     defaultPrinter,
     handleShopMetadataChange,
@@ -150,7 +149,6 @@ function App() {
 
   return (
     <AppLayout
-      monochromeMode={monochromeMode}
       sidebar={
         isSidebarOpen ? (
           <GlobalSidebar

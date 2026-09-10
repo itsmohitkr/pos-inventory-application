@@ -1,8 +1,10 @@
 import { expect, type Page } from '@playwright/test';
+import { openSidebarIfCollapsed } from '../sidebarNav';
 
 export const createReportsPage = (page: Page) => {
   return {
     goto: async () => {
+      await openSidebarIfCollapsed(page);
       await page.getByRole('link', { name: 'Reports' }).click();
       await expect(page).toHaveURL(/#\/reports/);
       await expect(page.getByRole('heading', { name: 'Reports & Analytics' })).toBeVisible();

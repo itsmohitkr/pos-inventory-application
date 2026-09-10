@@ -78,10 +78,6 @@ body {
   }
 }
 
-.monochrome *:not(.pos-action-btn):not(.pos-action-btn *) {
-  filter: grayscale(1) !important;
-}
-
 @media print {
   body * {
     visibility: hidden;

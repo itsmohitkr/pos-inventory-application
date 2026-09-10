@@ -51,7 +51,7 @@ test.describe('SRP refactor regression coverage', () => {
 
     await page.getByRole('button', { name: 'POS Sales' }).click();
     await saleHistoryPage.selectSale('ORD-11');
-    await saleHistoryPage.expectSelectedSaleDetails('Order ORD-11', 'Masala Tea 250g');
+    await saleHistoryPage.expectSelectedSaleDetails('ORD-11', 'Masala Tea 250g');
 
     await expectHealthyPage(page, failures);
   });

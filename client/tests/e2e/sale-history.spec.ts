@@ -24,7 +24,7 @@ test.describe('Sale history flows', () => {
     await saleHistoryPage.goto();
     await saleHistoryPage.expectSaleVisible('ORD-11');
     await saleHistoryPage.selectSale('ORD-11');
-    await saleHistoryPage.expectSelectedSaleDetails('Order ORD-11', 'Masala Tea 250g');
+    await saleHistoryPage.expectSelectedSaleDetails('ORD-11', 'Masala Tea 250g');
 
     await saleHistoryPage.switchToLooseSales();
     await saleHistoryPage.expectSaleVisible('Loose Rice');

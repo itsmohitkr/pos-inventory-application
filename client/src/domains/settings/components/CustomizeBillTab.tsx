@@ -137,9 +137,6 @@ const CustomizeBillTab = ({
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                 Header & Footer Messaging
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Configure tax invoice headings, custom branding notes, and return policies.
-              </Typography>
             </Box>
           </Box>
 
@@ -255,9 +252,6 @@ const CustomizeBillTab = ({
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                 Layout & Paper Formatting
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Adjust typography scale, paper size, text alignments, and thermal printer margins.
               </Typography>
             </Box>
           </Box>
@@ -445,9 +439,6 @@ const CustomizeBillTab = ({
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                   Printer & Behavior
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Target physical receipt hardware and auto-print preferences.
-                </Typography>
               </Box>
             </Box>
 
@@ -598,9 +589,6 @@ const CustomizeBillTab = ({
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                 Content Visibility
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Select which items, calculations, identifiers, and metadata appear on customer receipts.
-              </Typography>
             </Box>
           </Box>
 
@@ -674,9 +662,6 @@ const CustomizeBillTab = ({
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
                   Live Receipt Simulation
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Live thermal preview updates as settings change
                 </Typography>
               </Box>
 

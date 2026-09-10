@@ -103,8 +103,6 @@ const StoreSettingsPage = ({
     handleWipeDatabase,
     uiZoom,
     setUiZoom,
-    monochrome,
-    setMonochrome,
     looseSaleEnabled,
     setLooseSaleEnabled,
     fullscreenEnabled,
@@ -430,8 +428,6 @@ const StoreSettingsPage = ({
                 <DisplaySettingsTab
                   uiZoom={uiZoom}
                   setUiZoom={setUiZoom}
-                  monochrome={monochrome}
-                  setMonochrome={setMonochrome}
                 />
               )}
             </Box>

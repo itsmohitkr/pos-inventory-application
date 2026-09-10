@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { openSidebarIfCollapsed } from '../sidebarNav';
 
 export const createPosPage = (page: Page) => {
   const productSearchInput = page.getByRole('combobox', { name: 'Scan Barcode or Search Item' });
@@ -6,6 +7,7 @@ export const createPosPage = (page: Page) => {
 
   return {
     goto: async () => {
+      await openSidebarIfCollapsed(page);
       await page.getByRole('link', { name: 'POS' }).click();
       await expect(page).toHaveURL(/#\//);
       await expect(productSearchInput).toBeVisible();

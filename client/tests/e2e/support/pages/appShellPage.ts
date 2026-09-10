@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { openSidebarIfCollapsed } from '../sidebarNav';
 
 const PRIMARY_NAV_LINKS = [
   'POS',
@@ -22,13 +23,11 @@ export const createAppShellPage = (page: Page) => {
       await expect(settingsButton).toBeVisible();
     },
     navigateTo: async (linkName: string) => {
-      const openSidebarBtn = page.getByRole('button', { name: 'Open sidebar' });
-      if (await openSidebarBtn.isVisible()) {
-        await openSidebarBtn.click();
-      }
+      await openSidebarIfCollapsed(page);
       await page.getByRole('link', { name: linkName }).click();
     },
     openSettingsDialog: async () => {
+      await openSidebarIfCollapsed(page);
       if ((await settingsButton.getAttribute('aria-expanded')) !== 'true') {
         await settingsButton.click();
       }
@@ -42,6 +41,7 @@ export const createAppShellPage = (page: Page) => {
       return settingsContainer;
     },
     openUserManagementDialog: async () => {
+      await openSidebarIfCollapsed(page);
       if ((await settingsButton.getAttribute('aria-expanded')) !== 'true') {
         await settingsButton.click();
       }
@@ -51,6 +51,7 @@ export const createAppShellPage = (page: Page) => {
       return userDialog;
     },
     openChangePasswordDialog: async () => {
+      await openSidebarIfCollapsed(page);
       if ((await settingsButton.getAttribute('aria-expanded')) !== 'true') {
         await settingsButton.click();
       }
