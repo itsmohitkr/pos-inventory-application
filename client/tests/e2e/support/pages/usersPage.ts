@@ -11,9 +11,11 @@ export const createUsersPage = (page: Page) => {
       await expect(container.getByRole('button', { name: 'Add User' })).toBeVisible();
     },
     openAddUserDialog: async () => {
-      await container.getByRole('button', { name: 'Add User' }).click();
-      const addDialog = page.getByRole('dialog', { name: 'Add New User' });
-      await expect(addDialog).toBeVisible();
+      await container.getByRole('button', { name: 'Add User' }).first().click();
+      const addForm = page.locator('[data-testid="add-user-form"], [role="region"][aria-label="Add New User"], [role="dialog"]').filter({
+        has: page.getByRole('heading', { name: 'Add New User' }),
+      });
+      await expect(addForm).toBeVisible();
     },
     submitNewUser: async ({
       username,
@@ -24,16 +26,15 @@ export const createUsersPage = (page: Page) => {
       password: string;
       role: string;
     }) => {
-      const addDialog = page.getByRole('dialog', { name: 'Add New User' });
-      await addDialog.getByRole('textbox', { name: 'Username' }).fill(username);
-      // exact: true — consistent with other password fields in this suite;
-      // a show/hide toggle's aria-label containing "password" would
-      // otherwise also match a substring search here.
-      await addDialog.getByLabel('Password', { exact: true }).fill(password);
-      await addDialog.getByRole('combobox', { name: 'Role' }).click();
+      const addForm = page.locator('[data-testid="add-user-form"], [role="region"][aria-label="Add New User"], [role="dialog"]').filter({
+        has: page.getByRole('heading', { name: 'Add New User' }),
+      });
+      await addForm.locator('input[data-testid="add-user-username"], input[placeholder="Enter username"]').fill(username);
+      await addForm.locator('input[data-testid="add-user-password"], input[placeholder="Enter password"], input[type="password"]').fill(password);
+      await addForm.getByRole('combobox', { name: 'Role' }).click();
       await page.getByRole('option', { name: new RegExp(role, 'i') }).click();
-      await addDialog.getByRole('button', { name: 'Add User' }).click();
-      await expect(addDialog).not.toBeVisible({ timeout: 10000 });
+      await addForm.getByRole('button', { name: 'Add User' }).click();
+      await expect(addForm).not.toBeVisible({ timeout: 10000 });
     },
     expectUserVisible: async (username: string) => {
       await expect(container.getByRole('cell', { name: username })).toBeVisible();

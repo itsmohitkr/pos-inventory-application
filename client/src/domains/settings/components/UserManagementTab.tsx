@@ -15,21 +15,24 @@ import {
   TextField,
   MenuItem,
   IconButton,
-  Dialog as AddUserDialog,
-  DialogTitle as AddUserTitle,
-  DialogContent as AddUserContent,
-  DialogActions as AddUserActions,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Alert,
   InputAdornment,
   CircularProgress,
   Tooltip,
   Stack,
+  Collapse,
 } from '@mui/material';
 import {
   People as PeopleIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
   Add as AddIcon,
+  Close as CloseIcon,
+  PersonAdd as PersonAddIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
   LockReset as LockResetIcon,
@@ -59,7 +62,9 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addWarning, setAddWarning] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserFormState>({
@@ -105,23 +110,36 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
   };
 
   const handleAddUser = async () => {
-    if (!formData.username || !formData.password) {
-      setError('Username and password are required');
+    const trimmedUsername = formData.username.trim();
+    if (!trimmedUsername && !formData.password) {
+      setAddWarning('Username and password are required');
+      return;
+    }
+    if (!trimmedUsername) {
+      setAddWarning('Username is required');
+      return;
+    }
+    if (!formData.password) {
+      setAddWarning('Password is required');
       return;
     }
 
+    setAddLoading(true);
+    setAddWarning('');
     try {
       await settingsService.createUser({
-        username: formData.username,
+        username: trimmedUsername,
         password: formData.password,
         role: formData.role,
       });
-      setShowAddDialog(false);
+      setShowAddForm(false);
       setFormData({ username: '', password: '', role: 'cashier' });
       fetchUsers();
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'user-management-create' } });
-      setError(describeError(err, 'Failed to create user'));
+      setAddWarning(describeError(err, 'Failed to create user'));
+    } finally {
+      setAddLoading(false);
     }
   };
 
@@ -206,10 +224,15 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
     }
   };
 
-  const handleOpenAddDialog = () => {
+  const handleOpenAddForm = () => {
     setFormData({ username: '', password: '', role: 'cashier' });
-    setError('');
-    setShowAddDialog(true);
+    setAddWarning('');
+    setShowAddForm(true);
+  };
+
+  const handleCloseAddForm = () => {
+    setShowAddForm(false);
+    setAddWarning('');
   };
 
   const getRoleBadgeStyle = (role: string) => {
@@ -301,7 +324,8 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={handleOpenAddDialog}
+            onClick={handleOpenAddForm}
+            disabled={showAddForm}
             sx={{
               bgcolor: '#0b1d39',
               color: '#ffffff',
@@ -314,6 +338,10 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
               '&:hover': {
                 bgcolor: '#1a365d',
               },
+              '&.Mui-disabled': {
+                bgcolor: '#e2e8f0',
+                color: '#94a3b8',
+              },
             }}
           >
             Add User
@@ -321,6 +349,166 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
         </Box>
 
         <Divider sx={{ my: 2.5, borderColor: '#f1f5f9' }} />
+
+        {/* In-Line Flat Add User Form */}
+        <Collapse in={showAddForm} unmountOnExit>
+          <Paper
+            elevation={0}
+            data-testid="add-user-form"
+            role="region"
+            aria-label="Add New User"
+            onKeyDown={(event) => {
+              if (event.defaultPrevented) return;
+              if (event.key !== 'Enter') return;
+              if (event.shiftKey) return;
+              if ((event.target as HTMLElement | null)?.tagName === 'TEXTAREA') return;
+              event.preventDefault();
+              handleAddUser();
+            }}
+            sx={{
+              p: { xs: 2, sm: 2.5 },
+              mb: 3,
+              borderRadius: '10px',
+              border: '1px solid #cbd5e1',
+              bgcolor: '#f8fafc',
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                mb: 2,
+              }}
+            >
+              <PersonAddIcon sx={{ color: '#0b1d39', fontSize: 20 }} />
+              <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, color: '#0b1d39' }}>
+                Add New User
+              </Typography>
+            </Box>
+
+            {addWarning && (
+              <Alert
+                severity="warning"
+                onClose={() => setAddWarning('')}
+                sx={{ mb: 2, borderRadius: '8px' }}
+              >
+                {addWarning}
+              </Alert>
+            )}
+
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
+                gap: 2,
+                alignItems: 'start',
+              }}
+            >
+              <TextField
+                id="add-user-username"
+                label="Username"
+                value={formData.username}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData((prev) => ({ ...prev, username: val }));
+                  if (addWarning) setAddWarning('');
+                }}
+                size="small"
+                fullWidth
+                autoFocus
+                placeholder="Enter username"
+                inputProps={{ 'data-testid': 'add-user-username' }}
+                sx={{ bgcolor: '#ffffff', borderRadius: '6px' }}
+              />
+              <TextField
+                id="add-user-password"
+                label="Password"
+                type={showNewPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData((prev) => ({ ...prev, password: val }));
+                  if (addWarning) setAddWarning('');
+                }}
+                size="small"
+                fullWidth
+                placeholder="Enter password"
+                inputProps={{ 'data-testid': 'add-user-password' }}
+                sx={{ bgcolor: '#ffffff', borderRadius: '6px' }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        edge="end"
+                        size="small"
+                        aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showNewPassword ? (
+                          <VisibilityOffIcon fontSize="small" />
+                        ) : (
+                          <VisibilityIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                id="add-user-role"
+                select
+                label="Role"
+                value={formData.role}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData((prev) => ({ ...prev, role: val }));
+                }}
+                size="small"
+                fullWidth
+                sx={{ bgcolor: '#ffffff', borderRadius: '6px' }}
+              >
+                <MenuItem value="cashier">Cashier</MenuItem>
+                <MenuItem value="salesman">Salesman</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
+              </TextField>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, mt: 2.5 }}>
+              <Button
+                variant="outlined"
+                color="inherit"
+                onClick={handleCloseAddForm}
+                sx={{
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  color: '#64748b',
+                  borderColor: '#cbd5e1',
+                  '&:hover': { bgcolor: '#f1f5f9', borderColor: '#94a3b8' },
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleAddUser}
+                disabled={addLoading}
+                sx={{
+                  bgcolor: '#0b1d39',
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  px: 3,
+                  boxShadow: '0 2px 6px rgba(11, 29, 57, 0.15)',
+                  '&:hover': { bgcolor: '#1a365d' },
+                }}
+              >
+                {addLoading ? 'Adding...' : 'Add User'}
+              </Button>
+            </Box>
+          </Paper>
+        </Collapse>
 
         {error && (
           <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2.5, borderRadius: '8px' }}>
@@ -467,7 +655,7 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Reset password">
+                          <Tooltip title="Reset password" disableInteractive>
                             <IconButton
                               size="small"
                               onClick={() => handleOpenResetPassword(user)}
@@ -512,102 +700,8 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
         </TableContainer>
       </Paper>
 
-      {/* Add User Dialog */}
-      <AddUserDialog
-        open={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: '12px', p: 1 },
-        }}
-        onKeyDown={(event) => {
-          if (event.defaultPrevented) return;
-          if (event.key !== 'Enter') return;
-          if (event.shiftKey) return;
-          if ((event.target as HTMLElement | null)?.tagName === 'TEXTAREA') return;
-          event.preventDefault();
-          handleAddUser();
-        }}
-      >
-        <AddUserTitle sx={{ fontWeight: 700, color: '#0b1d39', pb: 1 }}>
-          Add New User
-        </AddUserTitle>
-        <AddUserContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <TextField
-              label="Username"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              fullWidth
-              size="small"
-              autoFocus
-            />
-            <TextField
-              label="Password"
-              type={showNewPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              fullWidth
-              size="small"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      edge="end"
-                      size="small"
-                    >
-                      {showNewPassword ? (
-                        <VisibilityOffIcon fontSize="small" />
-                      ) : (
-                        <VisibilityIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              select
-              label="Role"
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              fullWidth
-              size="small"
-            >
-              <MenuItem value="cashier">Cashier</MenuItem>
-              <MenuItem value="salesman">Salesman</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
-            </TextField>
-          </Box>
-        </AddUserContent>
-        <AddUserActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setShowAddDialog(false)}
-            sx={{ color: '#64748b', fontWeight: 600, textTransform: 'none' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleAddUser}
-            variant="contained"
-            sx={{
-              bgcolor: '#0b1d39',
-              borderRadius: '8px',
-              fontWeight: 700,
-              textTransform: 'none',
-              px: 2.5,
-              '&:hover': { bgcolor: '#1a365d' },
-            }}
-          >
-            Add User
-          </Button>
-        </AddUserActions>
-      </AddUserDialog>
-
       {/* Edit User Dialog */}
-      <AddUserDialog
+      <Dialog
         open={showEditDialog}
         onClose={() => setShowEditDialog(false)}
         maxWidth="xs"
@@ -624,10 +718,10 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
           handleUpdateUser();
         }}
       >
-        <AddUserTitle sx={{ fontWeight: 700, color: '#0b1d39', pb: 1 }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#0b1d39', pb: 1 }}>
           Edit User: {selectedUser?.username}
-        </AddUserTitle>
-        <AddUserContent>
+        </DialogTitle>
+        <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             <TextField
               label="Username"
@@ -660,8 +754,8 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
               <MenuItem value="inactive">Inactive</MenuItem>
             </TextField>
           </Box>
-        </AddUserContent>
-        <AddUserActions sx={{ px: 3, pb: 2 }}>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button
             onClick={() => setShowEditDialog(false)}
             sx={{ color: '#64748b', fontWeight: 600, textTransform: 'none' }}
@@ -682,11 +776,11 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
           >
             Save Changes
           </Button>
-        </AddUserActions>
-      </AddUserDialog>
+        </DialogActions>
+      </Dialog>
 
       {/* Reset Password Dialog */}
-      <AddUserDialog
+      <Dialog
         open={showResetPasswordDialog}
         onClose={() => setShowResetPasswordDialog(false)}
         maxWidth="xs"
@@ -703,10 +797,10 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
           handleResetPassword();
         }}
       >
-        <AddUserTitle sx={{ fontWeight: 700, color: '#0b1d39', pb: 1 }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#0b1d39', pb: 1 }}>
           Reset Password: {resetPasswordTarget?.username}
-        </AddUserTitle>
-        <AddUserContent>
+        </DialogTitle>
+        <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             {resetPasswordError && (
               <Alert severity="error" onClose={() => setResetPasswordError('')} sx={{ borderRadius: '8px' }}>
@@ -765,8 +859,8 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
               }}
             />
           </Box>
-        </AddUserContent>
-        <AddUserActions sx={{ px: 3, pb: 2 }}>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button
             onClick={() => setShowResetPasswordDialog(false)}
             sx={{ color: '#64748b', fontWeight: 600, textTransform: 'none' }}
@@ -787,8 +881,8 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
           >
             Reset Password
           </Button>
-        </AddUserActions>
-      </AddUserDialog>
+        </DialogActions>
+      </Dialog>
 
       <CustomDialog {...dialogState} onClose={closeDialog} />
     </Box>
