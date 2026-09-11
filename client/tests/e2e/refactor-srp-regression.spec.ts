@@ -63,10 +63,10 @@ test.describe('SRP refactor regression coverage', () => {
     await inventoryPage.goto();
     await page.getByRole('button', { name: 'Spreadsheet View' }).click();
 
-    await expect(page.getByText('Full Inventory Spreadsheet View')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Columns' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Masala Tea 250g' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'close' }).click();
+    await page.getByRole('button', { name: 'Card View' }).click();
     await inventoryPage.expectLoaded();
 
     await expectHealthyPage(page, failures);

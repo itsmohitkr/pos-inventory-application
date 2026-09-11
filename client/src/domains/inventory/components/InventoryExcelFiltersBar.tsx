@@ -1,4 +1,6 @@
-import type { InventoryTotals } from '@/domains/inventory/components/inventoryTableConfig';
+import React from 'react';
+import { Box, TextField, InputAdornment, MenuItem, Button, IconButton, Tooltip, Chip } from '@mui/material';
+import { Search as SearchIcon, ViewColumn as ViewColumnIcon, Print as PrintIcon } from '@mui/icons-material';
 
 interface InventoryExcelFiltersBarProps {
   searchTerm: string;
@@ -7,13 +9,10 @@ interface InventoryExcelFiltersBarProps {
   localCategoryFilter: string;
   onCategoryFilterChange: (value: string) => void;
   uniqueCategories: string[];
-  filteredCount: number;
-  totals: InventoryTotals;
+  filteredCount?: number;
+  onOpenColumnsMenu?: (event: React.MouseEvent<HTMLElement>) => void;
+  onPrint?: () => void;
 }
-
-import React from 'react';
-import { Paper, Box, TextField, InputAdornment, Chip } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
 
 const InventoryExcelFiltersBar = ({
   searchTerm,
@@ -22,32 +21,36 @@ const InventoryExcelFiltersBar = ({
   onCategoryFilterChange,
   uniqueCategories,
   filteredCount,
-  totals,
+  onOpenColumnsMenu,
+  onPrint,
 }: InventoryExcelFiltersBarProps) => (
-  <Paper
+  <Box
     className="no-print"
-    elevation={0}
     sx={{
-      p: 2,
-      mb: 3,
+      mb: 1.5,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      borderRadius: 2,
-      border: '1px solid #e0e0e0',
+      flexWrap: 'wrap',
+      gap: 1.5,
     }}
   >
-    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+    {/* Left: Search input & Category dropdown */}
+    <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}>
       <TextField
         size="small"
         placeholder="Search name, category or barcode..."
         value={searchTerm}
         onChange={(e) => onSearchTermChange(e.target.value)}
-        sx={{ width: 300 }}
+        sx={{
+          width: { xs: '100%', sm: 260 },
+          bgcolor: '#ffffff',
+          borderRadius: '6px',
+        }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon color="action" />
+              <SearchIcon color="action" fontSize="small" />
             </InputAdornment>
           ),
         }}
@@ -57,31 +60,107 @@ const InventoryExcelFiltersBar = ({
         size="small"
         value={localCategoryFilter}
         onChange={(e) => onCategoryFilterChange(e.target.value)}
-        SelectProps={{ native: true }}
-        sx={{ width: 220 }}
+        sx={{
+          width: { xs: '100%', sm: 200 },
+          bgcolor: '#ffffff',
+          borderRadius: '6px',
+        }}
+        SelectProps={{
+          MenuProps: {
+            PaperProps: {
+              sx: {
+                maxHeight: 340,
+                borderRadius: '8px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)',
+                border: '1px solid #e2e8f0',
+                '& .MuiMenuItem-root': {
+                  fontSize: '0.82rem',
+                  py: 0.75,
+                  minHeight: 'auto',
+                },
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#cbd5e1 transparent',
+                '&::-webkit-scrollbar': {
+                  width: '6px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: '#cbd5e1',
+                  borderRadius: '4px',
+                },
+              },
+            },
+          },
+        }}
       >
         {uniqueCategories.map((cat) => (
-          <option key={cat} value={cat}>
+          <MenuItem key={cat} value={cat}>
             {cat === 'all' ? 'All Categories' : cat}
-          </option>
+          </MenuItem>
         ))}
       </TextField>
+
+      {filteredCount !== undefined && (
+        <Chip
+          label={`Rows: ${filteredCount}`}
+          size="small"
+          color="primary"
+          variant="outlined"
+          sx={{ fontWeight: 600 }}
+        />
+      )}
     </Box>
-    <Box sx={{ display: 'flex', gap: 2 }}>
-      <Chip label={`Rows: ${filteredCount}`} color="primary" variant="outlined" />
-      <Chip label={`Total Stock: ${totals.totalStock || 0}`} color="success" variant="outlined" />
-      <Chip
-        label={`Selling Value: ₹${(totals.totalValueSelling || 0).toLocaleString()}`}
-        color="info"
-        variant="outlined"
-      />
-      <Chip
-        label={`Cost Value: ₹${(totals.totalValueCost || 0).toLocaleString()}`}
-        color="warning"
-        variant="outlined"
-      />
+
+    {/* Right: Filter Columns icon button & Print button */}
+    <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center' }}>
+      {onOpenColumnsMenu && (
+        <Tooltip title="Filter Columns">
+          <IconButton
+            onClick={onOpenColumnsMenu}
+            size="small"
+            aria-label="Filter Columns"
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              bgcolor: '#ffffff',
+              color: '#0b1d39',
+              '&:hover': {
+                borderColor: '#0b1d39',
+                bgcolor: '#f8fafc',
+              },
+            }}
+          >
+            <ViewColumnIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+
+      {onPrint && (
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<PrintIcon />}
+          onClick={onPrint}
+          sx={{
+            height: 38,
+            textTransform: 'none',
+            fontWeight: 600,
+            color: '#0b1d39',
+            borderColor: '#cbd5e1',
+            bgcolor: '#ffffff',
+            borderRadius: '6px',
+            '&:hover': {
+              borderColor: '#0b1d39',
+              bgcolor: '#f8fafc',
+            },
+          }}
+        >
+          Print
+        </Button>
+      )}
     </Box>
-  </Paper>
+  </Box>
 );
 
 export default InventoryExcelFiltersBar;

@@ -1,31 +1,51 @@
 import React, { useState, useRef, useTransition } from 'react';
 import * as Sentry from '@sentry/react';
-import { Box, Paper, Typography, Stack, Button } from '@mui/material';
+import {
+  Box,
+  Paper,
+  Typography,
+  Stack,
+  Button,
+  ToggleButtonGroup,
+  ToggleButton,
+  Tooltip,
+  Chip,
+  Tabs,
+  Tab,
+  Divider,
+} from '@mui/material';
 import {
   FileUpload as UploadIcon,
   FileDownload as DownloadIcon,
-  ViewList as ViewListIcon,
+  ViewModule as ViewModuleIcon,
+  TableChart as TableChartIcon,
   LocalPrintshop as LocalPrintshopIcon,
+  ViewColumn as ViewColumnIcon,
+  Print as PrintIcon,
 } from '@mui/icons-material';
 import inventoryService from '@/shared/api/inventoryService';
 import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import ProductList from '@/domains/inventory/components/ProductList';
 import type { ProductListHandle } from '@/domains/inventory/components/ProductList';
-import BulkImportDialog from '@/domains/inventory/components/BulkImportDialog';
 import InventoryExcelView from '@/domains/inventory/components/InventoryExcelView';
+import type { InventoryExcelViewHandle } from '@/domains/inventory/components/InventoryExcelView';
 import PriceListPanel from '@/domains/inventory/components/PriceListPanel';
+import InventoryImportView from '@/domains/inventory/components/InventoryImportView';
+import InventoryExportView from '@/domains/inventory/components/InventoryExportView';
+
+type InventoryNavTab = 'products' | 'import' | 'export' | 'pricetag';
 
 const InventoryPage = () => {
   const { showError } = useCustomDialog();
-  const [showPriceList, setShowPriceList] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [excelViewOpen, setExcelViewOpen] = useState(false);
+  const [activeNav, setActiveNav] = useState<InventoryNavTab>('products');
+  const [productView, setProductView] = useState<'cards' | 'grid'>('cards');
   const [exporting, setExporting] = useState(false);
   const [inventoryKey, setInventoryKey] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isPending, startTransition] = useTransition();
   const inventoryRef = useRef<ProductListHandle>(null);
+  const excelRef = useRef<InventoryExcelViewHandle>(null);
 
   const handleCategoryChange = (val: string) => {
     startTransition(() => {
@@ -39,16 +59,11 @@ const InventoryPage = () => {
     });
   };
 
-  const handleOpenPriceList = () => {
-    setShowPriceList(true);
-  };
-
   const handleImportComplete = () => {
     setInventoryKey((prev) => prev + 1);
     if (inventoryRef.current?.refresh) {
       inventoryRef.current.refresh();
     }
-    setShowImport(false);
   };
 
   const handleExport = async () => {
@@ -81,99 +96,274 @@ const InventoryPage = () => {
         overflow: 'hidden',
       }}
     >
+      {/* Inventory Header Card */}
       <Paper
         elevation={0}
         sx={{
           m: 1.5,
-          px: 2.5,
-          py: 1.75,
           border: '1px solid #e2e8f0',
           borderRadius: '10px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          bgcolor: '#ffffff',
+          overflow: 'hidden',
           flexShrink: 0,
         }}
       >
-        <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
-            Inventory Management
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Browse products by category and manage stock efficiently.
-          </Typography>
-        </Box>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ flexWrap: 'wrap', rowGap: 1, justifyContent: 'flex-end' }}
+        {/* Header Content: Title & Description on Left, Nav Bar & Controls on Right */}
+        <Box
+          sx={{
+            px: 2.5,
+            py: 1.5,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 1.5,
+          }}
         >
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<UploadIcon />}
-            onClick={() => setShowImport(true)}
-            sx={{ minWidth: 120 }}
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}
+              >
+                Inventory Management
+              </Typography>
+
+              {activeNav === 'products' && productView === 'grid' && (
+                <Chip
+                  label="Spreadsheet View"
+                  size="small"
+                  sx={{
+                    bgcolor: 'rgba(11, 29, 57, 0.08)',
+                    color: '#0b1d39',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    borderRadius: '6px',
+                    height: 24,
+                  }}
+                />
+              )}
+              {activeNav === 'import' && (
+                <Chip
+                  label="Import"
+                  size="small"
+                  sx={{
+                    bgcolor: 'rgba(11, 29, 57, 0.08)',
+                    color: '#0b1d39',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    borderRadius: '6px',
+                    height: 24,
+                  }}
+                />
+              )}
+              {activeNav === 'export' && (
+                <Chip
+                  label="Export"
+                  size="small"
+                  sx={{
+                    bgcolor: 'rgba(11, 29, 57, 0.08)',
+                    color: '#0b1d39',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    borderRadius: '6px',
+                    height: 24,
+                  }}
+                />
+              )}
+              {activeNav === 'pricetag' && (
+                <Chip
+                  label="Price Tag"
+                  size="small"
+                  sx={{
+                    bgcolor: 'rgba(11, 29, 57, 0.08)',
+                    color: '#0b1d39',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    borderRadius: '6px',
+                    height: 24,
+                  }}
+                />
+              )}
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              {activeNav === 'products' && productView === 'cards'
+                ? 'Browse products by category and manage stock efficiently.'
+                : activeNav === 'products' && productView === 'grid'
+                ? 'Real-time tabular inventory tracking, batch codes, cost, profit, and stock valuation.'
+                : activeNav === 'import'
+                ? 'Upload CSV files to add and update products in bulk.'
+                : activeNav === 'export'
+                ? 'Download current inventory data as CSV for external analysis and reporting.'
+                : 'Select products, configure barcode label layouts, preview, and print price lists.'}
+            </Typography>
+          </Box>
+
+          {/* Right-aligned Navigation Bar & Action Controls */}
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{ flexWrap: 'wrap', rowGap: 1, alignItems: 'center', justifyContent: 'flex-end' }}
           >
-            Import CSV
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<DownloadIcon />}
-            onClick={handleExport}
-            disabled={exporting}
-            sx={{ minWidth: 120 }}
-          >
-            {exporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<ViewListIcon />}
-            onClick={() => setExcelViewOpen(true)}
-            sx={{ minWidth: 160 }}
-          >
-            Spreadsheet View
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<LocalPrintshopIcon />}
-            onClick={handleOpenPriceList}
-            sx={{ minWidth: 130 }}
-          >
-            Price List
-          </Button>
-        </Stack>
+            {/* Nav Bar (Tabs) */}
+            <Tabs
+              value={activeNav}
+              onChange={(_, val) => setActiveNav(val)}
+              sx={{
+                minHeight: 38,
+                '& .MuiTabs-indicator': {
+                  height: 3,
+                  borderRadius: '3px 3px 0 0',
+                  bgcolor: '#0b1d39',
+                },
+                '& .MuiTab-root': {
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  minHeight: 38,
+                  px: 1.75,
+                  py: 0.5,
+                  color: '#64748b',
+                  transition: 'color 0.15s ease',
+                  '&:hover': {
+                    color: '#0b1d39',
+                  },
+                  '&.Mui-selected': {
+                    color: '#0b1d39',
+                    fontWeight: 700,
+                  },
+                },
+              }}
+            >
+              <Tab
+                value="products"
+                icon={<TableChartIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Products"
+              />
+              <Tab
+                value="import"
+                icon={<UploadIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Import"
+              />
+              <Tab
+                value="export"
+                icon={<DownloadIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Export"
+              />
+              <Tab
+                value="pricetag"
+                icon={<LocalPrintshopIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Price Tag"
+              />
+            </Tabs>
+
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.75, borderColor: '#e2e8f0' }} />
+            <ToggleButtonGroup
+              value={activeNav === 'products' ? productView : false}
+              exclusive
+              onChange={(_, next) => {
+                if (next) {
+                  setActiveNav('products');
+                  setProductView(next);
+                }
+              }}
+              size="small"
+              aria-label="View mode"
+              sx={{
+                height: 36,
+                bgcolor: '#f1f5f9',
+                p: '2px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                '& .MuiToggleButton-root': {
+                  border: 'none',
+                  borderRadius: '6px',
+                  px: 1.25,
+                  py: 0.5,
+                  color: '#64748b',
+                  transition: 'all 0.15s ease',
+                  '&.Mui-selected': {
+                    bgcolor: '#ffffff',
+                    color: '#0b1d39',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    '&:hover': { bgcolor: '#ffffff' },
+                  },
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.6)',
+                    color: '#0b1d39',
+                  },
+                },
+              }}
+            >
+              <Tooltip title="Card View">
+                <ToggleButton value="cards" aria-label="Card View">
+                  <TableChartIcon fontSize="small" />
+                </ToggleButton>
+              </Tooltip>
+              <Tooltip title="Spreadsheet View">
+                <ToggleButton value="grid" aria-label="Spreadsheet View">
+                  <ViewModuleIcon fontSize="small" />
+                </ToggleButton>
+              </Tooltip>
+            </ToggleButtonGroup>
+          </Stack>
+        </Box>
       </Paper>
 
+      {/* Main Content Area */}
       <Box sx={{ flexGrow: 1, overflow: 'hidden', minHeight: 0, px: 1.5, pb: 1.5 }}>
-        <ProductList
-          key={inventoryKey}
-          ref={inventoryRef}
-          categoryFilter={categoryFilter}
-          onCategoryChange={handleCategoryChange}
-          debouncedSearch={debouncedSearch}
-          onSearchChange={handleSearchChange}
-          isPending={isPending}
-        />
+        {/* Products View: Keep ProductList mounted for state & scroll retention */}
+        <Box sx={{ height: '100%', display: (activeNav === 'products' && productView === 'cards') ? 'block' : 'none' }}>
+          <ProductList
+            key={inventoryKey}
+            ref={inventoryRef}
+            categoryFilter={categoryFilter}
+            onCategoryChange={handleCategoryChange}
+            debouncedSearch={debouncedSearch}
+            onSearchChange={handleSearchChange}
+            isPending={isPending}
+          />
+        </Box>
+
+        {/* Grid / Spreadsheet View */}
+        {activeNav === 'products' && productView === 'grid' && (
+          <InventoryExcelView
+            ref={excelRef}
+            key={`excel-${inventoryKey}`}
+            open={true}
+            categoryFilter={categoryFilter}
+            externalSearch={debouncedSearch}
+          />
+        )}
+
+        {/* Flat Import View */}
+        {activeNav === 'import' && (
+          <InventoryImportView
+            onImportComplete={handleImportComplete}
+          />
+        )}
+
+        {/* Flat Export View */}
+        {activeNav === 'export' && (
+          <InventoryExportView
+            onExport={handleExport}
+            exporting={exporting}
+          />
+        )}
+
+        {/* Flat Price Tag View */}
+        {activeNav === 'pricetag' && (
+          <PriceListPanel
+            open={true}
+            onClose={() => setActiveNav('products')}
+          />
+        )}
       </Box>
-
-      <BulkImportDialog
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        onImportComplete={handleImportComplete}
-      />
-
-      <InventoryExcelView
-        open={excelViewOpen}
-        onClose={() => setExcelViewOpen(false)}
-        categoryFilter={categoryFilter}
-        externalSearch={debouncedSearch}
-      />
-
-      <PriceListPanel open={showPriceList} onClose={() => setShowPriceList(false)} />
     </Box>
   );
 };
