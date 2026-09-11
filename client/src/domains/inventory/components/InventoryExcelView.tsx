@@ -14,11 +14,13 @@ import { getResponseArray } from '@/shared/utils/responseGuards';
 
 interface InventoryExcelViewProps {
   open?: boolean;
+  /** Switches back to the Card view. */
+  onClose?: () => void;
 }
 
 // CSV/PDF export for this data now lives in the dedicated Export tab
 // (InventoryExportView.tsx) — this view is display/sort/filter only.
-const InventoryExcelView = ({ open = true }: InventoryExcelViewProps) => {
+const InventoryExcelView = ({ open = true, onClose }: InventoryExcelViewProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -185,6 +187,7 @@ const InventoryExcelView = ({ open = true }: InventoryExcelViewProps) => {
         uniqueCategories={uniqueCategories}
         filteredCount={filteredAndSortedData.length}
         onOpenColumnsMenu={(e) => setColAnchorEl(e.currentTarget)}
+        onClose={onClose}
       />
 
       {/* Horizontal Partition */}

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, TextField, InputAdornment, MenuItem, IconButton, Tooltip, Chip } from '@mui/material';
-import { Search as SearchIcon, ViewColumn as ViewColumnIcon } from '@mui/icons-material';
+import { Box, TextField, InputAdornment, MenuItem, IconButton, Tooltip, Chip, Divider } from '@mui/material';
+import { Search as SearchIcon, ViewColumn as ViewColumnIcon, Close as CloseIcon } from '@mui/icons-material';
 
 interface InventoryExcelFiltersBarProps {
   searchTerm: string;
@@ -11,6 +11,7 @@ interface InventoryExcelFiltersBarProps {
   uniqueCategories: string[];
   filteredCount?: number;
   onOpenColumnsMenu?: (event: React.MouseEvent<HTMLElement>) => void;
+  onClose?: () => void;
 }
 
 const InventoryExcelFiltersBar = ({
@@ -21,6 +22,7 @@ const InventoryExcelFiltersBar = ({
   uniqueCategories,
   filteredCount,
   onOpenColumnsMenu,
+  onClose,
 }: InventoryExcelFiltersBarProps) => (
   <Box
     className="no-print"
@@ -108,7 +110,7 @@ const InventoryExcelFiltersBar = ({
       )}
     </Box>
 
-    {/* Right: Filter Columns icon button */}
+    {/* Right: Filter Columns icon button & Close */}
     <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center' }}>
       {onOpenColumnsMenu && (
         <Tooltip title="Filter Columns">
@@ -132,6 +134,31 @@ const InventoryExcelFiltersBar = ({
             <ViewColumnIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+      )}
+
+      {onClose && (
+        <>
+          <Divider orientation="vertical" flexItem sx={{ my: 0.5, borderColor: '#e2e8f0' }} />
+          <Tooltip title="Close and return to Card View">
+            <IconButton
+              onClick={onClose}
+              size="small"
+              aria-label="Close"
+              sx={{
+                width: 38,
+                height: 38,
+                borderRadius: '6px',
+                color: '#64748b',
+                '&:hover': {
+                  bgcolor: '#f1f5f9',
+                  color: '#0b1d39',
+                },
+              }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </>
       )}
     </Box>
   </Box>

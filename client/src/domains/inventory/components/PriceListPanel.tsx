@@ -1,7 +1,7 @@
 import {
-  Alert, Box, Button, Divider, IconButton, Paper, Snackbar, Stack, Tooltip, Typography,
+  Alert, Box, Button, Divider, Paper, Snackbar, Stack, Typography,
 } from '@mui/material';
-import { Close as CloseIcon, Print as PrintIcon } from '@mui/icons-material';
+import { Print as PrintIcon } from '@mui/icons-material';
 import PriceListConfigurationPanel from '@/domains/inventory/components/PriceListConfigurationPanel';
 import PriceListPreviewPanel from '@/domains/inventory/components/PriceListPreviewPanel';
 import type { PriceListLabel } from '@/domains/inventory/components/usePriceList';
@@ -13,10 +13,9 @@ import usePriceList from '@/domains/inventory/components/usePriceList';
 
 interface PriceListPanelProps {
   open?: boolean;
-  onClose: () => void;
 }
 
-const PriceListPanel = ({ open = true, onClose }: PriceListPanelProps) => {
+const PriceListPanel = ({ open = true }: PriceListPanelProps) => {
   const pl = usePriceList(open);
 
   // IPC print call must stay in this file
@@ -146,26 +145,6 @@ const PriceListPanel = ({ open = true, onClose }: PriceListPanelProps) => {
           body.is-printing-price-labels .MuiBox-root { height: auto !important; max-height: none !important; overflow: visible !important; box-shadow: none !important; border: none !important; }
         }
       `}</style>
-
-      <Box
-        className="no-print"
-        sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}
-      >
-        <Tooltip title="Close and return to Products">
-          <IconButton
-            onClick={onClose}
-            size="small"
-            aria-label="Close"
-            sx={{
-              color: '#64748b',
-              borderRadius: '6px',
-              '&:hover': { bgcolor: '#f1f5f9', color: '#0b1d39' },
-            }}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
 
       {/* Main Configuration & Preview Columns */}
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>

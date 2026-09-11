@@ -1,4 +1,4 @@
-import React, { useState, useRef, useTransition } from 'react';
+import { useState, useRef, useTransition } from 'react';
 import {
   Box,
   Paper,
@@ -18,8 +18,6 @@ import {
   ViewModule as ViewModuleIcon,
   TableChart as TableChartIcon,
   LocalPrintshop as LocalPrintshopIcon,
-  ViewColumn as ViewColumnIcon,
-  Print as PrintIcon,
 } from '@mui/icons-material';
 import ProductList from '@/domains/inventory/components/ProductList';
 import type { ProductListHandle } from '@/domains/inventory/components/ProductList';
@@ -308,6 +306,7 @@ const InventoryPage = () => {
           <InventoryExcelView
             key={`excel-${inventoryKey}`}
             open={true}
+            onClose={() => setProductView('cards')}
           />
         )}
 
@@ -325,10 +324,7 @@ const InventoryPage = () => {
 
         {/* Flat Price Tag View */}
         {activeNav === 'pricetag' && (
-          <PriceListPanel
-            open={true}
-            onClose={() => setActiveNav('products')}
-          />
+          <PriceListPanel open={true} />
         )}
       </Box>
     </Box>
