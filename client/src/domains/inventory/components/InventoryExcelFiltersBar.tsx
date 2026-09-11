@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, TextField, InputAdornment, MenuItem, Button, IconButton, Tooltip, Chip } from '@mui/material';
-import { Search as SearchIcon, ViewColumn as ViewColumnIcon, Print as PrintIcon } from '@mui/icons-material';
+import { Box, TextField, InputAdornment, MenuItem, IconButton, Tooltip, Chip } from '@mui/material';
+import { Search as SearchIcon, ViewColumn as ViewColumnIcon } from '@mui/icons-material';
 
 interface InventoryExcelFiltersBarProps {
   searchTerm: string;
@@ -11,7 +11,6 @@ interface InventoryExcelFiltersBarProps {
   uniqueCategories: string[];
   filteredCount?: number;
   onOpenColumnsMenu?: (event: React.MouseEvent<HTMLElement>) => void;
-  onPrint?: () => void;
 }
 
 const InventoryExcelFiltersBar = ({
@@ -22,7 +21,6 @@ const InventoryExcelFiltersBar = ({
   uniqueCategories,
   filteredCount,
   onOpenColumnsMenu,
-  onPrint,
 }: InventoryExcelFiltersBarProps) => (
   <Box
     className="no-print"
@@ -39,7 +37,7 @@ const InventoryExcelFiltersBar = ({
     <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}>
       <TextField
         size="small"
-        placeholder="Search name, category or barcode..."
+        placeholder="Search name or barcode..."
         value={searchTerm}
         onChange={(e) => onSearchTermChange(e.target.value)}
         sx={{
@@ -110,7 +108,7 @@ const InventoryExcelFiltersBar = ({
       )}
     </Box>
 
-    {/* Right: Filter Columns icon button & Print button */}
+    {/* Right: Filter Columns icon button */}
     <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center' }}>
       {onOpenColumnsMenu && (
         <Tooltip title="Filter Columns">
@@ -134,30 +132,6 @@ const InventoryExcelFiltersBar = ({
             <ViewColumnIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-      )}
-
-      {onPrint && (
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<PrintIcon />}
-          onClick={onPrint}
-          sx={{
-            height: 38,
-            textTransform: 'none',
-            fontWeight: 600,
-            color: '#0b1d39',
-            borderColor: '#cbd5e1',
-            bgcolor: '#ffffff',
-            borderRadius: '6px',
-            '&:hover': {
-              borderColor: '#0b1d39',
-              bgcolor: '#f8fafc',
-            },
-          }}
-        >
-          Print
-        </Button>
       )}
     </Box>
   </Box>

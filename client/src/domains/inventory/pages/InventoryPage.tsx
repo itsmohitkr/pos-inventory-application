@@ -1,11 +1,9 @@
 import React, { useState, useRef, useTransition } from 'react';
-import * as Sentry from '@sentry/react';
 import {
   Box,
   Paper,
   Typography,
   Stack,
-  Button,
   ToggleButtonGroup,
   ToggleButton,
   Tooltip,
@@ -23,12 +21,9 @@ import {
   ViewColumn as ViewColumnIcon,
   Print as PrintIcon,
 } from '@mui/icons-material';
-import inventoryService from '@/shared/api/inventoryService';
-import useCustomDialog from '@/shared/hooks/useCustomDialog';
 import ProductList from '@/domains/inventory/components/ProductList';
 import type { ProductListHandle } from '@/domains/inventory/components/ProductList';
 import InventoryExcelView from '@/domains/inventory/components/InventoryExcelView';
-import type { InventoryExcelViewHandle } from '@/domains/inventory/components/InventoryExcelView';
 import PriceListPanel from '@/domains/inventory/components/PriceListPanel';
 import InventoryImportView from '@/domains/inventory/components/InventoryImportView';
 import InventoryExportView from '@/domains/inventory/components/InventoryExportView';
@@ -36,16 +31,13 @@ import InventoryExportView from '@/domains/inventory/components/InventoryExportV
 type InventoryNavTab = 'products' | 'import' | 'export' | 'pricetag';
 
 const InventoryPage = () => {
-  const { showError } = useCustomDialog();
   const [activeNav, setActiveNav] = useState<InventoryNavTab>('products');
   const [productView, setProductView] = useState<'cards' | 'grid'>('cards');
-  const [exporting, setExporting] = useState(false);
   const [inventoryKey, setInventoryKey] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isPending, startTransition] = useTransition();
   const inventoryRef = useRef<ProductListHandle>(null);
-  const excelRef = useRef<InventoryExcelViewHandle>(null);
 
   const handleCategoryChange = (val: string) => {
     startTransition(() => {
@@ -66,25 +58,6 @@ const InventoryPage = () => {
     }
   };
 
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const csv = await inventoryService.exportProducts();
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      Sentry.captureException(error, { tags: { feature: 'inventory-export' } });
-      console.error('Export failed:', error);
-      showError('Failed to export products');
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <Box
@@ -330,14 +303,11 @@ const InventoryPage = () => {
           />
         </Box>
 
-        {/* Grid / Spreadsheet View */}
+        {/* Grid / Spreadsheet View — its own search/category filters, independent of the Products list */}
         {activeNav === 'products' && productView === 'grid' && (
           <InventoryExcelView
-            ref={excelRef}
             key={`excel-${inventoryKey}`}
             open={true}
-            categoryFilter={categoryFilter}
-            externalSearch={debouncedSearch}
           />
         )}
 
@@ -348,12 +318,9 @@ const InventoryPage = () => {
           />
         )}
 
-        {/* Flat Export View */}
+        {/* Centralized Flat Export View — its own search/category filters, independent of the Products list */}
         {activeNav === 'export' && (
-          <InventoryExportView
-            onExport={handleExport}
-            exporting={exporting}
-          />
+          <InventoryExportView />
         )}
 
         {/* Flat Price Tag View */}
