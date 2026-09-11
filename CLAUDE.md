@@ -68,6 +68,8 @@ Always verify claims against the actual source code before acting on them — in
 │       │   │   │   ├── barcodeSizePresets.ts     DEFAULT_SIZES (pure data)
 │       │   │   │   ├── PriceListPanel.tsx        Dialog shell + IPC print-html-content call (stays here)
 │       │   │   │   ├── usePriceList.ts           Price list state + handlers
+│       │   │   │   ├── priceListLabelStyles.ts   LABEL_METRICS + buildLabelCss — the label stylesheet,
+│       │   │   │   │                             shared by preview and print (see below)
 │       │   │   │   └── paperSizePresets.ts       PAPER_PRESETS + utility functions (pure)
 │       │   │   └── pages/InventoryPage.tsx
 │       │   ├── dashboard/
@@ -218,6 +220,22 @@ and should be shared — printer *resolution* lives in
 call lives in `client/src/shared/hooks/usePrinters.ts`. What must stay in the
 component is the `invoke` itself, so the `is-printing-*` class timing stays
 next to the call it gates.
+
+**Price-list labels: style them in `priceListLabelStyles.ts`, never with `sx`.**
+`buildPriceListPrintableHtml` clones the preview's `.price-label-item` nodes,
+but emotion's generated classes never reach the print window — so a label
+styled through `sx` looks right on screen and silently loses that styling on
+paper. Cloning gives WYSIWYG *structure* only. The styling comes from
+`buildLabelCss(...)`, one mm-based stylesheet that the preview injects in a
+`<style>` tag and the print document embeds verbatim; that shared string is
+what actually makes preview and printout agree, and it is why the two used to
+drift (a dead "Barcode Line Spacing" field, a barcode stretched to label width
+that discarded the configured Bar Thickness, differing padding and clamping).
+`PriceListLabelCard.tsx` is deliberately structure plus class names only.
+Labels are fixed-height with `justify-content: flex-start` so overflow can only
+fall off the bottom, never shave the top off a barcode; `getLabelFitWarning` in
+`paperSizePresets.ts` warns before that clipping happens and its arithmetic
+must be kept in step with `LABEL_METRICS`.
 
 **Printer resolution is shared, and validates against the live list.** Use
 `resolvePrinterName({ receiptSettings, printers, defaultPrinter })` for

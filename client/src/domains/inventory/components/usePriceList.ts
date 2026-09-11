@@ -7,6 +7,7 @@ import {
   PAPER_PRESETS, DEFAULT_DISPLAY_OPTIONS, PRICE_LIST_SETTINGS_KEY,
   MM_TO_PX, MIN_PREVIEW_SCALE, PREVIEW_FIT_PADDING_PX, PREVIEW_FIT_SAFETY,
   getStoredSettings, getPrimaryBarcode, getPreviewBatch, getBarcodeReadabilityWarning,
+  getLabelFitWarning, getPageWidthWarning,
 } from '@/domains/inventory/components/paperSizePresets';
 import type {
   PriceListDisplayOptions,
@@ -147,6 +148,19 @@ export default function usePriceList(open: boolean) {
       .filter((warning): warning is BarcodeWarning => warning !== null);
   }, [displayOptions.barcode, selectedRows, layout.barcodeFormat, layout.barcodeLineWidth, labelWidthMm]);
 
+  const labelFitWarning = useMemo(
+    () =>
+      getLabelFitWarning({
+        layout,
+        displayOptions,
+        labelHeightMm,
+        isThermal: isThermalPreview,
+        marginTopMm,
+        marginBottomMm,
+      }),
+    [layout, displayOptions, labelHeightMm, isThermalPreview, marginTopMm, marginBottomMm]
+  );
+
   const previewPageWidthMm = useMemo(() => {
     const columns = Math.max(1, Number(layout.columns) || 1);
     const labelWidth = Math.max(20, Number(layout.labelWidth) || 20);
@@ -156,8 +170,12 @@ export default function usePriceList(open: boolean) {
     return marginLeft + marginRight + columns * labelWidth + Math.max(0, columns - 1) * gapHorizontal;
   }, [layout.columns, layout.labelWidth, layout.marginLeft, layout.marginRight, layout.gapHorizontal]);
 
-  const previewPageWidthPx = useMemo(() => Math.max(1, previewPageWidthMm * MM_TO_PX), [previewPageWidthMm]);
-  const activePreviewScale = paperType === 'a4' ? previewScale : 1;
+  const pageWidthWarning = useMemo(
+    () => getPageWidthWarning({ isThermal: isThermalPreview, previewPageWidthMm }),
+    [isThermalPreview, previewPageWidthMm]
+  );
+
+  const activePreviewScale = previewScale;
 
   const fetchProducts = useCallback(async (signal?: AbortSignal) => {
     setLoadingProducts(true);
@@ -206,9 +224,11 @@ export default function usePriceList(open: boolean) {
     if (!previewElement) return undefined;
 
     const updatePreviewScale = () => {
-      if (paperType !== 'a4' || !autoFit) return;
+      if (!autoFit) return;
+      const targetWidthMm = isThermalPreview ? labelWidthMm : previewPageWidthMm;
+      const targetWidthPx = Math.max(1, targetWidthMm * MM_TO_PX);
       const availableWidthPx = Math.max(0, previewElement.clientWidth - PREVIEW_FIT_PADDING_PX);
-      const fitScale = Math.min(1, availableWidthPx / previewPageWidthPx) * PREVIEW_FIT_SAFETY;
+      const fitScale = Math.min(1, availableWidthPx / targetWidthPx) * PREVIEW_FIT_SAFETY;
       setPreviewScale(Math.max(MIN_PREVIEW_SCALE, Number(fitScale.toFixed(3))));
     };
 
@@ -223,16 +243,24 @@ export default function usePriceList(open: boolean) {
       window.removeEventListener('resize', updatePreviewScale);
       if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [open, paperType, previewPageWidthPx, autoFit]);
+  }, [open, paperType, isThermalPreview, labelWidthMm, previewPageWidthMm, autoFit]);
 
-  const handleZoomIn = () => { setAutoFit(false); setPreviewScale((prev) => Math.min(3, prev + 0.1)); };
-  const handleZoomOut = () => { setAutoFit(false); setPreviewScale((prev) => Math.max(MIN_PREVIEW_SCALE, prev - 0.1)); };
+  const handleZoomIn = () => {
+    setAutoFit(false);
+    setPreviewScale((prev) => Math.min(3, Number((prev + 0.15).toFixed(2))));
+  };
+  const handleZoomOut = () => {
+    setAutoFit(false);
+    setPreviewScale((prev) => Math.max(MIN_PREVIEW_SCALE, Number((prev - 0.15).toFixed(2))));
+  };
   const handleFitToWidth = () => {
     setAutoFit(true);
     const container = previewContainerRef.current;
-    if (container && paperType === 'a4') {
+    if (container) {
+      const targetWidthMm = isThermalPreview ? labelWidthMm : previewPageWidthMm;
+      const targetWidthPx = Math.max(1, targetWidthMm * MM_TO_PX);
       const availableWidthPx = Math.max(0, container.clientWidth - PREVIEW_FIT_PADDING_PX);
-      const fitScale = Math.min(1.5, availableWidthPx / previewPageWidthPx) * PREVIEW_FIT_SAFETY;
+      const fitScale = Math.min(1.5, availableWidthPx / targetWidthPx) * PREVIEW_FIT_SAFETY;
       setPreviewScale(Math.max(MIN_PREVIEW_SCALE, Number(fitScale.toFixed(3))));
     }
   };
@@ -301,6 +329,36 @@ export default function usePriceList(open: boolean) {
     );
   };
 
+  const [recentlyAddedId, setRecentlyAddedId] = useState<number | null>(null);
+  const recentlyAddedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (recentlyAddedTimerRef.current) clearTimeout(recentlyAddedTimerRef.current);
+    };
+  }, []);
+
+  const handleAddProduct = useCallback((product: Product) => {
+    if (recentlyAddedTimerRef.current) clearTimeout(recentlyAddedTimerRef.current);
+    setRecentlyAddedId(product.id);
+    recentlyAddedTimerRef.current = setTimeout(() => {
+      setRecentlyAddedId(null);
+    }, 1800);
+
+    setSelectedProducts((current) => {
+      const existing = current.find((item) => String(item.productId) === String(product.id));
+      if (existing) {
+        const updated = current.filter((item) => String(item.productId) !== String(product.id));
+        return [{ productId: product.id, quantity: (Number(existing.quantity) || 1) + 1 }, ...updated];
+      }
+      return [{ productId: product.id, quantity: 1 }, ...current];
+    });
+  }, []);
+
+  const handleClearAllProducts = useCallback(() => {
+    setSelectedProducts([]);
+  }, []);
+
   const handleDisplayOptionChange = (field: keyof PriceListDisplayOptions) => {
     setDisplayOptions((current: PriceListDisplayOptions) => ({
       ...current,
@@ -315,10 +373,11 @@ export default function usePriceList(open: boolean) {
     paperType, paperPreset, layout, setLayout, showAdvancedLayout, setShowAdvancedLayout,
     displayOptions,
     // computed
-    selectedProductOptions, selectedRows, previewLabels,
+    selectedProductOptions, selectedRows, previewLabels, recentlyAddedId,
     totalLabelCount, missingBarcodeCount,
     labelWidthMm, labelHeightMm, marginTopMm, marginRightMm, marginBottomMm, marginLeftMm,
     isThermalPreview, printPageSize, barcodeWarnings, previewPageWidthMm,
+    labelFitWarning, pageWidthWarning,
     activePreviewScale, autoFit,
     // print feedback
     printError, setPrintError, printNotice, setPrintNotice,
@@ -329,8 +388,8 @@ export default function usePriceList(open: boolean) {
     fetchPrinters,
     handleZoomIn, handleZoomOut, handleFitToWidth,
     handlePaperTypeChange, handlePresetChange,
-    handleProductSelectionChange, handleQuantityChange,
-    handleIncreaseQuantity, handleDecreaseQuantity,
+    handleProductSelectionChange, handleAddProduct, handleClearAllProducts,
+    handleQuantityChange, handleIncreaseQuantity, handleDecreaseQuantity,
     handleRemoveSelectedProduct, handleDisplayOptionChange,
     // for print handler in parent
     getPrimaryBarcode,

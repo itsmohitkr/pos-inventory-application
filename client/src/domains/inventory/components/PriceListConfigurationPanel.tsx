@@ -14,8 +14,11 @@ interface PriceListConfigurationPanelProps {
   /** The Autocomplete's current value — full product objects, not ids. */
   selectedProductOptions: Product[];
   handleProductSelectionChange: (event: unknown, products: Product[]) => void;
+  handleAddProduct: (product: Product) => void;
+  handleClearAllProducts: () => void;
   getPrimaryBarcode: (product?: Product | null) => string;
   selectedRows: PriceListRow[];
+  recentlyAddedId?: number | null;
   handleDecreaseQuantity: (productId: number) => void;
   handleQuantityChange: (productId: number, rawValue: string | number) => void;
   handleIncreaseQuantity: (productId: number) => void;
@@ -44,6 +47,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   Collapse,
   Divider,
   FormControl,
@@ -71,10 +75,13 @@ import {
 const PriceListConfigurationPanel = ({
   products,
   loadingProducts,
-  selectedProductOptions,
-  handleProductSelectionChange,
+  selectedProductOptions: _selectedProductOptions,
+  handleProductSelectionChange: _handleProductSelectionChange,
+  handleAddProduct,
+  handleClearAllProducts,
   getPrimaryBarcode,
   selectedRows,
+  recentlyAddedId,
   handleDecreaseQuantity,
   handleQuantityChange,
   handleIncreaseQuantity,
@@ -95,6 +102,8 @@ const PriceListConfigurationPanel = ({
   displayOptions,
   handleDisplayOptionChange,
 }: PriceListConfigurationPanelProps) => {
+  const [searchInput, setSearchInput] = React.useState('');
+
   return (
     <Box
       className="no-print"
@@ -104,6 +113,13 @@ const PriceListConfigurationPanel = ({
         display: 'flex',
         flexDirection: 'column',
         minHeight: 0,
+        '& input[type=number]': {
+          MozAppearance: 'textfield',
+        },
+        '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
+          WebkitAppearance: 'none',
+          margin: 0,
+        },
       }}
     >
       <Stack
@@ -118,101 +134,212 @@ const PriceListConfigurationPanel = ({
           '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 10 },
         }}
       >
-        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.2 }}>
-            Product Selection
-          </Typography>
+        <Paper variant="outlined" sx={{ p: 2, border: '1px solid #e2e8f0', borderRadius: '10px', bgcolor: '#f8fafc' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
+              Product Selection
+            </Typography>
+            {selectedRows.length > 0 && (
+              <Button
+                size="small"
+                variant="text"
+                color="error"
+                onClick={handleClearAllProducts}
+                sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.75rem' }}
+              >
+                Clear
+              </Button>
+            )}
+          </Box>
+
           <Autocomplete
-            multiple
             options={products}
             loading={loadingProducts}
-            value={selectedProductOptions}
-            onChange={handleProductSelectionChange}
-            disableCloseOnSelect
+            value={null}
+            inputValue={searchInput}
+            onInputChange={(_event, newInputValue, reason) => {
+              if (reason !== 'reset') {
+                setSearchInput(newInputValue);
+              }
+            }}
+            onChange={(_event, product) => {
+              if (product && typeof product !== 'string') {
+                handleAddProduct(product);
+                setSearchInput('');
+              }
+            }}
             getOptionLabel={(option) => {
+              if (typeof option === 'string') return option;
               const barcode = getPrimaryBarcode(option);
               return barcode ? `${option.name} (${barcode})` : option.name;
             }}
-            isOptionEqualToValue={(option, value) => String(option.id) === String(value.id)}
+            isOptionEqualToValue={(option, value) => String(option.id) === String(value?.id)}
+            renderOption={(props, option) => {
+              const barcode = getPrimaryBarcode(option);
+              const isAlreadyAdded = selectedRows.some((r) => String(r.product.id) === String(option.id));
+              const { key, ...optionProps } = props;
+              return (
+                <Box
+                  component="li"
+                  key={key}
+                  {...optionProps}
+                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.8, px: 1.5 }}
+                >
+                  <Box sx={{ minWidth: 0, mr: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#0b1d39' }} noWrap>
+                      {option.name}
+                    </Typography>
+                    {barcode && (
+                      <Typography variant="caption" color="text.secondary">
+                        Barcode: {barcode}
+                      </Typography>
+                    )}
+                  </Box>
+                  {isAlreadyAdded && (
+                    <Chip
+                      label="Added"
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        bgcolor: 'rgba(11, 29, 57, 0.08)',
+                        color: '#0b1d39',
+                        borderRadius: '4px',
+                      }}
+                    />
+                  )}
+                </Box>
+              );
+            }}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Select one or more products"
-                placeholder="Search products"
+                label="Search product or scan barcode"
+                placeholder="Scan barcode or type product name..."
                 size="small"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchInput.trim()) {
+                    const query = searchInput.trim().toLowerCase();
+                    const matchedProduct = products.find(
+                      (p) =>
+                        getPrimaryBarcode(p).toLowerCase() === query ||
+                        (p.sku && String(p.sku).toLowerCase() === query)
+                    );
+                    if (matchedProduct) {
+                      e.preventDefault();
+                      handleAddProduct(matchedProduct);
+                      setSearchInput('');
+                    }
+                  }
+                }}
+                sx={{ bgcolor: '#ffffff', borderRadius: '8px' }}
               />
             )}
             sx={{ mb: 1.5 }}
           />
-          <Divider sx={{ my: 1.5 }} />
-          <Stack spacing={1}>
+
+          <Divider sx={{ my: 1.5, borderColor: '#e2e8f0' }} />
+
+          <Stack
+            spacing={1}
+            sx={{
+              maxHeight: '312px',
+              overflowY: 'auto',
+              pr: 0.5,
+              '&::-webkit-scrollbar': { width: 6 },
+              '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 10 },
+            }}
+          >
             {selectedRows.length === 0 && (
-              <Typography variant="body2" color="text.secondary">
-                No products selected yet.
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                No products selected yet. Scan barcode or search above to add products.
               </Typography>
             )}
-            {selectedRows.map((row) => (
-              <Paper
-                key={row.product.id}
-                variant="outlined"
-                sx={{
-                  px: 1,
-                  py: 0.8,
-                  borderRadius: 1.5,
-                  bgcolor: 'rgba(255,255,255,0.92)',
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto auto auto auto',
-                  alignItems: 'center',
-                  gap: 0.6,
-                }}
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-                    {row.product.name}
-                  </Typography>
-                </Box>
-                <IconButton
-                  size="small"
-                  onClick={() => handleDecreaseQuantity(row.product.id)}
-                  disabled={row.quantity <= 1}
-                  title="Decrease labels"
+            {selectedRows.map((row) => {
+              const isJustAdded = recentlyAddedId === row.product.id;
+              return (
+                <Paper
+                  key={row.product.id}
+                  variant="outlined"
+                  sx={{
+                    px: 1.25,
+                    py: 0.8,
+                    borderRadius: '8px',
+                    borderColor: isJustAdded ? '#16a34a' : '#cbd5e1',
+                    borderWidth: '1.5px',
+                    bgcolor: '#ffffff',
+                    transition: 'border-color 0.4s ease-in-out',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto auto auto auto',
+                    alignItems: 'center',
+                    gap: 0.6,
+                  }}
                 >
-                  <RemoveIcon fontSize="small" />
-                </IconButton>
-                <TextField
-                  size="small"
-                  type="number"
-                  inputProps={{ min: 1, style: { textAlign: 'center', width: 48 } }}
-                  value={row.quantity}
-                  onChange={(event) => handleQuantityChange(row.product.id, event.target.value)}
-                />
-                <IconButton
-                  size="small"
-                  onClick={() => handleIncreaseQuantity(row.product.id)}
-                  title="Increase labels"
-                >
-                  <AddIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => handleRemoveSelectedProduct(row.product.id)}
-                  title="Remove product"
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </Paper>
-            ))}
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#0b1d39' }} noWrap>
+                      {row.product.name}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDecreaseQuantity(row.product.id)}
+                    disabled={row.quantity <= 1}
+                    title="Decrease labels"
+                  >
+                    <RemoveIcon fontSize="small" />
+                  </IconButton>
+                  <TextField
+                    size="small"
+                    type="number"
+                    inputProps={{
+                      min: 1,
+                      style: {
+                        textAlign: 'center',
+                        width: '32px',
+                        padding: '2px 4px',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                      },
+                    }}
+                    value={row.quantity}
+                    onChange={(event) => handleQuantityChange(row.product.id, event.target.value)}
+                    sx={{
+                      bgcolor: '#ffffff',
+                      '& .MuiInputBase-root': {
+                        height: '28px',
+                        borderRadius: '6px',
+                      },
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => handleIncreaseQuantity(row.product.id)}
+                    title="Increase labels"
+                  >
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveSelectedProduct(row.product.id)}
+                    title="Remove product"
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Paper>
+              );
+            })}
           </Stack>
         </Paper>
 
-        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.2 }}>
+        <Paper variant="outlined" sx={{ p: 2, border: '1px solid #e2e8f0', borderRadius: '10px', bgcolor: '#f8fafc' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39', mb: 1.2 }}>
             Printer and Paper
           </Typography>
           <Stack spacing={1.2}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <FormControl fullWidth size="small">
+              <FormControl fullWidth size="small" sx={{ bgcolor: '#ffffff' }}>
                 <InputLabel>Printer</InputLabel>
                 <Select
                   label="Printer"
@@ -234,13 +361,13 @@ const PriceListConfigurationPanel = ({
             </Box>
 
             {!window.electron?.ipcRenderer && (
-              <Alert severity="info" sx={{ py: 0.5 }}>
+              <Alert severity="info" sx={{ py: 0.5, borderRadius: '8px' }}>
                 Printer auto-detection is available in the desktop app. Browser print is still
                 supported.
               </Alert>
             )}
 
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" sx={{ bgcolor: '#ffffff' }}>
               <InputLabel>Paper Type</InputLabel>
               <Select label="Paper Type" value={paperType} onChange={handlePaperTypeChange}>
                 <MenuItem value="a4">A4 Paper</MenuItem>
@@ -248,7 +375,7 @@ const PriceListConfigurationPanel = ({
               </Select>
             </FormControl>
 
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" sx={{ bgcolor: '#ffffff' }}>
               <InputLabel>Paper Size Preset</InputLabel>
               <Select label="Paper Size Preset" value={paperPreset} onChange={handlePresetChange}>
                 {paperPresets.map((preset) => (
@@ -261,7 +388,7 @@ const PriceListConfigurationPanel = ({
           </Stack>
         </Paper>
 
-        <Paper elevation={0} sx={{ p: 2, border: '1px solid #e5e7eb' }}>
+        <Paper variant="outlined" sx={{ p: 2, border: '1px solid #e2e8f0', borderRadius: '10px', bgcolor: '#f8fafc' }}>
           <Box
             sx={{
               display: 'flex',
@@ -270,7 +397,7 @@ const PriceListConfigurationPanel = ({
               gap: 1,
             }}
           >
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
               Advanced Layout and Margins
             </Typography>
             <Button
@@ -278,6 +405,7 @@ const PriceListConfigurationPanel = ({
               variant="outlined"
               endIcon={showAdvancedLayout ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               onClick={() => setShowAdvancedLayout((current) => !current)}
+              sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#cbd5e1', color: '#0b1d39', borderRadius: '6px' }}
             >
               {showAdvancedLayout ? 'Hide' : 'Show'}
             </Button>
@@ -285,22 +413,26 @@ const PriceListConfigurationPanel = ({
 
           <Collapse in={showAdvancedLayout} timeout="auto" unmountOnExit>
             <Grid container spacing={1.2} sx={{ mt: 0.8 }}>
-              <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Columns"
-                  type="number"
-                  inputProps={{ min: 1, max: 10 }}
-                  value={layout.columns}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      columns: Math.max(1, Number(event.target.value) || 1),
-                    }))
-                  }
-                />
-              </Grid>
+              {/* Thermal prints one label per page, so columns and the
+                  between-label gaps have no effect there. */}
+              {paperType === 'a4' && (
+                <Grid size={{ xs: 6 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Columns"
+                    type="number"
+                    inputProps={{ min: 1, max: 10 }}
+                    value={layout.columns}
+                    onChange={(event) =>
+                      setLayout((current) => ({
+                        ...current,
+                        columns: Math.max(1, Number(event.target.value) || 1),
+                      }))
+                    }
+                  />
+                </Grid>
+              )}
               <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
@@ -450,36 +582,40 @@ const PriceListConfigurationPanel = ({
                   }
                 />
               </Grid>
-              <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Horizontal Gap (mm)"
-                  type="number"
-                  value={layout.gapHorizontal}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      gapHorizontal: Math.max(0, Number(event.target.value) || 0),
-                    }))
-                  }
-                />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Vertical Gap (mm)"
-                  type="number"
-                  value={layout.gapVertical}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      gapVertical: Math.max(0, Number(event.target.value) || 0),
-                    }))
-                  }
-                />
-              </Grid>
+              {paperType === 'a4' && (
+                <Grid size={{ xs: 6 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Horizontal Gap (mm)"
+                    type="number"
+                    value={layout.gapHorizontal}
+                    onChange={(event) =>
+                      setLayout((current) => ({
+                        ...current,
+                        gapHorizontal: Math.max(0, Number(event.target.value) || 0),
+                      }))
+                    }
+                  />
+                </Grid>
+              )}
+              {paperType === 'a4' && (
+                <Grid size={{ xs: 6 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Vertical Gap (mm)"
+                    type="number"
+                    value={layout.gapVertical}
+                    onChange={(event) =>
+                      setLayout((current) => ({
+                        ...current,
+                        gapVertical: Math.max(0, Number(event.target.value) || 0),
+                      }))
+                    }
+                  />
+                </Grid>
+              )}
               <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth

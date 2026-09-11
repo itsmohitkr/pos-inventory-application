@@ -1,5 +1,6 @@
 import type { Options as BarcodeOptions } from 'react-barcode';
 import type { Batch, Product } from '@/shared/types/models';
+import { LABEL_METRICS, getLineSpacing } from '@/domains/inventory/components/priceListLabelStyles';
 
 /** The symbologies react-barcode accepts. */
 export type BarcodeFormat = NonNullable<BarcodeOptions['format']>;
@@ -44,13 +45,16 @@ export const PAPER_PRESETS: Record<'a4' | 'thermal', PaperPresetOption[]> = {
       },
     },
   ],
+  // Thermal margins are a safe-area inset on each individual label, so on a
+  // 25mm label every extra millimetre costs 4% of the usable height. 1mm still
+  // absorbs normal printer registration drift.
   thermal: [
     {
       id: 'thermal_50x25',
       name: 'Thermal Label (50mm x 25mm)',
       layout: {
         columns: 1, labelWidth: 50, labelHeight: 25,
-        marginTop: 2, marginRight: 2, marginBottom: 2, marginLeft: 2,
+        marginTop: 1, marginRight: 2, marginBottom: 1, marginLeft: 2,
         gapHorizontal: 2, gapVertical: 2,
         barcodeLineWidth: 1.1, barcodeHeight: 30, barcodeFormat: 'CODE128',
       },
@@ -60,7 +64,7 @@ export const PAPER_PRESETS: Record<'a4' | 'thermal', PaperPresetOption[]> = {
       name: 'Thermal Label (38mm x 25mm)',
       layout: {
         columns: 1, labelWidth: 38, labelHeight: 25,
-        marginTop: 2, marginRight: 2, marginBottom: 2, marginLeft: 2,
+        marginTop: 1, marginRight: 2, marginBottom: 1, marginLeft: 2,
         gapHorizontal: 2, gapVertical: 2,
         barcodeLineWidth: 1.1, barcodeHeight: 26, barcodeFormat: 'CODE128',
       },
@@ -101,9 +105,17 @@ export interface PriceListDisplayOptions {
   barcode: boolean;
 }
 
+/**
+ * A shelf price tag is the barcode and the two prices; name and batch code are
+ * opt-in. Keeping it to these three also leaves every stock preset with room
+ * to spare, so a fresh install never opens on a "content is too tall" warning.
+ */
 export const DEFAULT_DISPLAY_OPTIONS: PriceListDisplayOptions = {
-  mrp: true, salePrice: true, batchNumber: true, productName: true, barcode: true,
+  mrp: true, salePrice: true, batchNumber: false, productName: false, barcode: true,
 };
+
+/** A4 portrait, the only sheet size the A4 mode prints to. */
+export const A4_WIDTH_MM = 210;
 
 export const PRICE_LIST_SETTINGS_KEY = 'posPriceListSettings';
 export const MM_TO_PX = 3.7795275591;
@@ -163,4 +175,83 @@ export const getBarcodeReadabilityWarning = ({
   if (estimatedWidthPx > availableWidthPx * 0.92) return 'Barcode is too dense for the current label width.';
   if (lineWidth < 0.9 && labelWidthMm <= 40) return 'Barcode bars may print too thin for reliable scanning.';
   return null;
+};
+
+/**
+ * Height the label's contents need, in px. Mirrors the metrics the shared
+ * stylesheet lays the label out with — if one moves, so must the other, or the
+ * fit warning drifts away from what actually renders.
+ */
+export const estimateLabelContentHeightPx = ({
+  layout,
+  displayOptions,
+}: {
+  layout: PriceListLayout;
+  displayOptions: PriceListDisplayOptions;
+}): number => {
+  const {
+    barcodeGapMm, barcodeTextFontPx, barcodeTextMarginPx,
+    nameFontPx, nameLineHeight, nameGapMm, lineFontPx, lineMarginMm,
+  } = LABEL_METRICS;
+
+  let height = 0;
+  if (displayOptions.barcode) {
+    const barcodeHeightPx = Math.max(20, Number(layout.barcodeHeight) || 20);
+    height += barcodeHeightPx + barcodeTextFontPx + barcodeTextMarginPx + barcodeGapMm * MM_TO_PX;
+  }
+  if (displayOptions.productName) {
+    // The name is clamped to nameMaxLines and ellipsised, so its height does
+    // not depend on how long the product is named.
+    height += LABEL_METRICS.nameMaxLines * nameFontPx * nameLineHeight + nameGapMm * MM_TO_PX;
+  }
+  const lineSpacing = getLineSpacing(layout);
+  const lineCount = [displayOptions.mrp, displayOptions.salePrice, displayOptions.batchNumber]
+    .filter(Boolean).length;
+  height += lineCount * (lineFontPx * lineSpacing + lineMarginMm * 2 * MM_TO_PX);
+  return height;
+};
+
+/**
+ * Warns when the chosen content cannot fit the label. Labels are fixed-height
+ * and clip, so without this the last line is silently cut off against the
+ * label edge and the shop only finds out after printing a roll.
+ */
+export const getLabelFitWarning = ({
+  layout,
+  displayOptions,
+  labelHeightMm,
+  isThermal,
+  marginTopMm,
+  marginBottomMm,
+}: {
+  layout: PriceListLayout;
+  displayOptions: PriceListDisplayOptions;
+  labelHeightMm: number;
+  isThermal: boolean;
+  marginTopMm: number;
+  marginBottomMm: number;
+}): string | null => {
+  // On thermal each label is its own page, so the margins eat into the label.
+  // On A4 they are sheet margins applied once to the whole grid.
+  const marginsMm = isThermal ? marginTopMm + marginBottomMm : 0;
+  const availablePx =
+    (labelHeightMm - marginsMm) * MM_TO_PX - LABEL_METRICS.paddingVerticalMm * 2 * MM_TO_PX;
+  const neededPx = estimateLabelContentHeightPx({ layout, displayOptions });
+  if (neededPx <= availablePx) return null;
+
+  const shortfallMm = Math.max(0.1, (neededPx - availablePx) / MM_TO_PX);
+  return `Label content is about ${shortfallMm.toFixed(1)}mm too tall and the bottom line will be cut off. Increase Label Height, reduce Barcode Height, or uncheck a field under Label Content.`;
+};
+
+/** A4 layouts wider than the sheet are silently cropped by the printer. */
+export const getPageWidthWarning = ({
+  isThermal,
+  previewPageWidthMm,
+}: {
+  isThermal: boolean;
+  previewPageWidthMm: number;
+}): string | null => {
+  if (isThermal || previewPageWidthMm <= A4_WIDTH_MM) return null;
+  const overflowMm = previewPageWidthMm - A4_WIDTH_MM;
+  return `This layout is ${previewPageWidthMm.toFixed(0)}mm wide — ${overflowMm.toFixed(0)}mm wider than an A4 sheet. The right-hand column(s) will be cut off. Reduce Columns, Label Width, Horizontal Gap, or the side margins.`;
 };
