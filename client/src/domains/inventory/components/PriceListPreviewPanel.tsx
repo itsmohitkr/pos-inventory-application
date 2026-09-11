@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PriceListLayout } from '@/domains/inventory/components/paperSizePresets';
+import { buildLabelCss } from '@/domains/inventory/components/priceListLabelStyles';
 import type {
   BarcodeWarning,
   PriceListLabel,
@@ -20,6 +21,10 @@ interface PriceListPreviewPanelProps {
   missingBarcodeCount: number;
   printError: string;
   barcodeWarnings: BarcodeWarning[];
+  /** Set when the chosen content is taller than the label and would clip. */
+  labelFitWarning: string | null;
+  /** Set when an A4 layout is wider than the sheet. */
+  pageWidthWarning: string | null;
   previewContainerRef: React.RefObject<HTMLDivElement | null>;
   /** The node priceListPrintUtils clones its labels from. */
   previewRef: React.RefObject<HTMLDivElement | null>;
@@ -32,10 +37,7 @@ interface PriceListPreviewPanelProps {
   marginBottomMm: number;
   marginLeftMm: number;
   previewLabels: PriceListLabel[];
-  renderPreviewLabelCard: (
-    label: PriceListLabel,
-    options?: Record<string, unknown>
-  ) => React.ReactNode;
+  renderPreviewLabelCard: (label: PriceListLabel) => React.ReactNode;
   layout: PriceListLayout;
 }
 import {
@@ -63,10 +65,12 @@ const PriceListPreviewPanel = ({
   handleZoomIn,
   autoFit,
   handleFitToWidth,
-  paperType,
+  paperType: _paperType,
   missingBarcodeCount,
   printError,
   barcodeWarnings,
+  labelFitWarning,
+  pageWidthWarning,
   previewContainerRef,
   previewRef,
   isThermalPreview,
@@ -81,6 +85,22 @@ const PriceListPreviewPanel = ({
   renderPreviewLabelCard,
   layout,
 }: PriceListPreviewPanelProps) => {
+  // The exact stylesheet the print document will embed, so what is on screen
+  // and what comes out of the printer are laid out by identical rules.
+  const labelCss = React.useMemo(
+    () =>
+      buildLabelCss({
+        layout,
+        labelWidthMm,
+        labelHeightMm,
+        marginTopMm,
+        marginRightMm,
+        marginBottomMm,
+        marginLeftMm,
+      }),
+    [layout, labelWidthMm, labelHeightMm, marginTopMm, marginRightMm, marginBottomMm, marginLeftMm]
+  );
+
   return (
     <Box
       className="printable-labels-area"
@@ -96,7 +116,9 @@ const PriceListPreviewPanel = ({
         elevation={0}
         sx={{
           p: 2,
-          border: '1px solid #e5e7eb',
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          bgcolor: '#ffffff',
           flex: 1,
           height: { xs: 'auto', sm: '100%' },
           display: 'flex',
@@ -119,61 +141,82 @@ const PriceListPreviewPanel = ({
             mb: 1,
           }}
         >
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
             Live Preview
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Chip size="small" variant="outlined" label={`${selectedRows.length} items`} />
-            <Chip size="small" color="primary" label={`${totalLabelCount} labels`} />
+            <Chip
+              size="small"
+              variant="outlined"
+              label={`${selectedRows.length} items`}
+              sx={{
+                borderColor: '#cbd5e1',
+                color: '#0b1d39',
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                borderRadius: '6px',
+              }}
+            />
+            <Chip
+              size="small"
+              label={`${totalLabelCount} labels`}
+              sx={{
+                bgcolor: 'rgba(11, 29, 57, 0.08)',
+                color: '#0b1d39',
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                borderRadius: '6px',
+              }}
+            />
 
             <Box
               sx={{
                 ml: 1,
                 display: 'flex',
                 alignItems: 'center',
-                bgcolor: 'rgba(0,0,0,0.04)',
-                borderRadius: 2,
+                bgcolor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
                 px: 0.5,
                 py: 0.25,
               }}
             >
               <Tooltip title="Zoom Out">
                 <span>
-                  <IconButton size="small" onClick={handleZoomOut} disabled={paperType !== 'a4'}>
-                    <ZoomOutIcon fontSize="small" />
+                  <IconButton size="small" onClick={handleZoomOut}>
+                    <ZoomOutIcon fontSize="small" sx={{ color: '#475569' }} />
                   </IconButton>
                 </span>
               </Tooltip>
               <Typography
                 variant="caption"
-                sx={{ minWidth: 45, textAlign: 'center', fontWeight: 600 }}
+                sx={{ minWidth: 45, textAlign: 'center', fontWeight: 600, color: '#0b1d39' }}
               >
                 {Math.round(activePreviewScale * 100)}%
               </Typography>
               <Tooltip title="Zoom In">
                 <span>
-                  <IconButton size="small" onClick={handleZoomIn} disabled={paperType !== 'a4'}>
-                    <ZoomInIcon fontSize="small" />
+                  <IconButton size="small" onClick={handleZoomIn}>
+                    <ZoomInIcon fontSize="small" sx={{ color: '#475569' }} />
                   </IconButton>
                 </span>
               </Tooltip>
-              <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
+              <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5, borderColor: '#cbd5e1' }} />
               <Tooltip title="Auto-Fit to Width">
                 <span>
                   <IconButton
                     size="small"
                     color={autoFit ? 'primary' : 'default'}
                     onClick={handleFitToWidth}
-                    disabled={paperType !== 'a4'}
                   >
-                    <AspectRatioIcon fontSize="small" />
+                    <AspectRatioIcon fontSize="small" sx={{ color: autoFit ? '#0b1d39' : '#475569' }} />
                   </IconButton>
                 </span>
               </Tooltip>
             </Box>
           </Stack>
         </Box>
-        <Divider className="no-print" sx={{ mb: 1.5 }} />
+        <Divider className="no-print" sx={{ mb: 1.5, borderColor: '#f1f5f9' }} />
 
         {missingBarcodeCount > 0 && (
           <Alert severity="warning" className="no-print" sx={{ mb: 1.2 }}>
@@ -191,6 +234,18 @@ const PriceListPreviewPanel = ({
             width settings. Example: {barcodeWarnings[0].productName}. {barcodeWarnings[0].message}
           </Alert>
         )}
+        {labelFitWarning && (
+          <Alert severity="warning" className="no-print" sx={{ mb: 1.2 }}>
+            {labelFitWarning}
+          </Alert>
+        )}
+        {pageWidthWarning && (
+          <Alert severity="warning" className="no-print" sx={{ mb: 1.2 }}>
+            {pageWidthWarning}
+          </Alert>
+        )}
+
+        <style>{labelCss}</style>
 
         <Box
           ref={previewContainerRef}
@@ -200,7 +255,7 @@ const PriceListPreviewPanel = ({
             boxSizing: 'border-box',
             borderRadius: 1.5,
             bgcolor: '#f1f5f9',
-            p: paperType === 'a4' ? 4 : 1,
+            p: 3,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -217,7 +272,7 @@ const PriceListPreviewPanel = ({
             ref={previewRef}
             sx={{
               width: isThermalPreview ? `${labelWidthMm}mm` : `${previewPageWidthMm}mm`,
-              transform: paperType === 'a4' ? `scale(${activePreviewScale})` : 'none',
+              transform: `scale(${activePreviewScale})`,
               transformOrigin: 'top center',
               bgcolor: '#fff',
               border: isThermalPreview ? 'none' : '1px dashed #94a3b8',
@@ -225,6 +280,7 @@ const PriceListPreviewPanel = ({
               borderRadius: '4px',
               mb: 12,
               flexShrink: 0,
+              transition: 'transform 0.15s ease-out',
               '@media print': {
                 transform: 'none !important',
                 border: 'none',
@@ -246,43 +302,16 @@ const PriceListPreviewPanel = ({
                   previewLabels.map((label) => (
                     <Box
                       key={label.id}
-                      sx={{
-                        width: `${labelWidthMm}mm`,
-                        height: `${labelHeightMm}mm`,
-                        border: '1px dashed #94a3b8',
-                        borderRadius: 1,
-                        bgcolor: '#fff',
-                        p: `${marginTopMm}mm ${marginRightMm}mm ${marginBottomMm}mm ${marginLeftMm}mm`,
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                      }}
+                      className="thermal-label-page"
+                      sx={{ border: '1px dashed #94a3b8', borderRadius: 1 }}
                     >
-                      {renderPreviewLabelCard(label, {
-                        width: '100%',
-                        minHeight: '100%',
-                        padding: '0.8mm 1.4mm',
-                        justifyContent: 'center',
-                      })}
+                      {renderPreviewLabelCard(label)}
                     </Box>
                   ))
                 )}
               </Stack>
             ) : (
-              <Box
-                className="price-list-grid"
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${Math.max(1, Number(layout.columns) || 1)}, ${labelWidthMm}mm)`,
-                  columnGap: `${Math.max(0, Number(layout.gapHorizontal) || 0)}mm`,
-                  rowGap: `${Math.max(0, Number(layout.gapVertical) || 0)}mm`,
-                  p: `${marginTopMm}mm ${marginRightMm}mm ${marginBottomMm}mm ${marginLeftMm}mm`,
-                  justifyContent: 'center',
-                  position: 'relative',
-                  '@media print': {
-                    width: '100%',
-                  },
-                }}
-              >
+              <Box className="price-list-grid">
                 {previewLabels.map((label) => renderPreviewLabelCard(label))}
 
                 {previewLabels.length === 0 && (

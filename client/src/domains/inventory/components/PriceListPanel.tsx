@@ -111,8 +111,8 @@ const PriceListPanel = ({ open = true }: PriceListPanelProps) => {
     }, 50);
   };
 
-  const renderPreviewLabelCard = (label: PriceListLabel, options: Record<string, unknown> = {}) => (
-    <PriceListLabelCard label={label} options={options} layout={pl.layout} displayOptions={pl.displayOptions} />
+  const renderPreviewLabelCard = (label: PriceListLabel) => (
+    <PriceListLabelCard label={label} layout={pl.layout} displayOptions={pl.displayOptions} />
   );
 
   if (!open) return null;
@@ -153,8 +153,11 @@ const PriceListPanel = ({ open = true }: PriceListPanelProps) => {
           loadingProducts={pl.loadingProducts}
           selectedProductOptions={pl.selectedProductOptions}
           handleProductSelectionChange={pl.handleProductSelectionChange}
+          handleAddProduct={pl.handleAddProduct}
+          handleClearAllProducts={pl.handleClearAllProducts}
           getPrimaryBarcode={pl.getPrimaryBarcode}
           selectedRows={pl.selectedRows}
+          recentlyAddedId={pl.recentlyAddedId}
           handleDecreaseQuantity={pl.handleDecreaseQuantity}
           handleQuantityChange={pl.handleQuantityChange}
           handleIncreaseQuantity={pl.handleIncreaseQuantity}
@@ -187,6 +190,8 @@ const PriceListPanel = ({ open = true }: PriceListPanelProps) => {
           missingBarcodeCount={pl.missingBarcodeCount}
           printError={pl.printError}
           barcodeWarnings={pl.barcodeWarnings}
+          labelFitWarning={pl.labelFitWarning}
+          pageWidthWarning={pl.pageWidthWarning}
           previewContainerRef={pl.previewContainerRef}
           previewRef={pl.previewRef}
           isThermalPreview={pl.isThermalPreview}
@@ -214,14 +219,15 @@ const PriceListPanel = ({ open = true }: PriceListPanelProps) => {
           justifyContent: 'space-between',
           alignItems: 'center',
           flexShrink: 0,
+          pt: 0.5,
         }}
       >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Typography variant="body2" sx={{ fontWeight: 700, color: '#0b1d39' }}>
             {pl.selectedRows.length} {pl.selectedRows.length === 1 ? 'Product' : 'Products'} ({pl.totalLabelCount} {pl.totalLabelCount === 1 ? 'Label' : 'Labels'})
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Paper: <strong>{pl.paperType === 'thermal' ? 'Thermal Roll' : 'A4 Sheet'}</strong> ({pl.printPageSize})
+          <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500 }}>
+            Paper: <strong style={{ color: '#0b1d39' }}>{pl.paperType === 'thermal' ? 'Thermal Roll' : 'A4 Sheet'}</strong> ({pl.printPageSize})
           </Typography>
         </Stack>
 
@@ -235,12 +241,15 @@ const PriceListPanel = ({ open = true }: PriceListPanelProps) => {
             bgcolor: '#0b1d39',
             color: '#ffffff',
             borderRadius: '8px',
-            px: 3,
-            py: 0.85,
-            fontWeight: 600,
-            '&:hover': { bgcolor: '#162e56' },
+            px: 4,
+            py: 1.15,
+            fontWeight: 700,
+            fontSize: '0.925rem',
+            textTransform: 'none',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            '&:hover': { bgcolor: '#162e56', boxShadow: '0 4px 8px rgba(0,0,0,0.15)' },
             '&.Mui-disabled': {
-              bgcolor: '#e2e8f0',
+              bgcolor: '#cbd5e1',
               color: '#94a3b8',
             },
           }}
