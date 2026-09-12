@@ -170,6 +170,7 @@ const PriceListPanel = ({ open = true }: PriceListPanelProps) => {
           handlePaperTypeChange={pl.handlePaperTypeChange}
           paperPreset={pl.paperPreset}
           handlePresetChange={pl.handlePresetChange}
+          handleResetLayout={pl.handleResetLayout}
           paperPresets={PAPER_PRESETS[pl.paperType as keyof typeof PAPER_PRESETS]}
           showAdvancedLayout={pl.showAdvancedLayout}
           setShowAdvancedLayout={pl.setShowAdvancedLayout}

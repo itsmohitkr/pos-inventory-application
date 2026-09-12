@@ -31,7 +31,13 @@ const POSPrintContainer = ({
       height: 0,
       overflow: 'hidden',
       '@media print': {
-        position: 'absolute',
+        // 'fixed', not 'absolute': AppLayout's main/content wrappers are
+        // position:relative (added by the sidebar-nav redesign), which would
+        // otherwise become this container's containing block instead of the
+        // page — shrinking and offsetting the receipt by the sidebar's width
+        // whenever the sidebar is open (i.e. on every route except /pos).
+        // 'fixed' anchors to the true page regardless of relative ancestors.
+        position: 'fixed',
         left: 0,
         top: 0,
         width: '100%',

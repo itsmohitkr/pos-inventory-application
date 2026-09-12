@@ -285,6 +285,24 @@ export default function usePriceList(open: boolean) {
   const handlePresetChange = (event: { target: { value: string } }) =>
     applyPreset(paperType, event.target.value);
 
+  /**
+   * Resets the Advanced Layout and Margins fields back to the currently
+   * selected preset's defaults. Unlike applyPreset (used when switching
+   * paper type/preset, which deliberately carries the user's current
+   * barcodeLineSpacing/textAlign forward so they aren't lost on a mere
+   * preset switch), this is an explicit "start over" action, so
+   * barcodeLineSpacing is reset to its own default too.
+   */
+  const handleResetLayout = () => {
+    const preset = PAPER_PRESETS[paperType].find((item) => item.id === paperPreset);
+    if (!preset) return;
+    setLayout((current: PriceListLayout) => ({
+      ...preset.layout,
+      textAlign: current.textAlign,
+      barcodeLineSpacing: 1.25,
+    }));
+  };
+
   const handleProductSelectionChange = (_event: unknown, nextProducts: Product[]) => {
     setSelectedProducts((current) =>
       nextProducts.map((product) => {
@@ -387,7 +405,7 @@ export default function usePriceList(open: boolean) {
     // handlers
     fetchPrinters,
     handleZoomIn, handleZoomOut, handleFitToWidth,
-    handlePaperTypeChange, handlePresetChange,
+    handlePaperTypeChange, handlePresetChange, handleResetLayout,
     handleProductSelectionChange, handleAddProduct, handleClearAllProducts,
     handleQuantityChange, handleIncreaseQuantity, handleDecreaseQuantity,
     handleRemoveSelectedProduct, handleDisplayOptionChange,
