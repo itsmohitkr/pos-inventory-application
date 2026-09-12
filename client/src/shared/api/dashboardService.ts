@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import api, { isElectronProd } from '@/shared/api/api';
-import { invokeIpc } from '@/shared/api/ipc';
+import { dualCall } from '@/shared/api/ipc';
 import { IPC } from '@/shared/ipcChannels';
 
 /** Per-call axios options — used throughout for AbortController signals. */
@@ -38,85 +38,64 @@ const dashboardService = {
   /**
    * Fetch periodic data (e.g., for charts)
    */
-  fetchPeriodicData: async (
+  fetchPeriodicData: (
     { startDate, endDate }: DateRangeParams,
     config: RequestConfig = {}
-  ) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.REPORT_GET_REPORTS, { startDate, endDate });
-    }
-    const qs = new URLSearchParams({ startDate, endDate }).toString();
-    const response = await api.get(`/api/reports?${qs}`, config);
-    return response.data;
-  },
+  ) =>
+    dualCall(isElectronProd, IPC.REPORT_GET_REPORTS, { startDate, endDate }, () => {
+      const qs = new URLSearchParams({ startDate, endDate }).toString();
+      return api.get(`/api/reports?${qs}`, config);
+    }),
 
   /**
    * Fetch monthly comparison data
    */
-  fetchMonthlyData: async (year: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.REPORT_GET_MONTHLY, { year });
-    }
-    const response = await api.get('/api/reports/monthly', { ...config, params: { year } });
-    return response.data;
-  },
+  fetchMonthlyData: (year: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.REPORT_GET_MONTHLY, { year }, () =>
+      api.get('/api/reports/monthly', { ...config, params: { year } })
+    ),
 
   /**
    * Fetch daily data for a specific month
    */
-  fetchDailyData: async (year: number, month: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.REPORT_GET_DAILY, { year, month });
-    }
-    const response = await api.get('/api/reports/daily', { ...config, params: { year, month } });
-    return response.data;
-  },
+  fetchDailyData: (year: number, month: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.REPORT_GET_DAILY, { year, month }, () =>
+      api.get('/api/reports/daily', { ...config, params: { year, month } })
+    ),
 
   /**
    * Fetch top selling products for POS stats
    */
-  fetchTopSelling: async (config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.REPORT_GET_TOP_SELLING);
-    }
-    const response = await api.get('/api/reports/top-selling', config);
-    return response.data;
-  },
+  fetchTopSelling: (config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.REPORT_GET_TOP_SELLING, undefined, () =>
+      api.get('/api/reports/top-selling', config)
+    ),
 
   /**
    * Fetch expiry report
    */
-  fetchExpiryReport: async (params?: QueryParams, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.REPORT_GET_EXPIRY, params);
-    }
-    const qs = params ? new URLSearchParams(params).toString() : '';
-    const response = await api.get(qs ? `/api/reports/expiry?${qs}` : '/api/reports/expiry', config);
-    return response.data;
-  },
+  fetchExpiryReport: (params?: QueryParams, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.REPORT_GET_EXPIRY, params, () => {
+      const qs = params ? new URLSearchParams(params).toString() : '';
+      return api.get(qs ? `/api/reports/expiry?${qs}` : '/api/reports/expiry', config);
+    }),
 
   /**
    * Fetch low stock report
    */
-  fetchLowStockReport: async (config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.REPORT_GET_LOW_STOCK);
-    }
-    const response = await api.get('/api/reports/low-stock', config);
-    return response.data;
-  },
+  fetchLowStockReport: (config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.REPORT_GET_LOW_STOCK, undefined, () =>
+      api.get('/api/reports/low-stock', config)
+    ),
 
   /**
    * Fetch loose sales report
    */
-  fetchLooseSalesReport: async (params?: QueryParams, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.LOOSE_SALE_GET_REPORT, params);
-    }
-    const qs = params ? new URLSearchParams(params).toString() : '';
-    const response = await api.get(qs ? `/api/reports/loose-sales?${qs}` : '/api/reports/loose-sales', config);
-    return response.data;
-  },
+  fetchLooseSalesReport: (params?: QueryParams, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.LOOSE_SALE_GET_REPORT, params, () => {
+      const qs = params ? new URLSearchParams(params).toString() : '';
+      return api.get(qs ? `/api/reports/loose-sales?${qs}` : '/api/reports/loose-sales', config);
+    }),
 };
 
 export default dashboardService;

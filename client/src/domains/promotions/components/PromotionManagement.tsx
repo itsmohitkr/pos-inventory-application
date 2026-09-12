@@ -18,6 +18,7 @@ import posService from '@/shared/api/posService';
 import settingsService from '@/shared/api/settingsService';
 import categorySaleService from '@/shared/api/categorySaleService';
 import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
+import { buildInclusiveDateRange } from '@/shared/utils/isoDate';
 import PromotionSidebar from '@/domains/promotions/components/PromotionSidebar';
 import ThresholdSettingsPanel from '@/domains/promotions/components/ThresholdSettingsPanel';
 import ScheduledSalesPanel from '@/domains/promotions/components/ScheduledSalesPanel';
@@ -395,13 +396,8 @@ const PromotionManagement = () => {
       return;
     }
 
-    const [sy, sm, sd] = formData.startDate.split('-').map(Number);
-    const [ey, em, ed] = formData.endDate.split('-').map(Number);
-
-    const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-    const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    const range = buildInclusiveDateRange(formData.startDate, formData.endDate);
+    if (!range) {
       setSnackbar({ open: true, message: 'Invalid date format selected', severity: 'error' });
       return;
     }
@@ -409,8 +405,8 @@ const PromotionManagement = () => {
     try {
       const submissionData = {
         ...formData,
-        startDate: start.toISOString(),
-        endDate: end.toISOString(),
+        startDate: range.start,
+        endDate: range.end,
       };
 
       if (isEditMode && editId) {

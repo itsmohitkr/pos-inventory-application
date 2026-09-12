@@ -31,6 +31,35 @@ interface UsePOSSaleArgs {
   shopName?: string;
 }
 
+/** The processSale request body shared by handlePay and handlePayAndPrint. */
+const buildSalePayload = (
+  cart: CartItem[],
+  discount: number,
+  selectedPaymentMethod: PaymentMethod | null | undefined,
+  customerOverride: Customer | null | undefined,
+  activeCustomer: Customer | null | undefined
+) => {
+  const methodToUse: Partial<PaymentMethod> & { id: string; label: string } =
+    selectedPaymentMethod || { id: 'cash', label: 'Cash' };
+  const items = cart.map((item: CartItem) => ({
+    batch_id: item.batch_id,
+    quantity: item.quantity,
+    sellingPrice: item.price,
+    isFree: item.isFree,
+    freeGiftThresholdAmount: item.freeGiftThresholdAmount ?? null,
+  }));
+  const { icon: _icon, ...methodWithoutIcon } = methodToUse;
+  return {
+    items,
+    discount: 0,
+    extraDiscount: discount,
+    paymentMethod: methodToUse.label,
+    paymentDetails: JSON.stringify({ method: methodWithoutIcon }),
+    customerId: (customerOverride || activeCustomer)?.id || null,
+    allowExpiredItems: true,
+  };
+};
+
 export const usePOSSale = ({
   cart,
   discount,
@@ -57,26 +86,9 @@ export const usePOSSale = ({
   ) => {
     if (isPaying) return;
     setIsPaying(true);
-    const methodToUse: Partial<PaymentMethod> & { id: string; label: string } =
-      selectedPaymentMethod || { id: 'cash', label: 'Cash' };
     try {
-      const items = cart.map((item: CartItem) => ({
-        batch_id: item.batch_id,
-        quantity: item.quantity,
-        sellingPrice: item.price,
-        isFree: item.isFree,
-        freeGiftThresholdAmount: item.freeGiftThresholdAmount ?? null,
-      }));
-      const { icon: _icon, ...methodWithoutIcon } = methodToUse;
-      const res = await posService.processSale({
-        items,
-        discount: 0,
-        extraDiscount: discount,
-        paymentMethod: methodToUse.label,
-        paymentDetails: JSON.stringify({ method: methodWithoutIcon }),
-        customerId: (customerOverride || activeCustomer)?.id || null,
-        allowExpiredItems: true,
-      });
+      const payload = buildSalePayload(cart, discount, selectedPaymentMethod, customerOverride, activeCustomer);
+      const res = await posService.processSale(payload);
       const detailedRes = await posService.fetchSaleById(res.saleId);
       setLastSale(detailedRes);
       handleCloseTab(activeTabId);
@@ -103,26 +115,9 @@ export const usePOSSale = ({
   ) => {
     if (isPaying) return;
     setIsPaying(true);
-    const methodToUse: Partial<PaymentMethod> & { id: string; label: string } =
-      selectedPaymentMethod || { id: 'cash', label: 'Cash' };
     try {
-      const items = cart.map((item: CartItem) => ({
-        batch_id: item.batch_id,
-        quantity: item.quantity,
-        sellingPrice: item.price,
-        isFree: item.isFree,
-        freeGiftThresholdAmount: item.freeGiftThresholdAmount ?? null,
-      }));
-      const { icon: _icon, ...methodWithoutIcon } = methodToUse;
-      const res = await posService.processSale({
-        items,
-        discount: 0,
-        extraDiscount: discount,
-        paymentMethod: methodToUse.label,
-        paymentDetails: JSON.stringify({ method: methodWithoutIcon }),
-        customerId: (customerOverride || activeCustomer)?.id || null,
-        allowExpiredItems: true,
-      });
+      const payload = buildSalePayload(cart, discount, selectedPaymentMethod, customerOverride, activeCustomer);
+      const res = await posService.processSale(payload);
 
       flushSync(() => {
         setLastSale(res.sale);

@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import api, { isElectronProd } from '@/shared/api/api';
-import { invokeIpc } from '@/shared/api/ipc';
+import { dualCall, invokeIpc } from '@/shared/api/ipc';
 import { IPC } from '@/shared/ipcChannels';
 import { getAdminToken } from '@/shared/api/adminToken';
 import type {
@@ -12,13 +12,10 @@ import type {
 type RequestConfig = AxiosRequestConfig;
 
 const categorySaleService = {
-  fetchCategorySales: async (config: RequestConfig = {}): Promise<CategorySale[]> => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.CATEGORY_SALE_GET_ALL);
-    }
-    const response = await api.get('/api/category-sales', config);
-    return response.data;
-  },
+  fetchCategorySales: (config: RequestConfig = {}): Promise<CategorySale[]> =>
+    dualCall(isElectronProd, IPC.CATEGORY_SALE_GET_ALL, undefined, () =>
+      api.get('/api/category-sales', config)
+    ),
 
   createCategorySale: async (
     data: CategorySaleInput,
@@ -50,40 +47,31 @@ const categorySaleService = {
     return response.data;
   },
 
-  toggleCategorySaleStatus: async (
+  toggleCategorySaleStatus: (
     id: number,
     status: 'draft' | 'active' | 'paused',
     config: RequestConfig = {}
-  ): Promise<CategorySale> => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.CATEGORY_SALE_TOGGLE_STATUS, { id, status });
-    }
-    const response = await api.patch(`/api/category-sales/${id}/status`, { status }, config);
-    return response.data;
-  },
+  ): Promise<CategorySale> =>
+    dualCall(isElectronProd, IPC.CATEGORY_SALE_TOGGLE_STATUS, { id, status }, () =>
+      api.patch(`/api/category-sales/${id}/status`, { status }, config)
+    ),
 
-  deleteCategorySale: async (id: number, config: RequestConfig = {}): Promise<void> => {
-    if (isElectronProd) {
-      await invokeIpc(IPC.CATEGORY_SALE_DELETE, { id });
-      return;
-    }
-    await api.delete(`/api/category-sales/${id}`, config);
-  },
+  deleteCategorySale: (id: number, config: RequestConfig = {}): Promise<void> =>
+    dualCall(isElectronProd, IPC.CATEGORY_SALE_DELETE, { id }, () =>
+      api.delete(`/api/category-sales/${id}`, config)
+    ),
 
-  previewProducts: async (
+  previewProducts: (
     category: string,
     discountPercentage: number,
     config: RequestConfig = {}
-  ): Promise<CategorySaleProductPreview[]> => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.CATEGORY_SALE_PREVIEW, { category, discountPercentage });
-    }
-    const response = await api.get('/api/category-sales/preview', {
-      ...config,
-      params: { category, discountPercentage },
-    });
-    return response.data;
-  },
+  ): Promise<CategorySaleProductPreview[]> =>
+    dualCall(isElectronProd, IPC.CATEGORY_SALE_PREVIEW, { category, discountPercentage }, () =>
+      api.get('/api/category-sales/preview', {
+        ...config,
+        params: { category, discountPercentage },
+      })
+    ),
 };
 
 export default categorySaleService;

@@ -343,23 +343,6 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                 >
                   MRP DISCOUNT
                 </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontWeight: 700,
-                    bgcolor: '#f8fafc',
-                    borderBottom: '1px solid #e2e8f0',
-                    color: '#475569',
-                    fontSize: '0.75rem',
-                    textTransform: 'uppercase',
-                    py: 1.25,
-                    pl: 1.5,
-                    pr: 2,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  EXTRA DISCOUNT
-                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

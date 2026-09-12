@@ -1,6 +1,7 @@
 import type { Batch, Product } from '@/shared/types/models';
 import type { CartItem } from '@/domains/pos/types';
 import type { PromoThresholdConfig } from '@/domains/promotions/types';
+import { resolveFreeGiftCostRange } from '@/domains/pos/components/freeGiftUtils';
 
 interface PromoGiftsListProps {
   show?: boolean;
@@ -81,12 +82,9 @@ const PromoGiftsList = ({
         }}
       >
         {eligibleFreeProducts.map((product: Product) => {
-          const profitLimit = totalProfit * ((activeConfig.profitPercentage || 20) / 100);
-          const minCost = activeConfig.minCostPrice || 0;
-          const maxCost =
-            activeConfig.maxCostPrice !== null ? activeConfig.maxCostPrice : profitLimit;
+          const { minCost, maxCost } = resolveFreeGiftCostRange(activeConfig, totalProfit);
           const bestBatch = (product.batches || []).find(
-            (b) => b.costPrice >= minCost && b.costPrice <= maxCost && b.quantity > 0
+            (b) => b.costPrice >= minCost && b.costPrice <= maxCost + 0.001 && b.quantity > 0
           );
           const isSelected = cart.find((item) => item.isFree && item.product_id === product.id);
 

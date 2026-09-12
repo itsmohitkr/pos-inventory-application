@@ -35,10 +35,6 @@ interface ProductDetailPanelProps {
   /** Null collapses the panel. */
   displayProduct?: Product | null;
   isLoadingBatches: boolean;
-  /** Panel width in px, driven by the drag handle. */
-  width: number;
-  isResizing: boolean;
-  onResizeStart: (event: React.MouseEvent) => void;
   /** Opens/fetches the history for the currently displayed product. */
   onOpenHistory: () => void;
   /** Called when the panel leaves the history tab (switches to Batches, or

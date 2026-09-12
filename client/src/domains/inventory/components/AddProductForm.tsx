@@ -24,30 +24,19 @@ import ProductInitialBatchSection from '@/domains/inventory/components/ProductIn
 import WholesaleConfiguration from '@/domains/inventory/components/WholesaleConfiguration';
 import { inputFieldSx } from '@/domains/inventory/components/inventoryFormStyles';
 
-import type { Product } from '@/shared/types/models';
-
 interface AddProductFormProps {
-  mode?: 'add' | 'edit';
-  editingProduct?: Product | null;
   onProductAdded?: () => void;
-  onProductUpdated?: () => void;
   onClose?: () => void;
 }
 
 const AddProductForm = ({
-  mode = 'add',
-  editingProduct = null,
   onProductAdded,
-  onProductUpdated,
   onClose,
 }: AddProductFormProps) => {
   const { dialogState, showSuccess, closeDialog } = useCustomDialog();
   const form = useAddProductForm({
     showSuccess,
     onProductAdded,
-    mode,
-    editingProduct,
-    onProductUpdated,
   });
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -82,13 +71,8 @@ const AddProductForm = ({
           >
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0b1d39', fontSize: '0.85rem' }}>
-                {mode === 'edit' ? 'Edit Product Details' : 'Basic Product Information'}
+                Basic Product Information
               </Typography>
-              {mode === 'edit' && editingProduct?.name && (
-                <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.78rem', mt: 0.25, display: 'block' }}>
-                  Updating: {editingProduct.name}
-                </Typography>
-              )}
             </Box>
 
             <Grid container spacing={2}>
@@ -157,36 +141,7 @@ const AddProductForm = ({
             />
           </Paper>
 
-          {/* SECTION 2: Initial Batch Creation (Only in Add Mode) */}
-          {mode === 'add' && (
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2,
-                borderRadius: '8px',
-                bgcolor: '#ffffff',
-                border: '1px solid #e2e8f0',
-              }}
-            >
-              <ProductInitialBatchSection
-                initialBatch={form.formData.initialBatch}
-                enableBatchTracking={form.formData.enableBatchTracking}
-                discountInput={form.discountInput}
-                sellingInvalid={form.sellingInvalid}
-                fieldErrors={form.fieldErrors}
-                discountValue={form.discountValue}
-                discountPercent={form.discountPercent}
-                marginValue={form.marginValue}
-                marginPercent={form.marginPercent}
-                vendorDiscountValue={form.vendorDiscountValue}
-                vendorDiscountPercent={form.vendorDiscountPercent}
-                onChange={form.handleChange}
-                setFormData={form.setFormData}
-              />
-            </Paper>
-          )}
-
-          {/* SECTION 3: Wholesale (Only in Add Mode) & Inventory Alerts */}
+          {/* SECTION 2: Initial Batch Creation */}
           <Paper
             elevation={0}
             sx={{
@@ -196,43 +151,66 @@ const AddProductForm = ({
               border: '1px solid #e2e8f0',
             }}
           >
-            {mode === 'add' && (
-              <>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0b1d39', fontSize: '0.85rem' }}>
-                    Wholesale Configuration
-                  </Typography>
-                </Box>
-                <WholesaleConfiguration
-                  wholesaleEnabled={form.formData.initialBatch.wholesaleEnabled}
-                  onToggleChange={(checked) =>
-                    form.setFormData((prev) => ({
-                      ...prev,
-                      initialBatch: { ...prev.initialBatch, wholesaleEnabled: checked },
-                    }))
-                  }
-                  wholesalePrice={form.formData.initialBatch.wholesalePrice}
-                  onPriceChange={(val) =>
-                    form.setFormData((prev) => ({
-                      ...prev,
-                      initialBatch: { ...prev.initialBatch, wholesalePrice: val },
-                    }))
-                  }
-                  wholesaleMinQty={form.formData.initialBatch.wholesaleMinQty}
-                  onMinQtyChange={(val) =>
-                    form.setFormData((prev) => ({
-                      ...prev,
-                      initialBatch: { ...prev.initialBatch, wholesaleMinQty: val },
-                    }))
-                  }
-                  sellingPrice={form.formData.initialBatch.selling_price}
-                  costPrice={form.formData.initialBatch.cost_price}
-                  fieldErrors={form.fieldErrors}
-                />
+            <ProductInitialBatchSection
+              initialBatch={form.formData.initialBatch}
+              enableBatchTracking={form.formData.enableBatchTracking}
+              discountInput={form.discountInput}
+              sellingInvalid={form.sellingInvalid}
+              fieldErrors={form.fieldErrors}
+              discountValue={form.discountValue}
+              discountPercent={form.discountPercent}
+              marginValue={form.marginValue}
+              marginPercent={form.marginPercent}
+              vendorDiscountValue={form.vendorDiscountValue}
+              vendorDiscountPercent={form.vendorDiscountPercent}
+              onChange={form.handleChange}
+              setFormData={form.setFormData}
+            />
+          </Paper>
 
-                <Divider sx={{ my: 2.5, borderColor: '#e2e8f0' }} />
-              </>
-            )}
+          {/* SECTION 3: Wholesale & Inventory Alerts */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              borderRadius: '8px',
+              bgcolor: '#ffffff',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0b1d39', fontSize: '0.85rem' }}>
+                Wholesale Configuration
+              </Typography>
+            </Box>
+            <WholesaleConfiguration
+              wholesaleEnabled={form.formData.initialBatch.wholesaleEnabled}
+              onToggleChange={(checked) =>
+                form.setFormData((prev) => ({
+                  ...prev,
+                  initialBatch: { ...prev.initialBatch, wholesaleEnabled: checked },
+                }))
+              }
+              wholesalePrice={form.formData.initialBatch.wholesalePrice}
+              onPriceChange={(val) =>
+                form.setFormData((prev) => ({
+                  ...prev,
+                  initialBatch: { ...prev.initialBatch, wholesalePrice: val },
+                }))
+              }
+              wholesaleMinQty={form.formData.initialBatch.wholesaleMinQty}
+              onMinQtyChange={(val) =>
+                form.setFormData((prev) => ({
+                  ...prev,
+                  initialBatch: { ...prev.initialBatch, wholesaleMinQty: val },
+                }))
+              }
+              sellingPrice={form.formData.initialBatch.selling_price}
+              costPrice={form.formData.initialBatch.cost_price}
+              fieldErrors={form.fieldErrors}
+            />
+
+            <Divider sx={{ my: 2.5, borderColor: '#e2e8f0' }} />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0b1d39', fontSize: '0.85rem' }}>
@@ -343,7 +321,7 @@ const AddProductForm = ({
               borderRadius: '6px',
             }}
           >
-            {mode === 'edit' ? 'Save Changes' : 'Add Product'}
+            Add Product
           </Button>
         </Box>
       </form>

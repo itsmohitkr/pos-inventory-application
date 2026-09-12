@@ -14,7 +14,6 @@ export type UpdateStatus =
   | 'available'
   | 'downloading'
   | 'downloaded'
-  | 'not-available'
   | 'error';
 
 interface AccountDetailsTabProps {

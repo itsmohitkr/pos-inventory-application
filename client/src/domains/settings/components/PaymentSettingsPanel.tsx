@@ -15,10 +15,6 @@ import {
   Alert,
 } from '@mui/material';
 import { Payment as PaymentIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import {
-  STORAGE_KEYS,
-  DEFAULT_PAYMENT_SETTINGS,
-} from '@/shared/utils/paymentSettings';
 
 const PAYMENT_METHOD_OPTIONS = [
   { id: 'cash', label: 'Cash', icon: '💵' },

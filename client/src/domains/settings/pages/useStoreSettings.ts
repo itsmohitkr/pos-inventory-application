@@ -11,24 +11,20 @@ import type {
 } from '@/domains/settings/hooks/useSettings';
 import settingsService from '@/shared/api/settingsService';
 import { getApiErrorMessage } from '@/shared/api/api';
+import { CONFIRM_PHRASE } from '@/domains/settings/components/WipeDatabaseConfirmation';
 
 import {
   getChangeCalculatorEnabled,
-  setChangeCalculatorEnabled,
   getPaymentMethodsEnabled,
-  setPaymentMethodsEnabled,
   STORAGE_KEYS,
   getFullscreenEnabled,
   getNotificationDuration,
   getExtraDiscountEnabled,
   getCalculatorEnabled,
-  setCalculatorEnabled,
   getAdminAutoLogoutTime,
-  setAdminAutoLogoutTime,
   DEFAULT_PAYMENT_SETTINGS,
   getDecodedPricesEnabled,
   getCustomerFeatureEnabled,
-  setCustomerFeatureEnabled,
 } from '@/shared/utils/paymentSettings';
 
 interface UseStoreSettingsArgs {
@@ -280,7 +276,6 @@ export const useStoreSettings = ({
       localStorage.setItem(STORAGE_KEYS.enableWeightedAverageCost, JSON.stringify(weightedAverageCostEnabled));
       localStorage.setItem(STORAGE_KEYS.notificationDuration, (notificationDuration * 1000).toString());
       localStorage.setItem(STORAGE_KEYS.enableCustomerFeature, JSON.stringify(customerFeatureEnabled));
-      setCustomerFeatureEnabled(customerFeatureEnabled);
 
       // Dispatch events immediately for instant UI response
       window.dispatchEvent(new Event('pos-settings-updated'));
@@ -312,11 +307,6 @@ export const useStoreSettings = ({
       if (onSaveBillSettings && billSettings) {
         await onSaveBillSettings(billSettings);
       }
-
-      setChangeCalculatorEnabled(changeCalculatorEnabled);
-      setPaymentMethodsEnabled(paymentMethodsEnabled);
-      setCalculatorEnabled(calculatorEnabled);
-      setAdminAutoLogoutTime(adminAutoLogoutTime);
 
       showSuccess('Settings saved successfully!');
     } catch (error) {
@@ -357,7 +347,7 @@ export const useStoreSettings = ({
       showError('Please enter your admin password');
       return;
     }
-    if (wipeConfirmPhrase !== 'WIPE ALL DATA') {
+    if (wipeConfirmPhrase !== CONFIRM_PHRASE) {
       showError('Please type the confirmation phrase exactly as shown');
       return;
     }

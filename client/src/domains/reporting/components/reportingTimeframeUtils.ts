@@ -1,3 +1,5 @@
+import { buildInclusiveDateRange } from '@/shared/utils/isoDate';
+
 /** ISO-8601 range plus the local-date (en-CA, i.e. YYYY-MM-DD) equivalents. */
 export interface ReportRange {
   start: string;
@@ -9,6 +11,14 @@ export interface ReportRange {
 /** ISO-8601 range only — buildInclusiveRangeFromLocalDates omits the local pair. */
 export type IsoRange = Pick<ReportRange, 'start' | 'end'>;
 
+/**
+ * Deliberately not shared with saleHistoryDateUtils.getSaleHistoryRange or
+ * dateUtils.getDateRange despite the similar switch structure: for the
+ * current week/month/year, this returns the *full* calendar period (end =
+ * Sunday / last day of month / Dec 31), where the other two clip `end` to
+ * `now`. Merging them would change what date range is displayed to the user
+ * for those presets.
+ */
 export const getReportRange = (type: string): ReportRange => {
   const now = new Date();
   let start = new Date(now);
@@ -68,25 +78,4 @@ export const getReportRange = (type: string): ReportRange => {
 export const buildInclusiveRangeFromLocalDates = (
   startDate: string,
   endDate: string
-): IsoRange | null => {
-  if (!startDate || !endDate) return null;
-
-  const [sy, sm, sd] = startDate.split('-').map(Number);
-  const [ey, em, ed] = endDate.split('-').map(Number);
-
-  if ([sy, sm, sd, ey, em, ed].some((value) => Number.isNaN(value))) {
-    return null;
-  }
-
-  const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-  const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return null;
-  }
-
-  return {
-    start: start.toISOString(),
-    end: end.toISOString(),
-  };
-};
+): IsoRange | null => buildInclusiveDateRange(startDate, endDate);

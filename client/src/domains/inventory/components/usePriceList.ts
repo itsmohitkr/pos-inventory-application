@@ -80,14 +80,6 @@ export default function usePriceList(open: boolean) {
     return map;
   }, [products]);
 
-  const selectedProductOptions = useMemo(
-    () =>
-      selectedProducts
-        .map((item) => productById.get(String(item.productId)))
-        .filter((product): product is Product => product !== undefined),
-    [productById, selectedProducts]
-  );
-
   const selectedRows = useMemo(
     () =>
       selectedProducts
@@ -303,15 +295,6 @@ export default function usePriceList(open: boolean) {
     }));
   };
 
-  const handleProductSelectionChange = (_event: unknown, nextProducts: Product[]) => {
-    setSelectedProducts((current) =>
-      nextProducts.map((product) => {
-        const existing = current.find((item) => String(item.productId) === String(product.id));
-        return { productId: product.id, quantity: existing?.quantity || 1 };
-      })
-    );
-  };
-
   const handleQuantityChange = (productId: number, rawValue: string | number) => {
     const parsed = Math.max(1, Number(rawValue) || 1);
     setSelectedProducts((current) =>
@@ -391,7 +374,7 @@ export default function usePriceList(open: boolean) {
     paperType, paperPreset, layout, setLayout, showAdvancedLayout, setShowAdvancedLayout,
     displayOptions,
     // computed
-    selectedProductOptions, selectedRows, previewLabels, recentlyAddedId,
+    selectedRows, previewLabels, recentlyAddedId,
     totalLabelCount, missingBarcodeCount,
     labelWidthMm, labelHeightMm, marginTopMm, marginRightMm, marginBottomMm, marginLeftMm,
     isThermalPreview, printPageSize, barcodeWarnings, previewPageWidthMm,
@@ -406,7 +389,7 @@ export default function usePriceList(open: boolean) {
     fetchPrinters,
     handleZoomIn, handleZoomOut, handleFitToWidth,
     handlePaperTypeChange, handlePresetChange, handleResetLayout,
-    handleProductSelectionChange, handleAddProduct, handleClearAllProducts,
+    handleAddProduct, handleClearAllProducts,
     handleQuantityChange, handleIncreaseQuantity, handleDecreaseQuantity,
     handleRemoveSelectedProduct, handleDisplayOptionChange,
     // for print handler in parent

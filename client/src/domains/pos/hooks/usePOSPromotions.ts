@@ -4,6 +4,7 @@ import type {
   PromoSettings,
   PromoThresholdConfig,
 } from '@/domains/promotions/types';
+import { resolveFreeGiftCostRange } from '@/domains/pos/components/freeGiftUtils';
 
 interface UsePOSPromotionsArgs {
   /** The buy-X-get-free settings blob; null when the feature is off. */
@@ -47,12 +48,7 @@ export const usePOSPromotions = ({
 
   const eligibleFreeProducts = useMemo(() => {
     if (!activeConfig) return [];
-    const profitLimit = Number(totalProfit) * (Number(activeConfig.profitPercentage || 20) / 100);
-    const minCost = Number(activeConfig.minCostPrice || 0);
-    const effectiveMaxCost =
-      activeConfig.maxCostPrice !== null && activeConfig.maxCostPrice !== undefined
-        ? Math.min(Number(activeConfig.maxCostPrice), profitLimit)
-        : profitLimit;
+    const { minCost, maxCost: effectiveMaxCost } = resolveFreeGiftCostRange(activeConfig, totalProfit);
 
     const filtered = products.filter((p: Product) => {
       const allowedGroups = activeConfig.allowedGroups || [];

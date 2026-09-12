@@ -3,6 +3,7 @@ import type { ReportSale } from '@/shared/types/models';
 import autoTable from 'jspdf-autotable';
 import type { RowInput } from 'jspdf-autotable';
 import { getRefundStatus, getStatusDisplay } from '@/shared/utils/refundStatus';
+import { getSaleMarginStats } from '@/domains/reporting/components/saleMarginUtils';
 
 /** Sale rows from /api/reports; shape firms up once the server is typed. */
 /** The reports endpoint's enriched sale row. */
@@ -46,9 +47,7 @@ export const exportSalesToPDF = (
   sales.forEach((sale) => {
     const refundStatus = getRefundStatus(sale.items);
     const display = getStatusDisplay(refundStatus);
-    const cost = (sale.netTotalAmount || 0) - (sale.profit || 0);
-    const margin =
-      sale.netTotalAmount > 0 ? ((sale.profit / sale.netTotalAmount) * 100).toFixed(1) : 0;
+    const { cost, margin } = getSaleMarginStats(sale);
 
     const rowData = [
       sale.createdAt ? new Date(sale.createdAt).toLocaleString() : 'N/A',
@@ -56,7 +55,7 @@ export const exportSalesToPDF = (
       `Rs ${cost.toFixed(2)}`,
       `Rs ${(sale.netTotalAmount || 0).toFixed(2)}`,
       `Rs ${(sale.profit || 0).toFixed(2)}`,
-      `${margin}%`,
+      `${margin.toFixed(1)}%`,
       sale.paymentMethod || 'Cash',
       display.label,
     ];

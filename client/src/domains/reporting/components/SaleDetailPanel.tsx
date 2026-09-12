@@ -15,6 +15,7 @@ import { Close as CloseIcon } from '@mui/icons-material';
 import InventoryPanelShell from '@/domains/inventory/components/InventoryPanelShell';
 import type { ReportSale } from '@/shared/types/models';
 import { getRefundStatus, getStatusDisplay } from '@/shared/utils/refundStatus';
+import { getSaleMarginStats } from '@/domains/reporting/components/saleMarginUtils';
 
 interface SaleDetailPanelProps {
   selectedSale: ReportSale | null;
@@ -26,11 +27,7 @@ export const SaleDetailPanel = ({ selectedSale, onClose }: SaleDetailPanelProps)
 
   const refundStatus = getRefundStatus(selectedSale.items);
   const statusDisplay = getStatusDisplay(refundStatus);
-  const cost = (selectedSale.netTotalAmount || 0) - (selectedSale.profit || 0);
-  const margin =
-    selectedSale.netTotalAmount > 0
-      ? (selectedSale.profit / selectedSale.netTotalAmount) * 100
-      : 0;
+  const { cost, margin } = getSaleMarginStats(selectedSale);
 
   return (
     <InventoryPanelShell

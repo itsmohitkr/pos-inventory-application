@@ -11,9 +11,6 @@ import type { PriceListRow } from '@/domains/inventory/components/usePriceList';
 interface PriceListConfigurationPanelProps {
   products: Product[];
   loadingProducts: boolean;
-  /** The Autocomplete's current value — full product objects, not ids. */
-  selectedProductOptions: Product[];
-  handleProductSelectionChange: (event: unknown, products: Product[]) => void;
   handleAddProduct: (product: Product) => void;
   handleClearAllProducts: () => void;
   getPrimaryBarcode: (product?: Product | null) => string;
@@ -142,8 +139,6 @@ function ClearableNumberField({
 const PriceListConfigurationPanel = ({
   products,
   loadingProducts,
-  selectedProductOptions: _selectedProductOptions,
-  handleProductSelectionChange: _handleProductSelectionChange,
   handleAddProduct,
   handleClearAllProducts,
   getPrimaryBarcode,

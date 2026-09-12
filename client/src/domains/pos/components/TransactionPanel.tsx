@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Paper, Divider, TextField, InputAdornment } from '@mui/material';
 import { ReceiptLong as ReceiptIcon } from '@mui/icons-material';
-import { PAYMENT_METHOD_CONFIG, getAvailablePaymentMethods } from '@/domains/pos/components/transactionPanelUtils';
+import { getAvailablePaymentMethods } from '@/domains/pos/components/transactionPanelUtils';
 import PriceBreakdownSection from '@/domains/pos/components/PriceBreakdownSection';
 import ChangeCalculatorSection from '@/domains/pos/components/ChangeCalculatorSection';
 import PaymentMethodButtons from '@/domains/pos/components/PaymentMethodButtons';
