@@ -93,6 +93,14 @@ jobs:
 
       # Upload sourcemaps once here from the final build output, not inside platform jobs
       - name: Create Sentry release and upload source maps
+        # Sentry's own API has returned 503 "Downstream service unavailable"
+        # twice in a row here (v238, v239), blocking the whole release before
+        # it even reached the build/smoke jobs. This step only uploads
+        # sourcemaps/deploy markers for error-report readability — it has no
+        # effect on the app or the release artifacts themselves, so a Sentry
+        # outage should degrade error-report quality for that release, not
+        # block shipping it.
+        continue-on-error: true
         uses: getsentry/action-release@v1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
