@@ -397,18 +397,19 @@ jobs:
         shell: pwsh
         run: |
           $setup = Get-ChildItem dist/*.exe | Select-Object -First 1
+          $installStart = Get-Date
           $sw = [System.Diagnostics.Stopwatch]::StartNew()
           # This is an "assisted" (non-oneClick) NSIS build with no explicit
           # `perMachine`, which uses NSIS's MultiUser plugin and normally asks
           # interactively whether to install for the current user or all
-          # users. With no desktop session to answer that (or an elevation
-          # prompt an all-users install would trigger), the installer's
-          # launcher process was observed exiting in ~3-6s without installing
-          # anything at all. /CURRENTUSER forces MultiUser to skip that
-          # prompt and always do a non-elevated, per-user install.
-          Start-Process -FilePath $setup.FullName -ArgumentList '/S', '/CURRENTUSER' -Wait
+          # users. /CURRENTUSER forces a non-elevated, per-user install to
+          # rule out an unanswerable elevation prompt as the cause — it did
+          # NOT fix the failure (installer still exits in seconds with no
+          # exe found), so -PassThru + an exit-code/event-log dump is added
+          # here to find the real cause instead of guessing further.
+          $proc = Start-Process -FilePath $setup.FullName -ArgumentList '/S', '/CURRENTUSER' -Wait -PassThru
           $sw.Stop()
-          Write-Host "Install process exited after $($sw.Elapsed)"
+          Write-Host "Install process exited after $($sw.Elapsed) with exit code $($proc.ExitCode)"
 
           # This installer is an "assisted" (non-one-click) NSIS build with no
           # explicit `perMachine` setting, which defaults to a per-user install
@@ -438,7 +439,17 @@ jobs:
               Get-ChildItem $root -Recurse -Depth 2 -ErrorAction SilentlyContinue |
                 Select-Object FullName | Out-String | Write-Host
             }
-            Write-Error "Trovix.exe not found after install. Searched: $($searchRoots -join ', ')"
+            # The exit code alone may not explain a silent NSIS failure, so
+            # also pull any Application/System log entries logged during the
+            # install window (crash reports, Windows Error Reporting, SCM
+            # errors) — this is the actual evidence the exit code and file
+            # search above have failed to provide across three attempts.
+            Write-Host "-- Application/System event log entries since install start ($installStart) --"
+            Get-WinEvent -FilterHashtable @{ LogName = 'Application', 'System'; StartTime = $installStart } -ErrorAction SilentlyContinue |
+              Sort-Object TimeCreated |
+              Select-Object TimeCreated, LogName, ProviderName, Id, LevelDisplayName, Message |
+              Format-List | Out-String | Write-Host
+            Write-Error "Trovix.exe not found after install (exit code $($proc.ExitCode)). Searched: $($searchRoots -join ', ')"
             exit 1
           }
           Write-Host "Found installed exe at $($exe.FullName)"
