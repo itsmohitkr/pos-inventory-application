@@ -45,7 +45,6 @@ interface CategorySidebarProps {
   hasUncategorized: boolean;
   /** 'asc' | 'desc'. */
   categorySortOrder: string;
-  isResizingLeft: boolean;
   /** Right-click menu anchor; null when closed. */
   contextMenu: CategoryContextMenu | null;
   activeCategory: CategoryNode | null;
@@ -69,7 +68,6 @@ interface CategorySidebarProps {
   onCategoryDialogClose: () => void;
   onCategoryNameChange: (name: string) => void;
   onSaveCategory: () => void;
-  onResizeStart: (event: React.MouseEvent) => void;
   onDoubleClick?: () => void;
   onToggleCategories: () => void;
 }

@@ -3,7 +3,7 @@ import type { AuthUser } from '@/shared/types/auth';
 import { Alert, Box, TextField, Typography, IconButton, InputAdornment, Paper } from '@mui/material';
 import { Warning as WarningIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 
-const CONFIRM_PHRASE = 'WIPE ALL DATA';
+export const CONFIRM_PHRASE = 'WIPE ALL DATA';
 
 interface WipeDatabaseConfirmationProps {
   wipePassword: string;

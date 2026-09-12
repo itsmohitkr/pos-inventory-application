@@ -233,69 +233,6 @@ export const calculateInventoryTotals = (rows: InventoryRow[]) => {
   };
 };
 
-export const buildInventoryCsv = (
-  /** Which columns are visible, keyed by InventoryColumn id. */
-  cols: Record<string, boolean>,
-  rows: InventoryRow[]
-): string => {
-  const headers: string[] = [];
-  if (cols.sno) headers.push('S.No');
-  if (cols.name) headers.push('Name');
-  if (cols.stockStatus) headers.push('Status');
-  if (cols.batchCode) headers.push('Batch Code');
-  if (cols.category) headers.push('Category');
-  if (cols.mrp) headers.push('MRP');
-  if (cols.sp) headers.push('Selling Price');
-  if (cols.cp) headers.push('Cost Price');
-  if (cols.profitRs) headers.push('Profit Unit(Rs)');
-  if (cols.discRsVendor) headers.push('Disc Vendor(Rs)');
-  if (cols.discPctVendor) headers.push('Disc Vendor(%)');
-  if (cols.discRsCust) headers.push('Disc Cust(Rs)');
-  if (cols.discPctCust) headers.push('Disc Cust(%)');
-  if (cols.marginPct) headers.push('Margin(%)');
-  if (cols.barcode) headers.push('Barcode');
-  if (cols.expiry) headers.push('Expiry');
-  if (cols.wsPrice) headers.push('WS Price');
-  if (cols.wsMinQty) headers.push('WS Min Qty');
-  if (cols.stock) headers.push('Stock');
-  if (cols.totalValCp) headers.push('Total Value (Cost)');
-  if (cols.totalValSp) headers.push('Total Rev (Selling)');
-  if (cols.createdAt) headers.push('Added On');
-
-  return [
-    headers.join(','),
-    ...rows.map((row: InventoryRow, idx: number) => {
-      const rowData: (string | number)[] = [];
-      if (cols.sno) rowData.push(idx + 1);
-      if (cols.name) rowData.push(`"${row.name}"`);
-      if (cols.stockStatus) rowData.push(`"${row.stockStatus}"`);
-      if (cols.batchCode) rowData.push(`"${row.batchCode}"`);
-      if (cols.category) rowData.push(`"${row.category}"`);
-      if (cols.mrp) rowData.push(row.mrp);
-      if (cols.sp) rowData.push(row.sp);
-      if (cols.cp) rowData.push(row.cp);
-      if (cols.profitRs) rowData.push(row.profitRs.toFixed(2));
-      if (cols.discRsVendor) rowData.push(row.discRsVendor.toFixed(2));
-      if (cols.discPctVendor) rowData.push(row.discPctVendor.toFixed(2));
-      if (cols.discRsCust) rowData.push(row.discRsCust.toFixed(2));
-      if (cols.discPctCust) rowData.push(row.discPctCust.toFixed(2));
-      if (cols.marginPct) rowData.push(row.marginPct.toFixed(2));
-      if (cols.barcode) rowData.push(`"${row.barcode}"`);
-      if (cols.expiry) rowData.push(row.expiry ? new Date(row.expiry).toLocaleDateString() : 'N/A');
-      if (cols.wsPrice) rowData.push(row.wsPrice || 0);
-      if (cols.wsMinQty) rowData.push(row.wsMinQty || 0);
-      if (cols.stock) rowData.push(row.stock);
-      if (cols.totalValCp) rowData.push(row.totalValCp.toFixed(2));
-      if (cols.totalValSp) rowData.push(row.totalValSp.toFixed(2));
-      if (cols.createdAt)
-        rowData.push(
-          row.createdAt !== 'N/A' ? new Date(row.createdAt).toLocaleDateString() : 'N/A'
-        );
-      return rowData.join(',');
-    }),
-  ].join('\n');
-};
-
 export const getInventoryExpiryColor = (expiryStr?: string | null): string => {
   if (!expiryStr || expiryStr === 'N/A' || expiryStr === '—') return 'inherit';
 

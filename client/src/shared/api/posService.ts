@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import api, { isElectronProd } from '@/shared/api/api';
-import { invokeIpc } from '@/shared/api/ipc';
+import { dualCall } from '@/shared/api/ipc';
 import { IPC } from '@/shared/ipcChannels';
 
 /** Per-call axios options — used throughout for AbortController signals. */
@@ -71,281 +71,178 @@ const posService = {
   /**
    * Process a new sale
    */
-  processSale: async (saleData: ProcessSalePayload, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.SALE_PROCESS, saleData);
-    }
-    const response = await api.post('/api/sale', saleData, config);
-    return response.data;
-  },
+  processSale: (saleData: ProcessSalePayload, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.SALE_PROCESS, saleData, () => api.post('/api/sale', saleData, config)),
 
   /**
    * Fetch a specific sale by ID
    */
-  fetchSaleById: async (id: number | string, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.SALE_GET_BY_ID, { id });
-    }
-    const response = await api.get(`/api/sale/${id}`, config);
-    return response.data;
-  },
+  fetchSaleById: (id: number | string, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.SALE_GET_BY_ID, { id }, () => api.get(`/api/sale/${id}`, config)),
 
   /**
    * Fetch sales history
    */
-  fetchSalesHistory: async (params?: QueryParams, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.REPORT_GET_REPORTS, params);
-    }
-    const response = await api.get('/api/reports', { ...config, params });
-    return response.data;
-  },
+  fetchSalesHistory: (params?: QueryParams, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.REPORT_GET_REPORTS, params, () => api.get('/api/reports', { ...config, params })),
 
   /**
    * Process a refund
    */
-  processRefund: async (
+  processRefund: (
     saleId: number,
     items: RefundItemPayload[],
     config: RequestConfig = {}
-  ): Promise<RefundResult> => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.SALE_PROCESS_RETURN, { id: saleId, items });
-    }
-    const response = await api.post(`/api/sale/${saleId}/return`, { items }, config);
-    return response.data;
-  },
+  ): Promise<RefundResult> =>
+    dualCall(isElectronProd, IPC.SALE_PROCESS_RETURN, { id: saleId, items }, () =>
+      api.post(`/api/sale/${saleId}/return`, { items }, config)
+    ),
 
   /**
    * Promotions: Fetch all promotions
    */
-  fetchPromotions: async (config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PROMOTION_GET_ALL);
-    }
-    const response = await api.get('/api/promotions', config);
-    return response.data;
-  },
+  fetchPromotions: (config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PROMOTION_GET_ALL, undefined, () => api.get('/api/promotions', config)),
 
   /**
    * Promotions: Create a new promotion
    */
-  createPromotion: async (promoData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PROMOTION_CREATE, promoData);
-    }
-    const response = await api.post('/api/promotions', promoData, config);
-    return response.data;
-  },
+  createPromotion: (promoData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PROMOTION_CREATE, promoData, () => api.post('/api/promotions', promoData, config)),
 
   /**
    * Promotions: Update an existing promotion
    */
-  updatePromotion: async (id: number, promoData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PROMOTION_UPDATE, { id, ...promoData });
-    }
-    const response = await api.put(`/api/promotions/${id}`, promoData, config);
-    return response.data;
-  },
+  updatePromotion: (id: number, promoData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PROMOTION_UPDATE, { id, ...promoData }, () =>
+      api.put(`/api/promotions/${id}`, promoData, config)
+    ),
 
   /**
    * Promotions: Delete a promotion
    */
-  deletePromotion: async (id: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PROMOTION_DELETE, { id });
-    }
-    const response = await api.delete(`/api/promotions/${id}`, config);
-    return response.data;
-  },
+  deletePromotion: (id: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PROMOTION_DELETE, { id }, () => api.delete(`/api/promotions/${id}`, config)),
 
   /**
    * Promotions: Fetch pricing options for a product in promotions context
    */
-  fetchPromotionProductOptions: async (productId: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PROMOTION_GET_PRODUCT_PRICING_OPTIONS, { productId });
-    }
-    const response = await api.get(`/api/promotions/product-options/${productId}`, config);
-    return response.data;
-  },
+  fetchPromotionProductOptions: (productId: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PROMOTION_GET_PRODUCT_PRICING_OPTIONS, { productId }, () =>
+      api.get(`/api/promotions/product-options/${productId}`, config)
+    ),
 
   /**
    * Expenses: Fetch expenses with optional filters
    */
-  fetchExpenses: async (params?: QueryParams, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.EXPENSE_GET_ALL, params);
-    }
-    const response = await api.get('/api/expenses', { ...config, params });
-    return response.data;
-  },
+  fetchExpenses: (params?: QueryParams, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.EXPENSE_GET_ALL, params, () => api.get('/api/expenses', { ...config, params })),
 
   /**
    * Expenses: Create a new expense
    */
-  createExpense: async (expenseData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.EXPENSE_CREATE, expenseData);
-    }
-    const response = await api.post('/api/expenses', expenseData, config);
-    return response.data;
-  },
+  createExpense: (expenseData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.EXPENSE_CREATE, expenseData, () => api.post('/api/expenses', expenseData, config)),
 
   /**
    * Expenses: Update an existing expense
    */
-  updateExpense: async (id: number, expenseData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.EXPENSE_UPDATE, { id, ...expenseData });
-    }
-    const response = await api.put(`/api/expenses/${id}`, expenseData, config);
-    return response.data;
-  },
+  updateExpense: (id: number, expenseData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.EXPENSE_UPDATE, { id, ...expenseData }, () =>
+      api.put(`/api/expenses/${id}`, expenseData, config)
+    ),
 
   /**
    * Expenses: Delete an expense
    */
-  deleteExpense: async (id: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.EXPENSE_DELETE, { id });
-    }
-    const response = await api.delete(`/api/expenses/${id}`, config);
-    return response.data;
-  },
+  deleteExpense: (id: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.EXPENSE_DELETE, { id }, () => api.delete(`/api/expenses/${id}`, config)),
 
   /**
    * Expense Payments: Add a payment to an expense
    */
-  createExpensePayment: async (expenseId: number, paymentData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.EXPENSE_ADD_PAYMENT, { id: expenseId, ...paymentData });
-    }
-    const response = await api.post(`/api/expenses/${expenseId}/payments`, paymentData, config);
-    return response.data;
-  },
+  createExpensePayment: (expenseId: number, paymentData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.EXPENSE_ADD_PAYMENT, { id: expenseId, ...paymentData }, () =>
+      api.post(`/api/expenses/${expenseId}/payments`, paymentData, config)
+    ),
 
   /**
    * Expense Payments: Update an expense payment
    */
-  updateExpensePayment: async (paymentId: number, paymentData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.EXPENSE_UPDATE_PAYMENT, { id: paymentId, ...paymentData });
-    }
-    const response = await api.put(`/api/expenses/payments/${paymentId}`, paymentData, config);
-    return response.data;
-  },
+  updateExpensePayment: (paymentId: number, paymentData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.EXPENSE_UPDATE_PAYMENT, { id: paymentId, ...paymentData }, () =>
+      api.put(`/api/expenses/payments/${paymentId}`, paymentData, config)
+    ),
 
   /**
    * Expense Payments: Delete an expense payment
    */
-  deleteExpensePayment: async (paymentId: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.EXPENSE_DELETE_PAYMENT, { id: paymentId });
-    }
-    const response = await api.delete(`/api/expenses/payments/${paymentId}`, config);
-    return response.data;
-  },
+  deleteExpensePayment: (paymentId: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.EXPENSE_DELETE_PAYMENT, { id: paymentId }, () =>
+      api.delete(`/api/expenses/payments/${paymentId}`, config)
+    ),
 
   /**
    * Purchases: Fetch purchases with optional filters
    */
-  fetchPurchases: async (params?: QueryParams, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PURCHASE_GET_ALL, params);
-    }
-    const response = await api.get('/api/purchases', { ...config, params });
-    return response.data;
-  },
+  fetchPurchases: (params?: QueryParams, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PURCHASE_GET_ALL, params, () => api.get('/api/purchases', { ...config, params })),
 
   /**
    * Purchases: Create a new purchase
    */
-  createPurchase: async (purchaseData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PURCHASE_CREATE, purchaseData);
-    }
-    const response = await api.post('/api/purchases', purchaseData, config);
-    return response.data;
-  },
+  createPurchase: (purchaseData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PURCHASE_CREATE, purchaseData, () => api.post('/api/purchases', purchaseData, config)),
 
   /**
    * Purchases: Update an existing purchase
    */
-  updatePurchase: async (id: number, purchaseData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PURCHASE_UPDATE, { id, ...purchaseData });
-    }
-    const response = await api.put(`/api/purchases/${id}`, purchaseData, config);
-    return response.data;
-  },
+  updatePurchase: (id: number, purchaseData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PURCHASE_UPDATE, { id, ...purchaseData }, () =>
+      api.put(`/api/purchases/${id}`, purchaseData, config)
+    ),
 
   /**
    * Purchases: Delete a purchase
    */
-  deletePurchase: async (id: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PURCHASE_DELETE, { id });
-    }
-    const response = await api.delete(`/api/purchases/${id}`, config);
-    return response.data;
-  },
+  deletePurchase: (id: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PURCHASE_DELETE, { id }, () => api.delete(`/api/purchases/${id}`, config)),
 
   /**
    * Purchase Payments: Add a payment to a purchase
    */
-  createPurchasePayment: async (purchaseId: number, paymentData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PURCHASE_ADD_PAYMENT, { id: purchaseId, ...paymentData });
-    }
-    const response = await api.post(`/api/purchases/${purchaseId}/payments`, paymentData, config);
-    return response.data;
-  },
+  createPurchasePayment: (purchaseId: number, paymentData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PURCHASE_ADD_PAYMENT, { id: purchaseId, ...paymentData }, () =>
+      api.post(`/api/purchases/${purchaseId}/payments`, paymentData, config)
+    ),
 
   /**
    * Purchase Payments: Update a purchase payment
    */
-  updatePurchasePayment: async (paymentId: number, paymentData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PURCHASE_UPDATE_PAYMENT, { id: paymentId, ...paymentData });
-    }
-    const response = await api.put(`/api/purchases/payments/${paymentId}`, paymentData, config);
-    return response.data;
-  },
+  updatePurchasePayment: (paymentId: number, paymentData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PURCHASE_UPDATE_PAYMENT, { id: paymentId, ...paymentData }, () =>
+      api.put(`/api/purchases/payments/${paymentId}`, paymentData, config)
+    ),
 
   /**
    * Purchase Payments: Delete a purchase payment
    */
-  deletePurchasePayment: async (paymentId: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PURCHASE_DELETE_PAYMENT, { id: paymentId });
-    }
-    const response = await api.delete(`/api/purchases/payments/${paymentId}`, config);
-    return response.data;
-  },
+  deletePurchasePayment: (paymentId: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PURCHASE_DELETE_PAYMENT, { id: paymentId }, () =>
+      api.delete(`/api/purchases/payments/${paymentId}`, config)
+    ),
 
   /**
    * Loose Sales: Create a new loose sale
    */
-  createLooseSale: async (saleData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.LOOSE_SALE_CREATE, saleData);
-    }
-    const response = await api.post('/api/loose-sales', saleData, config);
-    return response.data;
-  },
+  createLooseSale: (saleData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.LOOSE_SALE_CREATE, saleData, () => api.post('/api/loose-sales', saleData, config)),
 
   /**
    * Loose Sales: Delete a loose sale record
    */
-  deleteLooseSale: async (id: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.LOOSE_SALE_DELETE, { id });
-    }
-    const response = await api.delete(`/api/loose-sales/${id}`, config);
-    return response.data;
-  },
+  deleteLooseSale: (id: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.LOOSE_SALE_DELETE, { id }, () => api.delete(`/api/loose-sales/${id}`, config)),
 };
 
 export default posService;

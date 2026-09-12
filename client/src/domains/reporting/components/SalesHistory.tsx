@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { ListAlt as OrdersIcon, ReceiptLong as ReceiptIcon } from '@mui/icons-material';
 import { getRefundStatus, getStatusDisplay } from '@/shared/utils/refundStatus';
+import { getSaleMarginStats } from '@/domains/reporting/components/saleMarginUtils';
 import ExportOptions from '@/domains/reporting/components/ExportOptions';
 import useSortableTable from '@/shared/hooks/useSortableTable';
 import SortableTableHead from '@/domains/reporting/components/SortableTableHead';
@@ -34,7 +35,7 @@ interface SalesHistoryRowProps {
 const SalesHistoryRow = ({ sale, index, isSelected, onSelectSale }: SalesHistoryRowProps) => {
   const refundStatus = getRefundStatus(sale.items);
   const display = getStatusDisplay(refundStatus);
-  const margin = sale.netTotalAmount > 0 ? (sale.profit / sale.netTotalAmount) * 100 : 0;
+  const { cost, margin } = getSaleMarginStats(sale);
 
   return (
     <TableRow
@@ -76,7 +77,7 @@ const SalesHistoryRow = ({ sale, index, isSelected, onSelectSale }: SalesHistory
       </TableCell>
       <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, fontSize: '0.85rem' }}>#{sale.id}</TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>
-        ₹{((sale?.netTotalAmount || 0) - (sale?.profit || 0)).toFixed(2)}
+        ₹{cost.toFixed(2)}
       </TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
         ₹{(sale?.netTotalAmount || 0).toFixed(2)}

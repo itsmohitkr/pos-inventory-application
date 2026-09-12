@@ -127,7 +127,6 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
               uncategorizedCount={pl.uncategorizedCount}
               hasUncategorized={pl.hasUncategorized}
               categorySortOrder={pl.categorySortOrder}
-              isResizingLeft={pl.isResizingLeft}
               contextMenu={pl.contextMenu}
               activeCategory={pl.activeCategory}
               addCategoryOpen={pl.addCategoryOpen}
@@ -148,7 +147,6 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
               onCategoryDialogClose={() => pl.setAddCategoryOpen(false)}
               onCategoryNameChange={pl.setNewCategoryName}
               onSaveCategory={pl.handleSaveCategory}
-              onResizeStart={pl.handleResizeStartLeft}
               onDoubleClick={pl.displayProduct ? pl.handleOpenHistory : undefined}
               onToggleCategories={() => pl.setShowCategories(false)}
             />
@@ -371,9 +369,6 @@ const ProductList = forwardRef<ProductListHandle, ProductListProps>(
               <ProductDetailPanel
                 displayProduct={pl.displayProduct}
                 isLoadingBatches={pl.isLoadingBatches}
-                width={pl.rightPanelWidth}
-                isResizing={pl.isResizingRight}
-                onResizeStart={pl.handleResizeStartRight}
                 onOpenHistory={pl.handleOpenHistory}
                 onCloseHistory={pl.handleCloseHistory}
                 onBatchDelete={pl.deleteBatchConfirmed}

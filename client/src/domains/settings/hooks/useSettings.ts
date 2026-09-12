@@ -91,9 +91,6 @@ export const useSettings = (showError?: (message: string) => void) => {
   const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings>(() =>
     getStoredReceiptSettings(initialShopName)
   );
-  const [draftReceiptSettings, setDraftReceiptSettings] = useState<ReceiptSettings>(() =>
-    getStoredReceiptSettings(initialShopName)
-  );
 
   const [uiZoom, setUiZoom] = useState(
     () => Number(localStorage.getItem(STORAGE_KEYS.uiZoom)) || 100
@@ -120,7 +117,6 @@ export const useSettings = (showError?: (message: string) => void) => {
       if (data.posShopName) setShopName(data.posShopName);
       if (data.posReceiptSettings) {
         setReceiptSettings(data.posReceiptSettings);
-        setDraftReceiptSettings(data.posReceiptSettings);
       }
       setShopMetadata({
         shopMobile: data.shopMobile || '',
@@ -245,8 +241,6 @@ export const useSettings = (showError?: (message: string) => void) => {
     setShopName,
     receiptSettings,
     setReceiptSettings,
-    draftReceiptSettings,
-    setDraftReceiptSettings,
     shopMetadata,
     uiZoom,
     setUiZoom,

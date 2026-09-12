@@ -1,3 +1,11 @@
+import { buildInclusiveDateRange } from '@/shared/utils/isoDate';
+
+/**
+ * Deliberately not shared with reportingTimeframeUtils.getReportRange
+ * despite the similar switch structure: this clips `end` to `now` for the
+ * current week/month/year, where that one returns the full calendar period.
+ * Merging them would change what date range is displayed to the user.
+ */
 export const getSaleHistoryRange = (type: string) => {
   const now = new Date();
   let start = new Date();
@@ -71,25 +79,4 @@ export const getSaleHistoryRange = (type: string) => {
 export const buildInclusiveSaleHistoryRange = (
   startDate?: string | null,
   endDate?: string | null
-) => {
-  if (!startDate || !endDate) return null;
-
-  const [sy, sm, sd] = startDate.split('-').map(Number);
-  const [ey, em, ed] = endDate.split('-').map(Number);
-
-  if ([sy, sm, sd, ey, em, ed].some((value) => Number.isNaN(value))) {
-    return null;
-  }
-
-  const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-  const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return null;
-  }
-
-  return {
-    start: start.toISOString(),
-    end: end.toISOString(),
-  };
-};
+) => buildInclusiveDateRange(startDate, endDate);

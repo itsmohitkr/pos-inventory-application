@@ -107,15 +107,6 @@ export const getChangeCalculatorEnabled = (): boolean => {
   }
 };
 
-export const setChangeCalculatorEnabled = (enabled: boolean): void => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.enableChangeCalculator, JSON.stringify(enabled));
-    window.dispatchEvent(new Event('pos-settings-updated'));
-  } catch (error) {
-    console.error('Failed to save change calculator setting:', error);
-  }
-};
-
 export const getPaymentMethodsEnabled = (): boolean => {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.enablePaymentMethods);
@@ -125,30 +116,12 @@ export const getPaymentMethodsEnabled = (): boolean => {
   }
 };
 
-export const setPaymentMethodsEnabled = (enabled: boolean): void => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.enablePaymentMethods, JSON.stringify(enabled));
-    window.dispatchEvent(new Event('pos-settings-updated'));
-  } catch (error) {
-    console.error('Failed to save payment methods setting:', error);
-  }
-};
-
 export const getCalculatorEnabled = (): boolean => {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.enableCalculator);
     return stored ? JSON.parse(stored) : true; // Default to true (enabled)
   } catch {
     return true;
-  }
-};
-
-export const setCalculatorEnabled = (enabled: boolean): void => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.enableCalculator, JSON.stringify(enabled));
-    window.dispatchEvent(new Event('pos-settings-updated'));
-  } catch (error) {
-    console.error('Failed to save calculator setting:', error);
   }
 };
 
@@ -179,14 +152,6 @@ export const getAdminAutoLogoutTime = (): number => {
   }
 };
 
-export const setAdminAutoLogoutTime = (minutes: number): void => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.adminAutoLogoutTime, minutes.toString());
-    window.dispatchEvent(new Event('pos-settings-updated'));
-  } catch (error) {
-    console.error('Failed to save admin auto-logout time:', error);
-  }
-};
 export const getWeightedAverageCostEnabled = (): boolean => {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.enableWeightedAverageCost);
@@ -214,11 +179,3 @@ export const getCustomerFeatureEnabled = (): boolean => {
   }
 };
 
-export const setCustomerFeatureEnabled = (enabled: boolean): void => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.enableCustomerFeature, JSON.stringify(enabled));
-    window.dispatchEvent(new Event('pos-settings-updated'));
-  } catch (error) {
-    console.error('Failed to save customer feature setting:', error);
-  }
-};

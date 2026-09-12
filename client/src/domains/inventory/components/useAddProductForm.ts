@@ -4,7 +4,6 @@ import inventoryService from '@/shared/api/inventoryService';
 import { getApiErrorMessage, type ApiError } from '@/shared/api/api';
 import { limitTwoDecimals } from '@/shared/utils/priceUtils';
 import { computePricingSummary } from '@/domains/inventory/components/pricingSummary';
-import type { Product } from '@/shared/types/models';
 
 const INITIAL_BATCH = {
   batch_code: '', quantity: '', mrp: '', cost_price: '', selling_price: '',
@@ -52,17 +51,11 @@ const INITIAL_FORM: AddProductFormState = {
 interface UseAddProductFormArgs {
   showSuccess: (message: string) => void;
   onProductAdded?: () => void;
-  mode?: 'add' | 'edit';
-  editingProduct?: Product | null;
-  onProductUpdated?: () => void;
 }
 
 export default function useAddProductForm({
   showSuccess,
   onProductAdded,
-  mode = 'add',
-  editingProduct = null,
-  onProductUpdated,
 }: UseAddProductFormArgs) {
   const [formData, setFormData] = useState<AddProductFormState>(INITIAL_FORM);
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
@@ -79,24 +72,6 @@ export default function useAddProductForm({
       setExistingCategories(Object.keys(categoryCounts).filter(Boolean).sort());
     }).catch(() => { });
   }, []);
-
-  // Only the fields section 1 (name/category/barcodes) and the low-stock
-  // switch in section 3 stay visible in edit mode (AddProductForm hides
-  // initial-batch and wholesale sections there) — initialBatch is left at
-  // its default since it's neither shown nor submitted for an edit.
-  useEffect(() => {
-    if (mode === 'edit' && editingProduct) {
-      setFormData({
-        name: editingProduct.name || '',
-        barcodes: editingProduct.barcode ? editingProduct.barcode.split('|').filter(Boolean) : [],
-        category: editingProduct.category || '',
-        enableBatchTracking: !!editingProduct.batchTrackingEnabled,
-        lowStockWarningEnabled: !!editingProduct.lowStockWarningEnabled,
-        lowStockThreshold: editingProduct.lowStockThreshold ?? 2,
-        initialBatch: { ...INITIAL_BATCH },
-      });
-    }
-  }, [mode, editingProduct]);
 
   const toTitleCase = (str: string): string =>
     str.toLowerCase().split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -163,9 +138,7 @@ export default function useAddProductForm({
       try {
         const data = await inventoryService.fetchProductByBarcode(encodeURIComponent(trimmed));
         const existingProduct = data?.product || data;
-        const belongsToEditingProduct =
-          mode === 'edit' && editingProduct && String(existingProduct?.id) === String(editingProduct.id);
-        if (!belongsToEditingProduct) {
+        if (existingProduct) {
           setBarcodeError(`Barcode '${trimmed}' is already associated with product '${existingProduct?.name || 'another product'}'`);
           return false;
         }
@@ -217,56 +190,51 @@ export default function useAddProductForm({
       errors.barcode = 'At least one barcode is required.';
     }
 
-    // Initial-batch and wholesale fields aren't shown (or editable) in edit
-    // mode — AddProductForm hides those sections there — so they can't be
-    // validated or submitted for an edit.
-    if (mode === 'add') {
-      const b = formData.initialBatch;
-      const mrpStr = String(b.mrp).trim();
-      const costStr = String(b.cost_price).trim();
-      const sellingStr = String(b.selling_price).trim();
-      const qtyStr = String(b.quantity).trim();
+    const b = formData.initialBatch;
+    const mrpStr = String(b.mrp).trim();
+    const costStr = String(b.cost_price).trim();
+    const sellingStr = String(b.selling_price).trim();
+    const qtyStr = String(b.quantity).trim();
 
-      const mrp = Number(b.mrp);
-      const costPrice = Number(b.cost_price);
-      const sellingPrice = Number(b.selling_price);
-      const quantity = Number(b.quantity);
+    const mrp = Number(b.mrp);
+    const costPrice = Number(b.cost_price);
+    const sellingPrice = Number(b.selling_price);
+    const quantity = Number(b.quantity);
 
-      if (!mrpStr || isNaN(mrp)) {
-        errors['initialBatch.mrp'] = 'MRP is required.';
-      } else if (mrp < 0) {
-        errors['initialBatch.mrp'] = 'MRP must be 0 or greater.';
+    if (!mrpStr || isNaN(mrp)) {
+      errors['initialBatch.mrp'] = 'MRP is required.';
+    } else if (mrp < 0) {
+      errors['initialBatch.mrp'] = 'MRP must be 0 or greater.';
+    }
+
+    if (!costStr || isNaN(costPrice)) {
+      errors['initialBatch.cost_price'] = 'Cost Price is required.';
+    } else if (costPrice < 0) {
+      errors['initialBatch.cost_price'] = 'Cost Price must be 0 or greater.';
+    }
+
+    if (!qtyStr || isNaN(quantity)) {
+      errors['initialBatch.quantity'] = 'Quantity is required.';
+    } else if (quantity < 0) {
+      errors['initialBatch.quantity'] = 'Quantity must be 0 or greater.';
+    }
+
+    if (!sellingStr || isNaN(sellingPrice)) {
+      errors['initialBatch.selling_price'] = 'Selling Price is required.';
+    } else if (!isNaN(mrp) && !isNaN(costPrice)) {
+      if (sellingPrice < costPrice || sellingPrice > mrp) {
+        errors['initialBatch.selling_price'] = 'Selling price must be ≤ MRP & ≥ Cost Price.';
       }
+    }
 
-      if (!costStr || isNaN(costPrice)) {
-        errors['initialBatch.cost_price'] = 'Cost Price is required.';
-      } else if (costPrice < 0) {
-        errors['initialBatch.cost_price'] = 'Cost Price must be 0 or greater.';
+    if (b.wholesaleEnabled) {
+      const wPrice = Number(b.wholesalePrice);
+      const wQty = Number(b.wholesaleMinQty);
+      if (!b.wholesalePrice || String(b.wholesalePrice).trim() === '' || isNaN(wPrice) || wPrice < 0) {
+        errors['initialBatch.wholesalePrice'] = 'Wholesale price is required and must be ≥ 0.';
       }
-
-      if (!qtyStr || isNaN(quantity)) {
-        errors['initialBatch.quantity'] = 'Quantity is required.';
-      } else if (quantity < 0) {
-        errors['initialBatch.quantity'] = 'Quantity must be 0 or greater.';
-      }
-
-      if (!sellingStr || isNaN(sellingPrice)) {
-        errors['initialBatch.selling_price'] = 'Selling Price is required.';
-      } else if (!isNaN(mrp) && !isNaN(costPrice)) {
-        if (sellingPrice < costPrice || sellingPrice > mrp) {
-          errors['initialBatch.selling_price'] = 'Selling price must be ≤ MRP & ≥ Cost Price.';
-        }
-      }
-
-      if (b.wholesaleEnabled) {
-        const wPrice = Number(b.wholesalePrice);
-        const wQty = Number(b.wholesaleMinQty);
-        if (!b.wholesalePrice || String(b.wholesalePrice).trim() === '' || isNaN(wPrice) || wPrice < 0) {
-          errors['initialBatch.wholesalePrice'] = 'Wholesale price is required and must be ≥ 0.';
-        }
-        if (!b.wholesaleMinQty || String(b.wholesaleMinQty).trim() === '' || isNaN(wQty) || wQty < 1) {
-          errors['initialBatch.wholesaleMinQty'] = 'Minimum quantity is required and must be ≥ 1.';
-        }
+      if (!b.wholesaleMinQty || String(b.wholesaleMinQty).trim() === '' || isNaN(wQty) || wQty < 1) {
+        errors['initialBatch.wholesaleMinQty'] = 'Minimum quantity is required and must be ≥ 1.';
       }
     }
 
@@ -296,24 +264,6 @@ export default function useAddProductForm({
     }
 
     try {
-      if (mode === 'edit') {
-        if (!editingProduct?.id) return;
-
-        await inventoryService.updateProduct(editingProduct.id, {
-          name: toTitleCase(formData.name),
-          barcode: formData.barcodes.length > 0 ? formData.barcodes.join('|') : null,
-          category: formData.category,
-          lowStockWarningEnabled: formData.lowStockWarningEnabled,
-          lowStockThreshold: formData.lowStockWarningEnabled ? Number(formData.lowStockThreshold) : 0,
-        });
-        await showSuccess('Product updated successfully!');
-        setManualBarcodeInput('');
-        setFieldErrors({});
-        setSubmitError('');
-        if (onProductUpdated) onProductUpdated();
-        return;
-      }
-
       const b = formData.initialBatch;
       const mrp = Number(b.mrp) || 0, costPrice = Number(b.cost_price) || 0, sellingPrice = Number(b.selling_price) || 0, quantity = Number(b.quantity) || 0;
 
@@ -334,14 +284,14 @@ export default function useAddProductForm({
       setSubmitError('');
       if (onProductAdded) onProductAdded();
     } catch (error) {
-      Sentry.captureException(error, { tags: { feature: mode === 'edit' ? 'inventory-update-product' : 'inventory-create-product' } });
+      Sentry.captureException(error, { tags: { feature: 'inventory-create-product' } });
       console.error(error);
       if ((error as ApiError).response?.status === 409) {
         const msg = getApiErrorMessage(error, 'Barcode already exists');
         setBarcodeError(msg);
         return;
       }
-      setSubmitError(getApiErrorMessage(error, mode === 'edit' ? 'Failed to update product' : 'Failed to add product'));
+      setSubmitError(getApiErrorMessage(error, 'Failed to add product'));
     }
   };
 

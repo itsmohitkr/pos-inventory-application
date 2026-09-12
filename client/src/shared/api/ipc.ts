@@ -38,3 +38,31 @@ export const invokeIpc = async <T = unknown>(
 
   return result.body as T;
 };
+
+/**
+ * Every domain API method picks between the native IPC channel (packaged
+ * Electron) and the HTTP call (dev server / browser) with the same
+ * `if (isElectronProd) { return invokeIpc(...) } const response = await
+ * axiosCall; return response.data;` shape. This collapses that pair into one
+ * call — `httpCall` is a thunk so the axios call is only ever made on the
+ * non-Electron path.
+ *
+ * Untyped like the call sites it replaces (axios's `response.data` and
+ * `invokeIpc`'s default `T` were both effectively `any`/`unknown` before this
+ * existed) — every domain service method already returns its own loosely
+ * typed result and narrows it at the call site; tightening this signature
+ * would just relocate that TODO, not resolve it.
+ */
+export const dualCall = async (
+  isElectronProd: boolean,
+  ipcChannel: string,
+  ipcPayload: unknown,
+  httpCall: () => Promise<{ data: any }> // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> => {
+  if (isElectronProd) {
+    return invokeIpc(ipcChannel, ipcPayload);
+  }
+  const response = await httpCall();
+  return response.data;
+};

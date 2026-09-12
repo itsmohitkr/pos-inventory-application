@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Batch, Product } from '@/shared/types/models';
 import type { PromoThresholdConfig } from '@/domains/promotions/types';
 import type { CartItem, OrderTab } from '@/domains/pos/types';
+import { resolveFreeGiftCostRange } from '@/domains/pos/components/freeGiftUtils';
 
 /**
  * Hook to manage POS tabs and cart state
@@ -241,9 +242,7 @@ export const usePOSTabs = () => {
     (product: Product, config: PromoThresholdConfig | null, totalProfitValue: number) => {
       if (!config) return;
 
-      const profitLimit = Number(totalProfitValue) * (Number(config.profitPercentage || 20) / 100);
-      const minCost = Number(config.minCostPrice || 0);
-      const maxCost = config.maxCostPrice !== null ? Number(config.maxCostPrice) : profitLimit;
+      const { minCost, maxCost } = resolveFreeGiftCostRange(config, totalProfitValue);
 
       const batch = (product.batches || []).find((b: Batch) => {
         const cp = Number(b.costPrice);
@@ -343,7 +342,6 @@ export const usePOSTabs = () => {
     handleCloseTab,
     clearCart,
     lastAddedItemId,
-    setLastAddedItemId,
     subTotal,
     totalMrp,
     saleSavings,

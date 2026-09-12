@@ -151,8 +151,6 @@ const PriceListPanel = ({ open = true }: PriceListPanelProps) => {
         <PriceListConfigurationPanel
           products={pl.products}
           loadingProducts={pl.loadingProducts}
-          selectedProductOptions={pl.selectedProductOptions}
-          handleProductSelectionChange={pl.handleProductSelectionChange}
           handleAddProduct={pl.handleAddProduct}
           handleClearAllProducts={pl.handleClearAllProducts}
           getPrimaryBarcode={pl.getPrimaryBarcode}

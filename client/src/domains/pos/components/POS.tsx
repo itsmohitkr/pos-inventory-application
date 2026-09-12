@@ -24,6 +24,7 @@ import { usePOSSearch } from '@/domains/pos/hooks/usePOSSearch';
 import { usePOSCustomer } from '@/domains/pos/hooks/usePOSCustomer';
 import settingsService from '@/shared/api/settingsService';
 import { STORAGE_KEYS } from '@/domains/pos/components/posReceiptSettings';
+import { resolveFreeGiftCostRange } from '@/domains/pos/components/freeGiftUtils';
 import type { Batch, Product } from '@/shared/types/models';
 import type {
   CartItem,
@@ -91,7 +92,6 @@ const POS = ({
     handleCloseTab,
     clearCart,
     lastAddedItemId,
-    setLastAddedItemId: _setLastAddedItemId,
     subTotal,
     totalMrp,
     saleSavings,
@@ -349,10 +349,7 @@ const POS = ({
         removeFromCart(freeItem.batch_id);
         return;
       }
-      const profitLimit = Number(totalProfit) * (Number(activeConfig.profitPercentage || 20) / 100);
-      const minCost = Number(activeConfig.minCostPrice || 0);
-      const maxCost =
-        activeConfig.maxCostPrice !== null ? Number(activeConfig.maxCostPrice) : profitLimit;
+      const { minCost, maxCost } = resolveFreeGiftCostRange(activeConfig, totalProfit);
       const cp = Number(freeItem.costPrice);
       if (cp < minCost || cp > maxCost + 0.001) {
         removeFromCart(freeItem.batch_id);
@@ -368,7 +365,7 @@ const POS = ({
 
 
   // Keyboard Shortcuts handlers (memoized to avoid re-registration churn)
-  const handlePayWithCustomerSync = useCallback(async (method?: PaymentMethod | null) => {
+  const resolvePaymentCustomer = useCallback(async () => {
     let customer = activeCustomer;
     if (!customer && customerSearchValue.trim().length === 10) {
       customer = await registerCustomer(customerSearchValue.trim(), customerNameValue.trim());
@@ -377,20 +374,18 @@ const POS = ({
         setCustomerNameValue('');
       }
     }
+    return customer;
+  }, [activeCustomer, customerSearchValue, customerNameValue, registerCustomer]);
+
+  const handlePayWithCustomerSync = useCallback(async (method?: PaymentMethod | null) => {
+    const customer = await resolvePaymentCustomer();
     return handlePay(method, customer);
-  }, [activeCustomer, customerSearchValue, customerNameValue, registerCustomer, handlePay]);
+  }, [resolvePaymentCustomer, handlePay]);
 
   const handlePayAndPrintWithCustomerSync = useCallback(async (method?: PaymentMethod | null) => {
-    let customer = activeCustomer;
-    if (!customer && customerSearchValue.trim().length === 10) {
-      customer = await registerCustomer(customerSearchValue.trim(), customerNameValue.trim());
-      if (customer) {
-        setCustomerSearchValue('');
-        setCustomerNameValue('');
-      }
-    }
+    const customer = await resolvePaymentCustomer();
     return handlePayAndPrint(method, customer);
-  }, [activeCustomer, customerSearchValue, customerNameValue, registerCustomer, handlePayAndPrint]);
+  }, [resolvePaymentCustomer, handlePayAndPrint]);
 
   const posShortcutHandlers = useMemo(
     () => ({

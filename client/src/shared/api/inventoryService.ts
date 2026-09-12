@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import api, { isElectronProd } from '@/shared/api/api';
-import { invokeIpc } from '@/shared/api/ipc';
+import { dualCall, invokeIpc } from '@/shared/api/ipc';
 import { IPC } from '@/shared/ipcChannels';
 
 /** Per-call axios options — used throughout for AbortController signals. */
@@ -25,46 +25,28 @@ const inventoryService = {
   /**
    * Fetch all products with their associated batches and history
    */
-  fetchProducts: async (params?: QueryParams, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_GET_ALL, params);
-    }
-    const response = await api.get('/api/products', { ...config, params });
-    return response.data;
-  },
+  fetchProducts: (params?: QueryParams, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_GET_ALL, params, () => api.get('/api/products', { ...config, params })),
 
   /**
    * Create a new product
    */
-  createProduct: async (productData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_CREATE, productData);
-    }
-    const response = await api.post('/api/products', productData, config);
-    return response.data;
-  },
+  createProduct: (productData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_CREATE, productData, () => api.post('/api/products', productData, config)),
 
   /**
    * Update an existing product
    */
-  updateProduct: async (id: number, productData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_UPDATE, { id, ...productData });
-    }
-    const response = await api.put(`/api/products/${id}`, productData, config);
-    return response.data;
-  },
+  updateProduct: (id: number, productData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_UPDATE, { id, ...productData }, () =>
+      api.put(`/api/products/${id}`, productData, config)
+    ),
 
   /**
    * Delete a product
    */
-  deleteProduct: async (id: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_DELETE, { id });
-    }
-    const response = await api.delete(`/api/products/${id}`, config);
-    return response.data;
-  },
+  deleteProduct: (id: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_DELETE, { id }, () => api.delete(`/api/products/${id}`, config)),
 
   /**
    * Quick update of product stock/quantity
@@ -77,35 +59,22 @@ const inventoryService = {
   /**
    * Fetch all product categories
    */
-  fetchCategories: async (config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.CATEGORY_GET_CATEGORIES);
-    }
-    const response = await api.get('/api/categories', config);
-    return response.data;
-  },
+  fetchCategories: (config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.CATEGORY_GET_CATEGORIES, undefined, () => api.get('/api/categories', config)),
 
   /**
    * Update an existing batch
    */
-  updateBatch: async (id: number, batchData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_UPDATE_BATCH, { id, ...batchData });
-    }
-    const response = await api.put(`/api/batches/${id}`, batchData, config);
-    return response.data;
-  },
+  updateBatch: (id: number, batchData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_UPDATE_BATCH, { id, ...batchData }, () =>
+      api.put(`/api/batches/${id}`, batchData, config)
+    ),
 
   /**
    * Delete a batch
    */
-  deleteBatch: async (id: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_DELETE_BATCH, { id });
-    }
-    const response = await api.delete(`/api/batches/${id}`, config);
-    return response.data;
-  },
+  deleteBatch: (id: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_DELETE_BATCH, { id }, () => api.delete(`/api/batches/${id}`, config)),
 
   /**
    * Update product prices (MRP, Selling Price, etc.)
@@ -118,90 +87,60 @@ const inventoryService = {
   /**
    * Fetch product by barcode
    */
-  fetchProductByBarcode: async (barcode: string, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_GET_BY_BARCODE, { barcode });
-    }
-    const response = await api.get(`/api/products/${barcode}`, config);
-    return response.data;
-  },
+  fetchProductByBarcode: (barcode: string, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_GET_BY_BARCODE, { barcode }, () =>
+      api.get(`/api/products/${barcode}`, config)
+    ),
 
   /**
    * Fetch product details by ID
    */
-  fetchProductById: async (id: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_GET_BY_ID, { id });
-    }
-    const response = await api.get(`/api/products/id/${id}`, config);
-    return response.data;
-  },
+  fetchProductById: (id: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_GET_BY_ID, { id }, () => api.get(`/api/products/id/${id}`, config)),
 
   /**
    * Fetch inventory summary and category counts
    */
-  fetchSummary: async (params?: QueryParams, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_GET_SUMMARY, params);
-    }
-    const response = await api.get('/api/products/summary', { ...config, params });
-    return response.data;
-  },
+  fetchSummary: (params?: QueryParams, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_GET_SUMMARY, params, () =>
+      api.get('/api/products/summary', { ...config, params })
+    ),
 
   /**
    * Fetch product stock history
    */
-  fetchProductHistory: async (id: number, params?: QueryParams, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_GET_HISTORY, { id, ...params });
-    }
-    const response = await api.get(`/api/products/${id}/history`, { ...config, params });
-    return response.data;
-  },
+  fetchProductHistory: (id: number, params?: QueryParams, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_GET_HISTORY, { id, ...params }, () =>
+      api.get(`/api/products/${id}/history`, { ...config, params })
+    ),
 
   /**
    * Add a new stock batch
    */
-  addBatch: async (payload: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_ADD_BATCH, payload);
-    }
-    const response = await api.post('/api/batches', payload, config);
-    return response.data;
-  },
+  addBatch: (payload: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_ADD_BATCH, payload, () => api.post('/api/batches', payload, config)),
 
   /**
    * Create a new category
    */
-  createCategory: async (categoryData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.CATEGORY_CREATE, categoryData);
-    }
-    const response = await api.post('/api/categories', categoryData, config);
-    return response.data;
-  },
+  createCategory: (categoryData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.CATEGORY_CREATE, categoryData, () =>
+      api.post('/api/categories', categoryData, config)
+    ),
 
   /**
    * Update a category
    */
-  updateCategory: async (id: number, categoryData: RequestBody, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.CATEGORY_UPDATE, { id, ...categoryData });
-    }
-    const response = await api.put(`/api/categories/${id}`, categoryData, config);
-    return response.data;
-  },
+  updateCategory: (id: number, categoryData: RequestBody, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.CATEGORY_UPDATE, { id, ...categoryData }, () =>
+      api.put(`/api/categories/${id}`, categoryData, config)
+    ),
 
   /**
    * Delete a category
    */
-  deleteCategory: async (id: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.CATEGORY_DELETE, { id });
-    }
-    const response = await api.delete(`/api/categories/${id}`, config);
-    return response.data;
-  },
+  deleteCategory: (id: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.CATEGORY_DELETE, { id }, () => api.delete(`/api/categories/${id}`, config)),
 
   /**
    * Assign products to a category
@@ -214,13 +153,10 @@ const inventoryService = {
   /**
    * Validate barcodes against database
    */
-  validateBarcodes: async (barcodes: string[], config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.PRODUCT_VALIDATE_BARCODES, { barcodes });
-    }
-    const response = await api.post('/api/products/validate-barcodes', { barcodes }, config);
-    return response.data;
-  },
+  validateBarcodes: (barcodes: string[], config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.PRODUCT_VALIDATE_BARCODES, { barcodes }, () =>
+      api.post('/api/products/validate-barcodes', { barcodes }, config)
+    ),
 
   /**
    * Import products from CSV file
@@ -243,13 +179,10 @@ const inventoryService = {
    * the IPC path has no HTTP response to carry a real Content-Type/blob;
    * the renderer builds the Blob itself before triggering the download).
    */
-  exportProducts: async (config: RequestConfig = {}): Promise<string> => {
-    if (isElectronProd) {
-      return invokeIpc<string>(IPC.PRODUCT_EXPORT);
-    }
-    const response = await api.get('/api/products/export', { ...config, responseType: 'text' });
-    return response.data;
-  },
+  exportProducts: (config: RequestConfig = {}): Promise<string> =>
+    dualCall(isElectronProd, IPC.PRODUCT_EXPORT, undefined, () =>
+      api.get('/api/products/export', { ...config, responseType: 'text' })
+    ),
 };
 
 export default inventoryService;

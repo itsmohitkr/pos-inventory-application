@@ -21,10 +21,10 @@ import ReportTableEmptyState from '@/domains/reporting/components/ReportTableEmp
 import ReportTablePagination from '@/domains/reporting/components/ReportTablePagination';
 import { usePagedTable } from '@/domains/reporting/components/usePagedTable';
 import { aggregateItemSales, exportItemSalesToPDF } from '@/domains/reporting/components/itemSalesUtils';
-import type { AggregatedItemSale } from '@/domains/reporting/components/itemSalesUtils';
+import type { AggregatedItem } from '@/domains/reporting/components/itemSalesUtils';
 import type { ReportSale } from '@/shared/types/models';
 
-const ItemSalesRow = ({ item, index }: { item: AggregatedItemSale; index: number }) => {
+const ItemSalesRow = ({ item, index }: { item: AggregatedItem; index: number }) => {
   const margin = item.revenue > 0 ? (item.profit / item.revenue) * 100 : 0;
   return (
     <TableRow hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>

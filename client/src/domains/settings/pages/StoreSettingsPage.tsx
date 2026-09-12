@@ -35,7 +35,7 @@ import PaymentSettingsPanel from '@/domains/settings/components/PaymentSettingsP
 import DisplaySettingsTab from '@/domains/settings/components/DisplaySettingsTab';
 import CustomizeBillTab from '@/domains/settings/components/CustomizeBillTab';
 import UserManagementTab from '@/domains/settings/components/UserManagementTab';
-import WipeDatabaseConfirmation from '@/domains/settings/components/WipeDatabaseConfirmation';
+import WipeDatabaseConfirmation, { CONFIRM_PHRASE } from '@/domains/settings/components/WipeDatabaseConfirmation';
 
 import { useStoreSettings } from './useStoreSettings';
 
@@ -160,7 +160,7 @@ const StoreSettingsPage = ({
         if (event.shiftKey) return;
         if ((event.target as HTMLElement | null)?.tagName === 'TEXTAREA') return;
         if (showWipeConfirm) {
-          if (!wipePassword || wipeConfirmPhrase !== 'WIPE ALL DATA' || wipeLoading) return;
+          if (!wipePassword || wipeConfirmPhrase !== CONFIRM_PHRASE || wipeLoading) return;
           event.preventDefault();
           handleWipeDatabase();
           return;
@@ -540,7 +540,7 @@ const StoreSettingsPage = ({
                     color="error"
                     startIcon={<DeleteForeverIcon />}
                     onClick={handleWipeDatabase}
-                    disabled={!wipePassword || wipeConfirmPhrase !== 'WIPE ALL DATA' || wipeLoading}
+                    disabled={!wipePassword || wipeConfirmPhrase !== CONFIRM_PHRASE || wipeLoading}
                     sx={{
                       borderRadius: '8px',
                       fontWeight: 700,

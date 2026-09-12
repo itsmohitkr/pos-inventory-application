@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import api, { isElectronProd } from '@/shared/api/api';
-import { invokeIpc } from '@/shared/api/ipc';
+import { dualCall } from '@/shared/api/ipc';
 import { IPC } from '@/shared/ipcChannels';
 import { getAdminToken } from '@/shared/api/adminToken';
 
@@ -49,24 +49,14 @@ const settingsService = {
   /**
    * Fetch application settings
    */
-  fetchSettings: async (config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.SETTING_GET_ALL);
-    }
-    const response = await api.get('/api/settings', config);
-    return response.data;
-  },
+  fetchSettings: (config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.SETTING_GET_ALL, undefined, () => api.get('/api/settings', config)),
 
   /**
    * Update application settings
    */
-  updateSettings: async (settings: Record<string, unknown>, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.SETTING_UPDATE, settings);
-    }
-    const response = await api.post('/api/settings', settings, config);
-    return response.data;
-  },
+  updateSettings: (settings: Record<string, unknown>, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.SETTING_UPDATE, settings, () => api.post('/api/settings', settings, config)),
 
   /**
    * Fetch system printers (Backend call)
@@ -79,24 +69,16 @@ const settingsService = {
   /**
    * Authentication: Login
    */
-  login: async (credentials: LoginCredentials, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.AUTH_LOGIN, credentials);
-    }
-    const response = await api.post('/api/auth/login', credentials, config);
-    return response.data;
-  },
+  login: (credentials: LoginCredentials, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.AUTH_LOGIN, credentials, () => api.post('/api/auth/login', credentials, config)),
 
-  verifyAdmin: async (
+  verifyAdmin: (
     password: string,
     config: RequestConfig = {}
-  ): Promise<VerifyAdminResult> => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.AUTH_VERIFY_ADMIN, { password });
-    }
-    const response = await api.post('/api/auth/verify-admin', { password }, config);
-    return response.data;
-  },
+  ): Promise<VerifyAdminResult> =>
+    dualCall(isElectronProd, IPC.AUTH_VERIFY_ADMIN, { password }, () =>
+      api.post('/api/auth/verify-admin', { password }, config)
+    ),
 
   changePasscode: async (oldPassword: string, newPassword: string, config: RequestConfig = {}) => {
     const response = await api.post(
@@ -110,72 +92,52 @@ const settingsService = {
   /**
    * User Management: Fetch all users
    */
-  fetchUsers: async (config: RequestConfig = {}): Promise<User[]> => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.AUTH_GET_ALL_USERS);
-    }
-    const response = await api.get('/api/auth/users', config);
-    return response.data;
-  },
+  fetchUsers: (config: RequestConfig = {}): Promise<User[]> =>
+    dualCall(isElectronProd, IPC.AUTH_GET_ALL_USERS, undefined, () => api.get('/api/auth/users', config)),
 
   /**
    * User Management: Create a new user
    */
-  createUser: async (userData: Partial<User> & { password: string }, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.AUTH_CREATE_USER, { ...userData, adminToken: getAdminToken() });
-    }
-    const response = await api.post('/api/auth/users', userData, config);
-    return response.data;
-  },
+  createUser: (userData: Partial<User> & { password: string }, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.AUTH_CREATE_USER, { ...userData, adminToken: getAdminToken() }, () =>
+      api.post('/api/auth/users', userData, config)
+    ),
 
   /**
    * User Management: Update an existing user
    */
-  updateUser: async (id: number, userData: Partial<User> & { password?: string }, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.AUTH_UPDATE_USER, { id, ...userData, adminToken: getAdminToken() });
-    }
-    const response = await api.put(`/api/auth/users/${id}`, userData, config);
-    return response.data;
-  },
+  updateUser: (id: number, userData: Partial<User> & { password?: string }, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.AUTH_UPDATE_USER, { id, ...userData, adminToken: getAdminToken() }, () =>
+      api.put(`/api/auth/users/${id}`, userData, config)
+    ),
 
   /**
    * User Management: Delete a user
    */
-  deleteUser: async (id: number, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.AUTH_DELETE_USER, { id, adminToken: getAdminToken() });
-    }
-    const response = await api.delete(`/api/auth/users/${id}`, config);
-    return response.data;
-  },
+  deleteUser: (id: number, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.AUTH_DELETE_USER, { id, adminToken: getAdminToken() }, () =>
+      api.delete(`/api/auth/users/${id}`, config)
+    ),
 
   /**
    * User Management: Change a user's own password
    */
-  changePassword: async (
+  changePassword: (
     id: number,
     data: { oldPassword: string; newPassword: string },
     config: RequestConfig = {}
-  ) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.AUTH_CHANGE_PASSWORD, { id, ...data });
-    }
-    const response = await api.put(`/api/auth/users/${id}/change-password`, data, config);
-    return response.data;
-  },
+  ) =>
+    dualCall(isElectronProd, IPC.AUTH_CHANGE_PASSWORD, { id, ...data }, () =>
+      api.put(`/api/auth/users/${id}/change-password`, data, config)
+    ),
 
   /**
    * System: Wipe entire database (Admin only)
    */
-  wipeDatabase: async (credentials: WipeDatabaseCredentials, config: RequestConfig = {}) => {
-    if (isElectronProd) {
-      return invokeIpc(IPC.AUTH_WIPE_DATABASE, credentials);
-    }
-    const response = await api.post('/api/auth/wipe-database', credentials, config);
-    return response.data;
-  },
+  wipeDatabase: (credentials: WipeDatabaseCredentials, config: RequestConfig = {}) =>
+    dualCall(isElectronProd, IPC.AUTH_WIPE_DATABASE, credentials, () =>
+      api.post('/api/auth/wipe-database', credentials, config)
+    ),
 };
 
 export default settingsService;

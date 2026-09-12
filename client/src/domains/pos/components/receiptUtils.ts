@@ -1,33 +1,9 @@
 import type { ReceiptSale, ReceiptSaleItem } from '@/domains/pos/types';
 import type { ReceiptSettings } from '@/domains/settings/hooks/useSettings';
 
-export const DEFAULT_RECEIPT_SETTINGS = {
-  shopName: true,
-  header: true,
-  footer: true,
-  mrp: true,
-  price: true,
-  discount: true,
-  totalValue: true,
-  productName: true,
-  exp: true,
-  barcode: true,
-  totalSavings: true,
-  customShopName: 'RESOFT POS',
-  customHeader: '123 Business Street, City',
-  customFooter: 'Thank You! Visit Again',
-  paperSize: '72mm',
-  fontSize: 0.7,
-  itemFontSize: 0.7,
-  lineHeight: 1.1,
-  invoiceLabel: 'Tax Invoice',
-  showBranding: false,
-  titleAlign: 'center',
-  headerAlign: 'center',
-  footerAlign: 'center',
-};
+export { DEFAULT_RECEIPT_SETTINGS } from '@/domains/pos/components/posReceiptSettings';
 
-export const RECEIPT_THEMES = {
+const RECEIPT_THEMES = {
   Standard: {
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
     divider: '2px solid black',
