@@ -33,6 +33,7 @@ interface PriceListConfigurationPanelProps {
   handlePaperTypeChange: (event: { target: { value: string } }) => void;
   paperPreset: string;
   handlePresetChange: (event: { target: { value: string } }) => void;
+  handleResetLayout: () => void;
   paperPresets: PaperPresetOption[];
   showAdvancedLayout: boolean;
   setShowAdvancedLayout: React.Dispatch<React.SetStateAction<boolean>>;
@@ -72,6 +73,72 @@ import {
   Remove as RemoveIcon,
 } from '@mui/icons-material';
 
+interface ClearableNumberFieldProps {
+  label: string;
+  value: number | undefined;
+  min: number;
+  max?: number;
+  fallback: number;
+  step?: number;
+  onCommit: (value: number) => void;
+}
+
+/**
+ * A numeric TextField that can actually be cleared and retyped. A plain
+ * controlled input bound straight to a clamped number snaps back to the
+ * fallback the instant the field is emptied (Number('') || fallback), before
+ * the next keystroke can land. This decouples "what's displayed" (a free-form
+ * draft string, including '') from "the committed value" (parsed/clamped only
+ * on blur), while still pushing valid in-progress numbers through unclamped
+ * on every keystroke so the live preview keeps updating as today.
+ */
+function ClearableNumberField({
+  label,
+  value,
+  min,
+  max,
+  fallback,
+  step,
+  onCommit,
+}: ClearableNumberFieldProps) {
+  const [draft, setDraft] = React.useState<string | null>(null);
+
+  const clamp = (n: number) => {
+    const lower = Math.max(min, n);
+    return typeof max === 'number' ? Math.min(max, lower) : lower;
+  };
+
+  return (
+    <TextField
+      fullWidth
+      size="small"
+      label={label}
+      type="number"
+      inputProps={{
+        min,
+        ...(max !== undefined ? { max } : {}),
+        ...(step !== undefined ? { step } : {}),
+      }}
+      value={draft ?? String(value ?? '')}
+      onChange={(event) => {
+        const raw = event.target.value;
+        setDraft(raw);
+        if (raw.trim() === '') return;
+        const parsed = Number(raw);
+        if (Number.isFinite(parsed)) onCommit(parsed);
+      }}
+      onBlur={() => {
+        if (draft === null) return;
+        const parsed = Number(draft);
+        const finalValue =
+          draft.trim() === '' || !Number.isFinite(parsed) ? fallback : clamp(parsed);
+        onCommit(finalValue);
+        setDraft(null);
+      }}
+    />
+  );
+}
+
 const PriceListConfigurationPanel = ({
   products,
   loadingProducts,
@@ -94,6 +161,7 @@ const PriceListConfigurationPanel = ({
   handlePaperTypeChange,
   paperPreset,
   handlePresetChange,
+  handleResetLayout,
   paperPresets,
   showAdvancedLayout,
   setShowAdvancedLayout,
@@ -400,15 +468,28 @@ const PriceListConfigurationPanel = ({
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0b1d39' }}>
               Advanced Layout and Margins
             </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              endIcon={showAdvancedLayout ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              onClick={() => setShowAdvancedLayout((current) => !current)}
-              sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#cbd5e1', color: '#0b1d39', borderRadius: '6px' }}
-            >
-              {showAdvancedLayout ? 'Hide' : 'Show'}
-            </Button>
+            <Stack direction="row" spacing={1}>
+              {showAdvancedLayout && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<RefreshIcon />}
+                  onClick={handleResetLayout}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#cbd5e1', color: '#0b1d39', borderRadius: '6px' }}
+                >
+                  Reset to Default
+                </Button>
+              )}
+              <Button
+                size="small"
+                variant="outlined"
+                endIcon={showAdvancedLayout ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                onClick={() => setShowAdvancedLayout((current) => !current)}
+                sx={{ textTransform: 'none', fontWeight: 600, borderColor: '#cbd5e1', color: '#0b1d39', borderRadius: '6px' }}
+              >
+                {showAdvancedLayout ? 'Hide' : 'Show'}
+              </Button>
+            </Stack>
           </Box>
 
           <Collapse in={showAdvancedLayout} timeout="auto" unmountOnExit>
@@ -417,84 +498,52 @@ const PriceListConfigurationPanel = ({
                   between-label gaps have no effect there. */}
               {paperType === 'a4' && (
                 <Grid size={{ xs: 6 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
+                  <ClearableNumberField
                     label="Columns"
-                    type="number"
-                    inputProps={{ min: 1, max: 10 }}
                     value={layout.columns}
-                    onChange={(event) =>
-                      setLayout((current) => ({
-                        ...current,
-                        columns: Math.max(1, Number(event.target.value) || 1),
-                      }))
-                    }
+                    min={1}
+                    max={10}
+                    fallback={1}
+                    onCommit={(columns) => setLayout((current) => ({ ...current, columns }))}
                   />
                 </Grid>
               )}
               <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
+                <ClearableNumberField
                   label="Label Width (mm)"
-                  type="number"
-                  inputProps={{ min: 20 }}
                   value={layout.labelWidth}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      labelWidth: Math.max(20, Number(event.target.value) || 20),
-                    }))
-                  }
+                  min={20}
+                  fallback={20}
+                  onCommit={(labelWidth) => setLayout((current) => ({ ...current, labelWidth }))}
                 />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
+                <ClearableNumberField
                   label="Label Height (mm)"
-                  type="number"
-                  inputProps={{ min: 15 }}
                   value={layout.labelHeight}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      labelHeight: Math.max(15, Number(event.target.value) || 15),
-                    }))
-                  }
+                  min={15}
+                  fallback={15}
+                  onCommit={(labelHeight) => setLayout((current) => ({ ...current, labelHeight }))}
                 />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
+                <ClearableNumberField
                   label="Barcode Height (px)"
-                  type="number"
-                  inputProps={{ min: 20 }}
                   value={layout.barcodeHeight}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      barcodeHeight: Math.max(20, Number(event.target.value) || 20),
-                    }))
-                  }
+                  min={20}
+                  fallback={20}
+                  onCommit={(barcodeHeight) => setLayout((current) => ({ ...current, barcodeHeight }))}
                 />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
+                <ClearableNumberField
                   label="Bar Thickness"
-                  type="number"
-                  inputProps={{ min: 0.1, max: 4, step: 0.1 }}
                   value={layout.barcodeLineWidth}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      barcodeLineWidth: Math.max(0.1, Number(event.target.value) || 0.1),
-                    }))
-                  }
+                  min={0.1}
+                  max={4}
+                  step={0.1}
+                  fallback={0.1}
+                  onCommit={(barcodeLineWidth) => setLayout((current) => ({ ...current, barcodeLineWidth }))}
                 />
               </Grid>
               <Grid size={{ xs: 12 }}>
@@ -523,113 +572,72 @@ const PriceListConfigurationPanel = ({
               </Grid>
 
               <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
+                <ClearableNumberField
                   label="Margin Left (mm)"
-                  type="number"
                   value={layout.marginLeft}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      marginLeft: Math.max(0, Number(event.target.value) || 0),
-                    }))
-                  }
+                  min={0}
+                  fallback={0}
+                  onCommit={(marginLeft) => setLayout((current) => ({ ...current, marginLeft }))}
                 />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
+                <ClearableNumberField
                   label="Margin Right (mm)"
-                  type="number"
                   value={layout.marginRight}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      marginRight: Math.max(0, Number(event.target.value) || 0),
-                    }))
-                  }
+                  min={0}
+                  fallback={0}
+                  onCommit={(marginRight) => setLayout((current) => ({ ...current, marginRight }))}
                 />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
+                <ClearableNumberField
                   label="Margin Top (mm)"
-                  type="number"
                   value={layout.marginTop}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      marginTop: Math.max(0, Number(event.target.value) || 0),
-                    }))
-                  }
+                  min={0}
+                  fallback={0}
+                  onCommit={(marginTop) => setLayout((current) => ({ ...current, marginTop }))}
                 />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
+                <ClearableNumberField
                   label="Margin Bottom (mm)"
-                  type="number"
                   value={layout.marginBottom}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      marginBottom: Math.max(0, Number(event.target.value) || 0),
-                    }))
-                  }
+                  min={0}
+                  fallback={0}
+                  onCommit={(marginBottom) => setLayout((current) => ({ ...current, marginBottom }))}
                 />
               </Grid>
               {paperType === 'a4' && (
                 <Grid size={{ xs: 6 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
+                  <ClearableNumberField
                     label="Horizontal Gap (mm)"
-                    type="number"
                     value={layout.gapHorizontal}
-                    onChange={(event) =>
-                      setLayout((current) => ({
-                        ...current,
-                        gapHorizontal: Math.max(0, Number(event.target.value) || 0),
-                      }))
-                    }
+                    min={0}
+                    fallback={0}
+                    onCommit={(gapHorizontal) => setLayout((current) => ({ ...current, gapHorizontal }))}
                   />
                 </Grid>
               )}
               {paperType === 'a4' && (
                 <Grid size={{ xs: 6 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
+                  <ClearableNumberField
                     label="Vertical Gap (mm)"
-                    type="number"
                     value={layout.gapVertical}
-                    onChange={(event) =>
-                      setLayout((current) => ({
-                        ...current,
-                        gapVertical: Math.max(0, Number(event.target.value) || 0),
-                      }))
-                    }
+                    min={0}
+                    fallback={0}
+                    onCommit={(gapVertical) => setLayout((current) => ({ ...current, gapVertical }))}
                   />
                 </Grid>
               )}
               <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
+                <ClearableNumberField
                   label="Barcode Line Spacing"
-                  type="number"
-                  inputProps={{ min: 0.8, max: 3, step: 0.1 }}
                   value={layout.barcodeLineSpacing}
-                  onChange={(event) =>
-                    setLayout((current) => ({
-                      ...current,
-                      barcodeLineSpacing: Math.max(0.8, Number(event.target.value) || 1.25),
-                    }))
-                  }
+                  min={0.8}
+                  max={3}
+                  step={0.1}
+                  fallback={1.25}
+                  onCommit={(barcodeLineSpacing) => setLayout((current) => ({ ...current, barcodeLineSpacing }))}
                 />
               </Grid>
             </Grid>
