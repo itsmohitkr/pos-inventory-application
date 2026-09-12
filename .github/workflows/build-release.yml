@@ -398,7 +398,15 @@ jobs:
         run: |
           $setup = Get-ChildItem dist/*.exe | Select-Object -First 1
           $sw = [System.Diagnostics.Stopwatch]::StartNew()
-          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          # This is an "assisted" (non-oneClick) NSIS build with no explicit
+          # `perMachine`, which uses NSIS's MultiUser plugin and normally asks
+          # interactively whether to install for the current user or all
+          # users. With no desktop session to answer that (or an elevation
+          # prompt an all-users install would trigger), the installer's
+          # launcher process was observed exiting in ~3-6s without installing
+          # anything at all. /CURRENTUSER forces MultiUser to skip that
+          # prompt and always do a non-elevated, per-user install.
+          Start-Process -FilePath $setup.FullName -ArgumentList '/S', '/CURRENTUSER' -Wait
           $sw.Stop()
           Write-Host "Install process exited after $($sw.Elapsed)"
 
