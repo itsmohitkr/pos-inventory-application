@@ -185,7 +185,16 @@ const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
           filterOptions={filterOptions}
           value={null}
           inputValue={animating ? typewriterBarcode : searchQuery}
-          onInputChange={(event, newInputValue) => {
+          onInputChange={(event, newInputValue, reason) => {
+            // MUI fires this with reason 'reset'/'clear' whenever the
+            // controlled `inputValue` above changes programmatically (the
+            // post-selection typewriter animation, the barcode-not-found
+            // flash) rather than from a real keystroke. Forwarding those
+            // back into `onSearchInputChange` (== setSearchQuery) creates a
+            // feedback loop between this prop and that state that can hit
+            // React's "Maximum update depth exceeded" guard — only 'input'
+            // is an actual keystroke this state should track.
+            if (reason !== 'input') return;
             onSearchInputChange(newInputValue);
           }}
           open={open && searchQuery.length > 0}
