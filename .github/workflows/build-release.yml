@@ -188,7 +188,14 @@ jobs:
   # ── Windows Build ───────────────────────────────────────────
   build-win:
     needs: quality-gate
-    runs-on: windows-latest
+    # Pinned rather than windows-latest: that label rotated to a newer
+    # Windows Server image that crashes electron-builder's stock NSIS
+    # installer inside its bundled System.dll plugin (0xC0000005, reproduced
+    # identically twice on v242 with Defender real-time protection already
+    # off, ruling out AV interference). windows-2022 is the last known-good
+    # image (v241 and earlier passed on it via windows-latest before the
+    # rotation).
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
         with:
@@ -353,7 +360,9 @@ jobs:
 
   smoke-win:
     needs: build-win
-    runs-on: windows-latest
+    # See the matching comment on build-win: pinned off windows-latest for
+    # the same reason.
+    runs-on: windows-2022
     steps:
       - name: Download windows installer
         uses: actions/download-artifact@v4
