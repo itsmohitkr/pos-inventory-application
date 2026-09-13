@@ -177,7 +177,20 @@ async function runPrismaMigrationsSubprocess(logger: Logger) {
 
   const prismaCliPath = getPrismaCliPath(IS_PACKAGED);
   const schemaPath = getSchemaPath(IS_PACKAGED);
-  if (IS_PACKAGED) {
+  // nodeExecutable is process.execPath, which is the Electron binary
+  // whenever this server is running inside Electron's process (true for
+  // BOTH `electron-dev` and a packaged build — not just when packaged).
+  // Without ELECTRON_RUN_AS_NODE, spawning that binary against the Prisma
+  // CLI's entry file makes Electron try to boot itself as a full GUI app
+  // instead of running the CLI as plain Node, hanging this exec forever
+  // (observed: a second, nested Electron instance launches and never
+  // exits). Gating on IS_PACKAGED alone missed the electron-dev case,
+  // where the server also runs inside Electron but IS_PACKAGED is false.
+  // process.versions.electron is the reliable signal for "this Node
+  // process is actually Electron", regardless of dev/prod — it's absent
+  // when the server runs standalone under plain Node (`cd server && npm
+  // run dev`), where the flag would be unnecessary anyway.
+  if (process.versions.electron) {
     pEnv.ELECTRON_RUN_AS_NODE = '1';
   }
 
