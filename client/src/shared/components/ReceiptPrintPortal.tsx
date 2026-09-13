@@ -1,31 +1,45 @@
+import type { ReceiptSale } from '@/domains/pos/types';
+import type {
+  ReceiptSettings,
+  ShopMetadata,
+} from '@/domains/settings/hooks/useSettings';
 import React from 'react';
 import { createPortal } from 'react-dom';
-import type { ReportSale } from '@/shared/types/models';
-import type { ReceiptSettings, ShopMetadata } from '@/domains/settings/hooks/useSettings';
 import { Box } from '@mui/material';
-import ReceiptUntyped from '@/domains/pos/components/Receipt';
-import { getCustomerFeatureEnabled } from '@/shared/utils/paymentSettings';
+import Receipt from '@/domains/pos/components/Receipt';
 
-// Receipt.jsx is part of the receipt-printing path and is converted later; it
-// currently exposes no prop types, so forwardRef infers empty props.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Receipt = ReceiptUntyped as React.ComponentType<any>;
-
-interface SaleHistoryPrintContainerProps {
-  /** The sale being printed; null renders the off-screen container empty. */
-  selectedSale?: ReportSale | null;
-  /** Falls through to Receipt.tsx's own defaults when not yet loaded, same as POSPrintContainer. */
+interface ReceiptPrintPortalProps {
+  /** The sale to print; null/undefined renders the off-screen container empty. */
+  sale?: ReceiptSale | null;
   receiptSettings?: ReceiptSettings | null;
   shopMetadata?: ShopMetadata | null;
+  /** Hides the customer block on the printed receipt when off. */
+  customerFeatureEnabled?: boolean;
 }
 
-const SaleHistoryPrintContainer = ({
-  selectedSale,
+/**
+ * Single shared source of the hidden, off-screen receipt DOM that
+ * `print-manual` captures. POS (Pay & Print / Last Receipt) and Sale History
+ * (reprint) both render this component so the printed output can never drift
+ * between them again — they used to be two separately maintained, near-
+ * identical files (POSPrintContainer / SaleHistoryPrintContainer), and that
+ * duplication was exactly why Sale History silently fell back to different
+ * settings defaults than POS for a while.
+ *
+ * The `ipcRenderer.invoke(IPC.PRINT_MANUAL, ...)` call itself stays pinned
+ * in each screen's own trigger (usePOSSale.ts / SaleHistory.tsx) per the
+ * project-wide print-IPC-location rule — this component only owns what gets
+ * rendered, not the invoke.
+ */
+const ReceiptPrintPortal = ({
+  sale,
   receiptSettings,
   shopMetadata,
-}: SaleHistoryPrintContainerProps) =>
+  customerFeatureEnabled = true,
+}: ReceiptPrintPortalProps) =>
   createPortal(
     <Box
+      aria-hidden="true"
       sx={{
         position: 'absolute',
         left: '-9999px',
@@ -45,12 +59,12 @@ const SaleHistoryPrintContainer = ({
       }}
     >
       <div id="thermal-receipt-print">
-        {selectedSale && (
+        {sale && (
           <Receipt
-            sale={selectedSale}
+            sale={sale}
             settings={receiptSettings ?? undefined}
-            shopMetadata={shopMetadata}
-            customerFeatureEnabled={getCustomerFeatureEnabled()}
+            shopMetadata={shopMetadata ?? undefined}
+            customerFeatureEnabled={customerFeatureEnabled}
           />
         )}
       </div>
@@ -70,4 +84,4 @@ const SaleHistoryPrintContainer = ({
     document.body
   );
 
-export default React.memo(SaleHistoryPrintContainer);
+export default React.memo(ReceiptPrintPortal);
