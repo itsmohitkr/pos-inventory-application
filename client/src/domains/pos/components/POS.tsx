@@ -9,7 +9,7 @@ import CartTable from '@/domains/pos/components/CartTable';
 import TransactionPanel from '@/domains/pos/components/TransactionPanel';
 import POSDialogManager from '@/domains/pos/components/POSDialogManager';
 import POSTabs from '@/domains/pos/components/POSTabs';
-import POSPrintContainer from '@/domains/pos/components/POSPrintContainer';
+import ReceiptPrintPortal from '@/shared/components/ReceiptPrintPortal';
 import POSFloatingActions from '@/domains/pos/components/POSFloatingActions';
 import PromoGiftsList from '@/domains/pos/components/PromoGiftsList';
 import SuccessNotification from '@/shared/components/SuccessNotification';
@@ -644,8 +644,8 @@ const POS = ({
         customerFeatureEnabled={customerFeatureEnabled}
       />
 
-      <POSPrintContainer
-        lastSale={lastSale}
+      <ReceiptPrintPortal
+        sale={lastSale}
         receiptSettings={receiptSettings}
         shopMetadata={shopMetadata}
         customerFeatureEnabled={customerFeatureEnabled}

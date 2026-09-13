@@ -27,7 +27,8 @@ import SaleHistoryHeader from '@/domains/saleHistory/components/SaleHistoryHeade
 import SalesListPanel from '@/domains/saleHistory/components/SalesListPanel';
 import POSSaleDetailsPanel from '@/domains/saleHistory/components/POSSaleDetailsPanel';
 import SaleHistoryDeleteDialog from '@/domains/saleHistory/components/SaleHistoryDeleteDialog';
-import SaleHistoryPrintContainer from '@/domains/saleHistory/components/SaleHistoryPrintContainer';
+import ReceiptPrintPortal from '@/shared/components/ReceiptPrintPortal';
+import { getCustomerFeatureEnabled } from '@/shared/utils/paymentSettings';
 import { getSaleHistoryRange, buildInclusiveSaleHistoryRange } from '@/domains/saleHistory/components/saleHistoryDateUtils';
 import { calculateSaleStats } from '@/domains/saleHistory/components/saleHistoryStats';
 import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
@@ -373,10 +374,11 @@ const SaleHistory = ({
           </Box>
         )}
 
-        <SaleHistoryPrintContainer
-          selectedSale={selectedPosSale}
+        <ReceiptPrintPortal
+          sale={selectedPosSale}
           receiptSettings={receiptSettings}
           shopMetadata={shopMetadata}
+          customerFeatureEnabled={getCustomerFeatureEnabled()}
         />
 
         {/* Refund Dialog */}
