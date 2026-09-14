@@ -28,6 +28,7 @@ import SalesListPanel from '@/domains/saleHistory/components/SalesListPanel';
 import POSSaleDetailsPanel from '@/domains/saleHistory/components/POSSaleDetailsPanel';
 import SaleHistoryDeleteDialog from '@/domains/saleHistory/components/SaleHistoryDeleteDialog';
 import ReceiptPrintPortal from '@/shared/components/ReceiptPrintPortal';
+import { buildReceiptPrintHtml } from '@/domains/pos/components/receiptPrintHtml';
 import { getCustomerFeatureEnabled } from '@/shared/utils/paymentSettings';
 import { getSaleHistoryRange, buildInclusiveSaleHistoryRange } from '@/domains/saleHistory/components/saleHistoryDateUtils';
 import { calculateSaleStats } from '@/domains/saleHistory/components/saleHistoryStats';
@@ -196,16 +197,25 @@ const SaleHistory = ({
         showError?.('No printer configured. Go to Settings → Receipt Settings to select a printer.');
         return;
       }
-      // TEMP DIAGNOSTIC EXPERIMENT: deliberately NOT sending pageSize here
-      // (unlike usePOSSale.ts's two callers, which do) to isolate whether
-      // the explicit pageSize itself is what changed Sale History's print
-      // symptom from "smaller, doesn't fill width" to "content confined to
-      // the left, right side blank" after it was added. See the plan file
-      // for the three possible outcomes and what each would mean.
+      // EXPERIMENT: print via an isolated, dedicated print window
+      // (print-html-content — the same mechanism already proven reliable
+      // for barcode/price-list labels) instead of print-manual, which
+      // prints from the main application window (the same window the
+      // sidebar, tables, and everything else is loaded into, just hidden
+      // via CSS at print time). Testing whether Chromium's print engine is
+      // sensitive to that surrounding page content, now that four separate
+      // checks have proven the receipt's own DOM/CSS is identical to POS's,
+      // and pageSize has been proven to have no effect either way. See the
+      // plan file for the full reasoning.
+      const html = buildReceiptPrintHtml();
+      if (!html) {
+        showError?.('Could not prepare the receipt for printing. Please try again.');
+        return;
+      }
       const result = await window.electron.ipcRenderer.invoke<{
         success?: boolean;
         error?: string;
-      }>(IPC.PRINT_MANUAL, { printerName: printer });
+      }>(IPC.PRINT_HTML_CONTENT, { html, printerName: printer });
       if (!result?.success) {
         showError?.(`Print failed: ${result?.error || 'Unknown error'} Check that the printer is on and connected.`);
       }
