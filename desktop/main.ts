@@ -347,11 +347,19 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 
 interface PrintManualRequest {
   printerName?: string;
+  /**
+   * Physical page size for the receipt. Without this, Chromium's print
+   * falls back to A4 rather than the printer driver's configured roll size
+   * (see the matching comment on print-html-content's pageSize handling
+   * below) — a receipt sized for e.g. 72mm then looks like a small block on
+   * a big page instead of filling the roll width.
+   */
+  pageSize?: { widthMicrons?: number; heightMicrons?: number };
 }
 
 ipcMain.handle(
   'print-manual',
-  async (_event, { printerName }: PrintManualRequest): Promise<PrintResult> => {
+  async (_event, { printerName, pageSize }: PrintManualRequest): Promise<PrintResult> => {
     const win = liveMainWindow();
     if (!win) return { success: false, error: 'App window not ready' };
     console.log(`[PRINT] Direct Printing to: ${printerName || 'System Default'}`);
@@ -382,18 +390,23 @@ ipcMain.handle(
       return { success: false, error: 'The app window closed before printing could start.' };
     }
 
-    return printWithTimeout(
-      target.webContents,
-      {
-        silent: true, // no OS print dialog, no interruption to the cashier flow
-        deviceName: printerName || undefined,
-        printBackground: true,
-        color: true,
-        margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
-        scaleFactor: 100,
-      },
-      'receipt'
-    );
+    const printOptions: Electron.WebContentsPrintOptions & { pageSize?: { width: number; height: number } } = {
+      silent: true, // no OS print dialog, no interruption to the cashier flow
+      deviceName: printerName || undefined,
+      printBackground: true,
+      color: true,
+      margins: { marginType: 'none' }, // CRITICAL: Disable margins to prevent clipping or shrinking
+      scaleFactor: 100,
+    };
+
+    if (pageSize && Number(pageSize.widthMicrons) > 0 && Number(pageSize.heightMicrons) > 0) {
+      printOptions.pageSize = {
+        width: Math.round(Number(pageSize.widthMicrons)),
+        height: Math.round(Number(pageSize.heightMicrons)),
+      };
+    }
+
+    return printWithTimeout(target.webContents, printOptions, 'receipt');
   }
 );
 
