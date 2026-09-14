@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import posService from '@/shared/api/posService';
 import { getApiErrorMessage } from '@/shared/api/api';
 import { resolvePrinterName } from '@/shared/utils/resolvePrinterName';
-import { getReceiptPageSize } from '@/shared/utils/receiptPrintOptions';
 import { IPC } from '@/shared/ipcChannels';
 import type { CartItem, PaymentMethod, ReceiptSale } from '@/domains/pos/types';
 import type { Customer } from '@/shared/api/customerService';
@@ -139,8 +138,7 @@ export const usePOSSale = ({
                 'Sale saved, but no printer is configured. Go to Settings → Receipt Settings to select one, then reprint from Sale History.'
               );
             } else {
-              const pageSize = getReceiptPageSize(receiptSettings?.paperSize);
-              const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer, pageSize });
+              const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer });
               if (!result?.success) {
                 showError(
                   `Print failed: ${result?.error || 'Unknown error'} The sale was saved — reprint it from Sale History.`
@@ -186,8 +184,7 @@ export const usePOSSale = ({
         if (!printer) {
           showError('No printer configured. Go to Settings → Receipt Settings to select a printer.');
         } else {
-          const pageSize = getReceiptPageSize(receiptSettings?.paperSize);
-          const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer, pageSize });
+          const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer });
           if (!result?.success) {
             showError(`Print failed: ${result?.error || 'Unknown error'} Check that the printer is on and connected.`);
           }
