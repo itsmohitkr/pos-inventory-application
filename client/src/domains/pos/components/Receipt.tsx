@@ -87,8 +87,8 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
               <Typography
                 variant="h6"
                 sx={{
-                  fontWeight: 900, // Explicitly Bold for Shop Name
-                  fontSize: '1.25em',
+                  fontWeight: '900 !important', // Explicitly Bold for Shop Name
+                  fontSize: '1.25em !important',
                   color: '#000',
                   letterSpacing: '-0.02em',
                   mb: 0.2,
@@ -102,14 +102,14 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
               <Box sx={{ textAlign: config.headerAlign || 'center' }}>
                 <Typography
                   variant="body2"
-                  sx={{ fontSize: '0.9em', fontWeight: theme.textWeight, color: '#000', mb: 0.1 }}
+                  sx={{ fontSize: '0.9em !important', fontWeight: `${theme.textWeight} !important`, color: '#000', mb: 0.1 }}
                 >
                   {config.customHeader}
                 </Typography>
                 {config.customHeader2 && (
                   <Typography
                     variant="body2"
-                    sx={{ fontSize: '0.9em', fontWeight: theme.textWeight, color: '#000', mb: 0.1 }}
+                    sx={{ fontSize: '0.9em !important', fontWeight: `${theme.textWeight} !important`, color: '#000', mb: 0.1 }}
                   >
                     {config.customHeader2}
                   </Typography>
@@ -117,7 +117,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                 {config.customHeader3 && (
                   <Typography
                     variant="body2"
-                    sx={{ fontSize: '0.9em', fontWeight: theme.textWeight, color: '#000', mb: 0.1 }}
+                    sx={{ fontSize: '0.9em !important', fontWeight: `${theme.textWeight} !important`, color: '#000', mb: 0.1 }}
                   >
                     {config.customHeader3}
                   </Typography>
@@ -125,7 +125,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                 {shopMetadata?.shopMobile && (
                   <Typography
                     variant="body2"
-                    sx={{ fontSize: '0.85em', fontWeight: theme.textWeight, color: '#000' }}
+                    sx={{ fontSize: '0.85em !important', fontWeight: `${theme.textWeight} !important`, color: '#000' }}
                   >
                     Tel: {shopMetadata.shopMobile}
                   </Typography>
@@ -133,7 +133,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                 {shopMetadata?.shopMobile2 && (
                   <Typography
                     variant="body2"
-                    sx={{ fontSize: '0.85em', fontWeight: theme.textWeight, color: '#000' }}
+                    sx={{ fontSize: '0.85em !important', fontWeight: `${theme.textWeight} !important`, color: '#000' }}
                   >
                     Tel 2: {shopMetadata.shopMobile2}
                   </Typography>
@@ -145,8 +145,8 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             <Typography
               variant="body2"
               sx={{
-                fontWeight: theme.headerWeight,
-                fontSize: '1em',
+                fontWeight: `${theme.headerWeight} !important`,
+                fontSize: '1em !important',
                 color: '#000',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -164,22 +164,22 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography
               variant="body2"
-              sx={{ fontSize: '0.85em', fontWeight: theme.boldWeight, color: '#000' }}
+              sx={{ fontSize: '0.85em !important', fontWeight: `${theme.boldWeight} !important`, color: '#000' }}
             >
               Bill No: ORD-{sale.id}
             </Typography>
-            <Typography variant="body2" sx={{ fontSize: '0.85em', color: '#000' }}>
+            <Typography variant="body2" sx={{ fontSize: '0.85em !important', color: '#000' }}>
               {new Date(sale.createdAt).toLocaleDateString()}
             </Typography>
           </Box>
-          <Typography variant="body2" sx={{ fontSize: '0.85em', color: '#000' }}>
+          <Typography variant="body2" sx={{ fontSize: '0.85em !important', color: '#000' }}>
             Time: {new Date(sale.createdAt).toLocaleTimeString()}
           </Typography>
 
           {/* Customer Details - Only if enabled and available */}
           {customerFeatureEnabled && config.customerDetails && sale.customer && (
             <Box sx={{ mt: 0.5, borderTop: '1px dashed #ccc', pt: 0.5 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.85em', color: '#000' }}>
+              <Typography variant="body2" sx={{ fontSize: '0.85em !important', color: '#000' }}>
                 Bill To: {sale.customer.name || 'Customer'} ({sale.customer.phone})
               </Typography>
             </Box>
@@ -340,7 +340,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
               <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 0.2 }}>
                 <Typography
                   variant="body2"
-                  sx={{ fontSize: '0.9em', fontWeight: theme.textWeight }}
+                  sx={{ fontSize: '0.9em !important', fontWeight: `${theme.textWeight} !important` }}
                 >
                   Items: {sale.items?.length || 0}, Quantity: {totalItemCount}
                 </Typography>
@@ -349,19 +349,19 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             </>
           )}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
-            <Typography variant="body2" sx={{ fontSize: '1em', fontWeight: theme.textWeight }}>
+            <Typography variant="body2" sx={{ fontSize: '1em !important', fontWeight: `${theme.textWeight} !important` }}>
               Subtotal:
             </Typography>
-            <Typography variant="body2" sx={{ fontSize: '1em', fontWeight: theme.textWeight }}>
+            <Typography variant="body2" sx={{ fontSize: '1em !important', fontWeight: `${theme.textWeight} !important` }}>
               ₹{(originalTotal + (sale.discount || 0) + (sale.extraDiscount || 0)).toFixed(2)}
             </Typography>
           </Box>
           {config.discount && ((sale.discount || 0) > 0 || (sale.extraDiscount || 0) > 0) && (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.9em', fontWeight: theme.boldWeight }}>
+              <Typography variant="body2" sx={{ fontSize: '0.9em !important', fontWeight: `${theme.boldWeight} !important` }}>
                 TOTAL DISCOUNT:
               </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.9em', fontWeight: theme.boldWeight }}>
+              <Typography variant="body2" sx={{ fontSize: '0.9em !important', fontWeight: `${theme.boldWeight} !important` }}>
                 -₹{((sale.discount || 0) + (sale.extraDiscount || 0)).toFixed(2)}
               </Typography>
             </Box>
@@ -369,10 +369,10 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
 
           {config.roundOff && roundOff !== 0 && (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.9em', fontStyle: 'italic' }}>
+              <Typography variant="body2" sx={{ fontSize: '0.9em !important', fontStyle: 'italic' }}>
                 Round Off:
               </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.9em' }}>
+              <Typography variant="body2" sx={{ fontSize: '0.9em !important' }}>
                 {roundOff > 0 ? '+' : ''}₹{roundOff.toFixed(2)}
               </Typography>
             </Box>
@@ -388,10 +388,10 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                 py: 0.3,
               }}
             >
-              <Typography variant="body2" sx={{ fontWeight: 900, fontSize: '1.1em' }}>
+              <Typography variant="body2" sx={{ fontWeight: '900 !important', fontSize: '1.1em !important' }}>
                 GRAND TOTAL:
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 900, fontSize: '1.25em' }}>
+              <Typography variant="body2" sx={{ fontWeight: '900 !important', fontSize: '1.25em !important' }}>
                 ₹{roundedTotal.toFixed(2)}
               </Typography>
             </Box>
@@ -409,7 +409,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             >
               <Typography
                 variant="body2"
-                sx={{ fontWeight: 400, fontSize: '1em', letterSpacing: '0.05em' }}
+                sx={{ fontWeight: '400 !important', fontSize: '1em !important', letterSpacing: '0.05em' }}
               >
                 TOTAL SAVINGS: ₹{(calculatedSavings - (config.roundOff ? roundOff : 0)).toFixed(2)}
               </Typography>
@@ -425,14 +425,14 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             <>
               <Typography
                 variant="body2"
-                sx={{ fontWeight: theme.boldWeight, fontSize: '1em', color: '#000', mb: 0.2 }}
+                sx={{ fontWeight: `${theme.boldWeight} !important`, fontSize: '1em !important', color: '#000', mb: 0.2 }}
               >
                 {config.customFooter}
               </Typography>
               {config.customFooter2 && (
                 <Typography
                   variant="body2"
-                  sx={{ fontWeight: theme.boldWeight, fontSize: '0.9em', color: '#000', mb: 0.2 }}
+                  sx={{ fontWeight: `${theme.boldWeight} !important`, fontSize: '0.9em !important', color: '#000', mb: 0.2 }}
                 >
                   {config.customFooter2}
                 </Typography>
@@ -443,8 +443,8 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
             <Typography
               variant="caption"
               sx={{
-                fontSize: '0.85em',
-                fontWeight: theme.boldWeight,
+                fontSize: '0.85em !important',
+                fontWeight: `${theme.boldWeight} !important`,
                 color: '#000',
                 display: 'block',
                 mt: 1,
