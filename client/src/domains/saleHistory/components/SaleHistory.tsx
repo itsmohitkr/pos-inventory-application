@@ -34,7 +34,6 @@ import { calculateSaleStats } from '@/domains/saleHistory/components/saleHistory
 import { getResponseArray, getResponseObject } from '@/shared/utils/responseGuards';
 import { IPC } from '@/shared/ipcChannels';
 import { resolvePrinterName } from '@/shared/utils/resolvePrinterName';
-import { getReceiptPageSize } from '@/shared/utils/receiptPrintOptions';
 
 const SaleHistory = ({
   receiptSettings,
@@ -197,11 +196,10 @@ const SaleHistory = ({
         showError?.('No printer configured. Go to Settings → Receipt Settings to select a printer.');
         return;
       }
-      const pageSize = getReceiptPageSize(receiptSettings?.paperSize);
       const result = await window.electron.ipcRenderer.invoke<{
         success?: boolean;
         error?: string;
-      }>(IPC.PRINT_MANUAL, { printerName: printer, pageSize });
+      }>(IPC.PRINT_MANUAL, { printerName: printer });
       if (!result?.success) {
         showError?.(`Print failed: ${result?.error || 'Unknown error'} Check that the printer is on and connected.`);
       }
