@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Typography, IconButton, Stack, Chip, Button, Tooltip, Avatar } from '@mui/material';
-import { Menu as MenuIcon } from '@mui/icons-material';
+import { Menu as MenuIcon, Wifi as WifiIcon, WifiOff as WifiOffIcon } from '@mui/icons-material';
 import type { AuthUser } from '@/shared/types/auth';
+import useOnlineStatus from '@/shared/hooks/useOnlineStatus';
 
 interface TopHeaderProps {
   shopName?: string;
@@ -20,6 +21,8 @@ const TopHeader = ({
   onAdminLogout,
   showUserInfo = true,
 }: TopHeaderProps) => {
+  const isOnline = useOnlineStatus();
+
   const formatTimer = (seconds: number | null | undefined): string => {
     if (seconds == null) return '';
     const mins = Math.floor(seconds / 60);
@@ -98,15 +101,11 @@ const TopHeader = ({
           >
             {shopName}
           </Typography>
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              bgcolor: '#22c55e',
-              borderRadius: '50%',
-              boxShadow: '0 0 6px #22c55e',
-            }}
-          />
+          {isOnline ? (
+            <WifiIcon titleAccess="Online" sx={{ fontSize: 16, color: '#22c55e' }} />
+          ) : (
+            <WifiOffIcon titleAccess="Offline" sx={{ fontSize: 16, color: '#ef4444' }} />
+          )}
         </Box>
       </Stack>
 
