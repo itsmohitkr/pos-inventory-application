@@ -10,19 +10,22 @@ import {
   TableRow,
   Typography,
   IconButton,
+  Button,
   Chip,
-  Tooltip,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
   Add as AddIcon,
   Remove as RemoveIcon,
   ShoppingCart as ShoppingCartIcon,
+  FlashOn as FlashOnIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import {
   getCartItemDiscount,
   getCartItemTotal,
   getCartRowId,
+  isWholesaleApplicable,
   shouldHighlightCartRow,
 } from '@/domains/pos/components/cartTableUtils';
 
@@ -30,6 +33,8 @@ interface CartTableProps {
   cart: CartItem[];
   /** Delta, not an absolute value — +1 / -1 from the stepper. */
   onUpdateQuantity: (batchId: number, change: number) => void;
+  /** Sets an exact quantity (e.g. applying wholesale minimum quantity). */
+  onSetQuantity?: (batchId: number, quantity: number) => void;
   onRemoveFromCart: (batchId: number) => void;
   /** Opens the numpad to type an exact quantity. */
   onQuantityClick: (item: CartItem) => void;
@@ -40,6 +45,7 @@ interface CartTableProps {
 const CartTable = ({
   cart,
   onUpdateQuantity,
+  onSetQuantity,
   onRemoveFromCart,
   onQuantityClick,
   lastAddedItemId,
@@ -75,23 +81,29 @@ const CartTable = ({
                 Qty
               </TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                MRP
+                MRP (₹)
               </TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                Price
+                Price (₹)
               </TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                Disc.
+                Disc. (₹)
               </TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                Total
+                Total (₹)
               </TableCell>
-              <TableCell width={40}></TableCell>
+              <TableCell width={62} align="center" sx={{ pr: 2 }}></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {cart.map((item: CartItem, index: number) => {
               const totalDiscount = getCartItemDiscount(item);
+              const isWholesaleConfigured = isWholesaleApplicable(item);
+              const isWholesaleActive = Boolean(
+                isWholesaleConfigured &&
+                item.quantity >= (item.wholesaleMinQty ?? Infinity)
+              );
+
               return (
                 <TableRow
                   key={item.batch_id}
@@ -142,33 +154,30 @@ const CartTable = ({
                           }}
                         />
                       )}
-                      {item.wholesaleEnabled && (
-                        <Tooltip
-                          title={`Wholesale: ₹${item.wholesalePrice} for ${item.wholesaleMinQty}+ units`}
-                          arrow
-                        >
-                          <Chip
-                            label="WHOLESALE"
-                            size="small"
-                            variant={item.quantity >= (item.wholesaleMinQty ?? Infinity) ? 'filled' : 'outlined'}
-                            sx={{
-                              height: 20,
-                              fontSize: '0.65rem',
-                              fontWeight: 800,
-                              bgcolor:
-                                item.quantity >= (item.wholesaleMinQty ?? Infinity) ? '#f59e0b' : 'transparent',
-                              color: item.quantity >= (item.wholesaleMinQty ?? Infinity) ? 'white' : '#f59e0b',
-                              borderColor: '#f59e0b',
-                              borderWidth: 1.5,
-                              borderRadius: '4px',
-                              '& .MuiChip-label': { px: 1 },
-                            }}
-                          />
-                        </Tooltip>
+                      {isWholesaleConfigured && (
+                        <Chip
+                          icon={
+                            isWholesaleActive ? (
+                              <CheckIcon sx={{ fontSize: '13px !important', color: 'white !important' }} />
+                            ) : undefined
+                          }
+                          label={isWholesaleActive ? 'WHOLESALE APPLIED' : 'WHOLESALE'}
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            bgcolor: isWholesaleActive ? '#16a34a' : '#f59e0b',
+                            color: 'white',
+                            borderRadius: '4px',
+                            '& .MuiChip-label': { px: 1 },
+                            '& .MuiChip-icon': { ml: '4px', mr: '-4px' },
+                          }}
+                        />
                       )}
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
-                      {item.isOnSale && item.sellingPrice > item.price && (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mt: 0.75 }}>
+                      {item.isOnSale && !isWholesaleActive && item.sellingPrice > item.price && (
                         <Typography
                           variant="caption"
                           sx={{
@@ -193,125 +202,232 @@ const CartTable = ({
                           </Box>
                         </Typography>
                       )}
-                      {item.wholesaleEnabled && (
+                      {isWholesaleActive && item.sellingPrice > item.price && (
                         <Typography
                           variant="caption"
                           sx={{
-                            color:
-                              item.quantity >= (item.wholesaleMinQty ?? Infinity) ? '#f59e0b' : 'text.secondary',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 0.5,
-                            bgcolor:
-                              item.quantity >= (item.wholesaleMinQty ?? Infinity)
-                                ? 'rgba(245, 158, 11, 0.1)'
-                                : 'transparent',
+                            gap: 0.75,
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            bgcolor: 'rgba(22, 163, 74, 0.1)',
                             px: 1,
+                            py: 0.25,
                             borderRadius: 1,
                           }}
                         >
-                          {item.wholesaleMinQty}+ units at ₹{item.wholesalePrice}
+                          <Box
+                            component="span"
+                            sx={{ textDecoration: 'line-through', color: '#64748b' }}
+                          >
+                            ₹{item.sellingPrice.toFixed(2)}
+                          </Box>
+                          <Box component="span" sx={{ color: '#15803d', fontWeight: 800 }}>
+                            ₹{item.price.toFixed(2)}/unit
+                          </Box>
                         </Typography>
+                      )}
+                      {isWholesaleConfigured && !isWholesaleActive && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={item.isFree || item.max_quantity < (item.wholesaleMinQty ?? 0) || !onSetQuantity}
+                          onClick={() => onSetQuantity?.(item.batch_id, item.wholesaleMinQty!)}
+                          startIcon={<FlashOnIcon sx={{ fontSize: '18px !important' }} />}
+                          sx={{
+                            textTransform: 'none',
+                            fontSize: '0.825rem',
+                            fontWeight: 700,
+                            py: 0.45,
+                            px: 1.5,
+                            minHeight: 28,
+                            borderRadius: '6px',
+                            bgcolor: 'transparent',
+                            color: '#2563eb',
+                            border: '1.5px solid #2563eb',
+                            boxShadow: 'none',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              bgcolor: '#2563eb !important',
+                              backgroundColor: '#2563eb !important',
+                              color: '#ffffff !important',
+                              borderColor: '#1d4ed8 !important',
+                              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
+                              '& .MuiButton-startIcon': {
+                                color: '#ffffff !important',
+                              },
+                            },
+                            '&.Mui-disabled': {
+                              borderColor: '#cbd5e1 !important',
+                              color: '#94a3b8 !important',
+                              bgcolor: 'transparent !important',
+                            },
+                          }}
+                        >
+                          Add {item.wholesaleMinQty} Units (₹{item.wholesalePrice?.toFixed(2)} / unit)
+                        </Button>
                       )}
                     </Box>
                   </TableCell>
                   <TableCell align="center">
                     <Box
                       sx={{
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '1px solid #ddd',
-                        borderRadius: 1,
-                        width: 'fit-content',
-                        mx: 'auto',
-                        opacity: item.isFree ? 0.6 : 1,
+                        p: 0.25,
+                        borderRadius: '8px',
+                        border: '1.5px solid',
+                        borderColor: isWholesaleActive ? '#16a34a' : '#e2e8f0',
+                        bgcolor: isWholesaleActive ? 'rgba(22, 163, 74, 0.04)' : '#f8fafc',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+                        opacity: item.isFree ? 0.7 : 1,
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': !item.isFree
+                          ? {
+                              borderColor: isWholesaleActive ? '#15803d' : '#cbd5e1',
+                              bgcolor: isWholesaleActive ? 'rgba(22, 163, 74, 0.07)' : '#ffffff',
+                              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                            }
+                          : {},
                       }}
                     >
                       {!item.isFree && (
                         <IconButton
                           size="small"
+                          aria-label="Decrease quantity"
                           onClick={() => onUpdateQuantity(item.batch_id, -1)}
                           onMouseDown={(e) => e.preventDefault()}
-                          color="primary"
+                          sx={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: '6px',
+                            color: isWholesaleActive ? '#16a34a' : '#475569',
+                            transition: 'all 0.15s ease',
+                            '&:hover': {
+                              bgcolor: isWholesaleActive
+                                ? 'rgba(22, 163, 74, 0.12)'
+                                : 'rgba(15, 23, 42, 0.06)',
+                              color: isWholesaleActive ? '#15803d' : '#0f172a',
+                            },
+                            '&:active': {
+                              transform: 'scale(0.92)',
+                            },
+                          }}
                         >
-                          <RemoveIcon fontSize="small" />
+                          <RemoveIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       )}
-                      <Typography
-                        variant="body2"
-                        fontWeight="bold"
-                        sx={{
-                          minWidth: 35,
-                          textAlign: 'center',
-                          cursor: item.isFree ? 'default' : 'pointer',
-                          px: 1,
-                          py: 0.2,
-                          borderRadius: 1,
-                          color: 'primary.main',
-                          bgcolor: 'rgba(26, 115, 232, 0.05)',
-                          transition: 'all 0.2s',
-                          '&:hover': !item.isFree
-                            ? {
-                              bgcolor: 'rgba(26, 115, 232, 0.15)',
-                              transform: 'scale(1.1)',
-                            }
-                            : {},
-                        }}
+                      <Box
+                        component="button"
+                        type="button"
+                        aria-label="Set quantity"
+                        title={!item.isFree ? 'Click to set quantity' : undefined}
                         onClick={() => !item.isFree && onQuantityClick?.(item)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        sx={{
+                          border: 'none',
+                          background: 'none',
+                          cursor: item.isFree ? 'default' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: 34,
+                          height: 26,
+                          mx: 0.25,
+                          px: 0.75,
+                          borderRadius: '5px',
+                          fontWeight: 800,
+                          fontSize: '0.875rem',
+                          fontFamily: 'inherit',
+                          color: isWholesaleActive ? '#15803d' : '#0f172a',
+                          bgcolor: isWholesaleActive
+                            ? 'rgba(22, 163, 74, 0.12)'
+                            : 'rgba(15, 23, 42, 0.05)',
+                          transition: 'all 0.15s ease',
+                          ...(!item.isFree && {
+                            '&:hover': {
+                              bgcolor: isWholesaleActive
+                                ? 'rgba(22, 163, 74, 0.22)'
+                                : 'rgba(15, 23, 42, 0.1)',
+                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                            },
+                            '&:active': {
+                              transform: 'scale(0.96)',
+                            },
+                          }),
+                        }}
                       >
                         {item.quantity}
-                      </Typography>
+                      </Box>
                       {!item.isFree && (
                         <IconButton
                           size="small"
+                          aria-label="Increase quantity"
                           onClick={() => onUpdateQuantity(item.batch_id, 1)}
                           onMouseDown={(e) => e.preventDefault()}
-                          color="primary"
+                          sx={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: '6px',
+                            color: isWholesaleActive ? '#16a34a' : '#475569',
+                            transition: 'all 0.15s ease',
+                            '&:hover': {
+                              bgcolor: isWholesaleActive
+                                ? 'rgba(22, 163, 74, 0.12)'
+                                : 'rgba(15, 23, 42, 0.06)',
+                              color: isWholesaleActive ? '#15803d' : '#0f172a',
+                            },
+                            '&:active': {
+                              transform: 'scale(0.92)',
+                            },
+                          }}
                         >
-                          <AddIcon fontSize="small" />
+                          <AddIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       )}
                     </Box>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2">₹{item.mrp.toFixed(2)}</Typography>
+                    <Typography variant="body2">{item.mrp.toFixed(2)}</Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" fontWeight="600">
-                      ₹{item.price.toFixed(2)}
+                      {item.price.toFixed(2)}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" color="error.main">
-                      ₹{totalDiscount.toFixed(2)}
+                      {totalDiscount.toFixed(2)}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" fontWeight="bold">
-                      ₹{getCartItemTotal(item).toFixed(2)}
+                      {getCartItemTotal(item).toFixed(2)}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center" sx={{ pr: 2, pl: 1 }}>
                     <IconButton
-                      size="medium"
+                      size="small"
                       color="error"
                       onClick={() => onRemoveFromCart(item.batch_id)}
                       onMouseDown={(e) => e.preventDefault()}
                       sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 1,
+                        bgcolor: 'rgba(239, 68, 68, 0.08)',
                         border: '1.5px solid',
-                        borderColor: 'error.light',
-                        borderRadius: 2,
+                        borderColor: 'rgba(239, 68, 68, 0.3)',
+                        color: 'error.main',
                         transition: 'all 0.2s',
                         '&:hover': {
                           borderColor: 'error.main',
-                          bgcolor: 'rgba(211, 47, 47, 0.04)',
+                          bgcolor: 'rgba(239, 68, 68, 0.18)',
                         },
                       }}
                     >
-                      <DeleteIcon fontSize="medium" />
+                      <DeleteIcon sx={{ fontSize: 21 }} />
                     </IconButton>
                   </TableCell>
                 </TableRow>

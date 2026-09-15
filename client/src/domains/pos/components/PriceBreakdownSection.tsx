@@ -21,19 +21,19 @@ const PriceBreakdownSection = ({
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
           <Typography variant="body1" color="text.secondary" fontWeight="bold">
-            Subtotal
+            Subtotal (₹)
           </Typography>
           <Typography variant="body1" fontWeight="bold" data-testid="pos-subtotal">
-            ₹{subTotal.toFixed(2)}
+            {subTotal.toFixed(2)}
           </Typography>
         </Box>
         {discount > 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
             <Typography variant="body1" color="error.main" fontWeight="bold">
-              Discount
+              Discount (₹)
             </Typography>
             <Typography variant="body1" color="error.main" fontWeight="bold" data-testid="pos-discount">
-              - ₹{discount.toFixed(2)}
+              - {discount.toFixed(2)}
             </Typography>
           </Box>
         )}
@@ -54,9 +54,9 @@ const PriceBreakdownSection = ({
           variant="caption"
           color="success.main"
           fontWeight="bold"
-          sx={{ fontSize: '0.7rem' }}
+          sx={{ fontSize: '0.75rem', letterSpacing: 0.5, textTransform: 'uppercase' }}
         >
-          NET PAYABLE
+          NET PAYABLE (₹)
         </Typography>
         <Typography
           variant="h4"
@@ -65,7 +65,7 @@ const PriceBreakdownSection = ({
           sx={{ letterSpacing: -0.5 }}
           data-testid="pos-net-payable"
         >
-          ₹{totalAmount.toFixed(2)}
+          {totalAmount.toFixed(2)}
         </Typography>
       </Paper>
 

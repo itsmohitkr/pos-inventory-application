@@ -165,13 +165,38 @@ export const usePOSTabs = () => {
 
   const removeFromCart = useCallback(
     (batchId: number) => {
-      setCart((prev: CartItem[]) => prev.filter((item: CartItem) => item.batch_id !== batchId));
+      setCart((prev: CartItem[]) => {
+        const next = prev.filter((item: CartItem) => item.batch_id !== batchId);
+        const remainingPaid = next.filter((item) => !item.isFree);
+        if (remainingPaid.length === 0) {
+          setDiscount(0);
+        } else {
+          const newSubTotal = next.reduce(
+            (sum: number, item: CartItem) => sum + (item?.price || 0) * (item?.quantity || 0),
+            0
+          );
+          if (discount > newSubTotal) {
+            setDiscount(newSubTotal);
+          }
+        }
+        return next;
+      });
     },
-    [setCart]
+    [setCart, setDiscount, discount]
   );
 
   const updateQuantity = useCallback(
     (batchId: number, change: number) => {
+      // Reducing quantity can invalidate a discount that was only valid
+      // against the larger subtotal — reset it outright rather than letting
+      // it silently exceed the new total. Only fires on an actual, effective
+      // decrease (skips the no-op case where the stepper can't go below 1).
+      if (change < 0 && discount > 0) {
+        const currentItem = cart.find((item: CartItem) => item.batch_id === batchId);
+        if (currentItem && !currentItem.isFree && currentItem.quantity + change >= 1) {
+          setDiscount(0);
+        }
+      }
       setCart((prev: CartItem[]) =>
         prev.map((item: CartItem) => {
           if (item.batch_id === batchId) {
@@ -204,12 +229,21 @@ export const usePOSTabs = () => {
         })
       );
     },
-    [setCart]
+    [cart, discount, setDiscount, setCart]
   );
 
   const handleSetQuantity = useCallback(
     (batchId: number, quantity: number) => {
       if (quantity < 1) return;
+      // Same reasoning as updateQuantity — an exact-quantity set (numpad,
+      // wholesale quick-apply) that reduces the quantity below what it was
+      // can equally invalidate a discount sized against the larger subtotal.
+      if (discount > 0) {
+        const currentItem = cart.find((item: CartItem) => item.batch_id === batchId);
+        if (currentItem && !currentItem.isFree && quantity < currentItem.quantity) {
+          setDiscount(0);
+        }
+      }
       setCart((prev: CartItem[]) =>
         prev.map((item: CartItem) => {
           if (item.batch_id === batchId) {
@@ -235,7 +269,7 @@ export const usePOSTabs = () => {
         })
       );
     },
-    [setCart]
+    [cart, discount, setDiscount, setCart]
   );
 
   const addFreeProduct = useCallback(
@@ -324,6 +358,19 @@ export const usePOSTabs = () => {
   }, [cart]);
 
   const alreadyHasFreeProduct = useMemo(() => cart.some((item: CartItem) => item.isFree), [cart]);
+
+  // Clear extra discount whenever no paid products remain on the POS screen.
+  // Adjusted during render (React's documented pattern for state derived from
+  // a changing value) rather than in an effect, so the reset lands in the
+  // same commit as the cart change instead of triggering a cascading render.
+  const hasNoPaidItems = cart.every((item: CartItem) => item.isFree);
+  const [prevHasNoPaidItems, setPrevHasNoPaidItems] = useState(hasNoPaidItems);
+  if (hasNoPaidItems !== prevHasNoPaidItems) {
+    setPrevHasNoPaidItems(hasNoPaidItems);
+    if (hasNoPaidItems && discount > 0) {
+      setDiscount(0);
+    }
+  }
 
   return {
     tabs,

@@ -17,7 +17,9 @@ import {
   Person as PersonIcon,
   Save as SaveIcon,
   PersonAdd as PersonAddIcon,
+  Dialpad as DialpadIcon,
 } from '@mui/icons-material';
+import CustomerMobileDialog from '@/domains/pos/components/CustomerMobileDialog';
 
 const PHONE_RE = /^\d{10}$/;
 
@@ -36,6 +38,7 @@ const CustomerSearchField = ({
   onRegister,
 }: Record<string, any>) => {
   const [open, setOpen] = useState(false);
+  const [showMobileDialog, setShowMobileDialog] = useState(false);
 
   // Filter input to only allow digits and max 10
   const handlePhoneChange = (value: string) => {
@@ -96,6 +99,20 @@ const CustomerSearchField = ({
         </Box>
         <IconButton
           size="small"
+          onClick={() => setShowMobileDialog(true)}
+          sx={{
+            bgcolor: 'rgba(30, 41, 59, 0.07)',
+            borderRadius: 1,
+            mr: 0.5,
+            p: 0.5,
+            color: 'primary.main',
+            '&:hover': { bgcolor: 'rgba(30, 41, 59, 0.14)' },
+          }}
+        >
+          <DialpadIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+        <IconButton
+          size="small"
           onClick={onDetach}
           sx={{
             bgcolor: 'rgba(0,0,0,0.03)',
@@ -104,6 +121,16 @@ const CustomerSearchField = ({
         >
           <CloseIcon fontSize="small" />
         </IconButton>
+        <CustomerMobileDialog
+          open={showMobileDialog}
+          onClose={() => setShowMobileDialog(false)}
+          onConfirm={async (phone, name) => {
+            await onRegister(phone, name);
+            setShowMobileDialog(false);
+          }}
+          initialPhone={activeCustomer.phone}
+          initialName={activeCustomer.name || ''}
+        />
       </Box>
     );
   }
@@ -114,6 +141,13 @@ const CustomerSearchField = ({
       setCustomerNameValue('');
       setCustomerSearchValue('');
     }
+  };
+
+  const handleDialogConfirm = async (phone: string, name?: string) => {
+    await onRegister(phone, name);
+    setCustomerSearchValue('');
+    setCustomerNameValue('');
+    setShowMobileDialog(false);
   };
 
   return (
@@ -212,7 +246,7 @@ const CustomerSearchField = ({
             InputProps={{
               ...params.InputProps,
               startAdornment: (
-                <InputAdornment position="start" sx={{ ml: 1 }}>
+                <InputAdornment position="start">
                   {isSearching || isLoading ? (
                     <CircularProgress size={16} />
                   ) : (
@@ -220,14 +254,40 @@ const CustomerSearchField = ({
                   )}
                 </InputAdornment>
               ),
+              endAdornment: (
+                <InputAdornment position="end" sx={{ mr: -0.5 }}>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMobileDialog(true);
+                    }}
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 1,
+                      bgcolor: 'rgba(30, 41, 59, 0.07)',
+                      color: 'primary.main',
+                      '&:hover': {
+                        bgcolor: 'rgba(30, 41, 59, 0.14)',
+                      },
+                    }}
+                  >
+                    <DialpadIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </InputAdornment>
+              ),
               sx: {
                 borderRadius: 1,
                 fontSize: '0.875rem',
                 bgcolor: 'white',
+                '&.MuiOutlinedInput-root': {
+                  pr: 1.25,
+                },
                 '& .MuiInputBase-input': {
-                  px: 1.5, // Added internal horizontal padding
-                }
-              }
+                  px: 1,
+                },
+              },
             }}
           />
         )}
@@ -242,7 +302,7 @@ const CustomerSearchField = ({
             borderRadius: 1,
             display: 'flex',
             flexDirection: 'column',
-            gap: 1
+            gap: 1,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -260,7 +320,7 @@ const CustomerSearchField = ({
               value={customerNameValue}
               onChange={(e) => setCustomerNameValue(e.target.value)}
               sx={{
-                '& .MuiInputBase-root': { height: 32, fontSize: '0.8rem', bgcolor: 'white', borderRadius: 1 }
+                '& .MuiInputBase-root': { height: 32, fontSize: '0.8rem', bgcolor: 'white', borderRadius: 1 },
               }}
             />
             <Tooltip title="Save Customer">
@@ -273,7 +333,7 @@ const CustomerSearchField = ({
                   width: 32,
                   height: 32,
                   borderRadius: 1,
-                  '&:hover': { bgcolor: '#1d4ed8' }
+                  '&:hover': { bgcolor: '#1d4ed8' },
                 }}
               >
                 <SaveIcon fontSize="small" />
@@ -282,6 +342,14 @@ const CustomerSearchField = ({
           </Box>
         </Box>
       )}
+
+      <CustomerMobileDialog
+        open={showMobileDialog}
+        onClose={() => setShowMobileDialog(false)}
+        onConfirm={handleDialogConfirm}
+        initialPhone={customerSearchValue}
+        initialName={customerNameValue}
+      />
     </Box>
   );
 };

@@ -1,7 +1,18 @@
-import React, { useState, useMemo } from 'react';
-import { Dialog, DialogContent, Typography, Box, IconButton, Button, Paper } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Typography,
+  TextField,
+  Box,
+  IconButton,
+  Button,
+} from '@mui/material';
+import {
+  Close as CloseIcon,
+  Backspace as BackspaceIcon,
+} from '@mui/icons-material';
 
 const Calculator = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const [expression, setExpression] = useState('');
@@ -23,119 +34,136 @@ const Calculator = ({ open, onClose }: { open: boolean; onClose: () => void }) =
     }
   }, [expression]);
 
-  const handleInput = (val: string) => {
-    // Prevent multiple consecutive operators
-    const lastChar = expression.slice(-1);
-    const isOperator = ['+', '-', '*', '/'].includes(val);
-    const isLastOperator = ['+', '-', '*', '/'].includes(lastChar);
+  const handleInput = useCallback((val: string) => {
+    setExpression((prev) => {
+      const lastChar = prev.slice(-1);
+      const isOperator = ['+', '-', '*', '/'].includes(val);
+      const isLastOperator = ['+', '-', '*', '/'].includes(lastChar);
 
-    if (isOperator && isLastOperator) {
-      setExpression((prev) => prev.slice(0, -1) + val);
-      return;
-    }
+      if (isOperator && isLastOperator) {
+        return prev.slice(0, -1) + val;
+      }
 
-    if (
-      val === '.' &&
-      expression
-        .split(/[+\-*/]/)
-        .pop()
-        ?.includes('.')
-    ) {
-      return;
-    }
+      if (
+        val === '.' &&
+        prev
+          .split(/[+\-*/]/)
+          .pop()
+          ?.includes('.')
+      ) {
+        return prev;
+      }
 
-    setExpression((prev) => prev + val);
-  };
+      return prev + val;
+    });
+  }, []);
 
-  const calculateResult = () => {
+  const calculateResult = useCallback(() => {
     if (!expression || result === 'Error' || (result === '0' && expression !== '0')) {
       return;
     }
     setExpression(result.toString());
-  };
+  }, [expression, result]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setExpression('');
-  };
+  }, []);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     setExpression((prev) => prev.slice(0, -1));
-  };
+  }, []);
 
-  const handlePercentage = () => {
-    if (!expression) return;
+  const handlePercentage = useCallback(() => {
+    setExpression((prev) => {
+      if (!prev) return prev;
 
-    // Find the last operator and the number before it
-    const parts = expression.split(/([+\-*/])/);
-    if (parts.length === 0) return;
+      const parts = prev.split(/([+\-*/])/);
+      if (parts.length === 0) return prev;
 
-    const lastNumberStr = parts[parts.length - 1];
-    if (!lastNumberStr || isNaN(Number(lastNumberStr))) return;
+      const lastNumberStr = parts[parts.length - 1];
+      if (!lastNumberStr || isNaN(Number(lastNumberStr))) return prev;
 
-    const lastNumber = parseFloat(lastNumberStr);
+      const lastNumber = parseFloat(lastNumberStr);
 
-    if (parts.length >= 3) {
-      // Case like "450 - 10" or "100 + 20 + 10"
-      const operator = parts[parts.length - 2];
-      const previousExpression = parts.slice(0, -2).join('');
+      if (parts.length >= 3) {
+        const operator = parts[parts.length - 2];
+        const previousExpression = parts.slice(0, -2).join('');
 
-      try {
-        const previousValue = new Function('return (' + previousExpression + ')')();
-        const percentageAmount = (previousValue * lastNumber) / 100;
+        try {
+          const previousValue = new Function('return (' + previousExpression + ')')();
+          const percentageAmount = (previousValue * lastNumber) / 100;
 
-        // For + and -, we want to add/subtract the percentage of the previous value
-        if (operator === '+' || operator === '-') {
-          setExpression(previousExpression + operator + percentageAmount);
-        } else {
-          // For * or /, just treat it as (lastNumber / 100)
-          setExpression(previousExpression + operator + lastNumber / 100);
+          if (operator === '+' || operator === '-') {
+            return previousExpression + operator + percentageAmount;
+          }
+          return previousExpression + operator + lastNumber / 100;
+        } catch {
+          return parts.slice(0, -1).join('') + lastNumber / 100;
         }
-      } catch {
-        // Fallback: just divide last number by 100
-        setExpression(parts.slice(0, -1).join('') + lastNumber / 100);
+      } else {
+        return (lastNumber / 100).toString();
       }
-    } else {
-      // Only one number, e.g., "50"
-      setExpression((lastNumber / 100).toString());
-    }
-  };
+    });
+  }, []);
+
+  // Global keyboard support matching LooseSaleDialog and NumpadDialog
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === '=') {
+        e.preventDefault();
+        calculateResult();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleDelete();
+      } else if (e.key === 'Delete' || e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        handleClear();
+      } else if (/[0-9+\-*/.]/.test(e.key)) {
+        e.preventDefault();
+        handleInput(e.key);
+      } else if (e.key === '%') {
+        e.preventDefault();
+        handlePercentage();
+      } else if (e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        handleInput('*');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, calculateResult, onClose, handleDelete, handleClear, handleInput, handlePercentage]);
 
   const buttons = [
-    { label: 'C', onClick: handleClear, color: 'error.main', bgColor: 'error.light' },
-    {
-      label: <BackspaceOutlinedIcon fontSize="small" />,
-      onClick: handleDelete,
-      color: 'warning.main',
-      bgColor: 'warning.light',
-    },
-    { label: '%', onClick: handlePercentage, color: 'info.main', bgColor: 'info.light' },
-    { label: '÷', onClick: () => handleInput('/'), color: 'info.main', bgColor: 'info.light' },
+    { label: 'C', onClick: handleClear, isClear: true },
+    { label: <BackspaceIcon fontSize="small" />, onClick: handleDelete },
+    { label: '%', onClick: handlePercentage },
+    { label: '÷', onClick: () => handleInput('/') },
 
     { label: '7', onClick: () => handleInput('7') },
     { label: '8', onClick: () => handleInput('8') },
     { label: '9', onClick: () => handleInput('9') },
-    { label: '×', onClick: () => handleInput('*'), color: 'info.main', bgColor: 'info.light' },
+    { label: '×', onClick: () => handleInput('*') },
 
     { label: '4', onClick: () => handleInput('4') },
     { label: '5', onClick: () => handleInput('5') },
     { label: '6', onClick: () => handleInput('6') },
-    { label: '-', onClick: () => handleInput('-'), color: 'info.main', bgColor: 'info.light' },
+    { label: '-', onClick: () => handleInput('-') },
 
     { label: '1', onClick: () => handleInput('1') },
     { label: '2', onClick: () => handleInput('2') },
     { label: '3', onClick: () => handleInput('3') },
-    { label: '+', onClick: () => handleInput('+'), color: 'info.main', bgColor: 'info.light' },
+    { label: '+', onClick: () => handleInput('+') },
 
     { label: '00', onClick: () => handleInput('00') },
     { label: '0', onClick: () => handleInput('0') },
     { label: '.', onClick: () => handleInput('.') },
-    {
-      label: '=',
-      onClick: calculateResult,
-      color: 'primary.contrastText',
-      bgColor: 'primary.main',
-      variant: 'contained',
-    },
+    { label: '=', onClick: calculateResult, isEquals: true },
   ];
 
   return (
@@ -145,42 +173,12 @@ const Calculator = ({ open, onClose }: { open: boolean; onClose: () => void }) =
       maxWidth="xs"
       fullWidth
       PaperProps={{
-        sx: {
-          bgcolor: 'background.paper',
-          overflow: 'hidden',
-          border: '1px solid #e2e8f0',
-        },
-      }}
-      onKeyDown={(e) => {
-        const keyMap = {
-          Enter: calculateResult,
-          '=': calculateResult,
-          Escape: onClose,
-          Backspace: handleDelete,
-          Delete: handleClear,
-          c: handleClear,
-          C: handleClear,
-        };
-
-        if (keyMap[(e.key as keyof typeof keyMap)]) {
-          e.preventDefault();
-          keyMap[(e.key as keyof typeof keyMap)]();
-        } else if (/[0-9+\-*/.%]/.test(e.key)) {
-          e.preventDefault();
-          const val = e.key;
-          if (val === '%') {
-            handlePercentage();
-          } else {
-            handleInput(val);
-          }
-        } else if (e.key.toLowerCase() === 'x') {
-          e.preventDefault();
-          handleInput('*');
-        }
+        sx: { border: '1px solid #e2e8f0' },
       }}
     >
-      <Box
+      <DialogTitle
         sx={{
+          m: 0,
           p: 2,
           display: 'flex',
           justifyContent: 'space-between',
@@ -189,94 +187,125 @@ const Calculator = ({ open, onClose }: { open: boolean; onClose: () => void }) =
           color: 'primary.contrastText',
         }}
       >
-        <Typography variant="h6" fontWeight="bold">
+        <Typography component="span" variant="h6" sx={{ fontWeight: 'bold' }}>
           Calculator
         </Typography>
         <IconButton size="small" onClick={onClose} sx={{ color: 'inherit' }}>
           <CloseIcon />
         </IconButton>
-      </Box>
+      </DialogTitle>
 
-      <DialogContent sx={{ p: 0 }}>
-        {/* Display Area */}
-        <Box
-          sx={{
-            p: 3,
-            bgcolor: 'grey.100',
-            color: 'text.primary',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            minHeight: 120,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Typography
-            variant="body1"
-            sx={{
-              color: 'text.secondary',
-              minHeight: 24,
-              mb: 1,
-              fontSize: '1.2rem',
-              wordBreak: 'break-all',
-              fontWeight: 500,
-            }}
-          >
-            {expression.replace(/\*/g, '×').replace(/\//g, '÷') || '\u00A0'}
-          </Typography>
-          <Typography
-            variant="h3"
-            fontWeight="bold"
-            sx={{
-              wordBreak: 'break-all',
-              lineHeight: 1,
-            }}
-          >
-            {result}
-          </Typography>
-        </Box>
-
-        {/* Keypad Area */}
-        <Box
-          sx={{
-            p: 2,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 1.5,
-            bgcolor: 'grey.50',
-          }}
-        >
-          {buttons.map((btn, index) => (
-            <Button
-              key={index}
-              variant={(btn.variant || 'text') as 'text' | 'outlined' | 'contained'}
-              onClick={btn.onClick}
+      <DialogContent sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 3 }}>
+          {/* Row 1: Amount / Result Display matching LooseSaleDialog TextField */}
+          <Box sx={{ position: 'relative' }}>
+            <TextField
+              fullWidth
+              value={result}
+              InputProps={{
+                readOnly: true,
+              }}
               sx={{
-                height: 64,
-                fontSize:
-                  typeof btn.label === 'string' && btn.label.length > 1 ? '1.25rem' : '1.5rem',
-                fontWeight: 'bold',
-                color: btn.color || 'text.primary',
-                bgcolor: btn.variant === 'contained' ? btn.bgColor : 'white',
-                border: '1px solid #e2e8f0',
-                transition: 'all 0.1s ease-in-out',
-                '&:hover': {
-                  bgcolor: btn.variant === 'contained' ? btn.bgColor : btn.bgColor || 'grey.200',
-                  filter: 'brightness(0.95)',
-                },
-                '&:active': {
-                  filter: 'brightness(0.85)',
-                  transform: 'scale(0.95)',
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'rgba(0,0,0,0.06)',
+                  fontWeight: '900',
+                  fontSize: '2.5rem',
+                  color: 'primary.main',
+                  pt: expression ? 2.5 : 2,
+                  pb: expression ? 1 : 2,
+                  '& input': {
+                    caretColor: 'transparent',
+                    textAlign: 'right',
+                    py: 0,
+                    pr: 1.5,
+                  },
                 },
               }}
+            />
+            {expression && (
+              <Typography
+                variant="caption"
+                sx={{
+                  position: 'absolute',
+                  top: 6,
+                  right: 20,
+                  color: 'text.secondary',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  maxWidth: '90%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'none',
+                }}
+              >
+                {expression.replace(/\*/g, '×').replace(/\//g, '÷')}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Rows 2-6: Keypad Grid matching LooseSaleDialog buttons */}
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: 1.5,
+              }}
             >
-              {btn.label}
-            </Button>
-          ))}
-        </Box>
-      </DialogContent>
-    </Dialog>
+              {buttons.map((btn, index) => {
+                if (btn.isEquals) {
+                  return (
+                    <Button
+                      key={index}
+                      variant="contained"
+                      color="primary"
+                      onClick={btn.onClick}
+                      sx={{
+                        height: 60,
+                        fontSize: '1.8rem',
+                        fontWeight: 'bold',
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        '&:hover': {
+                          bgcolor: 'primary.dark',
+                          filter: 'brightness(0.95)',
+                        },
+                      }}
+                    >
+                      {btn.label}
+                    </Button>
+                  );
+                }
+
+                return (
+                  <Button
+                    key={index}
+                    variant="outlined"
+                    color={btn.isClear ? 'error' : 'inherit'}
+                    onClick={btn.onClick}
+                    sx={{
+                      height: 60,
+                      fontSize:
+                        typeof btn.label === 'string' && btn.label.length > 1
+                          ? '1.2rem'
+                          : '1.6rem',
+                      fontWeight: 'bold',
+                      borderColor: 'divider',
+                      color: btn.isClear ? 'error.main' : 'text.primary',
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                        filter: 'brightness(0.95)',
+                      },
+                    }}
+                  >
+                    {btn.label}
+                  </Button>
+                );
+              })}
+            </Box>
+          </Box>
+        </DialogContent>
+      </Dialog>
   );
 };
 

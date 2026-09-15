@@ -309,7 +309,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  MRP
+                  MRP (₹)
                 </TableCell>
                 <TableCell
                   align="right"
@@ -325,7 +325,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  PRICE
+                  PRICE (₹)
                 </TableCell>
                 <TableCell
                   align="right"
@@ -337,11 +337,12 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                     fontSize: '0.75rem',
                     textTransform: 'uppercase',
                     py: 1.25,
-                    px: 1.5,
+                    pl: 1.5,
+                    pr: 2,
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  MRP DISCOUNT
+                  MRP DISCOUNT (₹)
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -446,22 +447,17 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                         item.quantity
                       )}
                     </TableCell>
-                    <TableCell align="right">₹{mrp.toFixed(2)}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>₹{item.sellingPrice.toFixed(2)}</TableCell>
+                    <TableCell align="right">{mrp.toFixed(2)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{item.sellingPrice.toFixed(2)}</TableCell>
                     <TableCell align="right">
                       <Box>
                         <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 700, fontSize: '0.82rem' }}>
-                          ₹{itemDiscount.toFixed(2)}
+                          {itemDiscount.toFixed(2)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                           ({itemDiscountPercent}%)
                         </Typography>
                       </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 700, fontSize: '0.82rem' }}>
-                        ₹0.00
-                      </Typography>
                     </TableCell>
                   </TableRow>
                 );

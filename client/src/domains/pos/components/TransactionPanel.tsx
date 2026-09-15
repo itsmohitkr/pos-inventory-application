@@ -1,6 +1,15 @@
 import React from 'react';
-import { Box, Typography, Paper, Divider, TextField, InputAdornment } from '@mui/material';
-import { ReceiptLong as ReceiptIcon } from '@mui/icons-material';
+import {
+  Box,
+  Typography,
+  Paper,
+  Divider,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Tooltip,
+} from '@mui/material';
+import { ReceiptLong as ReceiptIcon, Clear as ClearIcon } from '@mui/icons-material';
 import { getAvailablePaymentMethods } from '@/domains/pos/components/transactionPanelUtils';
 import PriceBreakdownSection from '@/domains/pos/components/PriceBreakdownSection';
 import ChangeCalculatorSection from '@/domains/pos/components/ChangeCalculatorSection';
@@ -10,7 +19,8 @@ import CustomerSearchField from '@/domains/pos/components/CustomerSearchField';
 
 const TransactionPanel = ({
   cart,
-  discount,
+  discount = 0,
+  onDiscountChange,
   onVoid,
   onPay,
   onPayAndPrint,
@@ -51,6 +61,22 @@ const TransactionPanel = ({
   onCustomerRegister,
 }: Record<string, any>) => {
   const changeDue = Math.max(0, receivedAmount - totalAmount);
+  const [discountError, setDiscountError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (cart.length > 0) {
+      setDiscountError(false);
+    }
+  }, [cart.length]);
+
+  const handleDiscountClick = () => {
+    if (cart.length === 0) {
+      setDiscountError(true);
+      return;
+    }
+    setDiscountError(false);
+    setShowDiscountNumpad(true);
+  };
 
   React.useEffect(() => {
     if (totalAmount === 0) setReceivedAmount(0);
@@ -186,7 +212,7 @@ const TransactionPanel = ({
           <Box>
             <Typography
               variant="caption"
-              color="text.secondary"
+              color={discountError ? 'error.main' : 'text.secondary'}
               fontWeight="600"
               sx={{ display: 'block', mb: 0.5, fontSize: '0.75rem' }}
             >
@@ -196,25 +222,71 @@ const TransactionPanel = ({
               fullWidth
               variant="outlined"
               size="small"
+              error={discountError}
               placeholder="0.00"
               value={discount > 0 ? discount : ''}
-              onClick={() => setShowDiscountNumpad(true)}
+              onClick={handleDiscountClick}
               InputProps={{
                 readOnly: true,
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Typography color="text.secondary" variant="body2">
+                    <Typography color={discountError ? 'error.main' : 'text.secondary'} variant="body2">
                       ₹
                     </Typography>
                   </InputAdornment>
                 ),
+                endAdornment: discount > 0 && onDiscountChange ? (
+                  <InputAdornment position="end" sx={{ mr: -0.5 }}>
+                    <IconButton
+                      size="small"
+                      aria-label="Clear extra discount"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDiscountChange(0);
+                      }}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 1,
+                        bgcolor: 'rgba(30, 41, 59, 0.07)',
+                        color: 'text.secondary',
+                        '&:hover': {
+                          color: 'error.main',
+                          bgcolor: 'rgba(239, 68, 68, 0.14)',
+                        },
+                      }}
+                    >
+                      <ClearIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
                 sx: {
+                  borderRadius: 1,
                   fontSize: '0.875rem',
+                  bgcolor: 'white',
                   cursor: 'pointer',
-                  '& .MuiInputBase-input': { cursor: 'pointer' },
+                  '&.MuiOutlinedInput-root': {
+                    pr: 1.25,
+                  },
+                  '& .MuiInputBase-input': { cursor: 'pointer', px: 1 },
                 },
               }}
             />
+            {discountError && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'error.main',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  display: 'block',
+                  mt: 0.5,
+                  lineHeight: 1.35,
+                }}
+              >
+                Please scan a product to apply an extra discount.
+              </Typography>
+            )}
           </Box>
         )}
 

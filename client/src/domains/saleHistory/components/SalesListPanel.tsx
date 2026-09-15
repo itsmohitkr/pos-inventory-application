@@ -205,7 +205,7 @@ const SalesListPanel = ({
                 DATE & TIME
               </TableCell>
               <TableCell align="right" sx={headerCellSx}>
-                AMOUNT
+                AMOUNT (₹)
               </TableCell>
               <TableCell align="center" sx={headerCellSx}>
                 PAYMENT
@@ -280,7 +280,7 @@ const SalesListPanel = ({
                     </Typography>
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>
-                    ₹{(isPos ? sale.netTotalAmount : sale.price).toFixed(2)}
+                    {(isPos ? sale.netTotalAmount : sale.price).toFixed(2)}
                   </TableCell>
                   <TableCell align="center">
                     {isPos ? (

@@ -405,6 +405,7 @@ const POS = ({
       showReceipt ||
       showCalculator ||
       showNumpad ||
+      showDiscountNumpad ||
       showPromoGifts ||
       dialogState.open
     ),
@@ -474,6 +475,7 @@ const POS = ({
           <CartTable
             cart={cart}
             onUpdateQuantity={updateQuantity}
+            onSetQuantity={handleSetQuantity}
             onRemoveFromCart={removeFromCart}
             onQuantityClick={setManualQuantityItem}
             lastAddedItemId={lastAddedItemId}
@@ -641,6 +643,7 @@ const POS = ({
         setShowDiscountNumpad={setShowDiscountNumpad}
         discount={discount}
         setDiscount={setDiscount}
+        subTotal={subTotal}
         customerFeatureEnabled={customerFeatureEnabled}
       />
 

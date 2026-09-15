@@ -13,11 +13,11 @@ import {
   Paper,
 } from '@mui/material';
 import {
-  Backspace as BackspaceIcon,
   Close as CloseIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
 import posService from '@/shared/api/posService';
+import NumpadGrid from '@/domains/pos/components/NumpadGrid';
 
 interface LooseSaleDialogProps {
   open: boolean;
@@ -127,13 +127,6 @@ const LooseSaleDialog = ({ open, onClose, onComplete }: LooseSaleDialogProps) =>
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, price, name, isNameFocused, onClose, handleSubmit]);
 
-  const numpadRows = [
-    [1, 2, 3],
-    [4, 5, 6],
-    [7, 8, 9],
-    ['Clear', 0, 'DEL'],
-  ];
-
   return (
     <Dialog
       open={open}
@@ -155,7 +148,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }: LooseSaleDialogProps) =>
           color: 'primary.contrastText',
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+        <Typography component="span" variant="h6" sx={{ fontWeight: 'bold' }}>
           Loose Sale Entry
         </Typography>
         <IconButton size="small" onClick={onClose} sx={{ color: 'inherit' }}>
@@ -207,30 +200,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }: LooseSaleDialogProps) =>
           />
 
           {/* Rows 2-5: Numpad */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
-            {numpadRows.flat().map((val, idx) => (
-              <Button
-                key={idx}
-                variant="outlined"
-                color={val === 'Clear' ? 'error' : 'inherit'}
-                onClick={() => {
-                  if (typeof val === 'number') handleNumberClick(val);
-                  else if (val === 'Clear') handleClear();
-                  else handleBackspace();
-                }}
-                sx={{
-                  height: 70,
-                  fontSize: val === 'Clear' ? '1.1rem' : '1.8rem',
-                  fontWeight: 'bold',
-                  borderColor: 'divider',
-                  color: val === 'Clear' ? 'error.main' : 'text.primary',
-                  '&:hover': { bgcolor: 'action.hover', filter: 'brightness(0.95)' },
-                }}
-              >
-                {val === 'DEL' ? <BackspaceIcon /> : val}
-              </Button>
-            ))}
-          </Box>
+          <NumpadGrid onDigit={handleNumberClick} onClear={handleClear} onBackspace={handleBackspace} />
 
           {/* Row 6: Actions */}
           <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
