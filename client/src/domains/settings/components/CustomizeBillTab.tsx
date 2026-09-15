@@ -27,7 +27,9 @@ import type {
   ReceiptSettings,
   ShopMetadata,
 } from '@/domains/settings/hooks/useSettings';
+import type { ReceiptSale } from '@/domains/pos/types';
 import Receipt from '@/domains/pos/components/Receipt';
+import ReceiptPrintPortal from '@/shared/components/ReceiptPrintPortal';
 import {
   fetchPrintersForPreview,
   RECEIPT_VISIBILITY_FIELDS,
@@ -718,6 +720,33 @@ const CustomizeBillTab = ({
           </Paper>
         </Box>
       </Grid>
+
+      {/*
+        The visible "Live Receipt Simulation" <Receipt> above is a normal,
+        in-place rendered element — it lives inside this page's own layout
+        (nested under AppLayout's position:relative `main`), not portaled to
+        document.body. index.css's print rules hide every `body *` except
+        `#thermal-receipt-print`, and Receipt.tsx's own print CSS forces
+        `position: absolute` on #receipt-container — so printing the visible
+        preview directly would both (a) stay invisible (it isn't wrapped in
+        #thermal-receipt-print) and (b) size itself against this narrow
+        sticky panel rather than the physical page, reproducing the original
+        sidebar-width bug. This hidden twin, portaled straight to
+        document.body via the same ReceiptPrintPortal POS/Sale History use,
+        is the actual print target — handlePrintTest's window.print()/
+        print-manual call picks this one up, not the visible simulation.
+      */}
+      <ReceiptPrintPortal
+        // SAMPLE_SALE is a display fixture (id: 'PREVIEW', not a real sale
+        // id) — Receipt.tsx itself accepts it via a loose Record<string,
+        // any> prop type; ReceiptPrintPortal's stricter ReceiptSale type
+        // reflects its two real call sites (POS/Sale History), so the cast
+        // is narrowly scoped to this one fixture-data usage.
+        sale={SAMPLE_SALE as unknown as ReceiptSale}
+        receiptSettings={billSettings}
+        shopMetadata={shopMetadata}
+        customerFeatureEnabled={customerFeatureEnabled}
+      />
 
       {/* Test Print / IPC Feedback Notification */}
       <Snackbar
