@@ -23,7 +23,7 @@ import {
   Assessment as ReportsIcon,
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
-  MenuOpen as MenuOpenIcon,
+  Close as CloseIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Store as StoreIcon,
@@ -374,6 +374,7 @@ const GlobalSidebar = ({
               title="Collapse Sidebar"
               sx={{
                 color: 'rgba(255, 255, 255, 0.65)',
+                bgcolor: 'rgba(255, 255, 255, 0.06)',
                 borderRadius: '6px',
                 p: 0.5,
                 flexShrink: 0,
@@ -383,7 +384,7 @@ const GlobalSidebar = ({
                 },
               }}
             >
-              <MenuOpenIcon fontSize="small" />
+              <CloseIcon fontSize="small" />
             </IconButton>
           )}
         </Box>
