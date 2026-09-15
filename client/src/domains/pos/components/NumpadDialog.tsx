@@ -33,7 +33,10 @@ const NumpadDialog = ({
   maxAllowed,
   allowPercentageToggle,
 }: NumpadDialogProps) => {
-  const isDiscount = title === 'Extra Discount' || Boolean(allowPercentageToggle);
+  // Percentage-mode availability is driven solely by this explicit flag, not
+  // by matching the dialog's display title — a title change (i18n, copy
+  // tweak) must not silently toggle this behavior on or off.
+  const isDiscount = Boolean(allowPercentageToggle);
   const [discountMode, setDiscountMode] = useState<'amount' | 'percentage'>('amount');
   const [value, setValue] = useState(initialValue.toString());
 
@@ -64,32 +67,32 @@ const NumpadDialog = ({
 
   const isValidDiscount = total > 0 && numericVal > 0 && !isOverLimit;
 
-  const handleModeToggle = (
-    _e: React.MouseEvent<HTMLElement>,
-    newMode: 'amount' | 'percentage' | null
-  ) => {
-    if (!newMode || newMode === discountMode) return;
-    const currentNum = parseFloat(value) || 0;
+  const handleModeToggle = useCallback(
+    (_e: React.MouseEvent<HTMLElement>, newMode: 'amount' | 'percentage' | null) => {
+      if (!newMode || newMode === discountMode) return;
+      const currentNum = parseFloat(value) || 0;
 
-    if (newMode === 'percentage') {
-      // Converting from Rupee amount to Percentage
-      if (currentNum > 0 && total > 0) {
-        const pct = Math.round(((currentNum / total) * 100) * 100) / 100;
-        setValue(pct > 100 ? '100' : pct.toString());
+      if (newMode === 'percentage') {
+        // Converting from Rupee amount to Percentage
+        if (currentNum > 0 && total > 0) {
+          const pct = Math.round(((currentNum / total) * 100) * 100) / 100;
+          setValue(pct > 100 ? '100' : pct.toString());
+        } else {
+          setValue('0');
+        }
       } else {
-        setValue('0');
+        // Converting from Percentage to Rupee amount
+        if (currentNum > 0 && total > 0) {
+          const amt = Math.round(((total * currentNum) / 100) * 100) / 100;
+          setValue(amt.toString());
+        } else {
+          setValue('0');
+        }
       }
-    } else {
-      // Converting from Percentage to Rupee amount
-      if (currentNum > 0 && total > 0) {
-        const amt = Math.round(((total * currentNum) / 100) * 100) / 100;
-        setValue(amt.toString());
-      } else {
-        setValue('0');
-      }
-    }
-    setDiscountMode(newMode);
-  };
+      setDiscountMode(newMode);
+    },
+    [discountMode, value, total]
+  );
 
   const handleNumberClick = useCallback((num: string) => {
     setValue((prev) => (prev === '0' ? num.toString() : prev + num));
@@ -321,9 +324,9 @@ const NumpadDialog = ({
                 color={btn.color === 'error' ? 'error' : 'inherit'}
                 onClick={btn.action}
                 sx={{
-                  height: 70,
+                  height: 60,
                   fontSize:
-                    typeof btn.label === 'string' && btn.label.length > 1 ? '1.1rem' : '1.8rem',
+                    typeof btn.label === 'string' && btn.label.length > 1 ? '1.2rem' : '1.6rem',
                   fontWeight: 'bold',
                   borderColor: 'divider',
                   color: btn.color === 'error' ? 'error.main' : 'text.primary',

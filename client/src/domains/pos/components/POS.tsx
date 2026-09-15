@@ -405,6 +405,7 @@ const POS = ({
       showReceipt ||
       showCalculator ||
       showNumpad ||
+      showDiscountNumpad ||
       showPromoGifts ||
       dialogState.open
     ),

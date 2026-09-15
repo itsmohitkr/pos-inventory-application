@@ -10,10 +10,11 @@ import {
   IconButton,
 } from '@mui/material';
 import {
-  Backspace as BackspaceIcon,
   Close as CloseIcon,
   FlashOn as FlashOnIcon,
 } from '@mui/icons-material';
+import { isWholesaleApplicable } from '@/domains/pos/components/cartTableUtils';
+import NumpadGrid from '@/domains/pos/components/NumpadGrid';
 
 interface QuantityDialogProps {
   open: boolean;
@@ -24,6 +25,9 @@ interface QuantityDialogProps {
   wholesaleEnabled?: boolean;
   wholesaleMinQty?: number | null;
   wholesalePrice?: number | null;
+  /** Defense in depth: CartTable already prevents opening this dialog for a
+   * free item, but the dialog shouldn't rely solely on the caller for that. */
+  isFree?: boolean;
 }
 
 const QuantityDialog = ({
@@ -35,6 +39,7 @@ const QuantityDialog = ({
   wholesaleEnabled,
   wholesaleMinQty,
   wholesalePrice,
+  isFree,
 }: QuantityDialogProps) => {
   const [value, setValue] = useState(initialValue.toString());
 
@@ -100,13 +105,6 @@ const QuantityDialog = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, handleNumberClick, handleBackspace, handleClear, handleConfirm, onClose]);
 
-  const numpadRows = [
-    [1, 2, 3],
-    [4, 5, 6],
-    [7, 8, 9],
-    ['Clear', 0, 'DEL'],
-  ];
-
   return (
     <Dialog
       open={open}
@@ -167,11 +165,11 @@ const QuantityDialog = ({
           />
 
           {/* Wholesale quick-action button */}
-          {wholesaleEnabled && wholesaleMinQty && wholesalePrice != null && (
+          {isWholesaleApplicable({ wholesaleEnabled, wholesaleMinQty, wholesalePrice, isFree }) && (
             <Button
               fullWidth
               variant="outlined"
-              onClick={() => setValue(wholesaleMinQty.toString())}
+              onClick={() => setValue(wholesaleMinQty!.toString())}
               startIcon={<FlashOnIcon />}
               sx={{
                 py: 1,
@@ -200,30 +198,7 @@ const QuantityDialog = ({
           )}
 
           {/* 3x4 Numpad Grid matching LooseSaleDialog */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
-            {numpadRows.flat().map((val, idx) => (
-              <Button
-                key={idx}
-                variant="outlined"
-                color={val === 'Clear' ? 'error' : 'inherit'}
-                onClick={() => {
-                  if (typeof val === 'number') handleNumberClick(val);
-                  else if (val === 'Clear') handleClear();
-                  else handleBackspace();
-                }}
-                sx={{
-                  height: 70,
-                  fontSize: val === 'Clear' ? '1.1rem' : '1.8rem',
-                  fontWeight: 'bold',
-                  borderColor: 'divider',
-                  color: val === 'Clear' ? 'error.main' : 'text.primary',
-                  '&:hover': { bgcolor: 'action.hover', filter: 'brightness(0.95)' },
-                }}
-              >
-                {val === 'DEL' ? <BackspaceIcon /> : val}
-              </Button>
-            ))}
-          </Box>
+          <NumpadGrid onDigit={handleNumberClick} onClear={handleClear} onBackspace={handleBackspace} />
 
           {/* Action Row matching LooseSaleDialog */}
           <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>

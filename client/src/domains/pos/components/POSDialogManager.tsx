@@ -150,6 +150,7 @@ const POSDialogManager = ({
       wholesaleEnabled={manualQuantityItem?.wholesaleEnabled}
       wholesaleMinQty={manualQuantityItem?.wholesaleMinQty}
       wholesalePrice={manualQuantityItem?.wholesalePrice}
+      isFree={manualQuantityItem?.isFree}
     />
 
     <LooseSaleDialog
@@ -195,6 +196,7 @@ const POSDialogManager = ({
         setShowDiscountNumpad(false);
       }}
       title="Extra Discount"
+      allowPercentageToggle
     />
   </>
 );

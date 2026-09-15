@@ -180,6 +180,7 @@ describe('Extra Discount Validation', () => {
         initialValue={0}
         maxAllowed={200}
         title="Extra Discount"
+        allowPercentageToggle
       />
     );
 

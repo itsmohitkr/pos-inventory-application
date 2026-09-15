@@ -10,10 +10,10 @@ import {
   IconButton,
 } from '@mui/material';
 import {
-  Backspace as BackspaceIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
 import customerService, { Customer } from '@/shared/api/customerService';
+import NumpadGrid from '@/domains/pos/components/NumpadGrid';
 
 interface CustomerMobileDialogProps {
   open: boolean;
@@ -118,7 +118,7 @@ const CustomerMobileDialog = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       // If typing in Name field, only handle Enter and Escape
       if (isNameFocused) {
-        if (e.key === 'Enter' && phone.length === 10) {
+        if (e.key === 'Enter' && phone.length === 10 && !loading) {
           e.preventDefault();
           handleSubmit();
         } else if (e.key === 'Escape') {
@@ -138,7 +138,7 @@ const CustomerMobileDialog = ({
       } else if (e.key === 'Delete' || e.key === 'c' || e.key === 'C') {
         e.preventDefault();
         handleClear();
-      } else if (e.key === 'Enter' && phone.length === 10) {
+      } else if (e.key === 'Enter' && phone.length === 10 && !loading) {
         e.preventDefault();
         handleSubmit();
       } else if (e.key === 'Escape') {
@@ -149,14 +149,7 @@ const CustomerMobileDialog = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, phone, name, isNameFocused, onClose, handleSubmit]);
-
-  const numpadRows = [
-    [1, 2, 3],
-    [4, 5, 6],
-    [7, 8, 9],
-    ['Clear', 0, 'DEL'],
-  ];
+  }, [open, phone, name, isNameFocused, loading, onClose, handleSubmit]);
 
   return (
     <Dialog
@@ -224,7 +217,7 @@ const CustomerMobileDialog = ({
               readOnly: true,
               startAdornment: (
                 <Typography
-                  sx={{ mr: 1, fontWeight: '900', fontSize: '1.6rem', color: 'primary.main' }}
+                  sx={{ mr: 1.5, fontWeight: 700, fontSize: '1.35rem', color: 'primary.main' }}
                 >
                   +91
                 </Typography>
@@ -233,13 +226,14 @@ const CustomerMobileDialog = ({
             sx={{
               '& .MuiOutlinedInput-root': {
                 bgcolor: 'rgba(0,0,0,0.06)',
-                fontWeight: '900',
-                fontSize: '2.5rem',
+                fontWeight: 700,
+                fontSize: '1.5rem',
                 color: 'primary.main',
+                px: 2,
                 '& input': {
                   caretColor: 'transparent',
-                  textAlign: 'center',
-                  py: 2,
+                  textAlign: 'left',
+                  py: 1.25,
                   letterSpacing: 2,
                 },
               },
@@ -298,30 +292,7 @@ const CustomerMobileDialog = ({
           />
 
           {/* Rows 3-6: Numpad */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>
-            {numpadRows.flat().map((val, idx) => (
-              <Button
-                key={idx}
-                variant="outlined"
-                color={val === 'Clear' ? 'error' : 'inherit'}
-                onClick={() => {
-                  if (typeof val === 'number') handleNumberClick(val);
-                  else if (val === 'Clear') handleClear();
-                  else handleBackspace();
-                }}
-                sx={{
-                  height: 70,
-                  fontSize: val === 'Clear' ? '1.1rem' : '1.8rem',
-                  fontWeight: 'bold',
-                  borderColor: 'divider',
-                  color: val === 'Clear' ? 'error.main' : 'text.primary',
-                  '&:hover': { bgcolor: 'action.hover', filter: 'brightness(0.95)' },
-                }}
-              >
-                {val === 'DEL' ? <BackspaceIcon /> : val}
-              </Button>
-            ))}
-          </Box>
+          <NumpadGrid onDigit={handleNumberClick} onClear={handleClear} onBackspace={handleBackspace} />
 
           {/* Row 7: Actions */}
           <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>

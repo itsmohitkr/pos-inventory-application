@@ -187,6 +187,16 @@ export const usePOSTabs = () => {
 
   const updateQuantity = useCallback(
     (batchId: number, change: number) => {
+      // Reducing quantity can invalidate a discount that was only valid
+      // against the larger subtotal — reset it outright rather than letting
+      // it silently exceed the new total. Only fires on an actual, effective
+      // decrease (skips the no-op case where the stepper can't go below 1).
+      if (change < 0 && discount > 0) {
+        const currentItem = cart.find((item: CartItem) => item.batch_id === batchId);
+        if (currentItem && !currentItem.isFree && currentItem.quantity + change >= 1) {
+          setDiscount(0);
+        }
+      }
       setCart((prev: CartItem[]) =>
         prev.map((item: CartItem) => {
           if (item.batch_id === batchId) {
@@ -219,12 +229,21 @@ export const usePOSTabs = () => {
         })
       );
     },
-    [setCart]
+    [cart, discount, setDiscount, setCart]
   );
 
   const handleSetQuantity = useCallback(
     (batchId: number, quantity: number) => {
       if (quantity < 1) return;
+      // Same reasoning as updateQuantity — an exact-quantity set (numpad,
+      // wholesale quick-apply) that reduces the quantity below what it was
+      // can equally invalidate a discount sized against the larger subtotal.
+      if (discount > 0) {
+        const currentItem = cart.find((item: CartItem) => item.batch_id === batchId);
+        if (currentItem && !currentItem.isFree && quantity < currentItem.quantity) {
+          setDiscount(0);
+        }
+      }
       setCart((prev: CartItem[]) =>
         prev.map((item: CartItem) => {
           if (item.batch_id === batchId) {
@@ -250,7 +269,7 @@ export const usePOSTabs = () => {
         })
       );
     },
-    [setCart]
+    [cart, discount, setDiscount, setCart]
   );
 
   const addFreeProduct = useCallback(
