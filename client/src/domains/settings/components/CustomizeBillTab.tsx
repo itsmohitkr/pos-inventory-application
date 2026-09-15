@@ -30,12 +30,14 @@ import type {
 import type { ReceiptSale } from '@/domains/pos/types';
 import Receipt from '@/domains/pos/components/Receipt';
 import ReceiptPrintPortal from '@/shared/components/ReceiptPrintPortal';
+import { buildReceiptPrintHtml } from '@/domains/pos/components/receiptPrintHtml';
 import {
   fetchPrintersForPreview,
   RECEIPT_VISIBILITY_FIELDS,
 } from '@/domains/pos/components/receiptPreviewDialogUtils';
 import type { PrintResult } from '@/domains/pos/components/receiptPreviewDialogUtils';
 import { resolvePrinterName } from '@/shared/utils/resolvePrinterName';
+import { getReceiptPageSize } from '@/shared/utils/receiptPrintOptions';
 import { IPC } from '@/shared/ipcChannels';
 import { SAMPLE_SALE } from './customizeBillSampleSale';
 
@@ -76,8 +78,24 @@ const CustomizeBillTab = ({
         return;
       }
       const printerName = resolvePrinterName({ receiptSettings: billSettings, printers, defaultPrinter });
-      const result = await window.electron.ipcRenderer.invoke<PrintResult>(IPC.PRINT_MANUAL, {
+      // Printed from an isolated window (same mechanism as Sale History/
+      // barcode/price-list) targeting this tab's own hidden portal
+      // (targetId="customize-bill-print-target" below) rather than the
+      // main app window.
+      const html = buildReceiptPrintHtml('customize-bill-print-target');
+      if (!html) {
+        setSnackbar({
+          open: true,
+          message: 'Could not prepare the receipt for printing. Please try again.',
+          severity: 'error',
+        });
+        return;
+      }
+      const pageSize = getReceiptPageSize(billSettings?.paperSize);
+      const result = await window.electron.ipcRenderer.invoke<PrintResult>(IPC.PRINT_HTML_CONTENT, {
+        html,
         printerName,
+        pageSize,
       });
       if (!result?.success) {
         setSnackbar({

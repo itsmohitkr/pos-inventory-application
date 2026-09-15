@@ -5,6 +5,7 @@ import posService from '@/shared/api/posService';
 import { getApiErrorMessage } from '@/shared/api/api';
 import { resolvePrinterName } from '@/shared/utils/resolvePrinterName';
 import { getReceiptPageSize } from '@/shared/utils/receiptPrintOptions';
+import { buildReceiptPrintHtml } from '@/domains/pos/components/receiptPrintHtml';
 import { IPC } from '@/shared/ipcChannels';
 import type { CartItem, PaymentMethod, ReceiptSale } from '@/domains/pos/types';
 import type { Customer } from '@/shared/api/customerService';
@@ -139,12 +140,25 @@ export const usePOSSale = ({
                 'Sale saved, but no printer is configured. Go to Settings → Receipt Settings to select one, then reprint from Sale History.'
               );
             } else {
-              const pageSize = getReceiptPageSize(receiptSettings?.paperSize);
-              const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer, pageSize });
-              if (!result?.success) {
+              // Printed from an isolated window (same mechanism as Sale
+              // History/barcode/price-list) rather than the main app window,
+              // so nothing about the surrounding page (sidebar, layout) can
+              // ever affect the printed result. The flushSync above already
+              // committed lastSale to the DOM before this point, so the
+              // hidden #thermal-receipt-print portal reflects this sale.
+              const html = buildReceiptPrintHtml();
+              if (!html) {
                 showError(
-                  `Print failed: ${result?.error || 'Unknown error'} The sale was saved — reprint it from Sale History.`
+                  'Sale saved, but the receipt could not be prepared for printing. Reprint it from Sale History.'
                 );
+              } else {
+                const pageSize = getReceiptPageSize(receiptSettings?.paperSize);
+                const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_HTML_CONTENT, { html, printerName: printer, pageSize });
+                if (!result?.success) {
+                  showError(
+                    `Print failed: ${result?.error || 'Unknown error'} The sale was saved — reprint it from Sale History.`
+                  );
+                }
               }
             }
           } else {
@@ -186,10 +200,15 @@ export const usePOSSale = ({
         if (!printer) {
           showError('No printer configured. Go to Settings → Receipt Settings to select a printer.');
         } else {
-          const pageSize = getReceiptPageSize(receiptSettings?.paperSize);
-          const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_MANUAL, { printerName: printer, pageSize });
-          if (!result?.success) {
-            showError(`Print failed: ${result?.error || 'Unknown error'} Check that the printer is on and connected.`);
+          const html = buildReceiptPrintHtml();
+          if (!html) {
+            showError('Could not prepare the receipt for printing. Please try again.');
+          } else {
+            const pageSize = getReceiptPageSize(receiptSettings?.paperSize);
+            const result = await window.electron.ipcRenderer.invoke<{ success?: boolean; error?: string }>(IPC.PRINT_HTML_CONTENT, { html, printerName: printer, pageSize });
+            if (!result?.success) {
+              showError(`Print failed: ${result?.error || 'Unknown error'} Check that the printer is on and connected.`);
+            }
           }
         }
       } else {

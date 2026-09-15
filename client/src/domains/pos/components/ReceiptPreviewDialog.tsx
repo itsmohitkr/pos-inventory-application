@@ -56,6 +56,7 @@ import {
 } from '@mui/icons-material';
 import Receipt from '@/domains/pos/components/Receipt';
 import ReceiptPrintPortal from '@/shared/components/ReceiptPrintPortal';
+import { buildReceiptPrintHtml } from '@/domains/pos/components/receiptPrintHtml';
 import {
   fetchPrintersForPreview,
   handleEnterKeySaveOrClose,
@@ -63,6 +64,7 @@ import {
 } from '@/domains/pos/components/receiptPreviewDialogUtils';
 import type { PrintResult } from '@/domains/pos/components/receiptPreviewDialogUtils';
 import { resolvePrinterName } from '@/shared/utils/resolvePrinterName';
+import { getReceiptPageSize } from '@/shared/utils/receiptPrintOptions';
 import { IPC } from '@/shared/ipcChannels';
 
 const ReceiptPreviewDialog = ({
@@ -121,8 +123,25 @@ const ReceiptPreviewDialog = ({
       // is how this dialog has always worked. Adding a guard would block
       // printing on machines that print fine today.
       const printerName = resolvePrinterName({ receiptSettings, printers, defaultPrinter });
-      const result = await window.electron.ipcRenderer.invoke<PrintResult>(IPC.PRINT_MANUAL, {
+      // Printed from an isolated window (same mechanism as Sale History/
+      // barcode/price-list) targeting this dialog's own hidden portal
+      // (targetId="receipt-preview-print-target" below) rather than the
+      // main app window, so nothing about the surrounding page can affect
+      // the printed result.
+      const html = buildReceiptPrintHtml('receipt-preview-print-target');
+      if (!html) {
+        setSnackbar({
+          open: true,
+          message: 'Could not prepare the receipt for printing. Please try again.',
+          severity: 'error',
+        });
+        return;
+      }
+      const pageSize = getReceiptPageSize(receiptSettings?.paperSize);
+      const result = await window.electron.ipcRenderer.invoke<PrintResult>(IPC.PRINT_HTML_CONTENT, {
+        html,
         printerName,
+        pageSize,
       });
       if (!result?.success) {
         setSnackbar({
