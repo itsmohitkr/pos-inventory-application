@@ -39,11 +39,13 @@ export const createRefundPage = (page: Page) => {
         has: page.getByText(/Are you sure you want to process this return/i),
       });
       await confirmDialog.getByRole('button', { name: 'Yes' }).click();
-      
-      const successDialog = page.locator('[role="dialog"]').filter({
-        has: page.getByText('Return processed successfully!', { exact: false }),
+
+      // Success now renders as an auto-dismissing toast, not a modal dialog.
+      const successToast = page.getByRole('alert').filter({
+        hasText: 'Return processed successfully!',
       });
-      await successDialog.getByRole('button', { name: 'OK' }).click();
+      await expect(successToast).toBeVisible();
+      await successToast.getByRole('button', { name: 'Close' }).click();
     },
     processReturns: async () => {
       await page.getByRole('button', { name: 'Process Returns' }).click();
@@ -53,11 +55,11 @@ export const createRefundPage = (page: Page) => {
       await confirmDialog.getByRole('button', { name: 'Yes' }).click();
     },
     expectRefundSuccess: async () => {
-      const successDialog = page.locator('[role="dialog"]').filter({
-        has: page.getByText('Return processed successfully!', { exact: false }),
+      const successToast = page.getByRole('alert').filter({
+        hasText: 'Return processed successfully!',
       });
-      await expect(successDialog).toBeVisible();
-      await successDialog.getByRole('button', { name: 'OK' }).click();
+      await expect(successToast).toBeVisible();
+      await successToast.getByRole('button', { name: 'Close' }).click();
     },
     expectItemReturnedStatus: async (productName: string, returnedQty: number | string) => {
       const row = page.getByRole('row', { name: new RegExp(productName, 'i') });
