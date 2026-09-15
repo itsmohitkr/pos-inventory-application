@@ -533,12 +533,18 @@ const ReceiptPreviewDialog = ({
           visible preview directly would print a blank page. This hidden
           twin, using the same ReceiptPrintPortal POS/Sale History already
           rely on, is the actual print target for printPreview() below.
+
+          This dialog is always mounted while open by POSDialogManager, and
+          POS.tsx mounts its own ReceiptPrintPortal too — so this MUST use a
+          distinct targetId, or both would share id="thermal-receipt-print"
+          while the dialog is open and silently print doubled content.
         */}
         <ReceiptPrintPortal
           sale={previewSale}
           receiptSettings={receiptSettings}
           shopMetadata={shopMetadata}
           customerFeatureEnabled={customerFeatureEnabled}
+          targetId="receipt-preview-print-target"
         />
       </DialogContent>
       <DialogActions className="no-print" sx={{ p: 2, borderTop: '1px solid #eee' }}>
