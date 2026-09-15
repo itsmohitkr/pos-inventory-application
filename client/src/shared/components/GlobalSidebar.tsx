@@ -23,7 +23,7 @@ import {
   Assessment as ReportsIcon,
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
-  MenuOpen as MenuOpenIcon,
+  Close as CloseIcon,
   Wifi as WifiIcon,
   WifiOff as WifiOffIcon,
   ExpandMore as ExpandMoreIcon,
@@ -375,9 +375,9 @@ const GlobalSidebar = ({
               size="small"
               onClick={onToggleSidebar}
               aria-label="Collapse sidebar"
-              title="Collapse Sidebar"
               sx={{
                 color: 'rgba(255, 255, 255, 0.65)',
+                bgcolor: 'rgba(255, 255, 255, 0.06)',
                 borderRadius: '6px',
                 p: 0.5,
                 flexShrink: 0,
@@ -387,7 +387,7 @@ const GlobalSidebar = ({
                 },
               }}
             >
-              <MenuOpenIcon fontSize="small" />
+              <CloseIcon fontSize="small" />
             </IconButton>
           )}
         </Box>
@@ -588,53 +588,54 @@ const GlobalSidebar = ({
       {/* Partition just above username / user footer */}
       <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
 
-      {/* 3. Footer: User Info & Logout (stacked if elevated, row if normal) */}
+      {/* 3. Footer: User Info & Logout (separate stacked cards for both non-admin and admin users) */}
       <Box sx={{ p: 1.5, flexShrink: 0 }}>
-        {currentUser?.originalRole ? (
-          /* When elevated: User profile, Log out Admin, and Logout all stacked */
-          <Stack spacing={1}>
-            {/* User Profile (text only, no avatar) */}
-            <Box
-              sx={{
-                p: 1.25,
-                borderRadius: '8px',
-                bgcolor: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-              }}
-            >
-              <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 600,
-                    color: '#ffffff',
-                    fontSize: '0.85rem',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
-                  }}
+        <Stack spacing={1}>
+          {/* User Profile Card (text only, no avatar) */}
+          <Box
+            sx={{
+              p: 1.25,
+              borderRadius: '8px',
+              bgcolor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+            }}
+          >
+            <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  fontSize: '0.85rem',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2,
+                }}
+              >
+                <Box component="span" sx={{ textTransform: 'capitalize' }}>
+                  {formatUserName(currentUser?.username)}
+                </Box>{' '}
+                <Box
+                  component="span"
+                  sx={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500, textTransform: 'capitalize' }}
                 >
-                  <Box component="span" sx={{ textTransform: 'capitalize' }}>
-                    {formatUserName(currentUser?.username)}
-                  </Box>{' '}
-                  <Box
-                    component="span"
-                    sx={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500, textTransform: 'capitalize' }}
-                  >
-                    ({currentUser?.role || 'user'})
-                  </Box>
-                </Typography>
+                  ({currentUser?.role || 'user'})
+                </Box>
+              </Typography>
+              {currentUser?.originalRole && (
                 <Chip
                   label="Elevated"
                   size="small"
                   color="warning"
                   sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700 }}
                 />
-              </Stack>
-            </Box>
+              )}
+            </Stack>
+          </Box>
 
-            {/* Exit Admin Mode Action (Drop Temporary Admin Elevation) */}
+          {/* Exit Admin Mode Action (Drop Temporary Admin Elevation) */}
+          {currentUser?.originalRole && (
             <Button
               onClick={onAdminLogout}
               component={RouterLink}
@@ -661,120 +662,42 @@ const GlobalSidebar = ({
             >
               Exit Admin Mode{formatTimer(adminLogoutTimer)}
             </Button>
+          )}
 
-            {/* Sign Out Button */}
-            <Tooltip title="Sign Out">
-              <Button
-                fullWidth
-                onClick={onLogout}
-                aria-label="Sign Out"
-                size="small"
-                startIcon={<LogoutIcon sx={{ fontSize: '1rem !important' }} />}
-                sx={{
+          {/* Sign Out Button (separate card) */}
+          <Tooltip title="Sign Out">
+            <Button
+              fullWidth
+              onClick={onLogout}
+              aria-label="Sign Out"
+              size="small"
+              startIcon={<LogoutIcon sx={{ fontSize: '1rem !important' }} />}
+              sx={{
+                color: '#ffffff',
+                bgcolor: '#dc2626',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                borderRadius: '6px',
+                px: 2,
+                py: 0.7,
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                textTransform: 'none',
+                boxShadow: '0 2px 6px rgba(220, 38, 38, 0.35)',
+                transition: 'all 0.15s ease-in-out',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                  boxShadow: '0 4px 10px rgba(220, 38, 38, 0.5)',
+                },
+                '& .MuiButton-startIcon': {
                   color: '#ffffff',
-                  bgcolor: '#dc2626',
-                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                  borderRadius: '6px',
-                  px: 2,
-                  py: 0.7,
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  boxShadow: '0 2px 6px rgba(220, 38, 38, 0.35)',
-                  transition: 'all 0.15s ease-in-out',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                    boxShadow: '0 4px 10px rgba(220, 38, 38, 0.5)',
-                  },
-                  '& .MuiButton-startIcon': {
-                    color: '#ffffff',
-                    mr: 0.75,
-                  },
-                }}
-              >
-                Sign Out
-              </Button>
-            </Tooltip>
-          </Stack>
-        ) : (
-          /* Normal mode (not elevated): User info (text only) and Logout in the same row */
-          <Box
-            sx={{
-              p: 1.25,
-              borderRadius: '8px',
-              bgcolor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1.25,
-            }}
-          >
-            {/* User Identity (text only, no avatar) */}
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  color: '#ffffff',
-                  fontSize: '0.82rem',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.2,
-                }}
-              >
-                <Box component="span" sx={{ textTransform: 'capitalize' }}>
-                  {formatUserName(currentUser?.username)}
-                </Box>{' '}
-                <Box
-                  component="span"
-                  sx={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500, textTransform: 'capitalize' }}
-                >
-                  ({currentUser?.role || 'user'})
-                </Box>
-              </Typography>
-            </Box>
-
-            {/* Visible Sign Out Button (text + icon, distinct color) */}
-            <Tooltip title="Sign Out">
-              <Button
-                onClick={onLogout}
-                aria-label="Sign Out"
-                size="small"
-                startIcon={<LogoutIcon sx={{ fontSize: '0.95rem !important' }} />}
-                sx={{
-                  color: '#ffffff',
-                  bgcolor: '#dc2626',
-                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                  borderRadius: '6px',
-                  px: 1.25,
-                  py: 0.5,
-                  minWidth: 'auto',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  flexShrink: 0,
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 2px 6px rgba(220, 38, 38, 0.35)',
-                  transition: 'all 0.15s ease-in-out',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                    boxShadow: '0 4px 10px rgba(220, 38, 38, 0.5)',
-                    transform: 'scale(1.02)',
-                  },
-                  '& .MuiButton-startIcon': {
-                    color: '#ffffff',
-                    mr: 0.5,
-                    ml: 0,
-                  },
-                }}
-              >
-                Sign Out
-              </Button>
-            </Tooltip>
-          </Box>
-        )}
+                  mr: 0.75,
+                },
+              }}
+            >
+              Sign Out
+            </Button>
+          </Tooltip>
+        </Stack>
       </Box>
     </Box>
   );
