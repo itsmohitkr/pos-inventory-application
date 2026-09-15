@@ -4,26 +4,21 @@
  * mechanism already used successfully for barcode/price-list printing),
  * instead of `print-manual` (which prints from the main application window,
  * the same window the whole app's UI — sidebar, tables, everything — is
- * loaded into, just hidden via CSS visibility rules at print time).
+ * loaded into, just hidden via CSS visibility rules at print time). Printing
+ * from a page that contains nothing but the receipt means there is nothing
+ * about the surrounding app (sidebar state, layout, anything else) that can
+ * ever affect the printed result.
  *
- * This exists to test a specific hypothesis: after four independent proofs
- * that the receipt's own rendered DOM/CSS is byte-identical between the POS
- * and Sale History screens, and after explicit `pageSize` was proven to have
- * no effect either way, the remaining unexplained inconsistency may be
- * caused by Chromium's print engine behaving differently depending on how
- * much *other* content shares the page being printed — even hidden content.
- * Printing from a page that contains nothing but the receipt removes that
- * variable entirely, matching the isolated-window pattern that has never
- * exhibited this bug for labels.
- *
- * Unlike price-list printing (which uses a hand-written stylesheet, see
- * priceListLabelStyles.ts), Receipt.tsx is styled via MUI's sx prop
- * (Emotion-generated CSS classes). Emotion inserts its generated rules as
- * `<style data-emotion="...">` tags in `document.head` — capturing all of
- * `document.head`'s <style> tags and embedding them verbatim, alongside the
- * receipt's own cloned outerHTML (including its own hand-written inline
- * <style> block from Receipt.tsx), reproduces the exact same styling in the
- * isolated print window without needing to rewrite Receipt.tsx.
+ * Receipt.tsx renders structure + className only (see receiptStyles.ts) and
+ * embeds its own complete stylesheet in a trailing <style> tag inside
+ * #receipt-container, so cloning that container's outerHTML carries its
+ * styling with it. This used to also capture every <style> tag in
+ * `document.head` to reproduce MUI/Emotion's generated classes — necessary
+ * back when Receipt.tsx was styled via `sx`, but that snapshot's rule order
+ * depended on the app's render history rather than Receipt.tsx's own
+ * structure, which caused a real font-size bug (see PR #197). Now that
+ * Receipt.tsx is self-contained, that capture is unnecessary and has been
+ * removed — there is nothing left for the clone to depend on.
  *
  * The receipt has no images, external fonts, or barcodes (the "barcode"
  * setting renders as plain text), so a strict CSP with no image/font
@@ -38,10 +33,6 @@ export function buildReceiptPrintHtml(receiptRootId = 'thermal-receipt-print'): 
   if (!receiptContainer) return null;
 
   const receiptHtml = (receiptContainer.cloneNode(true) as Element).outerHTML;
-
-  const styleTags = Array.from(document.head.querySelectorAll('style'))
-    .map((style) => style.textContent || '')
-    .join('\n');
 
   return `
     <!DOCTYPE html>
@@ -73,7 +64,6 @@ export function buildReceiptPrintHtml(receiptRootId = 'thermal-receipt-print'): 
             padding: 0;
             background: #ffffff;
           }
-          ${styleTags}
         </style>
       </head>
       <body>

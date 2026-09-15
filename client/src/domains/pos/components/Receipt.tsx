@@ -1,12 +1,12 @@
 import type { ReceiptSaleItem } from '@/domains/pos/types';
 import React, { forwardRef } from 'react';
-import { Box, Typography } from '@mui/material';
 import {
   DEFAULT_RECEIPT_SETTINGS,
   getReceiptCalculations,
   getReceiptTheme,
   getSafePrintableWidth,
 } from '@/domains/pos/components/receiptUtils';
+import { buildReceiptCss } from '@/domains/pos/components/receiptStyles';
 
 interface ReceiptProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,6 +18,15 @@ interface ReceiptProps {
   customerFeatureEnabled?: boolean;
 }
 
+/**
+ * Structure only — every visual rule (font size, weight, spacing) comes from
+ * buildReceiptCss, embedded verbatim in the trailing <style> tag below. This
+ * mirrors PriceListLabelCard.tsx's pattern: no MUI `sx`/`Typography` inside
+ * the printable tree, so there is no Emotion-generated class whose cascade
+ * position depends on the app's render history. Whatever prints is exactly
+ * what this component rendered, because the stylesheet travels with the
+ * cloned markup instead of being reconstructed from a separate snapshot.
+ */
 const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
   ({ sale, settings, shopMetadata, customerFeatureEnabled = true }, ref) => {
   if (!sale) return null;
@@ -29,167 +38,81 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
   const printableWidth = getSafePrintableWidth(paperSize);
   const marginTop = config.marginTop !== undefined ? `${config.marginTop}mm` : '2mm';
   const marginBottom = config.marginBottom !== undefined ? `${config.marginBottom}mm` : '2mm';
-  const _marginSide = config.marginSide !== undefined ? `${config.marginSide}mm` : '0mm'; // Use 0 for container side as we use centering helper
+  const marginSide = config.marginSide !== undefined ? `${config.marginSide}mm` : '2mm';
 
   const { originalTotal, roundedTotal, roundOff, calculatedSavings, totalItemCount } =
     getReceiptCalculations(sale, config);
   const theme = getReceiptTheme(config.billFormat);
 
+  const receiptCss = buildReceiptCss({
+    config,
+    theme,
+    printableWidth,
+    paperSize,
+    marginTop,
+    marginBottom,
+    marginSide,
+  });
+
   return (
-    <Box
-      ref={ref}
-      id="receipt-container"
-      sx={{
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        backgroundColor: 'white',
-        '@media print': {
-          backgroundColor: 'white',
-          width: '100%',
-        },
-      }}
-    >
-      <Box
-        id="receipt-content"
-        sx={{
-          width: printableWidth,
-          boxSizing: 'border-box',
-          paddingTop: marginTop,
-          paddingBottom: marginBottom,
-          paddingLeft: config.marginSide !== undefined ? `${config.marginSide}mm` : '2mm',
-          paddingRight: config.marginSide !== undefined ? `${config.marginSide}mm` : '2mm',
-          bgcolor: 'white',
-          color: '#000000',
-          fontFamily: theme.fontFamily,
-          fontSize: `${config.fontSize || 0.8}rem`,
-          lineHeight: config.lineHeight || 1.1,
-          // Relaxed Thermal Printer Sharpness Hacks
-          '& *': {
-            color: '#000000 !important',
-            textShadow: 'none !important',
-            WebkitPrintColorAdjust: 'exact',
-          },
-          '@media print': {
-            display: 'block !important',
-            width: printableWidth,
-            maxWidth: printableWidth,
-            margin: '0 auto',
-            boxSizing: 'border-box',
-          },
-        }}
-      >
+    <div ref={ref} id="receipt-container" className="receipt-container">
+      <div id="receipt-content" className="receipt-content">
         {/* Header */}
         {config.billFormat !== 'Minimalist' && (
-          <Box sx={{ mb: 0.3 }}>
+          <div className="receipt-header-block">
             {config.shopName && (
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: '900 !important', // Explicitly Bold for Shop Name
-                  fontSize: '1.25em !important',
-                  color: '#000',
-                  letterSpacing: '-0.02em',
-                  mb: 0.2,
-                  textAlign: config.titleAlign || 'center',
-                }}
-              >
-                {config.customShopName}
-              </Typography>
+              <div className="receipt-shop-name">{config.customShopName}</div>
             )}
             {(config.header || config.customHeader) && (
-              <Box sx={{ textAlign: config.headerAlign || 'center' }}>
-                <Typography
-                  variant="body2"
-                  sx={{ fontSize: '0.9em !important', fontWeight: `${theme.textWeight} !important`, color: '#000', mb: 0.1 }}
-                >
-                  {config.customHeader}
-                </Typography>
+              <div className="receipt-header-lines">
+                <div className="receipt-header-line">{config.customHeader}</div>
                 {config.customHeader2 && (
-                  <Typography
-                    variant="body2"
-                    sx={{ fontSize: '0.9em !important', fontWeight: `${theme.textWeight} !important`, color: '#000', mb: 0.1 }}
-                  >
-                    {config.customHeader2}
-                  </Typography>
+                  <div className="receipt-header-line">{config.customHeader2}</div>
                 )}
                 {config.customHeader3 && (
-                  <Typography
-                    variant="body2"
-                    sx={{ fontSize: '0.9em !important', fontWeight: `${theme.textWeight} !important`, color: '#000', mb: 0.1 }}
-                  >
-                    {config.customHeader3}
-                  </Typography>
+                  <div className="receipt-header-line">{config.customHeader3}</div>
                 )}
                 {shopMetadata?.shopMobile && (
-                  <Typography
-                    variant="body2"
-                    sx={{ fontSize: '0.85em !important', fontWeight: `${theme.textWeight} !important`, color: '#000' }}
-                  >
-                    Tel: {shopMetadata.shopMobile}
-                  </Typography>
+                  <div className="receipt-tel-line">Tel: {shopMetadata.shopMobile}</div>
                 )}
                 {shopMetadata?.shopMobile2 && (
-                  <Typography
-                    variant="body2"
-                    sx={{ fontSize: '0.85em !important', fontWeight: `${theme.textWeight} !important`, color: '#000' }}
-                  >
-                    Tel 2: {shopMetadata.shopMobile2}
-                  </Typography>
+                  <div className="receipt-tel-line">Tel 2: {shopMetadata.shopMobile2}</div>
                 )}
-              </Box>
+              </div>
             )}
 
-            <Box sx={{ borderBottom: theme.divider, my: 0.5 }} />
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: `${theme.headerWeight} !important`,
-                fontSize: '1em !important',
-                color: '#000',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                textAlign: 'center',
-              }}
-            >
-              {config.invoiceLabel || 'Tax Invoice'}
-            </Typography>
-            <Box sx={{ borderBottom: theme.divider, mt: 0.5, mb: 0.8 }} />
-          </Box>
+            <div style={{ borderBottom: theme.divider, margin: '4px 0' }} />
+            <div className="receipt-invoice-label">{config.invoiceLabel || 'Tax Invoice'}</div>
+            <div style={{ borderBottom: theme.divider, marginTop: '4px', marginBottom: '6.4px' }} />
+          </div>
         )}
 
         {/* Sale Info */}
-        <Box sx={{ mb: 0.5 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography
-              variant="body2"
-              sx={{ fontSize: '0.85em !important', fontWeight: `${theme.boldWeight} !important`, color: '#000' }}
-            >
-              Bill No: ORD-{sale.id}
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: '0.85em !important', color: '#000' }}>
+        <div className="receipt-sale-info-block">
+          <div className="receipt-bill-info-row">
+            <div className="receipt-bill-no">Bill No: ORD-{sale.id}</div>
+            <div className="receipt-sale-info-line">
               {new Date(sale.createdAt).toLocaleDateString()}
-            </Typography>
-          </Box>
-          <Typography variant="body2" sx={{ fontSize: '0.85em !important', color: '#000' }}>
+            </div>
+          </div>
+          <div className="receipt-sale-info-line">
             Time: {new Date(sale.createdAt).toLocaleTimeString()}
-          </Typography>
+          </div>
 
           {/* Customer Details - Only if enabled and available */}
           {customerFeatureEnabled && config.customerDetails && sale.customer && (
-            <Box sx={{ mt: 0.5, borderTop: '1px dashed #ccc', pt: 0.5 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.85em !important', color: '#000' }}>
+            <div className="receipt-customer-block">
+              <div className="receipt-sale-info-line">
                 Bill To: {sale.customer.name || 'Customer'} ({sale.customer.phone})
-              </Typography>
-            </Box>
+              </div>
+            </div>
           )}
-        </Box>
+        </div>
 
-        <Box
-          sx={{
+        <div
+          style={{
             borderBottom: config.billFormat === 'Minimalist' ? theme.divider : '1px solid black',
-            mb: 0.5,
+            marginBottom: '4px',
           }}
         />
 
@@ -331,138 +254,84 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
           </tbody>
         </table>
 
-        <Box sx={{ borderBottom: theme.divider, my: 0.5 }} />
+        <div style={{ borderBottom: theme.divider, margin: '4px 0' }} />
 
         {/* Totals */}
-        <Box sx={{ ml: 'auto', width: '100%', color: '#000' }}>
+        <div className="receipt-totals-block">
           {config.totalItems !== false && (
             <>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 0.2 }}>
-                <Typography
-                  variant="body2"
-                  sx={{ fontSize: '0.9em !important', fontWeight: `${theme.textWeight} !important` }}
-                >
+              <div className="receipt-totals-row receipt-totals-row--start">
+                <div className="receipt-items-summary">
                   Items: {sale.items?.length || 0}, Quantity: {totalItemCount}
-                </Typography>
-              </Box>
-              <Box sx={{ borderBottom: theme.divider, my: 0.5 }} />
+                </div>
+              </div>
+              <div style={{ borderBottom: theme.divider, margin: '4px 0' }} />
             </>
           )}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
-            <Typography variant="body2" sx={{ fontSize: '1em !important', fontWeight: `${theme.textWeight} !important` }}>
-              Subtotal:
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: '1em !important', fontWeight: `${theme.textWeight} !important` }}>
+          <div className="receipt-totals-row">
+            <div className="receipt-subtotal-text">Subtotal:</div>
+            <div className="receipt-subtotal-text">
               ₹{(originalTotal + (sale.discount || 0) + (sale.extraDiscount || 0)).toFixed(2)}
-            </Typography>
-          </Box>
+            </div>
+          </div>
           {config.discount && ((sale.discount || 0) > 0 || (sale.extraDiscount || 0) > 0) && (
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.9em !important', fontWeight: `${theme.boldWeight} !important` }}>
-                TOTAL DISCOUNT:
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.9em !important', fontWeight: `${theme.boldWeight} !important` }}>
+            <div className="receipt-totals-row">
+              <div className="receipt-discount-text">TOTAL DISCOUNT:</div>
+              <div className="receipt-discount-text">
                 -₹{((sale.discount || 0) + (sale.extraDiscount || 0)).toFixed(2)}
-              </Typography>
-            </Box>
+              </div>
+            </div>
           )}
 
           {config.roundOff && roundOff !== 0 && (
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.2 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.9em !important', fontStyle: 'italic' }}>
-                Round Off:
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.9em !important' }}>
+            <div className="receipt-totals-row">
+              <div className="receipt-roundoff-label">Round Off:</div>
+              <div className="receipt-roundoff-value">
                 {roundOff > 0 ? '+' : ''}₹{roundOff.toFixed(2)}
-              </Typography>
-            </Box>
+              </div>
+            </div>
           )}
 
-          <Box sx={{ borderBottom: '1.5px solid black', my: 0.5 }} />
+          <div style={{ borderBottom: '1.5px solid black', margin: '4px 0' }} />
           {config.totalValue && (
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                py: 0.3,
-              }}
-            >
-              <Typography variant="body2" sx={{ fontWeight: '900 !important', fontSize: '1.1em !important' }}>
-                GRAND TOTAL:
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: '900 !important', fontSize: '1.25em !important' }}>
-                ₹{roundedTotal.toFixed(2)}
-              </Typography>
-            </Box>
+            <div className="receipt-grand-total-row">
+              <div className="receipt-grand-total-label">GRAND TOTAL:</div>
+              <div className="receipt-grand-total-value">₹{roundedTotal.toFixed(2)}</div>
+            </div>
           )}
           {config.totalSavings && calculatedSavings > 0 && (
-            <Box
-              sx={{
-                border: '2px solid black',
-                p: 0.8,
-                mt: 1,
-                textAlign: 'center',
-                color: '#000',
-                borderRadius: 1,
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: '400 !important', fontSize: '1em !important', letterSpacing: '0.05em' }}
-              >
+            <div className="receipt-savings-box">
+              <div className="receipt-savings-text">
                 TOTAL SAVINGS: ₹{(calculatedSavings - (config.roundOff ? roundOff : 0)).toFixed(2)}
-              </Typography>
-            </Box>
+              </div>
+            </div>
           )}
-        </Box>
+        </div>
 
-        <Box sx={{ borderBottom: theme.divider, my: 0.8 }} />
+        <div style={{ borderBottom: theme.divider, margin: '6.4px 0' }} />
 
         {/* Footer */}
-        <Box sx={{ textAlign: config.footerAlign || 'center', mt: 0.3 }}>
+        <div className="receipt-footer-block">
           {config.footer && (
             <>
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: `${theme.boldWeight} !important`, fontSize: '1em !important', color: '#000', mb: 0.2 }}
-              >
-                {config.customFooter}
-              </Typography>
+              <div className="receipt-footer-line">{config.customFooter}</div>
               {config.customFooter2 && (
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: `${theme.boldWeight} !important`, fontSize: '0.9em !important', color: '#000', mb: 0.2 }}
-                >
-                  {config.customFooter2}
-                </Typography>
+                <div className="receipt-footer-line--secondary">{config.customFooter2}</div>
               )}
             </>
           )}
-          {config.showBranding && (
-            <Typography
-              variant="caption"
-              sx={{
-                fontSize: '0.85em !important',
-                fontWeight: `${theme.boldWeight} !important`,
-                color: '#000',
-                display: 'block',
-                mt: 1,
-                opacity: 0.7,
-              }}
-            >
-              Software by Resoft
-            </Typography>
-          )}
-        </Box>
+          {config.showBranding && <div className="receipt-branding">Software by Resoft</div>}
+        </div>
 
         <style>{`
-                /* Global print helper */
+                ${receiptCss}
+
+                /* Global print helper — page mechanics only, no on-screen meaning. */
                 @media print {
                   .no-print {
                     display: none !important;
                   }
-                  
+
                   html, body {
                     margin: 0 !important;
                     padding: 0 !important;
@@ -479,7 +348,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                     padding: 0 !important;
                     display: block !important;
                   }
-                  
+
                   /* Ensure background colors/images print */
                   * {
                     -webkit-print-color-adjust: exact !important;
@@ -487,8 +356,8 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                   }
                 }
             `}</style>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 });
 
