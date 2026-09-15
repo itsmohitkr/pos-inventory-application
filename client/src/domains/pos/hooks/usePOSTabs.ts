@@ -359,13 +359,18 @@ export const usePOSTabs = () => {
 
   const alreadyHasFreeProduct = useMemo(() => cart.some((item: CartItem) => item.isFree), [cart]);
 
-  // Clear extra discount whenever no paid products remain on the POS screen
-  useEffect(() => {
-    const paidItems = cart.filter((item: CartItem) => !item.isFree);
-    if (paidItems.length === 0 && discount > 0) {
+  // Clear extra discount whenever no paid products remain on the POS screen.
+  // Adjusted during render (React's documented pattern for state derived from
+  // a changing value) rather than in an effect, so the reset lands in the
+  // same commit as the cart change instead of triggering a cascading render.
+  const hasNoPaidItems = cart.every((item: CartItem) => item.isFree);
+  const [prevHasNoPaidItems, setPrevHasNoPaidItems] = useState(hasNoPaidItems);
+  if (hasNoPaidItems !== prevHasNoPaidItems) {
+    setPrevHasNoPaidItems(hasNoPaidItems);
+    if (hasNoPaidItems && discount > 0) {
       setDiscount(0);
     }
-  }, [cart, discount, setDiscount]);
+  }
 
   return {
     tabs,
