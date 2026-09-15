@@ -80,18 +80,18 @@ const CartTable = ({
                 Qty
               </TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                MRP
+                MRP (₹)
               </TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                Price
+                Price (₹)
               </TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                Disc.
+                Disc. (₹)
               </TableCell>
               <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                Total
+                Total (₹)
               </TableCell>
-              <TableCell width={40}></TableCell>
+              <TableCell width={52} align="center"></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -336,41 +336,45 @@ const CartTable = ({
                     </Box>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2">₹{item.mrp.toFixed(2)}</Typography>
+                    <Typography variant="body2">{item.mrp.toFixed(2)}</Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" fontWeight="600">
-                      ₹{item.price.toFixed(2)}
+                      {item.price.toFixed(2)}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" color="error.main">
-                      ₹{totalDiscount.toFixed(2)}
+                      {totalDiscount.toFixed(2)}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" fontWeight="bold">
-                      ₹{getCartItemTotal(item).toFixed(2)}
+                      {getCartItemTotal(item).toFixed(2)}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center" sx={{ px: 0.75 }}>
                     <IconButton
-                      size="medium"
+                      size="small"
                       color="error"
                       onClick={() => onRemoveFromCart(item.batch_id)}
                       onMouseDown={(e) => e.preventDefault()}
                       sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 1,
+                        bgcolor: 'rgba(239, 68, 68, 0.08)',
                         border: '1.5px solid',
-                        borderColor: 'error.light',
-                        borderRadius: 2,
+                        borderColor: 'rgba(239, 68, 68, 0.3)',
+                        color: 'error.main',
                         transition: 'all 0.2s',
                         '&:hover': {
                           borderColor: 'error.main',
-                          bgcolor: 'rgba(211, 47, 47, 0.04)',
+                          bgcolor: 'rgba(239, 68, 68, 0.18)',
                         },
                       }}
                     >
-                      <DeleteIcon fontSize="medium" />
+                      <DeleteIcon sx={{ fontSize: 21 }} />
                     </IconButton>
                   </TableCell>
                 </TableRow>

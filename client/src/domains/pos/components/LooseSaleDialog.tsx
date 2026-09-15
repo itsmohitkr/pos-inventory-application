@@ -155,7 +155,7 @@ const LooseSaleDialog = ({ open, onClose, onComplete }: LooseSaleDialogProps) =>
           color: 'primary.contrastText',
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+        <Typography component="span" variant="h6" sx={{ fontWeight: 'bold' }}>
           Loose Sale Entry
         </Typography>
         <IconButton size="small" onClick={onClose} sx={{ color: 'inherit' }}>

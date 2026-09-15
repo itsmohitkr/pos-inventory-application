@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import TransactionPanel from '@/domains/pos/components/TransactionPanel';
@@ -127,5 +127,77 @@ describe('Extra Discount Validation', () => {
     ).toBeInTheDocument();
     const enterBtn = screen.getByRole('button', { name: /Amount Too High/i });
     expect(enterBtn).toBeDisabled();
+  });
+
+  it('renders cross icon and clear button when discount > 0 and clears discount on click', async () => {
+    const onDiscountChange = vi.fn();
+    const setShowDiscountNumpad = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <TransactionPanel
+        {...defaultProps}
+        cart={[
+          {
+            product_id: 1,
+            batch_id: 1,
+            name: 'Item 1',
+            price: 100,
+            sellingPrice: 100,
+            mrp: 120,
+            quantity: 1,
+            max_quantity: 10,
+            costPrice: 80,
+            isOnSale: false,
+            isFree: false,
+          },
+        ]}
+        discount={50}
+        onDiscountChange={onDiscountChange}
+        setShowDiscountNumpad={setShowDiscountNumpad}
+      />
+    );
+
+    // Cross icon inside the input field
+    const clearIconBtn = screen.getByRole('button', { name: /Clear extra discount/i });
+    expect(clearIconBtn).toBeInTheDocument();
+
+    // Clicking cross icon clears discount without opening dialog
+    await user.click(clearIconBtn);
+    expect(onDiscountChange).toHaveBeenCalledWith(0);
+    expect(setShowDiscountNumpad).not.toHaveBeenCalled();
+  });
+
+  it('allows toggling between rupee and percentage discount and calculates correctly', async () => {
+    const onConfirm = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <NumpadDialog
+        open={true}
+        onClose={vi.fn()}
+        onConfirm={onConfirm}
+        initialValue={0}
+        maxAllowed={200}
+        title="Extra Discount"
+      />
+    );
+
+    // Switch to Percentage Discount mode
+    const pctTab = screen.getByRole('button', { name: /% Percentage Discount/i });
+    await user.click(pctTab);
+
+    // Type 15 -> 15% of 200 = 30
+    await user.click(screen.getByRole('button', { name: '1' }));
+    await user.click(screen.getByRole('button', { name: '5' }));
+
+    expect(
+      screen.getByText(/✓ 15% discount = ₹30\.00 off \(New Total: ₹170\.00\)/i)
+    ).toBeInTheDocument();
+
+    const enterBtn = screen.getByRole('button', { name: 'Enter' });
+    expect(enterBtn).toBeEnabled();
+    await user.click(enterBtn);
+    expect(onConfirm).toHaveBeenCalledWith(30);
   });
 });
