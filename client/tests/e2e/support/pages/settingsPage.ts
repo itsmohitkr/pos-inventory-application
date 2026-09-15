@@ -24,11 +24,10 @@ export const createSettingsPage = (page: Page) => {
     },
     togglePaymentMethod: async (label: string) => {
       await container.getByRole('checkbox', { name: new RegExp(label, 'i') }).click();
-      const successDialog = page.locator('[role="dialog"]').filter({
-        has: page.getByText('Success', { exact: true }),
-      });
-      if (await successDialog.count()) {
-        await successDialog.getByRole('button', { name: 'OK' }).click();
+      // Success now renders as an auto-dismissing toast, not a modal dialog.
+      const successToast = page.getByRole('alert');
+      if (await successToast.count()) {
+        await successToast.getByRole('button', { name: 'Close' }).click();
       }
     },
     expectPaymentMethodChecked: async (label: string, checked: boolean) => {
@@ -43,11 +42,10 @@ export const createSettingsPage = (page: Page) => {
       await container.getByRole('button', { name: 'Add Custom Method' }).click();
       await container.getByPlaceholder('Enter payment method name').fill(label);
       await container.getByRole('button', { name: 'Add' }).click();
-      const successDialog = page.locator('[role="dialog"]').filter({
-        has: page.getByText('Success', { exact: true }),
-      });
-      if (await successDialog.count()) {
-        await successDialog.getByRole('button', { name: 'OK' }).click();
+      // Success now renders as an auto-dismissing toast, not a modal dialog.
+      const successToast = page.getByRole('alert');
+      if (await successToast.count()) {
+        await successToast.getByRole('button', { name: 'Close' }).click();
       }
       await expect(container.getByText(label)).toBeVisible();
     },
@@ -63,12 +61,13 @@ export const createSettingsPage = (page: Page) => {
       if (gst) await container.getByLabel('GST Number (Optional)').fill(gst);
       
       await container.getByRole('button', { name: 'Save Changes' }).click();
-      
-      const successDialog = page.locator('[role="dialog"]').filter({
-        has: page.getByText('Settings saved successfully!', { exact: false }),
+
+      // Success now renders as an auto-dismissing toast, not a modal dialog.
+      const successToast = page.getByRole('alert').filter({
+        hasText: 'Settings saved successfully!',
       });
-      if (await successDialog.count()) {
-        await successDialog.getByRole('button', { name: 'OK' }).click();
+      if (await successToast.count()) {
+        await successToast.getByRole('button', { name: 'Close' }).click();
       }
     },
     verifyShopMetadata: async ({ name, mobile, address, email, gst }: ShopMetadataFields) => {

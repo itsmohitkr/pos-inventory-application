@@ -252,6 +252,7 @@ export const useStoreSettings = ({
 
   const handleSave = async () => {
     setIsSaving(true);
+    const saveStartedAt = Date.now();
     try {
       await onMetadataChange({
         shopName: editedShopName,
@@ -314,6 +315,15 @@ export const useStoreSettings = ({
       console.error('Failed to save settings:', error);
       showError('Failed to save some settings. Please try again.');
     } finally {
+      // The save itself is usually near-instant (local settings + fast API
+      // calls), so without a floor the button flips disabled->enabled fast
+      // enough that its hover-color transition animates mid-flight and reads
+      // as a flicker rather than a deliberate loading state.
+      const MIN_SAVING_DURATION_MS = 400;
+      const elapsed = Date.now() - saveStartedAt;
+      if (elapsed < MIN_SAVING_DURATION_MS) {
+        await new Promise((resolve) => setTimeout(resolve, MIN_SAVING_DURATION_MS - elapsed));
+      }
       setIsSaving(false);
     }
   };

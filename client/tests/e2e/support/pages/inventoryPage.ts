@@ -122,9 +122,11 @@ export const createInventoryPage = (page: Page) => {
       await page.getByRole('button', { name: 'Add Product' }).last().click();
     },
     acknowledgeSuccessDialog: async (message: string) => {
-      const successDialog = page.getByRole('dialog');
-      await expect(successDialog.getByText(message)).toBeVisible();
-      await successDialog.getByRole('button', { name: 'OK' }).click();
+      // Success now renders as an auto-dismissing toast, not a modal dialog —
+      // dismiss it explicitly rather than waiting out its autoHideDuration.
+      const successToast = page.getByRole('alert').filter({ hasText: message });
+      await expect(successToast).toBeVisible();
+      await successToast.getByRole('button', { name: 'Close' }).click();
     },
     openEditProductForm: async (productName: string) => {
       // Edit/Delete now live behind the detail panel's "Product Actions"
