@@ -15,6 +15,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import type { DialogType } from '@/shared/hooks/useCustomDialog';
+import SuccessNotification from '@/shared/components/SuccessNotification';
 
 interface CustomDialogProps {
   open: boolean;
@@ -83,6 +84,23 @@ const CustomDialog = ({
     event.preventDefault();
     handleConfirm();
   };
+
+  // A success message needs acknowledgment, not a decision — an auto-dismissing
+  // toast fits better than a modal that blocks until the user clicks OK. onConfirm
+  // still fires on close (auto-hide or manual) so any `await showSuccess(...)`
+  // caller's promise resolves the same way it always has.
+  if (type === 'success') {
+    return (
+      <SuccessNotification
+        open={open}
+        message={message}
+        onClose={() => {
+          onConfirm?.();
+          onClose();
+        }}
+      />
+    );
+  }
 
   return (
     <Dialog

@@ -6,6 +6,7 @@ import {
   Tabs,
   Tab,
   Stack,
+  CircularProgress,
 } from '@mui/material';
 import {
   Store as StoreIcon,
@@ -496,7 +497,7 @@ const StoreSettingsPage = ({
                   </Button>
                   <Button
                     variant="contained"
-                    startIcon={<SaveIcon />}
+                    startIcon={isSaving ? undefined : <SaveIcon />}
                     onClick={handleSave}
                     disabled={isSaving}
                     sx={{
@@ -506,13 +507,18 @@ const StoreSettingsPage = ({
                       textTransform: 'none',
                       px: 2.5,
                       py: 0.75,
+                      minWidth: 152,
                       boxShadow: '0 2px 8px rgba(11, 29, 57, 0.15)',
                       '&:hover': {
                         bgcolor: '#1a365d',
                       },
+                      '&.Mui-disabled': {
+                        bgcolor: '#0b1d39',
+                        color: 'rgba(255, 255, 255, 0.75)',
+                      },
                     }}
                   >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
+                    {isSaving ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
                   </Button>
                 </>
               ) : showWipeConfirm ? (
