@@ -68,6 +68,8 @@ interface POSDialogManagerProps {
 
   // Customer Feature
   customerFeatureEnabled?: boolean;
+
+  subTotal?: number;
 }
 
 import React from 'react';
@@ -99,6 +101,7 @@ const POSDialogManager = ({
   showDiscountNumpad, setShowDiscountNumpad, discount, setDiscount,
   // Customer Feature
   customerFeatureEnabled,
+  subTotal,
 }: POSDialogManagerProps) => (
   <>
     <BatchSelectionDialog
@@ -144,6 +147,9 @@ const POSDialogManager = ({
       }}
       itemName={manualQuantityItem?.name}
       initialValue={0}
+      wholesaleEnabled={manualQuantityItem?.wholesaleEnabled}
+      wholesaleMinQty={manualQuantityItem?.wholesaleMinQty}
+      wholesalePrice={manualQuantityItem?.wholesalePrice}
     />
 
     <LooseSaleDialog
@@ -183,6 +189,7 @@ const POSDialogManager = ({
       open={showDiscountNumpad}
       onClose={() => setShowDiscountNumpad(false)}
       initialValue={discount}
+      maxAllowed={subTotal}
       onConfirm={(val) => {
         setDiscount(val);
         setShowDiscountNumpad(false);

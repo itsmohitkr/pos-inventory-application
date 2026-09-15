@@ -51,6 +51,22 @@ const TransactionPanel = ({
   onCustomerRegister,
 }: Record<string, any>) => {
   const changeDue = Math.max(0, receivedAmount - totalAmount);
+  const [discountError, setDiscountError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (cart.length > 0) {
+      setDiscountError(false);
+    }
+  }, [cart.length]);
+
+  const handleDiscountClick = () => {
+    if (cart.length === 0) {
+      setDiscountError(true);
+      return;
+    }
+    setDiscountError(false);
+    setShowDiscountNumpad(true);
+  };
 
   React.useEffect(() => {
     if (totalAmount === 0) setReceivedAmount(0);
@@ -186,7 +202,7 @@ const TransactionPanel = ({
           <Box>
             <Typography
               variant="caption"
-              color="text.secondary"
+              color={discountError ? 'error.main' : 'text.secondary'}
               fontWeight="600"
               sx={{ display: 'block', mb: 0.5, fontSize: '0.75rem' }}
             >
@@ -196,14 +212,15 @@ const TransactionPanel = ({
               fullWidth
               variant="outlined"
               size="small"
+              error={discountError}
               placeholder="0.00"
               value={discount > 0 ? discount : ''}
-              onClick={() => setShowDiscountNumpad(true)}
+              onClick={handleDiscountClick}
               InputProps={{
                 readOnly: true,
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Typography color="text.secondary" variant="body2">
+                    <Typography color={discountError ? 'error.main' : 'text.secondary'} variant="body2">
                       ₹
                     </Typography>
                   </InputAdornment>
@@ -215,6 +232,21 @@ const TransactionPanel = ({
                 },
               }}
             />
+            {discountError && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'error.main',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  display: 'block',
+                  mt: 0.5,
+                  lineHeight: 1.35,
+                }}
+              >
+                Please scan a product to apply an extra discount.
+              </Typography>
+            )}
           </Box>
         )}
 

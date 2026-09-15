@@ -19,6 +19,7 @@ interface NumpadDialogProps {
   /** Seeded into the field; held as a string while editing. */
   initialValue?: string | number;
   title?: string;
+  maxAllowed?: number;
 }
 
 const NumpadDialog = ({
@@ -27,6 +28,7 @@ const NumpadDialog = ({
   onConfirm,
   initialValue = '',
   title = 'Enter Amount',
+  maxAllowed,
 }: NumpadDialogProps) => {
   const [value, setValue] = useState(initialValue.toString());
 
@@ -39,6 +41,10 @@ const NumpadDialog = ({
 
     return () => window.cancelAnimationFrame(frame);
   }, [open, initialValue]);
+
+  const numericVal = parseFloat(value) || 0;
+  const isOverLimit = maxAllowed != null && maxAllowed > 0 && numericVal > maxAllowed;
+  const isValidDiscount = maxAllowed != null && maxAllowed > 0 && numericVal > 0 && !isOverLimit;
 
   const handleNumberClick = React.useCallback((num: string) => {
     setValue((prev) => (prev === '0' ? num.toString() : prev + num));
@@ -57,9 +63,11 @@ const NumpadDialog = ({
   }, []);
 
   const handleConfirm = React.useCallback(() => {
-    onConfirm(parseFloat(value) || 0);
+    const val = parseFloat(value) || 0;
+    if (maxAllowed != null && maxAllowed > 0 && val > maxAllowed) return;
+    onConfirm(val);
     onClose();
-  }, [value, onConfirm, onClose]);
+  }, [value, maxAllowed, onConfirm, onClose]);
 
   // Keyboard support
   useEffect(() => {
@@ -136,7 +144,7 @@ const NumpadDialog = ({
           color: 'primary.contrastText',
         }}
       >
-        <Typography variant="h6" fontWeight="bold">
+        <Typography component="span" variant="h6" fontWeight="bold">
           {title}
         </Typography>
         <IconButton onClick={onClose} size="small" sx={{ color: 'inherit' }}>
@@ -160,6 +168,25 @@ const NumpadDialog = ({
             {value}
           </Typography>
         </Box>
+        {maxAllowed != null && (
+          <Box sx={{ mb: 2, textAlign: 'center', minHeight: 22 }}>
+            {isOverLimit && (
+              <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 700 }}>
+                ⚠ Discount cannot exceed order total of ₹{maxAllowed.toFixed(2)}
+              </Typography>
+            )}
+            {isValidDiscount && (
+              <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 700 }}>
+                ✓ Extra discount amount is okay (New Total: ₹{(maxAllowed - numericVal).toFixed(2)})
+              </Typography>
+            )}
+            {numericVal === 0 && (
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                Order total: ₹{maxAllowed.toFixed(2)}
+              </Typography>
+            )}
+          </Box>
+        )}
         <Box
           sx={{
             display: 'grid',
@@ -197,18 +224,19 @@ const NumpadDialog = ({
         <Button
           fullWidth
           variant="contained"
-          color="primary"
+          disabled={isOverLimit}
+          color={isOverLimit ? 'error' : 'primary'}
           onClick={handleConfirm}
           sx={{
             height: 75,
             fontSize: '1.6rem',
             fontWeight: 'bold',
             borderRadius: 2,
-            bgcolor: 'primary.main',
-            '&:hover': { bgcolor: 'primary.dark' },
+            bgcolor: isOverLimit ? 'action.disabledBackground' : 'primary.main',
+            '&:hover': { bgcolor: isOverLimit ? 'action.disabledBackground' : 'primary.dark' },
           }}
         >
-          Enter
+          {isOverLimit ? 'Amount Too High' : 'Enter'}
         </Button>
       </DialogContent>
     </Dialog>

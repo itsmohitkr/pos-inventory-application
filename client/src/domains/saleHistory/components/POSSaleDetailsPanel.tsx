@@ -337,7 +337,8 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                     fontSize: '0.75rem',
                     textTransform: 'uppercase',
                     py: 1.25,
-                    px: 1.5,
+                    pl: 1.5,
+                    pr: 2,
                     whiteSpace: 'nowrap',
                   }}
                 >
@@ -457,11 +458,6 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                           ({itemDiscountPercent}%)
                         </Typography>
                       </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" sx={{ color: '#d32f2f', fontWeight: 700, fontSize: '0.82rem' }}>
-                        ₹0.00
-                      </Typography>
                     </TableCell>
                   </TableRow>
                 );

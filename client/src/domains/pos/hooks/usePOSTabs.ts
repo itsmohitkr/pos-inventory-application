@@ -165,9 +165,24 @@ export const usePOSTabs = () => {
 
   const removeFromCart = useCallback(
     (batchId: number) => {
-      setCart((prev: CartItem[]) => prev.filter((item: CartItem) => item.batch_id !== batchId));
+      setCart((prev: CartItem[]) => {
+        const next = prev.filter((item: CartItem) => item.batch_id !== batchId);
+        const remainingPaid = next.filter((item) => !item.isFree);
+        if (remainingPaid.length === 0) {
+          setDiscount(0);
+        } else {
+          const newSubTotal = next.reduce(
+            (sum: number, item: CartItem) => sum + (item?.price || 0) * (item?.quantity || 0),
+            0
+          );
+          if (discount > newSubTotal) {
+            setDiscount(newSubTotal);
+          }
+        }
+        return next;
+      });
     },
-    [setCart]
+    [setCart, setDiscount, discount]
   );
 
   const updateQuantity = useCallback(
@@ -324,6 +339,14 @@ export const usePOSTabs = () => {
   }, [cart]);
 
   const alreadyHasFreeProduct = useMemo(() => cart.some((item: CartItem) => item.isFree), [cart]);
+
+  // Clear extra discount whenever no paid products remain on the POS screen
+  useEffect(() => {
+    const paidItems = cart.filter((item: CartItem) => !item.isFree);
+    if (paidItems.length === 0 && discount > 0) {
+      setDiscount(0);
+    }
+  }, [cart, discount, setDiscount]);
 
   return {
     tabs,

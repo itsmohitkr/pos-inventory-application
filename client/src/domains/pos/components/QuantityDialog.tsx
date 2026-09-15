@@ -10,7 +10,11 @@ import {
   Box,
   IconButton,
 } from '@mui/material';
-import { Backspace as BackspaceIcon, Close as CloseIcon } from '@mui/icons-material';
+import {
+  Backspace as BackspaceIcon,
+  Close as CloseIcon,
+  FlashOn as FlashOnIcon,
+} from '@mui/icons-material';
 
 interface QuantityDialogProps {
   open: boolean;
@@ -18,6 +22,9 @@ interface QuantityDialogProps {
   onConfirm: (quantity: number) => void;
   itemName?: string;
   initialValue?: number;
+  wholesaleEnabled?: boolean;
+  wholesaleMinQty?: number | null;
+  wholesalePrice?: number | null;
 }
 
 const QuantityDialog = ({
@@ -26,6 +33,9 @@ const QuantityDialog = ({
   onConfirm,
   itemName,
   initialValue = 1,
+  wholesaleEnabled,
+  wholesaleMinQty,
+  wholesalePrice,
 }: QuantityDialogProps) => {
   const [value, setValue] = useState(initialValue.toString());
 
@@ -103,6 +113,39 @@ const QuantityDialog = ({
             {value}
           </Typography>
         </Box>
+        {wholesaleEnabled && wholesaleMinQty && wholesalePrice != null && (
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={() => setValue(wholesaleMinQty.toString())}
+            startIcon={<FlashOnIcon />}
+            sx={{
+              mb: 2.5,
+              py: 1,
+              borderColor: '#2563eb',
+              color: '#2563eb',
+              bgcolor: 'transparent !important',
+              backgroundColor: 'transparent !important',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              borderRadius: 2,
+              textTransform: 'none',
+              borderWidth: 1.5,
+              '&:hover': {
+                borderColor: '#1d4ed8',
+                borderWidth: 1.5,
+                bgcolor: '#2563eb !important',
+                backgroundColor: '#2563eb !important',
+                color: '#ffffff !important',
+                '& .MuiButton-startIcon': {
+                  color: '#ffffff !important',
+                },
+              },
+            }}
+          >
+            Apply Wholesale: {wholesaleMinQty} Units (₹{wholesalePrice?.toFixed(2)} / unit)
+          </Button>
+        )}
         <Grid container spacing={1.5}>
           {buttons.map((btn) => (
             <Grid size={{ xs: 4 }} key={btn}>
