@@ -746,6 +746,12 @@ const CustomizeBillTab = ({
         receiptSettings={billSettings}
         shopMetadata={shopMetadata}
         customerFeatureEnabled={customerFeatureEnabled}
+        // Not strictly required today (this route unmounts POS's own portal
+        // on navigation, so there's no live collision), but an explicit,
+        // distinct id per consumer is what actually makes that safe by
+        // construction rather than by an implicit "different route" fact
+        // someone could break later.
+        targetId="customize-bill-print-target"
       />
 
       {/* Test Print / IPC Feedback Notification */}

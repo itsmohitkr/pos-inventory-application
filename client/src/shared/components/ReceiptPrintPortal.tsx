@@ -15,6 +15,19 @@ interface ReceiptPrintPortalProps {
   shopMetadata?: ShopMetadata | null;
   /** Hides the customer block on the printed receipt when off. */
   customerFeatureEnabled?: boolean;
+  /**
+   * The id given to the hidden print target, and the id exempted from
+   * index.css's `body * { visibility: hidden }` print rule below. Defaults
+   * to the original shared id for the two long-standing consumers (POS,
+   * Sale History). Any additional consumer mounted alongside one of those
+   * (e.g. a dialog that's always in the tree, not just while open) MUST
+   * pass its own distinct id — two elements sharing an id is invalid HTML,
+   * and index.css's `#thermal-receipt-print` selector matches *every*
+   * element with that id, not just one, so a second consumer reusing the
+   * default would silently print doubled/overlapping content instead of
+   * failing loudly.
+   */
+  targetId?: string;
 }
 
 /**
@@ -36,6 +49,7 @@ const ReceiptPrintPortal = ({
   receiptSettings,
   shopMetadata,
   customerFeatureEnabled = true,
+  targetId = 'thermal-receipt-print',
 }: ReceiptPrintPortalProps) =>
   createPortal(
     <Box
@@ -58,7 +72,7 @@ const ReceiptPrintPortal = ({
         },
       }}
     >
-      <div id="thermal-receipt-print">
+      <div id={targetId}>
         {sale && (
           <Receipt
             sale={sale}
@@ -68,6 +82,21 @@ const ReceiptPrintPortal = ({
           />
         )}
       </div>
+      {/*
+        index.css's global `body * { visibility: hidden }` print rule hides
+        everything except #thermal-receipt-print — the one id it hardcodes.
+        A non-default targetId needs its own matching exemption, so each
+        portal instance carries it rather than requiring every new consumer
+        to also edit the shared global stylesheet. Harmless, exact duplicate
+        of index.css's rule for the default id.
+      */}
+      <style>{`
+        @media print {
+          #${targetId}, #${targetId} * {
+            visibility: visible;
+          }
+        }
+      `}</style>
     </Box>,
     // Rendered as a direct child of <body> via a portal instead of relying
     // on position:fixed to escape AppLayout's ancestor chain. AppLayout's
