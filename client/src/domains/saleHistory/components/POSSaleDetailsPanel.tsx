@@ -46,6 +46,14 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
     );
   }
 
+  // Net of returns, matching how saleHistoryStats.ts computes mrpDiscount/
+  // subtotal and how the QTY column below already displays returned items
+  // (struck-through original, net quantity kept).
+  const totalQuantity = selectedSale.items.reduce(
+    (sum, item) => sum + (item.quantity - (item.returnedQuantity || 0)),
+    0
+  );
+
   return (
     <InventoryPanelShell
       title={`Order Details - ORD-${selectedSale.id}`}
@@ -108,6 +116,18 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                   borderRadius: '4px',
                 }}
               />
+              <Chip
+                label={`Qty: ${totalQuantity}`}
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  bgcolor: 'rgba(11, 29, 57, 0.06)',
+                  color: '#0b1d39',
+                  borderRadius: '4px',
+                }}
+              />
             </Box>
           </Box>
 
@@ -119,7 +139,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
               gap: 1.25,
             }}
           >
-            {/* Total Value Card */}
+            {/* Amount Paid Card */}
             <Box
               sx={{
                 border: '1px solid',
@@ -154,7 +174,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                   textOverflow: 'ellipsis',
                 }}
               >
-                Total Value
+                Amount Paid
               </Typography>
               <Typography
                 variant="body2"
@@ -342,7 +362,7 @@ const POSSaleDetailsPanel = ({ selectedSale, stats }: POSSaleDetailsPanelProps) 
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  MRP DISCOUNT (₹)
+                  DISCOUNT (₹)
                 </TableCell>
               </TableRow>
             </TableHead>
