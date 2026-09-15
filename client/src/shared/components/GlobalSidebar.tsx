@@ -24,6 +24,8 @@ import {
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
   Close as CloseIcon,
+  Wifi as WifiIcon,
+  WifiOff as WifiOffIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Store as StoreIcon,
@@ -34,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import type { ButtonProps } from '@mui/material';
 import type { AuthUser } from '@/shared/types/auth';
+import useOnlineStatus from '@/shared/hooks/useOnlineStatus';
 
 type NavButtonProps = Omit<ButtonProps<typeof RouterLink>, 'component'>;
 
@@ -236,6 +239,7 @@ const GlobalSidebar = ({
   onLogout,
 }: GlobalSidebarProps) => {
   const location = useLocation();
+  const isOnline = useOnlineStatus();
   const isSettingsRoute = location.pathname === '/settings';
   const [isSettingsOpen, setIsSettingsOpen] = useState(isSettingsRoute);
   const [isFullscreenActive, setIsFullscreenActive] = useState<boolean>(() => {
@@ -353,17 +357,17 @@ const GlobalSidebar = ({
             >
               {shopName}
             </Typography>
-            <Box
-              sx={{
-                width: 8,
-                height: 8,
-                bgcolor: '#22c55e',
-                borderRadius: '50%',
-                flexShrink: 0,
-                boxShadow: '0 0 6px #22c55e',
-                ml: 0.25,
-              }}
-            />
+            {isOnline ? (
+              <WifiIcon
+                titleAccess="Online"
+                sx={{ fontSize: 16, color: '#22c55e', flexShrink: 0, ml: 0.25 }}
+              />
+            ) : (
+              <WifiOffIcon
+                titleAccess="Offline"
+                sx={{ fontSize: 16, color: '#ef4444', flexShrink: 0, ml: 0.25 }}
+              />
+            )}
           </RouterLink>
 
           {onToggleSidebar && (
