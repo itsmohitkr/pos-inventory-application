@@ -55,6 +55,7 @@ import {
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import Receipt from '@/domains/pos/components/Receipt';
+import ReceiptPrintPortal from '@/shared/components/ReceiptPrintPortal';
 import {
   fetchPrintersForPreview,
   handleEnterKeySaveOrClose,
@@ -87,6 +88,20 @@ const ReceiptPreviewDialog = ({
   const handleKeyDown = (event: React.KeyboardEvent) => {
     handleEnterKeySaveOrClose({ event, onSave, onClose });
   };
+
+  // Shared by the visible preview and the hidden print portal below, so a
+  // walk-in sale with no customer attached previews and prints the same
+  // sample customer whenever "Show Customer Details" is on.
+  const previewSale = lastSale
+    ? {
+        ...lastSale,
+        customer:
+          lastSale.customer ||
+          (receiptSettings.customerDetails
+            ? { name: 'Mohit Kumar', phone: '9876543210' }
+            : null),
+      }
+    : null;
 
   /**
    * IPC print call — kept in this component rather than a utils module so the
@@ -498,18 +513,33 @@ const ReceiptPreviewDialog = ({
             }}
           >
             <Paper elevation={10} sx={{ height: 'fit-content', mb: 4 }}>
-              <Receipt 
-                sale={lastSale ? {
-                  ...lastSale,
-                  customer: lastSale.customer || (receiptSettings.customerDetails ? { name: 'Mohit Kumar', phone: '9876543210' } : null)
-                } : null} 
-                settings={receiptSettings} 
-                shopMetadata={shopMetadata} 
+              <Receipt
+                sale={previewSale}
+                settings={receiptSettings}
+                shopMetadata={shopMetadata}
                 customerFeatureEnabled={customerFeatureEnabled}
               />
             </Paper>
           </Grid>
         </Grid>
+
+        {/*
+          The visible preview above renders in-place inside this Dialog —
+          MUI portals the Dialog itself to document.body, which sidesteps
+          the sidebar-width containing-block bug, but does NOT exempt this
+          #receipt-container from index.css's `body * { visibility: hidden }`
+          print rule (that rule applies to every body descendant, portaled
+          or not; only #thermal-receipt-print is exempted). Printing the
+          visible preview directly would print a blank page. This hidden
+          twin, using the same ReceiptPrintPortal POS/Sale History already
+          rely on, is the actual print target for printPreview() below.
+        */}
+        <ReceiptPrintPortal
+          sale={previewSale}
+          receiptSettings={receiptSettings}
+          shopMetadata={shopMetadata}
+          customerFeatureEnabled={customerFeatureEnabled}
+        />
       </DialogContent>
       <DialogActions className="no-print" sx={{ p: 2, borderTop: '1px solid #eee' }}>
         <Box sx={{ flexGrow: 1, display: 'flex', gap: 1 }}>
