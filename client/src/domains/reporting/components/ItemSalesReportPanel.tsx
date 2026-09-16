@@ -37,13 +37,13 @@ const ItemSalesRow = ({ item, index }: { item: AggregatedItem; index: number }) 
       </TableCell>
       <TableCell align="center" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{item.quantity}</TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#64748b', fontSize: '0.85rem' }}>
-        ₹{item.cost.toFixed(2)}
+        {item.cost.toFixed(2)}
       </TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
-        ₹{item.revenue.toFixed(2)}
+        {item.revenue.toFixed(2)}
       </TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#16a34a', fontWeight: 700, fontSize: '0.85rem' }}>
-        ₹{item.profit.toFixed(2)}
+        {item.profit.toFixed(2)}
       </TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
         <Chip
@@ -236,9 +236,9 @@ const ItemSalesReportPanel = ({
                 { id: 'name', label: 'PRODUCT', sx: { width: '25%' } },
                 { id: 'category', label: 'CATEGORY', sx: { width: '13%' } },
                 { id: 'quantity', label: 'QTY SOLD', align: 'center', sx: { width: '10%' } },
-                { id: 'cost', label: 'COST', align: 'right', sx: { width: '12%' } },
-                { id: 'revenue', label: 'REVENUE', align: 'right', sx: { width: '12%' } },
-                { id: 'profit', label: 'PROFIT', align: 'right', sx: { width: '11%' } },
+                { id: 'cost', label: 'COST (₹)', align: 'right', sx: { width: '12%' } },
+                { id: 'revenue', label: 'REVENUE (₹)', align: 'right', sx: { width: '12%' } },
+                { id: 'profit', label: 'PROFIT (₹)', align: 'right', sx: { width: '11%' } },
                 {
                   id: 'margin',
                   label: 'MARGIN',
@@ -309,7 +309,7 @@ const ItemSalesReportPanel = ({
                         fontSize: '0.85rem',
                       }}
                     >
-                      ₹{filteredTotals.cost.toFixed(2)}
+                      {filteredTotals.cost.toFixed(2)}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -322,7 +322,7 @@ const ItemSalesReportPanel = ({
                         fontSize: '0.85rem',
                       }}
                     >
-                      ₹{filteredTotals.revenue.toFixed(2)}
+                      {filteredTotals.revenue.toFixed(2)}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -335,7 +335,7 @@ const ItemSalesReportPanel = ({
                         fontSize: '0.85rem',
                       }}
                     >
-                      ₹{filteredTotals.profit.toFixed(2)}
+                      {filteredTotals.profit.toFixed(2)}
                     </TableCell>
                     <TableCell align="right" sx={{ py: 1.25, px: 1.5, borderTop: '1px solid #e2e8f0' }}>
                       <Chip

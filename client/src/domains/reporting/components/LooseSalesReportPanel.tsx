@@ -228,7 +228,7 @@ const LooseSalesReportPanel = ({
                       {item.itemName || 'Loose Item'}
                     </TableCell>
                     <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.8125rem' }}>
-                      ₹{item.price.toFixed(2)}
+                      {item.price.toFixed(2)}
                     </TableCell>
                     <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
                       <IconButton
@@ -277,7 +277,7 @@ const LooseSalesReportPanel = ({
                     borderTop: '2px solid #e2e8f0',
                   }}
                 >
-                  ₹{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </TableCell>
                 <TableCell sx={{ borderTop: '2px solid #e2e8f0' }} />
               </TableRow>
