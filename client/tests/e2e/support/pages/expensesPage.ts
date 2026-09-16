@@ -14,8 +14,10 @@ export const createExpensesPage = (page: Page) => {
     expectLoaded: async () => {
       await expect(page).toHaveURL(/#\/expenses/);
       await expect(pageTitle).toBeVisible();
-      await expect(page.getByRole('tab', { name: 'Operating Expenses' })).toBeVisible();
-      await expect(page.getByRole('tab', { name: 'Inventory Purchases' })).toBeVisible();
+      // Sidebar navigation items (ExpenseSidebar), not MUI Tabs — the tabbed
+      // header was replaced by a left sidebar + table + payment-history panel.
+      await expect(page.getByRole('button', { name: 'Operating Expenses' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Inventory Purchases' })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Add Expense' })).toBeVisible();
     },
     createExpense: async ({
@@ -37,7 +39,7 @@ export const createExpensesPage = (page: Page) => {
       await expect(dialog).not.toBeVisible();
     },
     openPurchasesTab: async () => {
-      await page.getByRole('tab', { name: 'Inventory Purchases' }).click();
+      await page.getByRole('button', { name: 'Inventory Purchases' }).click();
     },
     createPurchase: async ({
       vendor,
@@ -59,12 +61,14 @@ export const createExpensesPage = (page: Page) => {
     },
     deleteExpense: async (description: string) => {
       const row = page.locator('tr', { hasText: description }).first();
-      await row.getByRole('button', { name: 'Delete' }).click();
+      await row.getByRole('button', { name: 'Expense options' }).click();
+      await page.getByRole('menuitem', { name: 'Delete' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
     },
     deletePurchase: async (vendor: string) => {
       const row = page.locator('tr', { hasText: vendor }).first();
-      await row.getByRole('button', { name: 'Delete' }).click();
+      await row.getByRole('button', { name: 'Purchase options' }).click();
+      await page.getByRole('menuitem', { name: 'Delete' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
     },
     expectRowVisible: async (text: string) => {

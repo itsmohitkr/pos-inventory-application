@@ -1,29 +1,42 @@
-import React from 'react';
+import { useState } from 'react';
 import type {
   ExpenseFormState,
   PaymentFormState,
   PurchaseFormState,
 } from '@/domains/expenses/components/useExpenseManagement';
-import type { PaymentRecord } from '@/domains/expenses/components/expenseTypes';
+import type { Expense, Purchase } from '@/domains/expenses/components/expenseTypes';
 import {
-  Box, Typography, Paper, Tabs, Tab, Button, TextField, Stack,
+  Box, Typography, Paper, Button, TextField, Stack,
   FormControl, InputLabel, Select, MenuItem, Alert,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
-import { Receipt as ReceiptIcon, LocalShipping as ShippingIcon } from '@mui/icons-material';
+import ExpenseSidebar, { type ExpenseNavTab } from '@/domains/expenses/components/ExpenseSidebar';
+import PurchasePaymentHistoryCard from '@/domains/expenses/components/PurchasePaymentHistoryCard';
 import ExpenseFormDialog from '@/domains/expenses/components/ExpenseFormDialog';
 import PurchaseFormDialog from '@/domains/expenses/components/PurchaseFormDialog';
 import RecordPaymentDialog from '@/domains/expenses/components/RecordPaymentDialog';
-import PaymentHistoryDialog from '@/domains/expenses/components/PaymentHistoryDialog';
 import PaymentActionMenu from '@/domains/expenses/components/PaymentActionMenu';
 import ExpenseListTab from '@/domains/expenses/components/ExpenseListTab';
 import PurchaseListTab from '@/domains/expenses/components/PurchaseListTab';
 import useExpenseManagement from '@/domains/expenses/components/useExpenseManagement';
 import { splitIsoDate } from '@/domains/expenses/components/expenseManagementUtils';
+import { useResizablePanel } from '@/shared/hooks/useResizablePanel';
 
 const ExpenseManagement = () => {
-  const [activeTab, setActiveTab] = React.useState(0);
+  const [activeTab, setActiveTab] = useState<ExpenseNavTab>('operating_expenses');
   const em = useExpenseManagement();
+
+  const {
+    width: rightPanelWidth,
+    startResizing,
+    isResizing,
+  } = useResizablePanel({
+    storageKey: 'expensesRightPanelWidth',
+    defaultWidth: 400,
+    min: 300,
+    maxRatio: 0.5,
+    anchor: 'right',
+  });
 
   return (
     <Box
@@ -53,33 +66,52 @@ const ExpenseManagement = () => {
         }}
       >
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
             Expenses & Purchases
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Manage operational costs and inventory procurement records.
           </Typography>
         </Box>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel sx={{ fontWeight: 600 }}>Period</InputLabel>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: 160,
+              '& .MuiOutlinedInput-root': {
+                height: '36px',
+                borderRadius: '6px',
+                bgcolor: '#f8fafc',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: '#1f2937',
+                '& fieldset': { borderColor: '#e2e8f0' },
+                '&:hover fieldset': { borderColor: '#cbd5e1' },
+                '&.Mui-focused fieldset': { borderColor: '#0b1d39' },
+              },
+            }}
+          >
+            <InputLabel sx={{ fontSize: '0.85rem', top: -1, fontWeight: 500 }}>Period</InputLabel>
             <Select
               value={em.dateFilter}
               label="Period"
               onChange={(e) => em.setDateFilter(e.target.value)}
               sx={{
-                borderRadius: '8px',
-                bgcolor: '#f8fafc',
-                fontWeight: 600,
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                '& .MuiSelect-select': {
+                  fontWeight: 500,
+                  fontSize: '0.85rem',
+                  py: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                },
               }}
             >
               {['today', 'yesterday', 'thisWeek', 'lastWeek', 'thisMonth', 'lastMonth', 'thisYear', 'lastYear'].map((v) => (
-                <MenuItem key={v} value={v} sx={{ fontWeight: 500 }}>
+                <MenuItem key={v} value={v} sx={{ fontWeight: 400, fontSize: '0.85rem' }}>
                   {v.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
                 </MenuItem>
               ))}
-              <MenuItem value="custom" sx={{ fontWeight: 600 }}>Custom Range</MenuItem>
+              <MenuItem value="custom" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>Custom Range</MenuItem>
             </Select>
           </FormControl>
           {em.dateFilter === 'custom' && (
@@ -91,7 +123,15 @@ const ExpenseManagement = () => {
                 InputLabelProps={{ shrink: true }}
                 value={em.customDates.start}
                 onChange={(e) => em.setCustomDates({ ...em.customDates, start: e.target.value })}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#f8fafc' } }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    height: '36px',
+                    borderRadius: '6px',
+                    bgcolor: '#f8fafc',
+                    fontSize: '0.85rem',
+                    '& fieldset': { borderColor: '#e2e8f0' },
+                  },
+                }}
               />
               <TextField
                 size="small"
@@ -100,19 +140,29 @@ const ExpenseManagement = () => {
                 InputLabelProps={{ shrink: true }}
                 value={em.customDates.end}
                 onChange={(e) => em.setCustomDates({ ...em.customDates, end: e.target.value })}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#f8fafc' } }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    height: '36px',
+                    borderRadius: '6px',
+                    bgcolor: '#f8fafc',
+                    fontSize: '0.85rem',
+                    '& fieldset': { borderColor: '#e2e8f0' },
+                  },
+                }}
               />
-              {/*
-                onClick must wrap fetchData rather than pass it directly: React
-                supplies the click event as its `callback` argument, which
-                fetchData then invokes as `callback(sortedPur, sortedExp)`. A
-                SyntheticEvent is truthy but not callable, so passing it directly
-                threw a TypeError on every click.
-              */}
               <Button
                 variant="contained"
                 onClick={() => em.fetchData()}
-                sx={{ borderRadius: '8px', bgcolor: '#0f172a', textTransform: 'none', fontWeight: 700 }}
+                sx={{
+                  height: '36px',
+                  borderRadius: '6px',
+                  bgcolor: '#0b1d39',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  px: 1.5,
+                  '&:hover': { bgcolor: '#1e293b' },
+                }}
               >
                 Apply
               </Button>
@@ -122,7 +172,7 @@ const ExpenseManagement = () => {
       </Paper>
 
       {/* Financial Summary Stat Cards */}
-      <Box sx={{ px: 1.5, mb: 1.5, display: 'flex', gap: 1.5 }}>
+      <Box sx={{ px: 1.5, mb: 1.5, display: 'flex', gap: 1.5, flexShrink: 0 }}>
         {[
           {
             label: 'TOTAL EXPENDITURE',
@@ -147,17 +197,17 @@ const ExpenseManagement = () => {
             key={card.label}
             sx={{
               flex: 1,
-              p: 2,
-              borderRadius: '12px',
-              bgcolor: `${card.accentColor}0A`, // 4% opacity
-              border: `1px solid ${card.accentColor}33`, // 20% opacity
+              p: 1.75,
+              borderRadius: '10px',
+              bgcolor: `${card.accentColor}0A`,
+              border: `1px solid ${card.accentColor}33`,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
               transition: 'all 0.2s ease',
               '&:hover': {
-                bgcolor: `${card.accentColor}1A`, // 10% opacity
-                borderColor: `${card.accentColor}66`, // 40% opacity
+                bgcolor: `${card.accentColor}1A`,
+                borderColor: `${card.accentColor}66`,
                 transform: 'translateY(-1px)',
                 boxShadow: `0 4px 12px ${card.accentColor}1A`,
               }
@@ -166,111 +216,169 @@ const ExpenseManagement = () => {
             <Typography 
               variant="caption" 
               sx={{ 
-                fontWeight: 800, 
+                fontWeight: 600, 
                 color: card.accentColor, 
                 display: 'block', 
-                mb: 0.5,
-                letterSpacing: '0.5px'
+                mb: 0.25,
+                letterSpacing: '0.3px',
+                fontSize: '0.72rem',
               }}
             >
               {card.label}
             </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.2, fontSize: '1.15rem' }}>
               ₹{card.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </Typography>
-            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 400, fontSize: '0.75rem' }}>
               {card.subtitle}
             </Typography>
           </Box>
         ))}
       </Box>
 
-      {/* Main Content Area */}
-      <Box sx={{ flex: 1, overflow: 'hidden', px: 1.5, pb: 1.5, display: 'flex', flexDirection: 'column' }}>
+      {/* Main Content Area: Sidebar on Left, Table in Center, Resizer Slider, Payment History Card on Right */}
+      <Box
+        sx={{
+          flex: 1,
+          overflow: 'hidden',
+          px: 1.5,
+          pb: 1.5,
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: 1.5,
+          minHeight: 0,
+        }}
+      >
+        {/* Left Sidebar Navigation */}
+        <ExpenseSidebar
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            em.setSelectedPurchase(null);
+            em.setSelectedExpense(null);
+          }}
+        />
+
+        {/* Center: Main Table Container */}
         <Paper
           elevation={0}
           sx={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            borderRadius: '12px',
+            borderRadius: '10px',
             border: '1px solid #e2e8f0',
             overflow: 'hidden',
             bgcolor: '#ffffff',
+            minWidth: 0,
           }}
         >
-          <Box sx={{ borderBottom: '1px solid #e2e8f0', bgcolor: '#f8fafc' }}>
-            <Tabs
-              value={activeTab}
-              onChange={(e, v) => setActiveTab(v)}
-              sx={{
-                px: 2,
-                minHeight: 48,
-                '& .MuiTab-root': {
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  minHeight: 48,
-                  color: '#64748b',
-                  '&.Mui-selected': { color: '#0f172a' },
-                },
-                '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0', bgcolor: '#0f172a' },
-              }}
+          {em.error && (
+            <Alert
+              severity="error"
+              sx={{ m: 1.5, mb: 0, borderRadius: '6px', fontWeight: 600 }}
+              onClose={() => em.setError(null)}
             >
-              <Tab icon={<ReceiptIcon sx={{ fontSize: 20 }} />} iconPosition="start" label="Operating Expenses" />
-              <Tab icon={<ShippingIcon sx={{ fontSize: 20 }} />} iconPosition="start" label="Inventory Purchases" />
-            </Tabs>
-          </Box>
+              {em.error}
+            </Alert>
+          )}
 
-          <Box sx={{ flex: 1, overflow: 'hidden', p: 2 }}>
-            {em.error && (
-              <Alert
-                severity="error"
-                sx={{ mb: 2, borderRadius: '10px', fontWeight: 600 }}
-                onClose={() => em.setError(null)}
-              >
-                {em.error}
-              </Alert>
-            )}
-            
-            {activeTab === 0 && (
-              <ExpenseListTab
-                filteredExpenses={em.filteredExpenses}
-                expenseCategoryFilter={em.expenseCategoryFilter}
-                setExpenseCategoryFilter={em.setExpenseCategoryFilter}
-                expenseSearchFilter={em.expenseSearchFilter}
-                setExpenseSearchFilter={em.setExpenseSearchFilter}
-                totalExpensesAmount={em.totalExpensesAmount}
-                totalExpensesDue={em.totalExpensesDue}
-                onAddExpense={em.handleOpenExpenseDialog}
-                onEditExpense={em.handleEditExpense}
-                onDeleteExpense={em.handleDeleteExpense}
-                onOpenPaymentDialog={em.handleOpenExpensePaymentDialog}
-                onOpenPaymentHistoryDialog={em.handleOpenExpensePaymentHistoryDialog}
-              />
-            )}
-            
-            {activeTab === 1 && (
-              <PurchaseListTab
-                filteredPurchases={em.filteredPurchases}
-                vendorOptions={em.vendorOptions}
-                purchaseStatusFilter={em.purchaseStatusFilter}
-                setPurchaseStatusFilter={em.setPurchaseStatusFilter}
-                purchaseVendorFilter={em.purchaseVendorFilter}
-                setPurchaseVendorFilter={em.setPurchaseVendorFilter}
-                purchaseSearchFilter={em.purchaseSearchFilter}
-                setPurchaseSearchFilter={em.setPurchaseSearchFilter}
-                totalPurchasesAmount={em.totalPurchasesAmount}
-                totalPurchasesDue={em.totalPurchasesDue}
-                onAddPurchase={em.handleOpenPurchaseDialog}
-                onEditPurchase={em.handleEditPurchase}
-                onDeletePurchase={em.handleDeletePurchase}
-                onOpenPaymentDialog={em.handleOpenPaymentDialog}
-                onOpenPaymentHistoryDialog={em.handleOpenPaymentHistoryDialog}
-              />
-            )}
-          </Box>
+          {activeTab === 'operating_expenses' && (
+            <ExpenseListTab
+              filteredExpenses={em.filteredExpenses}
+              expenseCategoryFilter={em.expenseCategoryFilter}
+              setExpenseCategoryFilter={em.setExpenseCategoryFilter}
+              expenseSearchFilter={em.expenseSearchFilter}
+              setExpenseSearchFilter={em.setExpenseSearchFilter}
+              totalExpensesAmount={em.totalExpensesAmount}
+              totalExpensesDue={em.totalExpensesDue}
+              onAddExpense={em.handleOpenExpenseDialog}
+              onEditExpense={em.handleEditExpense}
+              onDeleteExpense={em.handleDeleteExpense}
+              onOpenPaymentDialog={em.handleOpenExpensePaymentDialog}
+              selectedExpense={em.selectedExpense}
+              onSelectExpense={em.setSelectedExpense}
+            />
+          )}
+
+          {activeTab === 'inventory_purchases' && (
+            <PurchaseListTab
+              filteredPurchases={em.filteredPurchases}
+              vendorOptions={em.vendorOptions}
+              purchaseStatusFilter={em.purchaseStatusFilter}
+              setPurchaseStatusFilter={em.setPurchaseStatusFilter}
+              purchaseVendorFilter={em.purchaseVendorFilter}
+              setPurchaseVendorFilter={em.setPurchaseVendorFilter}
+              purchaseSearchFilter={em.purchaseSearchFilter}
+              setPurchaseSearchFilter={em.setPurchaseSearchFilter}
+              totalPurchasesAmount={em.totalPurchasesAmount}
+              totalPurchasesDue={em.totalPurchasesDue}
+              onAddPurchase={em.handleOpenPurchaseDialog}
+              onEditPurchase={em.handleEditPurchase}
+              onDeletePurchase={em.handleDeletePurchase}
+              onOpenPaymentDialog={em.handleOpenPaymentDialog}
+              selectedPurchase={em.selectedPurchase}
+              onSelectPurchase={em.setSelectedPurchase}
+            />
+          )}
         </Paper>
+
+        {/* Resizer Slider Handle between Table Card & Payment History Card */}
+        {((activeTab === 'inventory_purchases' && em.selectedPurchase) ||
+          (activeTab === 'operating_expenses' && em.selectedExpense)) && (
+          <Box
+            onMouseDown={startResizing}
+            sx={{
+              display: { xs: 'none', lg: 'flex' },
+              width: '12px',
+              mx: -1.5,
+              cursor: 'col-resize',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+              flexShrink: 0,
+              '&:hover .handle': {
+                bgcolor: '#0b1d39',
+                width: '4px',
+              },
+            }}
+          >
+            <Box
+              className="handle"
+              sx={{
+                width: '2px',
+                height: '60px',
+                bgcolor: isResizing ? '#0b1d39' : 'divider',
+                borderRadius: '4px',
+                transition: 'all 0.2s',
+                ...(isResizing && { width: '4px' }),
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Right Side: Payment History Card for Selected Purchase */}
+        {activeTab === 'inventory_purchases' && em.selectedPurchase && (
+          <PurchasePaymentHistoryCard
+            purchase={em.selectedPurchase}
+            onClose={() => em.setSelectedPurchase(null)}
+            onOpenPaymentDialog={(item) => em.handleOpenPaymentDialog(item as Purchase)}
+            onOpenPaymentMenu={em.handleOpenPaymentMenu}
+            width={rightPanelWidth}
+          />
+        )}
+
+        {/* Right Side: Payment History Card for Selected Expense */}
+        {activeTab === 'operating_expenses' && em.selectedExpense && (
+          <PurchasePaymentHistoryCard
+            expense={em.selectedExpense}
+            onClose={() => em.setSelectedExpense(null)}
+            onOpenPaymentDialog={(item) => em.handleOpenExpensePaymentDialog(item as Expense)}
+            onOpenPaymentMenu={em.handleOpenPaymentMenu}
+            width={rightPanelWidth}
+          />
+        )}
+      </Box>
 
         {/* Dialogs */}
         <ExpenseFormDialog
@@ -304,14 +412,6 @@ const ExpenseManagement = () => {
           onPaymentFormChange={(u) => em.setPaymentForm((prev) => ({ ...prev, ...u }))}
           minDate={splitIsoDate(em.selectedPurchase?.date)}
         />
-        <PaymentHistoryDialog
-          open={em.paymentHistoryDialogOpen}
-          onClose={() => em.setPaymentHistoryDialogOpen(false)}
-          title="Payment History"
-          subject={em.selectedPurchase}
-          totalField="totalAmount"
-          onOpenPaymentMenu={em.handleOpenPaymentMenu}
-        />
         <PaymentActionMenu
           menuAnchor={em.paymentMenuAnchor}
           onCloseMenu={em.handleClosePaymentMenu}
@@ -334,7 +434,7 @@ const ExpenseManagement = () => {
           onEditFormChange={(u: Partial<PaymentFormState>) =>
             em.setEditPaymentForm((prev) => ({ ...prev, ...u }))
           }
-          minDate={splitIsoDate(em.selectedPurchase?.date)}
+          minDate={splitIsoDate(em.selectedPurchase ? em.selectedPurchase.date : em.selectedExpense?.date)}
         />
         <RecordPaymentDialog
           open={em.expensePaymentDialogOpen}
@@ -346,17 +446,6 @@ const ExpenseManagement = () => {
           dueAmount={em.selectedExpense?.dueAmount}
           paymentForm={em.paymentForm}
           onPaymentFormChange={(u) => em.setPaymentForm((prev) => ({ ...prev, ...u }))}
-        />
-        <PaymentHistoryDialog
-          open={em.expensePaymentHistoryDialogOpen}
-          onClose={() => em.setExpensePaymentHistoryDialogOpen(false)}
-          title="Expense Payment History"
-          subject={em.selectedExpense}
-          totalField="amount"
-          onOpenPaymentMenu={(e: React.MouseEvent<HTMLElement>, payment: PaymentRecord) => {
-            em.setSelectedPurchase(null);
-            em.handleOpenPaymentMenu(e, payment);
-          }}
         />
 
         {/* Delete confirmation */}
@@ -386,7 +475,6 @@ const ExpenseManagement = () => {
             </Button>
           </DialogActions>
         </Dialog>
-      </Box>
     </Box>
   );
 };
