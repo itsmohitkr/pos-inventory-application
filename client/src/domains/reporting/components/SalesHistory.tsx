@@ -77,14 +77,14 @@ const SalesHistoryRow = ({ sale, index, isSelected, onSelectSale }: SalesHistory
       </TableCell>
       <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, fontSize: '0.85rem' }}>#{sale.id}</TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>
-        ₹{cost.toFixed(2)}
+        {cost.toFixed(2)}
       </TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
-        ₹{(sale?.netTotalAmount || 0).toFixed(2)}
+        {(sale?.netTotalAmount || 0).toFixed(2)}
       </TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
         <Typography sx={{ color: '#16a34a', fontWeight: 700, fontSize: '0.85rem' }}>
-          ₹{sale.profit.toFixed(2)}
+          {sale.profit.toFixed(2)}
         </Typography>
       </TableCell>
       <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
@@ -265,13 +265,13 @@ const SalesHistory = ({
                 { id: 'id', label: 'ORDER ID', sx: { width: '11%' } },
                 {
                   id: 'cost',
-                  label: 'COST PRICE',
+                  label: 'COST PRICE (₹)',
                   align: 'right',
                   sx: { width: '14%' },
                   getter: (sale) => (sale.netTotalAmount || 0) - (sale.profit || 0),
                 },
-                { id: 'netTotalAmount', label: 'SELLING PRICE', align: 'right', sx: { width: '14%' } },
-                { id: 'profit', label: 'PROFIT', align: 'right', sx: { width: '13%' } },
+                { id: 'netTotalAmount', label: 'SELLING PRICE (₹)', align: 'right', sx: { width: '14%' } },
+                { id: 'profit', label: 'PROFIT (₹)', align: 'right', sx: { width: '13%' } },
                 {
                   id: 'margin',
                   label: 'MARGIN',
@@ -337,7 +337,7 @@ const SalesHistory = ({
                       fontSize: '0.85rem',
                     }}
                   >
-                    ₹{totals.cost.toFixed(2)}
+                    {totals.cost.toFixed(2)}
                   </TableCell>
                   <TableCell
                     align="right"
@@ -351,7 +351,7 @@ const SalesHistory = ({
                       fontSize: '0.85rem',
                     }}
                   >
-                    ₹{totals.amount.toFixed(2)}
+                    {totals.amount.toFixed(2)}
                   </TableCell>
                   <TableCell
                     align="right"
@@ -365,7 +365,7 @@ const SalesHistory = ({
                       fontSize: '0.85rem',
                     }}
                   >
-                    ₹{totals.profit.toFixed(2)}
+                    {totals.profit.toFixed(2)}
                   </TableCell>
                   <TableCell
                     align="center"

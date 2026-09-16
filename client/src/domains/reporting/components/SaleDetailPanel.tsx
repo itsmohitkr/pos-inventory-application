@@ -226,16 +226,16 @@ export const SaleDetailPanel = ({ selectedSale, onClose }: SaleDetailPanelProps)
                     QTY
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, color: '#475569', fontSize: '0.7rem', py: 1, px: 1 }}>
-                    MRP
+                    MRP (₹)
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, color: '#475569', fontSize: '0.7rem', py: 1, px: 1 }}>
-                    COST
+                    COST (₹)
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, color: '#475569', fontSize: '0.7rem', py: 1, px: 1 }}>
-                    PRICE
+                    PRICE (₹)
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, color: '#475569', fontSize: '0.7rem', py: 1, px: 1 }}>
-                    PROFIT
+                    PROFIT (₹)
                   </TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700, color: '#475569', fontSize: '0.7rem', py: 1, px: 1 }}>
                     MARGIN
@@ -284,16 +284,16 @@ export const SaleDetailPanel = ({ selectedSale, onClose }: SaleDetailPanelProps)
                         )}
                       </TableCell>
                       <TableCell align="right" sx={{ py: 1, px: 1, color: '#64748b', fontSize: '0.75rem' }}>
-                        ₹{item.mrp?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {item.mrp?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell align="right" sx={{ py: 1, px: 1, color: '#64748b', fontSize: '0.75rem' }}>
-                        ₹{item.costPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {item.costPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell align="right" sx={{ py: 1, px: 1, fontWeight: 600, color: '#1e293b', fontSize: '0.75rem' }}>
-                        ₹{item.sellingPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {item.sellingPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell align="right" sx={{ py: 1, px: 1, fontWeight: 700, color: '#16a34a', fontSize: '0.75rem' }}>
-                        ₹{item.profit?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {item.profit?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell align="center" sx={{ py: 1, px: 1 }}>
                         <Chip

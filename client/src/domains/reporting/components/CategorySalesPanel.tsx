@@ -262,9 +262,9 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
                 { id: 'sno', label: 'S.NO.', sx: { width: '5%', minWidth: '50px' }, sortable: false },
                 { id: 'name', label: 'CATEGORY NAME', sx: { width: '25%' } },
                 { id: 'itemCount', label: 'ITEMS SOLD', align: 'center', sx: { width: '12%' } },
-                { id: 'totalCost', label: 'TOTAL COST', align: 'right', sx: { width: '14%' } },
-                { id: 'totalSales', label: 'TOTAL SALES', align: 'right', sx: { width: '14%' } },
-                { id: 'totalProfit', label: 'TOTAL PROFIT', align: 'right', sx: { width: '14%' } },
+                { id: 'totalCost', label: 'TOTAL COST (₹)', align: 'right', sx: { width: '14%' } },
+                { id: 'totalSales', label: 'TOTAL SALES (₹)', align: 'right', sx: { width: '14%' } },
+                { id: 'totalProfit', label: 'TOTAL PROFIT (₹)', align: 'right', sx: { width: '14%' } },
                 {
                   id: 'margin',
                   label: 'AVG. MARGIN',
@@ -299,13 +299,13 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
                     <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{cat.name}</TableCell>
                     <TableCell align="center" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{cat.itemCount}</TableCell>
                     <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#64748b', fontSize: '0.85rem' }}>
-                      ₹{cat.totalCost.toFixed(2)}
+                      {cat.totalCost.toFixed(2)}
                     </TableCell>
                     <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
-                      ₹{cat.totalSales.toFixed(2)}
+                      {cat.totalSales.toFixed(2)}
                     </TableCell>
                     <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#16a34a', fontWeight: 700, fontSize: '0.85rem' }}>
-                      ₹{cat.totalProfit.toFixed(2)}
+                      {cat.totalProfit.toFixed(2)}
                     </TableCell>
                     <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
                       <Chip
@@ -370,7 +370,7 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
                       fontSize: '0.85rem',
                     }}
                   >
-                    ₹{totals.totalCost.toFixed(2)}
+                    {totals.totalCost.toFixed(2)}
                   </TableCell>
                   <TableCell
                     align="right"
@@ -383,7 +383,7 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
                       fontSize: '0.85rem',
                     }}
                   >
-                    ₹{totals.totalSales.toFixed(2)}
+                    {totals.totalSales.toFixed(2)}
                   </TableCell>
                   <TableCell
                     align="right"
@@ -396,7 +396,7 @@ const CategorySalesPanel = ({ sales }: CategorySalesPanelProps) => {
                       fontSize: '0.85rem',
                     }}
                   >
-                    ₹{totals.totalProfit.toFixed(2)}
+                    {totals.totalProfit.toFixed(2)}
                   </TableCell>
                   <TableCell
                     align="right"
