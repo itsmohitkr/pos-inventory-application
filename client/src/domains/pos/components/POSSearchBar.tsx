@@ -16,6 +16,7 @@ import {
   POS_SEARCH_TIMINGS,
   resolveEnterKeyProduct,
 } from '@/domains/pos/components/posSearchBarUtils';
+import { isCustomerBarcode } from '@/shared/utils/customerBarcode';
 
 interface POSSearchBarProps {
   products: Product[];
@@ -110,7 +111,7 @@ const POSSearchBar = React.forwardRef<{ focus: () => void }, POSSearchBarProps>(
         event.preventDefault();
 
         // Intercept customer barcodes before product lookup
-        if (onCustomerBarcode && searchQuery.trim().startsWith('CUST-')) {
+        if (onCustomerBarcode && isCustomerBarcode(searchQuery.trim())) {
           onCustomerBarcode(searchQuery.trim());
           onSearchInputChange('');
           return;

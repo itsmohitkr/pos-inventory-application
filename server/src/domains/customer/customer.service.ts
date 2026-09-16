@@ -1,32 +1,12 @@
-import { StatusCodes } from 'http-status-codes';
+import { randomUUID } from 'crypto';
 import type {
   FindOrCreateCustomerInput,
   UpdateCustomerInput,
 } from './customer.validation';
-import { randomBytes } from 'crypto';
+import { buildCustomerBarcode } from './customerBarcode';
 import prisma = require('../../config/prisma');
+import type { Prisma } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
-
-const BARCODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-const BARCODE_SUFFIX_LENGTH = 8;
-
-const generateCustomerBarcode = async () => {
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const bytes = randomBytes(BARCODE_SUFFIX_LENGTH);
-    let suffix = '';
-    for (let i = 0; i < BARCODE_SUFFIX_LENGTH; i++) {
-      suffix += BARCODE_CHARS[bytes[i] % BARCODE_CHARS.length];
-    }
-    const barcode = `CUST-${suffix}`;
-    const existing = await prisma.customer.findUnique({ where: { customerBarcode: barcode } });
-    if (!existing) return barcode;
-  }
-  throw createHttpError(
-    StatusCodes.INTERNAL_SERVER_ERROR,
-    'Failed to generate unique customer barcode after 10 attempts',
-    { error: 'Failed to generate unique customer barcode after 10 attempts' }
-  );
-};
 
 const findOrCreateCustomer = async ({ phone, name }: FindOrCreateCustomerInput) => {
   const existing = await prisma.customer.findUnique({ where: { phone } });
@@ -42,9 +22,21 @@ const findOrCreateCustomer = async ({ phone, name }: FindOrCreateCustomerInput) 
     return { customer: existing, isNew: false };
   }
 
-  const customerBarcode = await generateCustomerBarcode();
-  const customer = await prisma.customer.create({
-    data: { phone, name: name?.trim() || null, customerBarcode },
+  // The barcode is derived from the row's own id, so it can only be known
+  // once the row exists — create it first, then fill in the real value.
+  // The placeholder must itself be unique (not e.g. a shared '') since two
+  // concurrent registrations would otherwise race on the same placeholder
+  // and trip the column's unique constraint before either reaches the
+  // update. Wrapped in a transaction so the row is never left on the
+  // placeholder if the second write fails.
+  const customer = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const created = await tx.customer.create({
+      data: { phone, name: name?.trim() || null, customerBarcode: `pending-${randomUUID()}` },
+    });
+    return tx.customer.update({
+      where: { id: created.id },
+      data: { customerBarcode: buildCustomerBarcode(created.id) },
+    });
   });
   return { customer, isNew: true };
 };

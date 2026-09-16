@@ -1,8 +1,16 @@
 import request from 'supertest';
 import app = require('../../src/app');
 import { getMockPrisma, asMock } from '../setup/prisma-mock';
+import { buildCustomerBarcode } from '../../src/domains/customer/customerBarcode';
 
 const prisma = getMockPrisma();
+
+// Fixture barcodes, derived the same way the service derives them (from a
+// customer's own id) rather than hand-typed, so a valid-format barcode is
+// guaranteed even if the check-digit algorithm ever changes.
+const BARCODE_1 = buildCustomerBarcode(1);
+const BARCODE_2 = buildCustomerBarcode(2);
+const BARCODE_UNKNOWN = buildCustomerBarcode(999999);
 
 describe('Customer Domain API', () => {
   beforeEach(() => {
@@ -13,12 +21,28 @@ describe('Customer Domain API', () => {
 
   describe('POST /api/customers (findOrCreate)', () => {
     it('creates a new customer when phone is not registered', async () => {
+      // The barcode is derived from the row's own id, so the service creates
+      // the row first (inside a transaction), then updates it with the real
+      // barcode — matches the pass-through transaction mock pattern used by
+      // sale.test.ts (runs the real service logic against the same mocked
+      // client rather than a separate `tx`).
+      prisma.$transaction.mockImplementation(async (callback: any) => callback(prisma));
       prisma.customer.findUnique.mockResolvedValue(null);
       prisma.customer.create.mockResolvedValue(asMock({
         id: 1,
         phone: '9876543210',
         name: 'Ravi Kumar',
-        customerBarcode: 'CUST-ABCD1234',
+        customerBarcode: 'pending-placeholder',
+        totalSpend: 0,
+        lastVisit: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+      prisma.customer.update.mockResolvedValue(asMock({
+        id: 1,
+        phone: '9876543210',
+        name: 'Ravi Kumar',
+        customerBarcode: BARCODE_1,
         totalSpend: 0,
         lastVisit: null,
         createdAt: new Date(),
@@ -31,8 +55,12 @@ describe('Customer Domain API', () => {
 
       expect(res.status).toBe(201);
       expect(res.body.customer.phone).toBe('9876543210');
+      expect(res.body.customer.customerBarcode).toBe(BARCODE_1);
       expect(res.body.isNew).toBe(true);
       expect(prisma.customer.create).toHaveBeenCalled();
+      expect(prisma.customer.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 1 }, data: { customerBarcode: BARCODE_1 } })
+      );
     });
 
     it('returns existing customer when phone is already registered', async () => {
@@ -40,7 +68,7 @@ describe('Customer Domain API', () => {
         id: 1,
         phone: '9876543210',
         name: 'Ravi Kumar',
-        customerBarcode: 'CUST-ABCD1234',
+        customerBarcode: BARCODE_1,
         totalSpend: 500,
         lastVisit: new Date(),
         createdAt: new Date(),
@@ -63,7 +91,7 @@ describe('Customer Domain API', () => {
         id: 2,
         phone: '9000000001',
         name: null,
-        customerBarcode: 'CUST-ZZZ00001',
+        customerBarcode: BARCODE_2,
         totalSpend: 0,
         lastVisit: null,
         createdAt: new Date(),
@@ -106,8 +134,8 @@ describe('Customer Domain API', () => {
   describe('GET /api/customers', () => {
     it('returns paginated customer list', async () => {
       const mockCustomers = [
-        { id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-AAAAAAAA', totalSpend: 100, lastVisit: null, createdAt: new Date(), updatedAt: new Date(), _count: { sales: 2 }, sales: [] },
-        { id: 2, phone: '9876543211', name: 'Priya', customerBarcode: 'CUST-BBBBBBBB', totalSpend: 200, lastVisit: null, createdAt: new Date(), updatedAt: new Date(), _count: { sales: 5 }, sales: [] },
+        { id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: BARCODE_1, totalSpend: 100, lastVisit: null, createdAt: new Date(), updatedAt: new Date(), _count: { sales: 2 }, sales: [] },
+        { id: 2, phone: '9876543211', name: 'Priya', customerBarcode: BARCODE_2, totalSpend: 200, lastVisit: null, createdAt: new Date(), updatedAt: new Date(), _count: { sales: 5 }, sales: [] },
       ];
       prisma.customer.findMany.mockResolvedValue(asMock(mockCustomers));
       prisma.customer.count.mockResolvedValue(asMock(2));
@@ -139,7 +167,7 @@ describe('Customer Domain API', () => {
   describe('GET /api/customers/:id', () => {
     it('returns customer by id', async () => {
       prisma.customer.findUnique.mockResolvedValue(asMock({
-        id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-AAAAAAAA',
+        id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: BARCODE_1,
         totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date(),
       }));
 
@@ -162,7 +190,7 @@ describe('Customer Domain API', () => {
 
   describe('PUT /api/customers/:id', () => {
     it('updates customer name', async () => {
-      const existing = { id: 1, phone: '9876543210', name: 'Old Name', customerBarcode: 'CUST-AAAAAAAA', totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date() };
+      const existing = { id: 1, phone: '9876543210', name: 'Old Name', customerBarcode: BARCODE_1, totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date() };
       const updated = { ...existing, name: 'New Name' };
       prisma.customer.findUnique.mockResolvedValue(asMock(existing));
       prisma.customer.update.mockResolvedValue(asMock(updated));
@@ -176,8 +204,8 @@ describe('Customer Domain API', () => {
     });
 
     it('rejects duplicate phone on update', async () => {
-      const customer = { id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-AAAAAAAA', totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date() };
-      const otherCustomer = { id: 2, phone: '9999999999', name: 'Other', customerBarcode: 'CUST-ZZZZZZZZ', totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date() };
+      const customer = { id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: BARCODE_1, totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date() };
+      const otherCustomer = { id: 2, phone: '9999999999', name: 'Other', customerBarcode: BARCODE_2, totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date() };
 
       prisma.customer.findUnique
         .mockResolvedValueOnce(asMock(customer))
@@ -196,20 +224,20 @@ describe('Customer Domain API', () => {
   describe('GET /api/customers/barcode/:barcode', () => {
     it('returns customer by barcode', async () => {
       prisma.customer.findUnique.mockResolvedValue(asMock({
-        id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-ABCD1234',
+        id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: BARCODE_1,
         totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date(),
       }));
 
-      const res = await request(app).get('/api/customers/barcode/CUST-ABCD1234');
+      const res = await request(app).get(`/api/customers/barcode/${BARCODE_1}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.customerBarcode).toBe('CUST-ABCD1234');
+      expect(res.body.customerBarcode).toBe(BARCODE_1);
     });
 
     it('returns 404 for unknown barcode', async () => {
       prisma.customer.findUnique.mockResolvedValue(null);
 
-      const res = await request(app).get('/api/customers/barcode/CUST-ZZZZZZZZ');
+      const res = await request(app).get(`/api/customers/barcode/${BARCODE_UNKNOWN}`);
 
       expect(res.status).toBe(404);
     });
@@ -226,7 +254,7 @@ describe('Customer Domain API', () => {
   describe('GET /api/customers/phone/:phone', () => {
     it('returns customer by phone', async () => {
       prisma.customer.findUnique.mockResolvedValue(asMock({
-        id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-ABCD1234',
+        id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: BARCODE_1,
         totalSpend: 0, lastVisit: null, createdAt: new Date(), updatedAt: new Date(),
       }));
 
@@ -250,7 +278,7 @@ describe('Customer Domain API', () => {
   describe('GET /api/customers/:id/history', () => {
     it('returns purchase history for a known customer', async () => {
       prisma.customer.findUnique.mockResolvedValue(asMock({
-        id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: 'CUST-ABCD1234',
+        id: 1, phone: '9876543210', name: 'Ravi', customerBarcode: BARCODE_1,
         totalSpend: 500, lastVisit: new Date(), createdAt: new Date(), updatedAt: new Date(),
       }));
       prisma.sale.findMany.mockResolvedValue(asMock([
