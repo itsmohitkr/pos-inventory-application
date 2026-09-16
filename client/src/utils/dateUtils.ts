@@ -56,10 +56,18 @@ export const getDateRange = (type?: DateRangePreset | string): { start: Date; en
 };
 
 export const formatShortNum = (num: number): string => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return num.toString();
+  if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+  return num.toFixed(2);
 };
+
+/**
+ * Full (non-abbreviated) amount, always exactly 2 decimal places with
+ * thousands separators — e.g. 45678.9 -> "45,678.90". Callers prepend '₹'
+ * themselves, matching the convention already used at every call site.
+ */
+export const formatCurrency = (num: number): string =>
+  num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const formatDateDisplay = (dateString?: string | Date | null): string => {
   if (!dateString) return 'N/A';
