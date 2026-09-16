@@ -291,7 +291,6 @@ const ExpenseManagement = () => {
           onFormChange={(u: Partial<PurchaseFormState>) =>
             em.setPurchaseForm((prev) => ({ ...prev, ...u }))
           }
-          vendorOptions={em.vendorOptions}
         />
         <RecordPaymentDialog
           open={em.paymentDialogOpen}

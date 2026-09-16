@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PurchaseFormState } from '@/domains/expenses/components/useExpenseManagement';
+import VendorSearchField from '@/domains/expenses/components/VendorSearchField';
 import {
   Dialog,
   DialogTitle,
@@ -8,7 +9,6 @@ import {
   Box,
   Button,
   TextField,
-  Autocomplete,
 } from '@mui/material';
 
 const PAYMENT_METHODS = ['Cash', 'Card', 'UPI', 'Bank Transfer'];
@@ -20,7 +20,6 @@ interface PurchaseFormDialogProps {
   purchaseForm: PurchaseFormState;
   /** Receives a partial patch, merged into the form by the caller. */
   onFormChange: (update: Partial<PurchaseFormState>) => void;
-  vendorOptions: string[];
 }
 
 const PurchaseFormDialog = ({
@@ -29,7 +28,6 @@ const PurchaseFormDialog = ({
   onSubmit,
   purchaseForm,
   onFormChange,
-  vendorOptions,
 }: PurchaseFormDialogProps) => (
   <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
     <form onSubmit={onSubmit}>
@@ -38,14 +36,9 @@ const PurchaseFormDialog = ({
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-              <Autocomplete
-                sx={{ flex: 1 }}
-                freeSolo
-                options={vendorOptions}
-                value={purchaseForm.vendor}
-                onChange={(event, newValue) => onFormChange({ vendor: newValue || '' })}
-                onInputChange={(event, newInputValue) => onFormChange({ vendor: newInputValue })}
-                renderInput={(params) => <TextField {...params} label="Vendor Name" />}
+              <VendorSearchField
+                value={{ vendorId: purchaseForm.vendorId, vendorName: purchaseForm.vendor }}
+                onChange={({ vendorId, vendorName }) => onFormChange({ vendorId, vendor: vendorName })}
               />
               <TextField
                 sx={{ flex: 1 }}

@@ -32,6 +32,7 @@ export type ExpenseFormState = {
 export type PurchaseFormState = {
   id: number | null;
   vendor: string;
+  vendorId: number | null;
   totalAmount: string;
   date: string;
   note: string;
@@ -88,7 +89,7 @@ export default function useExpenseManagement() {
 
   // Form state
   const [expenseForm, setExpenseForm] = useState<ExpenseFormState>({ id: null, amount: '', category: '', description: '', date: getLocalTodayString(), paidAmount: '', paymentMethod: 'Cash' });
-  const [purchaseForm, setPurchaseForm] = useState<PurchaseFormState>({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', paymentMethod: 'Cash', items: [] });
+  const [purchaseForm, setPurchaseForm] = useState<PurchaseFormState>({ id: null, vendor: '', vendorId: null, totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', paymentMethod: 'Cash', items: [] });
   const [paymentForm, setPaymentForm] = useState<PaymentFormState>({ amount: '', paymentMethod: 'Cash', date: getLocalTodayString(), note: '' });
   const [editPaymentForm, setEditPaymentForm] = useState<PaymentFormState>({ amount: '', paymentMethod: 'Cash', date: getLocalTodayString(), note: '' });
 
@@ -208,12 +209,12 @@ export default function useExpenseManagement() {
 
   // --- Purchase handlers ---
   const handleOpenPurchaseDialog = () => {
-    setPurchaseForm({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', paymentMethod: 'Cash', items: [] });
+    setPurchaseForm({ id: null, vendor: '', vendorId: null, totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', paymentMethod: 'Cash', items: [] });
     setPurchaseDialogOpen(true);
   };
 
   const handleEditPurchase = (purchase: Purchase) => {
-    setPurchaseForm({ id: purchase.id, vendor: purchase.vendor || '', totalAmount: String(purchase.totalAmount), note: purchase.note || '', date: new Date(purchase.date).toISOString().split('T')[0], paidAmount: String(purchase.totalPaid || 0), paymentMethod: purchase.paymentMethod || 'Cash', items: purchase.items || [] });
+    setPurchaseForm({ id: purchase.id, vendor: purchase.vendor || '', vendorId: purchase.vendorId ?? null, totalAmount: String(purchase.totalAmount), note: purchase.note || '', date: new Date(purchase.date).toISOString().split('T')[0], paidAmount: String(purchase.totalPaid || 0), paymentMethod: purchase.paymentMethod || 'Cash', items: purchase.items || [] });
     setPurchaseDialogOpen(true);
   };
 

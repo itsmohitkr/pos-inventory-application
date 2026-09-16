@@ -45,6 +45,8 @@ export interface PurchaseItem {
 export interface Purchase {
   id: number;
   vendor?: string | null;
+  /** Links to a real Vendor record when one was picked via VendorSearchField; null for older, free-text-only purchases. */
+  vendorId?: number | null;
   totalAmount: number;
   date: string;
   note?: string | null;
