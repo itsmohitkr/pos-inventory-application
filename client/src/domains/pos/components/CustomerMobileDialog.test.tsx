@@ -9,7 +9,7 @@ vi.mock('@/shared/api/customerService', () => ({
       id: 1,
       phone: '9876543210',
       name: 'Rajesh Sharma',
-      customerBarcode: 'CUST-001',
+      customerBarcode: '200000000011',
     }),
   },
 }));

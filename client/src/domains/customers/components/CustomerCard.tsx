@@ -134,6 +134,7 @@ const CustomerCard = forwardRef<HTMLDivElement, CustomerCardProps>(
       >
         <Barcode
           value={customer.customerBarcode}
+          format="UPC"
           width={1.8}
           height={40}
           fontSize={10}

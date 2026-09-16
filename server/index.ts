@@ -305,6 +305,32 @@ async function migratePasswordsToHash(prisma: PrismaClient, logger: Logger) {
   }
 }
 
+// ── Customer barcode migration ─────────────────────────────────────────────────
+// Upgrades any customer still on the old CUST-XXXXXXXX random barcode to the
+// new digit-only UPC-A code derived from their own id. Safe to re-run on every
+// boot: once a customer is on the new format it's skipped, so this is a no-op
+// after the first run. Non-critical, so it runs after the server is listening.
+
+async function migrateCustomerBarcodesToUpcA(prisma: PrismaClient, logger: Logger) {
+  try {
+    const { buildCustomerBarcode, isValidCustomerBarcode } = require('./src/domains/customer/customerBarcode');
+    const customers = await prisma.customer.findMany({ select: { id: true, customerBarcode: true } });
+    const stale = customers.filter((c) => !isValidCustomerBarcode(c.customerBarcode));
+    if (stale.length === 0) return;
+
+    logger.info(`[BOOT] Migrating ${stale.length} customer barcode(s) to the new digit-only format...`);
+    for (const customer of stale) {
+      await prisma.customer.update({
+        where: { id: customer.id },
+        data: { customerBarcode: buildCustomerBarcode(customer.id) },
+      });
+    }
+    logger.info('[BOOT] Customer barcode migration complete.');
+  } catch (err) {
+    logger.warn({ err: getErrorMessage(err) }, '[BOOT] Customer barcode migration failed (non-fatal)');
+  }
+}
+
 // ── Seeding ───────────────────────────────────────────────────────────────────
 // Migrations must already be applied before this runs.
 
@@ -458,6 +484,7 @@ async function main() {
 
       // Post-ready tasks
       migratePasswordsToHash(prisma, logger).catch(() => {});
+      migrateCustomerBarcodesToUpcA(prisma, logger).catch(() => {});
 
     } catch (err) {
       systemError = err instanceof Error ? err : new Error(getErrorMessage(err));
