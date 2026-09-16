@@ -24,6 +24,10 @@ const purchaseItemSchema = z.object({
 /** Shared by CreatePurchase and UpdatePurchase — only totalAmount's optionality differs. */
 const purchaseFields = {
   vendor: z.string().nullable().optional(),
+  // Set alongside `vendor` when a real Vendor was picked via the vendor
+  // search-or-create field; `vendor` itself is still what every existing
+  // reader (the list table, exports, the Cash Flow filter) displays.
+  vendorId: id().nullable().optional(),
   date: z.union([z.coerce.date(), str().min(1, 'Date is required')]).optional(),
   note: z.string().nullable().optional(),
   paidAmount: moneyValue().optional(),

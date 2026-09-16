@@ -18,6 +18,7 @@ router.use('/purchases', lazyLoad('../../domains/purchase/purchase.router'));
 router.use('/category-sales', lazyLoad('../../domains/category-sale/category-sale.router'));
 router.use('/settings', lazyLoad('../../domains/setting/setting.router'));
 router.use('/customers', lazyLoad('../../domains/customer/customer.router'));
+router.use('/vendors', lazyLoad('../../domains/vendor/vendor.router'));
 
 export = router;
  

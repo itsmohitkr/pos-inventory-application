@@ -276,6 +276,7 @@ model ExpensePayment {
 model Purchase {
   id            Int             @id @default(autoincrement())
   vendor        String?
+  vendorId      Int?
   totalAmount   Float
   date          DateTime        @default(now())
   note          String?
@@ -285,8 +286,22 @@ model Purchase {
   updatedAt     DateTime        @updatedAt
   items         PurchaseItem[]
   payments      PurchasePayment[]
+  vendorRef     Vendor?         @relation(fields: [vendorId], references: [id], onDelete: SetNull)
 
   @@index([date])
+  @@index([vendorId])
+}
+
+model Vendor {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  phone     String?
+  address   String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  purchases Purchase[]
+
+  @@index([name])
 }
 
 model PurchaseItem {

@@ -8,6 +8,7 @@ import { registerPromotionIpc } from './promotion.ipc';
 import { registerCategorySaleIpc } from './category-sale.ipc';
 import { registerLooseSaleIpc } from './loose-sale.ipc';
 import { registerCustomerIpc } from './customer.ipc';
+import { registerVendorIpc } from './vendor.ipc';
 import { registerExpenseIpc } from './expense.ipc';
 import { registerPurchaseIpc } from './purchase.ipc';
 import { registerSaleIpc } from './sale.ipc';
@@ -22,6 +23,7 @@ export const registerAllIpc = (): void => {
   registerCategorySaleIpc();
   registerLooseSaleIpc();
   registerCustomerIpc();
+  registerVendorIpc();
   registerExpenseIpc();
   registerPurchaseIpc();
   registerSaleIpc();
