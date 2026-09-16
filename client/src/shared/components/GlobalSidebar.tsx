@@ -376,13 +376,14 @@ const GlobalSidebar = ({
               onClick={onToggleSidebar}
               aria-label="Collapse sidebar"
               sx={{
-                color: 'rgba(255, 255, 255, 0.65)',
+                color: '#f2b544',
                 bgcolor: 'rgba(255, 255, 255, 0.06)',
-                borderRadius: '6px',
-                p: 0.5,
+                borderRadius: '8px',
+                p: 0.75,
                 flexShrink: 0,
+                transition: 'all 0.15s ease-in-out',
                 '&:hover': {
-                  bgcolor: 'rgba(255, 255, 255, 0.12)',
+                  bgcolor: 'rgba(255, 255, 255, 0.15)',
                   color: '#ffffff',
                 },
               }}

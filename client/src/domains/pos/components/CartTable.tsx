@@ -234,26 +234,32 @@ const CartTable = ({
                           variant="outlined"
                           disabled={item.isFree || item.max_quantity < (item.wholesaleMinQty ?? 0) || !onSetQuantity}
                           onClick={() => onSetQuantity?.(item.batch_id, item.wholesaleMinQty!)}
-                          startIcon={<FlashOnIcon sx={{ fontSize: '18px !important' }} />}
+                          startIcon={<FlashOnIcon sx={{ fontSize: '13px !important' }} />}
                           sx={{
                             textTransform: 'none',
-                            fontSize: '0.825rem',
+                            fontSize: '0.72rem',
                             fontWeight: 700,
-                            py: 0.45,
-                            px: 1.5,
-                            minHeight: 28,
-                            borderRadius: '6px',
+                            lineHeight: 1.2,
+                            py: 0.2,
+                            px: 1,
+                            minHeight: 22,
+                            height: 22,
+                            borderRadius: '4px',
                             bgcolor: 'transparent',
                             color: '#2563eb',
-                            border: '1.5px solid #2563eb',
+                            border: '1px solid #2563eb',
                             boxShadow: 'none',
-                            transition: 'all 0.2s ease',
+                            transition: 'all 0.15s ease',
+                            '& .MuiButton-startIcon': {
+                              mr: 0.5,
+                              ml: -0.25,
+                            },
                             '&:hover': {
                               bgcolor: '#2563eb !important',
                               backgroundColor: '#2563eb !important',
                               color: '#ffffff !important',
                               borderColor: '#1d4ed8 !important',
-                              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)',
+                              boxShadow: '0 1px 4px rgba(37, 99, 235, 0.25)',
                               '& .MuiButton-startIcon': {
                                 color: '#ffffff !important',
                               },
