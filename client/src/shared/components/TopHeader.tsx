@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, IconButton, Stack, Chip, Button, Tooltip, Avatar } from '@mui/material';
+import { Box, Typography, IconButton, Stack, Chip, Button, Avatar } from '@mui/material';
 import { Menu as MenuIcon, Wifi as WifiIcon, WifiOff as WifiOffIcon } from '@mui/icons-material';
 import type { AuthUser } from '@/shared/types/auth';
 import useOnlineStatus from '@/shared/hooks/useOnlineStatus';
@@ -51,26 +51,25 @@ const TopHeader = ({
     >
       {/* Left: Sidebar Toggle Icon + Shop Name */}
       <Stack direction="row" spacing={1.5} alignItems="center">
-        <Tooltip title="Open navigation sidebar">
-          <IconButton
-            onClick={onOpenSidebar}
-            aria-label="Open sidebar"
-            size="small"
-            sx={{
-              color: '#f2b544',
-              bgcolor: 'rgba(255, 255, 255, 0.06)',
-              borderRadius: '8px',
-              p: 0.75,
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
-              },
-              transition: 'all 0.15s ease-in-out',
-            }}
-          >
-            <MenuIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <IconButton
+          onClick={onOpenSidebar}
+          aria-label="Open sidebar"
+          size="small"
+          sx={{
+            color: '#f2b544',
+            bgcolor: 'rgba(255, 255, 255, 0.06)',
+            borderRadius: '8px',
+            p: 0.75,
+            flexShrink: 0,
+            transition: 'all 0.15s ease-in-out',
+            '&:hover': {
+              bgcolor: 'rgba(255, 255, 255, 0.15)',
+              color: '#ffffff',
+            },
+          }}
+        >
+          <MenuIcon fontSize="small" />
+        </IconButton>
 
         {/* Shop Name & Status Indicator */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

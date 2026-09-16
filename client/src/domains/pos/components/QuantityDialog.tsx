@@ -170,17 +170,19 @@ const QuantityDialog = ({
               fullWidth
               variant="outlined"
               onClick={() => setValue(wholesaleMinQty!.toString())}
-              startIcon={<FlashOnIcon />}
+              startIcon={<FlashOnIcon sx={{ fontSize: '16px !important' }} />}
               sx={{
-                py: 1,
+                py: 0.5,
+                minHeight: 34,
                 borderColor: '#2563eb',
                 color: '#2563eb',
                 bgcolor: 'transparent !important',
                 backgroundColor: 'transparent !important',
                 fontWeight: 700,
-                fontSize: '0.875rem',
+                fontSize: '0.8rem',
                 textTransform: 'none',
                 borderWidth: 1.5,
+                borderRadius: '6px',
                 '&:hover': {
                   borderColor: '#1d4ed8',
                   borderWidth: 1.5,
