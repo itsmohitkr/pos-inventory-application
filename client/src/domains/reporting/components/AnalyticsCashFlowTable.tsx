@@ -190,7 +190,7 @@ const AnalyticsCashFlowTable = ({
                         fontSize: '0.875rem',
                       }}
                     >
-                      + ₹{totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      + {totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </TableCell>
                   </TableRow>
                 )}
@@ -226,7 +226,7 @@ const AnalyticsCashFlowTable = ({
                       </Box>
                     </TableCell>
                     <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#dc2626', fontWeight: 700, fontSize: '0.8125rem' }}>
-                      - ₹{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      - {item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -266,7 +266,7 @@ const AnalyticsCashFlowTable = ({
                   px: 1.5,
                 }}
               >
-                ₹{totalCashBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {totalCashBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </TableCell>
             </TableRow>
           </TableFooter>

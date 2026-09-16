@@ -101,18 +101,18 @@ export const exportItemSalesToPDF = (
     'Product Name',
     'Category',
     'Quantity',
-    'Cost',
-    'Revenue',
-    'Profit',
+    'Cost (Rs)',
+    'Revenue (Rs)',
+    'Profit (Rs)',
     'Margin',
   ];
   const tableRows: RowInput[] = aggregatedData.map((item) => [
     item.name,
     item.category,
     item.quantity.toString(),
-    `Rs ${item.cost.toFixed(2)}`,
-    `Rs ${item.revenue.toFixed(2)}`,
-    `Rs ${item.profit.toFixed(2)}`,
+    item.cost.toFixed(2),
+    item.revenue.toFixed(2),
+    item.profit.toFixed(2),
     `${item.revenue > 0 ? ((item.profit / item.revenue) * 100).toFixed(2) : '0.00'}%`,
   ]);
 

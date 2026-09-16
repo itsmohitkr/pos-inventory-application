@@ -450,7 +450,7 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
                         {item.category || 'Uncategorized'}
                       </TableCell>
                       <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
-                        ₹{item.mrp?.toFixed(2) || '0.00'}
+                        {item.mrp?.toFixed(2) || '0.00'}
                       </TableCell>
                       <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
                         <Typography
