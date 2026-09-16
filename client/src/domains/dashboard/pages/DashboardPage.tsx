@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import {
-  formatShortNum,
+  formatCurrency,
   getDateRange,
 } from '@/utils/dateUtils';
 
@@ -49,6 +49,18 @@ const Dashboard = () => {
     { label: 'This Year', type: 'thisYear' },
     { label: 'Custom', type: 'custom' },
   ];
+
+  // Which timeframe tab matches the currently-loaded date range, computed
+  // once (was previously the same findIndex predicate run twice per render).
+  const activeTabValue = useMemo(() => {
+    const matchIndex = timeframes.findIndex((tf) => {
+      const { start, end } = getDateRange(tf.type);
+      return start.toLocaleDateString('en-CA') === dateRange.startDate &&
+        end.toLocaleDateString('en-CA') === dateRange.endDate;
+    });
+    return matchIndex === -1 ? timeframes.findIndex((tf) => tf.type === 'custom') : matchIndex;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- timeframes is a fresh literal every render, not a real dependency
+  }, [dateRange]);
 
   const handlePrevYear = () => {
     const prevYear = selectedYear - 1;
@@ -141,9 +153,9 @@ const Dashboard = () => {
           />
           <StatCard
             title="Annual Sales"
-            value={formatShortNum(yearMetrics.totalYearlySales)}
+            value={`₹${formatCurrency(yearMetrics.totalYearlySales)}`}
             footerLabel="Best Month"
-            footerValue={`${yearMetrics.topMonthName} (₹${formatShortNum(yearMetrics.topMonthVal)})`}
+            footerValue={`${yearMetrics.topMonthName} (₹${formatCurrency(yearMetrics.topMonthVal)})`}
             width="320px"
           />
         </Box>
@@ -161,15 +173,7 @@ const Dashboard = () => {
 
         <DashboardHeader
           dateRange={dateRange}
-          tabValue={timeframes.findIndex(tf => {
-            const { start, end } = getDateRange(tf.type);
-            return start.toLocaleDateString('en-CA') === dateRange.startDate &&
-              end.toLocaleDateString('en-CA') === dateRange.endDate;
-          }) === -1 ? timeframes.findIndex(tf => tf.type === 'custom') : timeframes.findIndex(tf => {
-            const { start, end } = getDateRange(tf.type);
-            return start.toLocaleDateString('en-CA') === dateRange.startDate &&
-              end.toLocaleDateString('en-CA') === dateRange.endDate;
-          })}
+          tabValue={activeTabValue}
           timeframes={timeframes}
           onTabChange={handleTabChange}
           onStartDateChange={(val) => setDateRange({ ...dateRange, startDate: val })}
@@ -189,10 +193,10 @@ const Dashboard = () => {
           />
           <StatCard
             title="Period Revenue"
-            value={formatShortNum(periodicMetrics.totalSalesAmount)}
+            value={`₹${formatCurrency(periodicMetrics.totalSalesAmount)}`}
             subtitle={
               periodicMetrics.totalLooseSalesAmount > 0
-                ? `Incl. ₹${periodicMetrics.totalLooseSalesAmount.toFixed(0)} loose`
+                ? `Incl. ₹${formatCurrency(periodicMetrics.totalLooseSalesAmount)} loose`
                 : 'Total for selected period'
             }
             width="320px"
@@ -204,7 +208,7 @@ const Dashboard = () => {
           <StatCard
             title="Avg. Transaction"
             subtitle={`Across ${periodicMetrics.totalTransactions} sales`}
-            value={`₹${periodicMetrics.avgSaleValue.toFixed(0)}`}
+            value={`₹${formatCurrency(periodicMetrics.avgSaleValue)}`}
             width="320px"
           />
           <StatCard

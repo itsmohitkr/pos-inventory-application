@@ -10,7 +10,7 @@ import {
   TableCell,
   TableBody,
 } from '@mui/material';
-import { formatShortNum } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/dateUtils';
 
 /**
  * [name, total] pairs — these come straight from a Map's entries(), sorted
@@ -71,7 +71,7 @@ export const TopProductsTable = ({ products }: { products: TopProductEntry[] }) 
                   bgcolor: 'white',
                 }}
               >
-                Total
+                Total (₹)
               </TableCell>
             </TableRow>
           </TableHead>
@@ -87,10 +87,7 @@ export const TopProductsTable = ({ products }: { products: TopProductEntry[] }) 
                   align="right"
                   sx={{ color: 'text.primary' }}
                 >
-                  {total.toLocaleString('en-IN', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                  {formatCurrency(total)}
                 </TableCell>
               </TableRow>
             ))}
@@ -184,7 +181,7 @@ export const CategoryMixChart = ({ mix }: { mix: CategoryMix }) => {
                 variant="caption"
                 sx={{ color: '#111827', fontSize: '0.65rem', fontWeight: 600 }}
               >
-                {formatShortNum(seg.value)}
+                ₹{formatCurrency(seg.value)}
               </Typography>
             </Box>
           ))}

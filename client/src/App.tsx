@@ -14,7 +14,6 @@ const REQUIRED_ONBOARDING_VERSION = 1;
 // Admin/back-office routes loaded on first navigation
 const InventoryPage      = lazy(() => import('@/domains/inventory/pages/InventoryPage'));
 const DashboardPage      = lazy(() => import('@/domains/dashboard/pages/DashboardPage'));
-const OverviewPage       = lazy(() => import('@/domains/dashboard/pages/OverviewPage'));
 const Reporting          = lazy(() => import('@/domains/reporting/components/Reporting'));
 const ExpenseManagement  = lazy(() => import('@/domains/expenses/components/ExpenseManagement'));
 const Refund             = lazy(() => import('@/domains/refund/components/Refund'));
@@ -193,10 +192,6 @@ function App() {
               defaultPrinter={defaultPrinter}
             />
           }
-        />
-        <Route
-          path="/overview"
-          element={<OverviewPage shopName={shopName} userRole={currentUser.role} />}
         />
         {permissions.canAccessSaleHistory && (
           <Route

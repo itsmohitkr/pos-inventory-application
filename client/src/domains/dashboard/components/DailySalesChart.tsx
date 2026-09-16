@@ -5,7 +5,7 @@ import {
   ChevronRight as ChevronRightIcon,
   Sync as SyncIcon,
 } from '@mui/icons-material';
-import { FULL_MONTHS, CATEGORY_COLORS, formatShortNum } from '@/utils/dateUtils';
+import { FULL_MONTHS, CATEGORY_COLORS, formatShortNum, formatCurrency } from '@/utils/dateUtils';
 
 interface DailyPoint {
   day: number;
@@ -163,7 +163,7 @@ const DailySalesChart = ({
                     {formatShortNum(item.totalSales)}
                   </Typography>
                 )}
-                <Tooltip title={`₹${item.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} arrow>
+                <Tooltip title={`₹${formatCurrency(item.totalSales)}`} arrow>
                   <Box
                     sx={{
                       width: '100%',

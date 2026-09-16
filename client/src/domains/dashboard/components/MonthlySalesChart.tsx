@@ -5,7 +5,7 @@ import {
   ChevronRight as ChevronRightIcon,
   Sync as SyncIcon,
 } from '@mui/icons-material';
-import { MONTHS, CATEGORY_COLORS, formatShortNum } from '@/utils/dateUtils';
+import { MONTHS, CATEGORY_COLORS, formatShortNum, formatCurrency } from '@/utils/dateUtils';
 
 interface MonthlyPoint {
   month: number;
@@ -147,7 +147,7 @@ const MonthlySalesChart = ({
                     {formatShortNum(item.totalSales)}
                   </Typography>
                 )}
-                <Tooltip title={`₹${item.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} arrow>
+                <Tooltip title={`₹${formatCurrency(item.totalSales)}`} arrow>
                   <Box
                     sx={{
                       width: '100%',

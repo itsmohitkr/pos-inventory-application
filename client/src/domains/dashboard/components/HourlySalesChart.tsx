@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Paper, Typography, FormControl, Select, MenuItem, Tooltip } from '@mui/material';
-import { CATEGORY_COLORS } from '@/utils/dateUtils';
+import { CATEGORY_COLORS, formatCurrency } from '@/utils/dateUtils';
 
 import type { HourlyMetric } from '../hooks/useDashboardData';
 
@@ -74,7 +74,9 @@ const HourlySalesChart = ({
                 variant="caption"
                 sx={{ fontSize: '0.6rem', color: '#d1d5db', width: 30 }}
               >
-                {Math.round(maxHourlyVal * tier)}
+                {metric === 'amount'
+                  ? formatCurrency(maxHourlyVal * tier)
+                  : Math.round(maxHourlyVal * tier).toLocaleString('en-IN')}
               </Typography>
               <Box sx={{ flex: 1, height: '1px', bgcolor: tier === 0 ? '#d1d5db' : '#f3f4f6' }} />
             </Box>
@@ -116,7 +118,7 @@ const HourlySalesChart = ({
                   </Typography>
                 )}
                 {val > 0 && (
-                  <Tooltip title={`${metric === 'amount' ? '₹' : ''}${val.toLocaleString('en-IN', { minimumFractionDigits: metric === 'amount' ? 2 : 0 })}`} arrow>
+                  <Tooltip title={metric === 'amount' ? `₹${formatCurrency(val)}` : val.toLocaleString('en-IN')} arrow>
                     <Box
                       sx={{
                         width: '100%',
