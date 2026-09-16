@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { createHttpError } from '../../shared/error/appError';
 import { getDateWithCurrentTime, dateRangeWhere } from '../../shared/utils/dateUtils';
 import { derivePaymentStatus } from '../../shared/utils/paymentStatus';
+import { computePurchaseFinancials } from './purchaseFinancials';
 import { toId } from '../../shared/utils/idUtils';
 import type {
   CreatePurchaseInput,
@@ -28,7 +29,7 @@ interface PurchaseFilters {
 }
 
 const createPurchase = async (data: CreatePurchaseInput) => {
-  const { vendor, totalAmount, date, note, paidAmount, paymentMethod, items = [] } = data;
+  const { vendor, vendorId, totalAmount, date, note, paidAmount, paymentMethod, items = [] } = data;
 
   // Filter out invalid items (those without product IDs)
   const validItems = items.filter((item) => item.productId && !isNaN(toId(item.productId)));
@@ -40,10 +41,25 @@ const createPurchase = async (data: CreatePurchaseInput) => {
   const initialPaymentStatus = derivePaymentStatus(parsedTotalAmount, parsedPaidAmount);
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // A real vendor was picked via the search-or-create field: `vendor`
+    // (the plain string every existing reader displays/filters/exports) is
+    // set from the linked vendor's own name, so it never disagrees with it.
+    let resolvedVendor = vendor;
+    if (vendorId != null) {
+      const linkedVendor = await tx.vendor.findUnique({ where: { id: vendorId } });
+      if (!linkedVendor) {
+        throw createHttpError(StatusCodes.NOT_FOUND, 'Vendor not found', {
+          error: 'Vendor not found',
+        });
+      }
+      resolvedVendor = linkedVendor.name;
+    }
+
     // Assembled from form values, then cast to Prisma's input at the call
     // site below — the shapes differ (strings vs numbers/dates).
     const purchaseData: Record<string, unknown> = {
-      vendor,
+      vendor: resolvedVendor,
+      vendorId: vendorId ?? null,
       totalAmount: parsedTotalAmount,
       date: date ? getDateWithCurrentTime(date) : new Date(),
       note,
@@ -118,19 +134,11 @@ const getPurchases = async (filters: PurchaseFilters = {}) => {
   });
 
   // Compute due amount and correct status dynamically based on payments
-  return purchases.map((p) => {
-    const totalPaid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-    const dueAmount = Math.max(0, p.totalAmount - totalPaid);
-    const currentStatus = derivePaymentStatus(p.totalAmount, totalPaid);
-
-    return {
-      ...p,
-      totalPaid,
-      dueAmount,
-      paymentStatus: currentStatus,
-      paymentMethod: p.paymentMethod || 'Cash',
-    };
-  });
+  return purchases.map((p) => ({
+    ...p,
+    ...computePurchaseFinancials(p),
+    paymentMethod: p.paymentMethod || 'Cash',
+  }));
 };
 
 const deletePurchase = async (id: number) => {
@@ -140,16 +148,30 @@ const deletePurchase = async (id: number) => {
 };
 
 const updatePurchase = async (id: number, data: UpdatePurchaseInput) => {
-  const { vendor, totalAmount, date, note, paymentStatus, items = [] } = data;
+  const { vendor, vendorId, totalAmount, date, note, paymentStatus, items = [] } = data;
 
   // Filter out invalid items (those without product IDs)
   const validItems = items.filter((item) => item.productId && !isNaN(toId(item.productId)));
 
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // Same resolution as createPurchase: a real vendor link always wins over
+    // whatever free text was passed alongside it, so the two can't disagree.
+    let resolvedVendor = vendor;
+    if (vendorId != null) {
+      const linkedVendor = await tx.vendor.findUnique({ where: { id: vendorId } });
+      if (!linkedVendor) {
+        throw createHttpError(StatusCodes.NOT_FOUND, 'Vendor not found', {
+          error: 'Vendor not found',
+        });
+      }
+      resolvedVendor = linkedVendor.name;
+    }
+
     // Assembled from form values, then cast to Prisma's input at the call
     // site below — the shapes differ (strings vs numbers/dates).
     const purchaseData: Record<string, unknown> = {
-      vendor,
+      vendor: resolvedVendor,
+      ...(vendorId !== undefined && { vendorId }),
       totalAmount: totalAmount || 0,
       date: date ? new Date(date) : new Date(),
       note,

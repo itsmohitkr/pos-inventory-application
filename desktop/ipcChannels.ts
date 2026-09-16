@@ -73,6 +73,11 @@ const IPC = {
   CUSTOMER_GET_BY_PHONE: 'customer:getByPhone',
   CUSTOMER_GET_PURCHASE_HISTORY: 'customer:getPurchaseHistory',
 
+  VENDOR_FIND_OR_CREATE: 'vendor:findOrCreate',
+  VENDOR_GET_ALL: 'vendor:getAllVendors',
+  VENDOR_GET_BY_ID: 'vendor:getVendorById',
+  VENDOR_UPDATE: 'vendor:updateVendor',
+
   EXPENSE_CREATE: 'expense:createExpense',
   EXPENSE_GET_ALL: 'expense:getExpenses',
   EXPENSE_UPDATE: 'expense:updateExpense',
