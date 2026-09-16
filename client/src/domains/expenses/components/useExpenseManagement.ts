@@ -32,6 +32,7 @@ export type ExpenseFormState = {
 export type PurchaseFormState = {
   id: number | null;
   vendor: string;
+  vendorId: number | null;
   totalAmount: string;
   date: string;
   note: string;
@@ -74,9 +75,7 @@ export default function useExpenseManagement() {
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [paymentHistoryDialogOpen, setPaymentHistoryDialogOpen] = useState(false);
   const [expensePaymentDialogOpen, setExpensePaymentDialogOpen] = useState(false);
-  const [expensePaymentHistoryDialogOpen, setExpensePaymentHistoryDialogOpen] = useState(false);
   const [paymentEditDialogOpen, setPaymentEditDialogOpen] = useState(false);
   const [deleteConfig, setDeleteConfig] = useState<DeleteConfig>({ open: false, title: '', message: '', onConfirm: null });
   const [paymentMenuAnchor, setPaymentMenuAnchor] = useState<HTMLElement | null>(null);
@@ -88,7 +87,7 @@ export default function useExpenseManagement() {
 
   // Form state
   const [expenseForm, setExpenseForm] = useState<ExpenseFormState>({ id: null, amount: '', category: '', description: '', date: getLocalTodayString(), paidAmount: '', paymentMethod: 'Cash' });
-  const [purchaseForm, setPurchaseForm] = useState<PurchaseFormState>({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', paymentMethod: 'Cash', items: [] });
+  const [purchaseForm, setPurchaseForm] = useState<PurchaseFormState>({ id: null, vendor: '', vendorId: null, totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', paymentMethod: 'Cash', items: [] });
   const [paymentForm, setPaymentForm] = useState<PaymentFormState>({ amount: '', paymentMethod: 'Cash', date: getLocalTodayString(), note: '' });
   const [editPaymentForm, setEditPaymentForm] = useState<PaymentFormState>({ amount: '', paymentMethod: 'Cash', date: getLocalTodayString(), note: '' });
 
@@ -157,7 +156,12 @@ export default function useExpenseManagement() {
         await posService.createExpense({ ...expenseForm, amount: parseFloat(expenseForm.amount) || 0, paidAmount: parseFloat(expenseForm.paidAmount) || 0 });
       }
       setExpenseDialogOpen(false);
-      fetchData();
+      fetchData((_updatedPurchases, updatedExpenses) => {
+        if (selectedExpense) {
+          const refreshed = updatedExpenses.find((exp) => exp.id === selectedExpense.id);
+          setSelectedExpense(refreshed || null);
+        }
+      });
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'expense-save' } });
       setError('Failed to save expense');
@@ -172,6 +176,9 @@ export default function useExpenseManagement() {
       onConfirm: async () => {
         try {
           await posService.deleteExpense(id);
+          if (selectedExpense?.id === id) {
+            setSelectedExpense(null);
+          }
           fetchData();
           setDeleteConfig((prev) => ({ ...prev, open: false }));
         } catch (err) {
@@ -188,18 +195,16 @@ export default function useExpenseManagement() {
     setExpensePaymentDialogOpen(true);
   };
 
-  const handleOpenExpensePaymentHistoryDialog = (expense: Expense) => {
-    setSelectedExpense(expense);
-    setExpensePaymentHistoryDialogOpen(true);
-  };
-
   const handleCreateExpensePayment = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!selectedExpense) return;
     try {
       await posService.createExpensePayment(selectedExpense.id, { amount: parseFloat(paymentForm.amount), paymentMethod: paymentForm.paymentMethod, date: paymentForm.date, note: paymentForm.note });
       setExpensePaymentDialogOpen(false);
-      fetchData();
+      fetchData((_updatedPurchases, updatedExpenses) => {
+        const refreshed = updatedExpenses.find((exp) => exp.id === selectedExpense.id);
+        if (refreshed) setSelectedExpense(refreshed);
+      });
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'expense-payment-save' } });
       setError('Failed to save expense payment.');
@@ -208,12 +213,12 @@ export default function useExpenseManagement() {
 
   // --- Purchase handlers ---
   const handleOpenPurchaseDialog = () => {
-    setPurchaseForm({ id: null, vendor: '', totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', paymentMethod: 'Cash', items: [] });
+    setPurchaseForm({ id: null, vendor: '', vendorId: null, totalAmount: '', date: getLocalTodayString(), note: '', paidAmount: '', paymentMethod: 'Cash', items: [] });
     setPurchaseDialogOpen(true);
   };
 
   const handleEditPurchase = (purchase: Purchase) => {
-    setPurchaseForm({ id: purchase.id, vendor: purchase.vendor || '', totalAmount: String(purchase.totalAmount), note: purchase.note || '', date: new Date(purchase.date).toISOString().split('T')[0], paidAmount: String(purchase.totalPaid || 0), paymentMethod: purchase.paymentMethod || 'Cash', items: purchase.items || [] });
+    setPurchaseForm({ id: purchase.id, vendor: purchase.vendor || '', vendorId: purchase.vendorId ?? null, totalAmount: String(purchase.totalAmount), note: purchase.note || '', date: new Date(purchase.date).toISOString().split('T')[0], paidAmount: String(purchase.totalPaid || 0), paymentMethod: purchase.paymentMethod || 'Cash', items: purchase.items || [] });
     setPurchaseDialogOpen(true);
   };
 
@@ -228,7 +233,12 @@ export default function useExpenseManagement() {
         await posService.createPurchase(submissionData);
       }
       setPurchaseDialogOpen(false);
-      fetchData();
+      fetchData((updatedPurchases) => {
+        if (selectedPurchase) {
+          const refreshed = updatedPurchases.find((p) => p.id === selectedPurchase.id);
+          setSelectedPurchase(refreshed || null);
+        }
+      });
     } catch (err) {
       Sentry.captureException(err, { tags: { feature: 'purchase-save' } });
       console.error('Purchase saving error:', err);
@@ -244,6 +254,9 @@ export default function useExpenseManagement() {
       onConfirm: async () => {
         try {
           await posService.deletePurchase(id);
+          if (selectedPurchase?.id === id) {
+            setSelectedPurchase(null);
+          }
           fetchData();
           setDeleteConfig((prev) => ({ ...prev, open: false }));
         } catch (err) {
@@ -259,11 +272,6 @@ export default function useExpenseManagement() {
     setSelectedPurchase(purchase);
     setPaymentForm({ amount: String(purchase.dueAmount || 0), paymentMethod: purchase.paymentMethod || 'Cash', date: getLocalTodayString(), note: '' });
     setPaymentDialogOpen(true);
-  };
-
-  const handleOpenPaymentHistoryDialog = (purchase: Purchase) => {
-    setSelectedPurchase(purchase);
-    setPaymentHistoryDialogOpen(true);
   };
 
   const handleCreatePayment = async (e: React.FormEvent) => {
@@ -389,15 +397,13 @@ export default function useExpenseManagement() {
     expenseDialogOpen, setExpenseDialogOpen,
     purchaseDialogOpen, setPurchaseDialogOpen,
     paymentDialogOpen, setPaymentDialogOpen,
-    paymentHistoryDialogOpen, setPaymentHistoryDialogOpen,
     expensePaymentDialogOpen, setExpensePaymentDialogOpen,
-    expensePaymentHistoryDialogOpen, setExpensePaymentHistoryDialogOpen,
     paymentEditDialogOpen, setPaymentEditDialogOpen,
     deleteConfig, setDeleteConfig,
     paymentMenuAnchor,
     // selected items
     selectedPurchase, setSelectedPurchase,
-    selectedExpense,
+    selectedExpense, setSelectedExpense,
     selectedPayment,
     // forms
     expenseForm, setExpenseForm,
@@ -407,9 +413,9 @@ export default function useExpenseManagement() {
     // handlers
     fetchData,
     handleOpenExpenseDialog, handleEditExpense, handleCreateExpense, handleDeleteExpense,
-    handleOpenExpensePaymentDialog, handleOpenExpensePaymentHistoryDialog, handleCreateExpensePayment,
+    handleOpenExpensePaymentDialog, handleCreateExpensePayment,
     handleOpenPurchaseDialog, handleEditPurchase, handleCreatePurchase, handleDeletePurchase,
-    handleOpenPaymentDialog, handleOpenPaymentHistoryDialog, handleCreatePayment,
+    handleOpenPaymentDialog, handleCreatePayment,
     handleOpenPaymentMenu, handleClosePaymentMenu, handleOpenEditPayment,
     handleEditPaymentSubmission, handleDeletePaymentAction,
     splitIsoDate,
