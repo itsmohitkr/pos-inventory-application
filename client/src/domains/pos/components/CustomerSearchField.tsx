@@ -20,6 +20,7 @@ import {
   Dialpad as DialpadIcon,
 } from '@mui/icons-material';
 import CustomerMobileDialog from '@/domains/pos/components/CustomerMobileDialog';
+import { isCustomerBarcode } from '@/shared/utils/customerBarcode';
 
 const PHONE_RE = /^\d{10}$/;
 
@@ -31,6 +32,7 @@ const CustomerSearchField = ({
   searchResults = [],
   isSearching,
   onSearch,
+  onLookup,
   customerSearchValue,
   setCustomerSearchValue,
   customerNameValue,
@@ -40,11 +42,25 @@ const CustomerSearchField = ({
   const [open, setOpen] = useState(false);
   const [showMobileDialog, setShowMobileDialog] = useState(false);
 
-  // Filter input to only allow digits and max 10
+  // Filter input to only allow digits — up to 12, so a scanned 12-digit
+  // customer barcode isn't truncated before it can be recognized (a typed
+  // phone number is still just 10 digits and unaffected).
   const handlePhoneChange = (value: string) => {
-    const cleaned = value.replace(/\D/g, '').slice(0, 10);
+    const cleaned = value.replace(/\D/g, '').slice(0, 12);
     setCustomerSearchValue(cleaned);
     onSearch(cleaned);
+  };
+
+  // A scanner "types" the barcode then sends Enter — intercept that here the
+  // same way the main POS search bar does, so this field doubles as a
+  // barcode scan target without disturbing normal phone-number typing.
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key !== 'Enter') return;
+    if (!isCustomerBarcode(customerSearchValue)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onLookup(customerSearchValue);
+    setCustomerSearchValue('');
   };
 
   // Logic to determine if we should show the "New Customer" form
@@ -242,6 +258,7 @@ const CustomerSearchField = ({
             {...params}
             size="small"
             placeholder="Enter 10-digit number"
+            onKeyDown={handleKeyDown}
             error={customerSearchValue.length > 0 && customerSearchValue.length < 10 && !open}
             InputProps={{
               ...params.InputProps,

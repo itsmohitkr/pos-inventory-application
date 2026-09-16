@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import customerService from '@/shared/api/customerService';
 import type { Customer } from '@/shared/api/customerService';
 import { getApiErrorMessage } from '@/shared/api/api';
+import { isCustomerBarcode } from '@/shared/utils/customerBarcode';
 
 interface UsePOSCustomerArgs {
   showNotification: (message: string, severity?: string) => void;
@@ -74,7 +75,7 @@ export const usePOSCustomer = ({ showNotification }: UsePOSCustomerArgs) => {
   }, [showNotification]);
 
   const lookupCustomer = useCallback(async (query: string) => {
-    if (query.startsWith('CUST-')) {
+    if (isCustomerBarcode(query.trim())) {
       return lookupByBarcode(query);
     }
     return lookupByPhone(query);

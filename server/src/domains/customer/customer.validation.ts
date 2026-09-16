@@ -1,4 +1,5 @@
 import { z, str, idParamSchema } from '../../shared/middleware/zodHelpers';
+import { isValidCustomerBarcode } from './customerBarcode';
 
 /** Shared by GetCustomerById, UpdateCustomer, GetPurchaseHistory. */
 const customerIdParamSchema = idParamSchema();
@@ -13,7 +14,7 @@ export const FindOrCreateSchema = {
 
 export const GetByBarcodeSchema = {
   params: z.object({
-    barcode: z.string().regex(/^CUST-[A-Z0-9]{8}$/, 'Invalid customer barcode'),
+    barcode: z.string().refine(isValidCustomerBarcode, 'Invalid customer barcode'),
   }),
 };
 
