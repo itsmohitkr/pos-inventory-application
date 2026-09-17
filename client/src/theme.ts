@@ -276,6 +276,24 @@ let theme = createTheme({
         },
       },
     },
+    MuiTableSortLabel: {
+      styleOverrides: {
+        root: {
+          flexDirection: 'row',
+          '&, .MuiTableCell-alignRight &': {
+            flexDirection: 'row',
+          },
+          '&.Mui-active': {
+            color: '#0b1d39',
+          },
+          '& .MuiTableSortLabel-icon, .MuiTableCell-alignRight & .MuiTableSortLabel-icon': {
+            marginLeft: 4,
+            marginRight: 0,
+            opacity: 1,
+          },
+        },
+      },
+    },
   },
 });
 

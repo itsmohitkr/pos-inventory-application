@@ -24,26 +24,50 @@ import { aggregateItemSales, exportItemSalesToPDF } from '@/domains/reporting/co
 import type { AggregatedItem } from '@/domains/reporting/components/itemSalesUtils';
 import type { ReportSale } from '@/shared/types/models';
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 const ItemSalesRow = ({ item, index }: { item: AggregatedItem; index: number }) => {
   const margin = item.revenue > 0 ? (item.profit / item.revenue) * 100 : 0;
   return (
     <TableRow hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
-      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#64748b', fontSize: '0.78rem', width: '5%', minWidth: '50px', whiteSpace: 'nowrap' }}>
-        {index + 1}
+      <TableCell sx={{ py: 1.25, px: 1.5, width: '5%', minWidth: '50px', whiteSpace: 'nowrap' }}>
+        <Typography variant="body2" sx={columnTypographySx}>
+          {index + 1}
+        </Typography>
       </TableCell>
-      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{item.name}</TableCell>
-      <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontWeight: 500, fontSize: '0.85rem' }}>
-        {item.category}
+      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary', textTransform: 'capitalize' }}>
+          {item.name}
+        </Typography>
       </TableCell>
-      <TableCell align="center" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{item.quantity}</TableCell>
-      <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#64748b', fontSize: '0.85rem' }}>
-        {item.cost.toFixed(2)}
+      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+        <Typography variant="body2" sx={{ ...columnTypographySx, textTransform: 'capitalize' }}>
+          {item.category || '—'}
+        </Typography>
       </TableCell>
-      <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
-        {item.revenue.toFixed(2)}
+      <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
+        <Typography variant="body2" sx={columnTypographySx}>
+          {item.quantity}
+        </Typography>
       </TableCell>
-      <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#16a34a', fontWeight: 700, fontSize: '0.85rem' }}>
-        {item.profit.toFixed(2)}
+      <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
+        <Typography variant="body2" sx={columnTypographySx}>
+          {item.cost.toFixed(2)}
+        </Typography>
+      </TableCell>
+      <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
+        <Typography variant="body2" sx={columnTypographySx}>
+          {item.revenue.toFixed(2)}
+        </Typography>
+      </TableCell>
+      <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
+        <Typography variant="body2" sx={columnTypographySx}>
+          {item.profit.toFixed(2)}
+        </Typography>
       </TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
         <Chip

@@ -39,6 +39,12 @@ interface CustomerListTableProps {
   onResetFilters: () => void;
 }
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 export const CustomerListTable = ({
   customers,
   total,
@@ -232,7 +238,6 @@ export const CustomerListTable = ({
                       direction={sortBy === column.id ? order : 'asc'}
                       onClick={() => handleSort(column.id)}
                       sx={{
-                        '&.Mui-active': { color: '#0b1d39' },
                         '& .MuiTableSortLabel-icon': { color: '#0b1d39 !important', opacity: 1 },
                       }}
                     >
@@ -286,15 +291,14 @@ export const CustomerListTable = ({
                         sx={{
                           py: 1.25,
                           px: 1.5,
-                          fontWeight: 600,
-                          color: '#64748b',
-                          fontSize: '0.78rem',
                           width: '5%',
                           minWidth: '50px',
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {(page - 1) * limit + idx + 1}
+                        <Typography variant="body2" sx={columnTypographySx}>
+                          {(page - 1) * limit + idx + 1}
+                        </Typography>
                       </TableCell>
 
                       {/* Name */}
@@ -302,9 +306,10 @@ export const CustomerListTable = ({
                         <Typography
                           variant="body2"
                           sx={{
-                            fontWeight: 700,
-                            color: '#1e293b',
+                            fontWeight: 600,
+                            color: 'text.primary',
                             fontSize: '0.85rem',
+                            textTransform: 'capitalize',
                           }}
                         >
                           {c.name || '—'}
@@ -313,59 +318,42 @@ export const CustomerListTable = ({
 
                       {/* Phone */}
                       <TableCell sx={{ py: 1.25, px: 1.5 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569', fontSize: '0.82rem' }}>
-                          {c.phone}
+                        <Typography variant="body2" sx={columnTypographySx}>
+                          {c.phone || '—'}
                         </Typography>
                       </TableCell>
 
                       {/* Barcode */}
                       <TableCell sx={{ py: 1.25, px: 1.5 }}>
-                        {c.customerBarcode ? (
-                          <Chip
-                            label={c.customerBarcode}
-                            size="small"
-                            sx={{
-                              fontFamily: 'monospace',
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              bgcolor: '#f1f5f9',
-                              color: '#334155',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '4px',
-                              height: 22,
-                            }}
-                          />
-                        ) : (
-                          <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                            —
-                          </Typography>
-                        )}
+                        <Typography variant="body2" sx={columnTypographySx}>
+                          {c.customerBarcode || '—'}
+                        </Typography>
                       </TableCell>
 
                       {/* Purchases */}
                       <TableCell sx={{ py: 1.25, px: 1.5 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                        <Typography variant="body2" sx={columnTypographySx}>
                           {c._count?.sales ?? 0}
                         </Typography>
                       </TableCell>
 
                       {/* Total Value */}
                       <TableCell sx={{ py: 1.25, px: 1.5 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                        <Typography variant="body2" sx={columnTypographySx}>
                           ₹{c.totalSpend?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
                         </Typography>
                       </TableCell>
 
                       {/* Last Visit */}
                       <TableCell sx={{ py: 1.25, px: 1.5 }}>
-                        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.78rem' }}>
+                        <Typography variant="body2" sx={columnTypographySx}>
                           {formatDate(c.lastVisit)}
                         </Typography>
                       </TableCell>
 
                       {/* Joined */}
                       <TableCell sx={{ py: 1.25, px: 1.5 }}>
-                        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.78rem' }}>
+                        <Typography variant="body2" sx={columnTypographySx}>
                           {formatDate(c.createdAt)}
                         </Typography>
                       </TableCell>

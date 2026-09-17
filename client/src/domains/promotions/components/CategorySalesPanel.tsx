@@ -58,6 +58,25 @@ const formatDateDisplay = (dateStr: string | null) => {
   });
 };
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
+const headCellSx = {
+  fontWeight: 700,
+  color: '#475569',
+  bgcolor: '#f8fafc',
+  py: 1.25,
+  px: 1.5,
+  borderBottom: '1px solid #e2e8f0',
+  fontSize: '0.75rem',
+  letterSpacing: '0.5px',
+  textTransform: 'uppercase' as const,
+  whiteSpace: 'nowrap' as const,
+};
+
 const CategorySalesPanel = ({
   sales,
   onCreate,
@@ -68,137 +87,187 @@ const CategorySalesPanel = ({
   <Paper
     elevation={0}
     sx={{
-      p: 3,
-      borderRadius: '12px',
+      flex: 1,
+      borderRadius: '10px',
       border: '1px solid #e2e8f0',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
+      minWidth: 0,
       bgcolor: '#ffffff',
-      minHeight: '100%',
+      height: '100%',
     }}
   >
     <Box
       sx={{
+        p: 1.5,
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 3,
-        flexWrap: 'wrap',
-        gap: 2,
+        flexDirection: 'column',
+        gap: 1.5,
+        borderBottom: '1px solid #e2e8f0',
+        bgcolor: '#ffffff',
       }}
     >
-      <Box>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>
-          Category-Based Scheduled Sales
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#64748b' }}>
-          Apply flat percentage discounts across entire product categories.
-        </Typography>
-      </Box>
-      <Button
-        variant="contained"
-        startIcon={<AddIcon />}
-        onClick={onCreate}
+      <Box
         sx={{
-          bgcolor: '#0f172a',
-          '&:hover': { bgcolor: '#1e293b' },
-          borderRadius: '8px',
-          textTransform: 'none',
-          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 1.5,
+          justifyContent: 'space-between',
         }}
       >
-        Create Category Sale
-      </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#0b1d39', lineHeight: 1.2 }}
+              >
+                Category-Based Scheduled Sales
+              </Typography>
+            </Box>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 600, color: '#64748b', fontSize: '0.75rem', lineHeight: 1 }}
+            >
+              {sales.filter((s) => s.computedStatus === 'active').length} Active • {sales.length} Category Sales Configured
+            </Typography>
+          </Box>
+        </Box>
+
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={onCreate}
+          sx={{
+            bgcolor: '#0b1d39',
+            borderRadius: '8px',
+            px: 2.5,
+            height: 36,
+            fontWeight: 600,
+            fontSize: '0.82rem',
+            textTransform: 'none',
+            '&:hover': { bgcolor: '#1e293b' },
+          }}
+        >
+          Create Category Sale
+        </Button>
+      </Box>
     </Box>
 
     {sales.length === 0 ? (
       <Box
         sx={{
+          m: 2,
           py: 8,
           px: 2,
           textAlign: 'center',
           border: '2px dashed #e2e8f0',
-          borderRadius: '12px',
+          borderRadius: '10px',
           bgcolor: '#f8fafc',
         }}
       >
         <CategoryIcon sx={{ fontSize: 48, color: '#94a3b8', mb: 1 }} />
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#334155' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#334155' }}>
           No category sales configured yet
         </Typography>
-        <Typography variant="body2" sx={{ color: '#64748b', mb: 2 }}>
+        <Typography variant="body2" sx={{ color: '#64748b', mb: 2, fontSize: '0.85rem' }}>
           Create a sale to offer automated percentage discounts for an entire category.
         </Typography>
-        <Button variant="outlined" startIcon={<AddIcon />} onClick={onCreate}>
+        <Button
+          variant="outlined"
+          startIcon={<AddIcon />}
+          onClick={onCreate}
+          sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+        >
           Create Category Sale
         </Button>
       </Box>
     ) : (
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '8px' }}>
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead sx={{ bgcolor: '#f8fafc' }}>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, color: '#475569' }}>Sale Name</TableCell>
-              <TableCell sx={{ fontWeight: 700, color: '#475569' }}>Category</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700, color: '#475569' }}>
-                Discount
+      <TableContainer
+        sx={{
+          flex: 1,
+          overflow: 'auto',
+          overflowX: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#cbd5e1 transparent',
+          '&::-webkit-scrollbar': { height: '6px', width: '6px' },
+          '&::-webkit-scrollbar-track': { background: 'transparent' },
+          '&::-webkit-scrollbar-thumb': { background: '#cbd5e1', borderRadius: '4px' },
+          '&::-webkit-scrollbar-thumb:hover': { background: '#94a3b8' },
+        }}
+      >
+        <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', minWidth: '750px' }}>
+          <TableHead>
+            <TableRow sx={{ bgcolor: 'background.default', borderBottom: '1px solid #e2e8f0' }}>
+              <TableCell sx={{ ...headCellSx, width: '5%', minWidth: '50px' }}>S.NO.</TableCell>
+              <TableCell sx={{ ...headCellSx, width: '22%' }}>SALE</TableCell>
+              <TableCell sx={{ ...headCellSx, width: '16%' }}>CATEGORY</TableCell>
+              <TableCell align="right" sx={{ ...headCellSx, width: '12%' }}>
+                DISCOUNT
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, color: '#475569' }}>Schedule / Duration</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>
-                Status
+              <TableCell sx={{ ...headCellSx, width: '20%' }}>DURATION</TableCell>
+              <TableCell align="center" sx={{ ...headCellSx, width: '10%' }}>
+                STATUS
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, color: '#475569' }}>
-                Live Toggle
+              <TableCell align="center" sx={{ ...headCellSx, width: '8%' }}>
+                LIVE
               </TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700, color: '#475569' }}>
-                Actions
+              <TableCell align="right" sx={{ ...headCellSx, width: '7%' }}>
+                ACTIONS
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {sales.map((sale) => {
+            {sales.map((sale, idx) => {
               const badge = getStatusBadgeConfig(sale.computedStatus);
               const isToggleable = sale.status === 'active' || sale.status === 'paused';
 
               return (
-                <TableRow key={sale.id} hover>
-                  <TableCell sx={{ fontWeight: 600, color: '#0f172a' }}>{sale.name}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={sale.category}
-                      size="small"
-                      sx={{ bgcolor: '#e2e8f0', color: '#1e293b', fontWeight: 600 }}
-                    />
+                <TableRow key={sale.id} hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
+                  <TableCell sx={{ py: 1.25, px: 1.5, ...columnTypographySx, width: '5%', minWidth: '50px', whiteSpace: 'nowrap' }}>
+                    {idx + 1}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, color: '#0284c7' }}>
+                  <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.85rem', textTransform: 'capitalize' }}>
+                      {sale.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                    <Typography variant="body2" sx={{ ...columnTypographySx, textTransform: 'capitalize' }}>
+                      {sale.category}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right" sx={{ py: 1.25, px: 1.5, ...columnTypographySx, fontWeight: 600, color: '#0284c7' }}>
                     {sale.discountPercentage}% OFF
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ py: 1.25, px: 1.5 }}>
                     {sale.isIndefinite ? (
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#16a34a' }}>
+                      <Typography variant="body2" sx={{ ...columnTypographySx, color: '#16a34a', fontWeight: 600 }}>
                         Indefinite
                       </Typography>
                     ) : (
-                      <Box>
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          Start: {formatDateDisplay(sale.startDate)}
-                        </Typography>
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          End: {formatDateDisplay(sale.endDate)}
-                        </Typography>
-                      </Box>
+                      <Typography variant="body2" sx={columnTypographySx}>
+                        {formatDateDisplay(sale.startDate)} - {formatDateDisplay(sale.endDate)}
+                      </Typography>
                     )}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
                     <Chip
                       label={badge.label}
                       color={badge.color}
                       variant={badge.variant}
                       size="small"
+                      sx={{ height: 22, fontSize: '0.68rem', fontWeight: 700 }}
                     />
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
                     {isToggleable ? (
                       <Tooltip title={sale.status === 'active' ? 'Pause Sale' : 'Resume Sale'}>
                         <Switch
+                          size="small"
                           checked={sale.status === 'active'}
                           onChange={(e) =>
                             onToggleStatus(sale.id, e.target.checked ? 'active' : 'paused')
@@ -212,52 +281,30 @@ const CategorySalesPanel = ({
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-                        <Tooltip title="Edit">
-                          <IconButton
-                            size="small"
-                            onClick={() => onEdit(sale)}
-                            aria-label="Edit Category Sale"
-                            sx={{
-                              bgcolor: 'rgba(31, 41, 55, 0.08)',
-                              color: '#1f2937',
-                              '&:hover': { bgcolor: 'rgba(31, 41, 55, 0.15)' },
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Typography
-                          variant="caption"
-                          sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#1f2937' }}
-                        >
-                          Edit
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3 }}>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            onClick={() => onDelete(sale.id)}
-                            aria-label="Delete Category Sale"
-                            sx={{
-                              bgcolor: 'rgba(239, 68, 68, 0.1)',
-                              color: '#ef4444',
-                              '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' },
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Typography
-                          variant="caption"
-                          sx={{ fontSize: '0.65rem', fontWeight: 600, color: '#ef4444' }}
-                        >
-                          Delete
-                        </Typography>
-                      </Box>
+                  <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
+                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => onEdit(sale)}
+                        aria-label="Edit Category Sale"
+                        sx={{
+                          color: '#475569',
+                          '&:hover': { bgcolor: 'rgba(11, 29, 57, 0.08)', color: '#0b1d39' },
+                        }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => onDelete(sale.id)}
+                        aria-label="Delete Category Sale"
+                        sx={{
+                          color: '#dc2626',
+                          '&:hover': { bgcolor: 'rgba(220, 38, 38, 0.08)' },
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                     </Box>
                   </TableCell>
                 </TableRow>

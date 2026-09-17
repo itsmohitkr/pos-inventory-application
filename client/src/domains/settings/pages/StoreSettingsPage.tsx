@@ -258,17 +258,22 @@ const StoreSettingsPage = ({
                   color: '#475467',
                   borderRadius: '8px',
                   mb: 0.5,
-                  transition: 'all 0.15s ease-in-out',
+                  transition: 'background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                   '&:hover': {
-                    bgcolor: '#f1f5f9',
-                    color: '#0b1d39',
+                    bgcolor: 'rgba(0, 0, 0, 0.04)',
                   },
+                  // Same selection treatment as CategorySidebar.tsx's category
+                  // list (Inventory tab): MUI's own default ListItemButton
+                  // `.Mui-selected` recipe — a primary-tinted background
+                  // (alpha(primary.main, 0.08), 0.12 on hover) — reused
+                  // verbatim across every in-tab sidebar (Reports, Expenses,
+                  // Promotions, Store Settings) for a consistent nav language.
                   '&.Mui-selected': {
-                    bgcolor: '#0b1d39',
-                    color: '#ffffff',
+                    bgcolor: 'rgba(11, 29, 57, 0.08)',
+                    color: '#475467',
                     fontWeight: 700,
-                    '&:hover': { bgcolor: '#162b4d' },
-                    '& .MuiSvgIcon-root': { color: '#ffffff' },
+                    '&:hover': { bgcolor: 'rgba(11, 29, 57, 0.12)' },
+                    '& .MuiSvgIcon-root': { color: '#0b1d39' },
                   },
                 },
               }}

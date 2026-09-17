@@ -49,6 +49,12 @@ interface ExpiryReportPanelProps {
   timeframeLabel?: string;
 }
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelProps) => {
   const [selectedCategory, setSelectedCategory] = React.useState('All Categories');
 
@@ -307,20 +313,30 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
 
                   return (
                     <TableRow key={batch.id} hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
-                      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#64748b', fontSize: '0.78rem', width: '5%', minWidth: '50px', whiteSpace: 'nowrap' }}>
-                        {page * rowsPerPage + index + 1}
+                      <TableCell sx={{ py: 1.25, px: 1.5, width: '5%', minWidth: '50px', whiteSpace: 'nowrap' }}>
+                        <Typography variant="body2" sx={columnTypographySx}>
+                          {page * rowsPerPage + index + 1}
+                        </Typography>
                       </TableCell>
-                      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{batch.productName}</TableCell>
-                      <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontWeight: 500, fontSize: '0.85rem' }}>
-                        {batch.category}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary', textTransform: 'capitalize' }}>
+                          {batch.productName}
+                        </Typography>
                       </TableCell>
-                      <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontWeight: 500, fontSize: '0.85rem' }}>
-                        {batch.batchCode || '-'}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="body2" sx={{ ...columnTypographySx, textTransform: 'capitalize' }}>
+                          {batch.category || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="body2" sx={columnTypographySx}>
+                          {batch.batchCode || '—'}
+                        </Typography>
                       </TableCell>
                       <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 700, fontSize: '0.85rem', color: batch.quantity <= 5 ? '#dc2626' : 'inherit' }}
+                          sx={{ ...columnTypographySx, color: batch.quantity <= 5 ? '#dc2626' : '#334155' }}
                         >
                           {batch.quantity}
                         </Typography>
@@ -331,16 +347,16 @@ const ExpiryReportPanel = ({ data, loading, timeframeLabel }: ExpiryReportPanelP
                         >
                           <Typography
                             variant="body2"
-                            sx={{ fontWeight: 600, fontSize: '0.85rem', color: isCritical ? '#dc2626' : 'inherit' }}
+                            sx={{ ...columnTypographySx, color: isCritical ? '#dc2626' : '#334155' }}
                           >
                             {new Date(batch.expiryDate as string).toLocaleDateString()}
                           </Typography>
                           <Typography
                             variant="caption"
                             sx={{
-                              color: isCritical ? '#dc2626' : 'text.secondary',
-                              fontWeight: isCritical ? 700 : 500,
-                              fontSize: '0.72rem',
+                              color: isCritical ? '#dc2626' : '#64748b',
+                              fontWeight: isCritical ? 600 : 500,
+                              fontSize: '0.75rem',
                             }}
                           >
                             {daysUntilExpiry > 0 ? `in ${daysUntilExpiry} days` : 'Expired'}

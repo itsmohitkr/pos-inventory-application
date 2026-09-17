@@ -122,6 +122,7 @@ const PurchasePaymentHistoryCard = ({
                 whiteSpace: 'nowrap',
                 fontWeight: 500,
                 fontSize: '0.75rem',
+                textTransform: 'capitalize',
               }}
             >
               {isExpense

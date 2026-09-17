@@ -3,13 +3,12 @@ import { Box, Typography, Chip, Tooltip } from '@mui/material';
 interface BarcodeChipsProps {
   /** Pipe-separated barcodes, as stored on Product.barcode. */
   barcode?: string | null;
-  size?: 'small' | 'medium';
 }
 
-const BarcodeChips = ({ barcode, size = 'small' }: BarcodeChipsProps) => {
+const BarcodeChips = ({ barcode }: BarcodeChipsProps) => {
   if (!barcode)
     return (
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500, color: '#334155' }}>
         —
       </Typography>
     );
@@ -21,7 +20,7 @@ const BarcodeChips = ({ barcode, size = 'small' }: BarcodeChipsProps) => {
 
   if (barcodes.length === 0)
     return (
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500, color: '#334155' }}>
         —
       </Typography>
     );
@@ -31,12 +30,11 @@ const BarcodeChips = ({ barcode, size = 'small' }: BarcodeChipsProps) => {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
       <Typography
-        variant="caption"
+        variant="body2"
         sx={{
-          fontFamily: 'Inter, monospace',
-          fontSize: size === 'small' ? '0.78rem' : '0.85rem',
+          fontSize: '0.85rem',
           fontWeight: 500,
-          color: '#1f2937',
+          color: '#334155',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',

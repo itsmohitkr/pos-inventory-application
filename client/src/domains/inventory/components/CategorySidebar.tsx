@@ -73,6 +73,27 @@ interface CategorySidebarProps {
 }
 
 
+const formatItemCount = (count: number) => `${count} ${count === 1 ? 'item' : 'items'}`;
+
+const categoryPrimaryTypographyProps = {
+  sx: {
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    color: '#0f172a',
+    lineHeight: 1.3,
+    textTransform: 'capitalize',
+  },
+};
+
+const categorySecondaryTypographyProps = {
+  sx: {
+    fontSize: '0.75rem',
+    fontWeight: 400,
+    color: '#64748b',
+    lineHeight: 1.3,
+  },
+};
+
 const CategorySidebar = ({
   sortedCategoryTree,
   categoryCounts,
@@ -127,7 +148,12 @@ const CategorySidebar = ({
               <FolderIcon fontSize="small" color="action" />
             )}
           </ListItemIcon>
-          <ListItemText primary={node.name} secondary={`${categoryCounts[node.path] || 0} items`} />
+          <ListItemText
+            primary={node.name}
+            secondary={formatItemCount(categoryCounts[node.path] || 0)}
+            primaryTypographyProps={categoryPrimaryTypographyProps}
+            secondaryTypographyProps={categorySecondaryTypographyProps}
+          />
           {hasChildren && (
             <IconButton
               size="small"
@@ -211,7 +237,12 @@ const CategorySidebar = ({
                 <FolderIcon fontSize="small" color="action" />
               )}
             </ListItemIcon>
-            <ListItemText primary="All Categories" secondary={`${totalCount} items`} />
+            <ListItemText
+              primary="All Categories"
+              secondary={formatItemCount(totalCount)}
+              primaryTypographyProps={categoryPrimaryTypographyProps}
+              secondaryTypographyProps={categorySecondaryTypographyProps}
+            />
           </ListItemButton>
           {hasUncategorized && (
             <ListItemButton
@@ -228,7 +259,12 @@ const CategorySidebar = ({
                   <FolderIcon fontSize="small" color="action" />
                 )}
               </ListItemIcon>
-              <ListItemText primary="Uncategorized" secondary={`${uncategorizedCount} items`} />
+              <ListItemText
+                primary="Uncategorized"
+                secondary={formatItemCount(uncategorizedCount)}
+                primaryTypographyProps={categoryPrimaryTypographyProps}
+                secondaryTypographyProps={categorySecondaryTypographyProps}
+              />
             </ListItemButton>
           )}
           {sortedCategoryTree.map((category) => renderCategoryNode(category))}

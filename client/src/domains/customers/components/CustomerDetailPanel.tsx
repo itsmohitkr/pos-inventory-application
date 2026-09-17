@@ -221,6 +221,7 @@ export const CustomerDetailPanel = ({
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
+                      textTransform: 'capitalize',
                     }}
                   >
                     {customer.name || 'Unnamed Customer'}

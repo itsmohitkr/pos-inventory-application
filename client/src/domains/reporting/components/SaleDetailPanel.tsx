@@ -22,6 +22,12 @@ interface SaleDetailPanelProps {
   onClose: () => void;
 }
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 export const SaleDetailPanel = ({ selectedSale, onClose }: SaleDetailPanelProps) => {
   if (!selectedSale) return null;
 
@@ -251,7 +257,7 @@ export const SaleDetailPanel = ({ selectedSale, onClose }: SaleDetailPanelProps)
                     <TableRow key={item.id} hover sx={{ '&:hover': { bgcolor: '#f8fafc' } }}>
                       <TableCell sx={{ py: 1, px: 1.25 }}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b', fontSize: '0.78rem' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.85rem', textTransform: 'capitalize' }}>
                             {item.productName}
                           </Typography>
                           {returnedQty > 0 && (
@@ -271,7 +277,7 @@ export const SaleDetailPanel = ({ selectedSale, onClose }: SaleDetailPanelProps)
                           )}
                         </Box>
                       </TableCell>
-                      <TableCell align="center" sx={{ py: 1, px: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                      <TableCell align="center" sx={{ py: 1, px: 1, ...columnTypographySx }}>
                         {returnedQty > 0 ? (
                           <Box component="span">
                             <Box component="span" sx={{ textDecoration: 'line-through', opacity: 0.5, mr: 0.5 }}>
@@ -283,16 +289,16 @@ export const SaleDetailPanel = ({ selectedSale, onClose }: SaleDetailPanelProps)
                           item.quantity
                         )}
                       </TableCell>
-                      <TableCell align="right" sx={{ py: 1, px: 1, color: '#64748b', fontSize: '0.75rem' }}>
+                      <TableCell align="right" sx={{ py: 1, px: 1, ...columnTypographySx }}>
                         {item.mrp?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell align="right" sx={{ py: 1, px: 1, color: '#64748b', fontSize: '0.75rem' }}>
+                      <TableCell align="right" sx={{ py: 1, px: 1, ...columnTypographySx }}>
                         {item.costPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell align="right" sx={{ py: 1, px: 1, fontWeight: 600, color: '#1e293b', fontSize: '0.75rem' }}>
+                      <TableCell align="right" sx={{ py: 1, px: 1, ...columnTypographySx }}>
                         {item.sellingPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell align="right" sx={{ py: 1, px: 1, fontWeight: 700, color: '#16a34a', fontSize: '0.75rem' }}>
+                      <TableCell align="right" sx={{ py: 1, px: 1, ...columnTypographySx }}>
                         {item.profit?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell align="center" sx={{ py: 1, px: 1 }}>

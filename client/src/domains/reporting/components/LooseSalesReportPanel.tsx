@@ -44,6 +44,12 @@ interface LooseSalesReportPanelProps {
   onRefresh?: () => void;
 }
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 const LooseSalesReportPanel = ({
   data,
   loading,
@@ -190,7 +196,7 @@ const LooseSalesReportPanel = ({
               columns={[
                 { id: 'sno', label: 'S.NO.', sx: { width: '5%' } },
                 { id: 'createdAt', label: 'DATE & TIME' },
-                { id: 'itemName', label: 'ITEM NAME / NOTES' },
+                { id: 'itemName', label: 'ITEM' },
                 { id: 'price', label: 'PRICE (₹)', align: 'right' },
                 { id: 'actions', label: '', align: 'center', sortable: false, sx: { width: '8%' } },
               ]}
@@ -208,14 +214,14 @@ const LooseSalesReportPanel = ({
               ) : (
                 paginatedData.map((item, index) => (
                   <TableRow key={item.id} hover>
-                    <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontSize: '0.8rem' }}>
+                    <TableCell sx={{ py: 1.25, px: 1.5, ...columnTypographySx, width: '5%' }}>
                       {page * rowsPerPage + index + 1}
                     </TableCell>
                     <TableCell sx={{ py: 1.25, px: 1.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+                      <Typography variant="body2" sx={columnTypographySx}>
                         {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 500 }}>
                         {item.createdAt
                           ? new Date(item.createdAt).toLocaleTimeString([], {
                               hour: '2-digit',
@@ -224,10 +230,10 @@ const LooseSalesReportPanel = ({
                           : ''}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, fontSize: '0.8125rem' }}>
+                    <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, fontSize: '0.85rem', color: 'text.primary', textTransform: 'capitalize' }}>
                       {item.itemName || 'Loose Item'}
                     </TableCell>
-                    <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.8125rem' }}>
+                    <TableCell align="right" sx={{ py: 1.25, px: 1.5, ...columnTypographySx }}>
                       {item.price.toFixed(2)}
                     </TableCell>
                     <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>

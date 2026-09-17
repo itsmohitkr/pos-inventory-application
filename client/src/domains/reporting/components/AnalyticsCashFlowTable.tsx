@@ -30,6 +30,12 @@ interface AnalyticsCashFlowTableProps {
   totalCashBalance: number;
 }
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 const AnalyticsCashFlowTable = ({
   totalSales,
   cashFlowItems,
@@ -174,10 +180,10 @@ const AnalyticsCashFlowTable = ({
               <>
                 {!filterValue && (
                   <TableRow sx={{ bgcolor: 'rgba(22, 163, 74, 0.04)' }}>
-                    <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontSize: '0.8rem' }}>
+                    <TableCell sx={{ py: 1.25, px: 1.5, ...columnTypographySx, width: '5%' }}>
                       -
                     </TableCell>
-                    <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 700, color: '#166534', fontSize: '0.8125rem' }}>
+                    <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#166534', fontSize: '0.85rem' }}>
                       Total Sales (Gross Income)
                     </TableCell>
                     <TableCell
@@ -185,9 +191,9 @@ const AnalyticsCashFlowTable = ({
                       sx={{
                         py: 1.25,
                         px: 1.5,
-                        fontWeight: 700,
+                        fontWeight: 600,
                         color: '#16a34a',
-                        fontSize: '0.875rem',
+                        fontSize: '0.85rem',
                       }}
                     >
                       + {totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -203,21 +209,21 @@ const AnalyticsCashFlowTable = ({
                 )}
                 {paginatedItems.map((item, index) => (
                   <TableRow key={item.id} hover>
-                    <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontSize: '0.8rem' }}>
+                    <TableCell sx={{ py: 1.25, px: 1.5, ...columnTypographySx, width: '5%' }}>
                       {page * rowsPerPage + index + 1}
                     </TableCell>
                     <TableCell sx={{ py: 1.25, px: 1.5 }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e293b', fontSize: '0.8125rem' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.85rem', textTransform: 'capitalize' }}>
                           {item.type === 'Expense' ? 'Expense' : 'Purchase'}: {item.label}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, fontSize: '0.75rem' }}>
+                          <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500, fontSize: '0.75rem' }}>
                             {item.date instanceof Date
                               ? item.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
                               : item.date}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                          <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem' }}>
                             {item.date instanceof Date
                               ? item.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                               : ''}
@@ -225,7 +231,7 @@ const AnalyticsCashFlowTable = ({
                         </Box>
                       </Box>
                     </TableCell>
-                    <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#dc2626', fontWeight: 700, fontSize: '0.8125rem' }}>
+                    <TableCell align="right" sx={{ py: 1.25, px: 1.5, color: '#dc2626', fontWeight: 500, fontSize: '0.85rem' }}>
                       - {item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </TableCell>
                   </TableRow>

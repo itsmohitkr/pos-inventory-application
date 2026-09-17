@@ -21,27 +21,31 @@ interface ExpenseSidebarProps {
   onTabChange: (tab: ExpenseNavTab) => void;
 }
 
+// Same selection treatment as CategorySidebar.tsx's category list (Inventory
+// tab): MUI's own default ListItemButton `.Mui-selected` recipe — a
+// primary-tinted background (alpha(primary.main, 0.08), 0.12 on hover) and a
+// background-color-only transition — rather than a hand-picked color. Kept
+// as explicit constants so the exact same values are reused verbatim across
+// every in-tab sidebar for a consistent nav language app-wide.
 const activeItemSx = {
-  bgcolor: '#0b1d39',
-  color: '#ffffff',
+  bgcolor: 'rgba(11, 29, 57, 0.08)',
   borderRadius: '8px',
   mb: 0.75,
-  transition: 'all 0.15s ease-in-out',
+  transition: 'background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
   whiteSpace: 'nowrap',
-  '&:hover': { bgcolor: '#162b4d' },
-  '& .MuiListItemIcon-root': { color: '#ffffff' },
-  '& .MuiListItemText-primary': { color: '#ffffff', fontWeight: 700, fontSize: '0.88rem', whiteSpace: 'nowrap' },
+  '&:hover': { bgcolor: 'rgba(11, 29, 57, 0.12)' },
+  '& .MuiListItemIcon-root': { color: '#0b1d39' },
+  '& .MuiListItemText-primary': { color: '#475569', fontWeight: 700, fontSize: '0.88rem', whiteSpace: 'nowrap' },
 };
 
 const inactiveItemSx = {
   color: '#475569',
   borderRadius: '8px',
   mb: 0.75,
-  transition: 'all 0.15s ease-in-out',
+  transition: 'background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
   whiteSpace: 'nowrap',
   '&:hover': {
-    bgcolor: '#f1f5f9',
-    color: '#0b1d39',
+    bgcolor: 'rgba(0, 0, 0, 0.04)',
     '& .MuiListItemIcon-root': { color: '#0b1d39' },
   },
   '& .MuiListItemIcon-root': { color: '#64748b' },

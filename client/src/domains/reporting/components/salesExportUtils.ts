@@ -35,8 +35,8 @@ export const exportSalesToPDF = (
   const tableColumn = [
     'Date & Time',
     'Order ID',
-    'Cost Price (Rs)',
-    'Selling Price (Rs)',
+    'Cost (Rs)',
+    'Price (Rs)',
     'Profit (Rs)',
     'Margin',
     'Payment',

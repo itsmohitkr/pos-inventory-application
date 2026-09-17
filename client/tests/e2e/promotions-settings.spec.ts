@@ -23,8 +23,10 @@ test.describe('Promotions and settings flows', () => {
 
     await promotionsPage.goto();
     await promotionsPage.expectThresholdView();
-    await promotionsPage.addThresholdRow(150);
-    await promotionsPage.saveThresholdSettings();
+    // 150 is already seeded by the default settings fixture (see mockFixtures.ts's
+    // promotion_buy_x_get_free config) — use a distinct value so this actually
+    // exercises adding a new rule instead of colliding with the existing one.
+    await promotionsPage.addThresholdRow(300);
 
     await promotionsPage.openScheduledSales();
     await promotionsPage.openCreateSaleDialog();

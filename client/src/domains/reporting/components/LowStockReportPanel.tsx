@@ -47,6 +47,12 @@ interface LowStockReportPanelProps {
   loading?: boolean;
 }
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -442,24 +448,28 @@ const LowStockReportPanel = ({ data, loading }: LowStockReportPanelProps) => {
                       <TableCell padding="checkbox" sx={{ py: 1.25, px: 1.5 }}>
                         <Checkbox size="small" checked={isItemSelected} />
                       </TableCell>
-                      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#64748b', fontSize: '0.78rem', width: '5%', minWidth: '50px' }}>
-                        {page * rowsPerPage + index + 1}
+                      <TableCell sx={{ py: 1.25, px: 1.5, width: '5%', minWidth: '50px', whiteSpace: 'nowrap' }}>
+                        <Typography variant="body2" sx={columnTypographySx}>
+                          {page * rowsPerPage + index + 1}
+                        </Typography>
                       </TableCell>
-                      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>{item.name}</TableCell>
-                      <TableCell sx={{ py: 1.25, px: 1.5, color: 'text.secondary', fontWeight: 500, fontSize: '0.85rem' }}>
-                        {item.category || 'Uncategorized'}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary', textTransform: 'capitalize' }}>
+                          {item.name}
+                        </Typography>
                       </TableCell>
-                      <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
-                        {item.mrp?.toFixed(2) || '0.00'}
+                      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="body2" sx={{ ...columnTypographySx, textTransform: 'capitalize' }}>
+                          {item.category || 'Uncategorized'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
+                        <Typography variant="body2" sx={columnTypographySx}>
+                          {item.mrp?.toFixed(2) || '0.00'}
+                        </Typography>
                       </TableCell>
                       <TableCell align="center" sx={{ py: 1.25, px: 1.5 }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 700,
-                            color: item.totalQuantity === 0 ? '#dc2626' : '#d97706',
-                          }}
-                        >
+                        <Typography variant="body2" sx={columnTypographySx}>
                           {item.totalQuantity}
                         </Typography>
                       </TableCell>

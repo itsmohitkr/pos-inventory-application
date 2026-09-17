@@ -33,6 +33,12 @@ interface ExpenseListTabProps {
   onSelectExpense?: (expense: Expense | null) => void;
 }
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 const ExpenseListTab = ({
   filteredExpenses,
   expenseCategoryFilter, setExpenseCategoryFilter,
@@ -334,46 +340,36 @@ const ExpenseListTab = ({
                 }}
               >
                 <TableCell sx={{ px: 1.5, py: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.82rem', color: 'text.primary' }}>
+                  <Typography variant="body2" sx={columnTypographySx}>
                     {new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem' }}>
                     {new Date(row.date).getFullYear()}
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ px: 1.5, py: 1 }}>
-                  <Chip
-                    label={row.category?.toUpperCase()}
-                    size="small"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: '0.65rem',
-                      bgcolor: '#f8fafc',
-                      color: '#475569',
-                      border: '1px solid #e2e8f0',
-                      height: 20,
-                      borderRadius: '4px',
-                    }}
-                  />
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary', textTransform: 'capitalize' }}>
+                    {row.category || '—'}
+                  </Typography>
                 </TableCell>
                 <TableCell sx={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', px: 1.5, py: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.82rem', color: 'text.primary' }}>
+                  <Typography variant="body2" sx={{ ...columnTypographySx, textTransform: 'capitalize' }}>
                     {row.description}
                   </Typography>
                 </TableCell>
                 <TableCell align="center" sx={{ px: 1.5, py: 1 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase' }}>
+                  <Typography variant="body2" sx={{ ...columnTypographySx, textTransform: 'uppercase' }}>
                     {row.paymentMethod || 'CASH'}
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ px: 1.5, py: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#0b1d39' }}>
+                  <Typography variant="body2" sx={columnTypographySx}>
                     {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ px: 1.5, py: 1 }}>
                   {(row.dueAmount || 0) > 0 ? (
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#ef4444' }}>
+                    <Typography variant="body2" sx={{ ...columnTypographySx, color: '#ef4444' }}>
                       {(row.dueAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </Typography>
                   ) : (
