@@ -216,6 +216,7 @@ const PriceListConfigurationPanel = ({
           </Box>
 
           <Autocomplete
+            autoHighlight
             options={products}
             loading={loadingProducts}
             value={null}
@@ -238,30 +239,32 @@ const PriceListConfigurationPanel = ({
             }}
             isOptionEqualToValue={(option, value) => String(option.id) === String(value?.id)}
             renderOption={(props, option) => {
-              const barcode = getPrimaryBarcode(option);
-              const isAlreadyAdded = selectedRows.some((r) => String(r.product.id) === String(option.id));
-              const { key, ...optionProps } = props;
+              const primaryBarcode = getPrimaryBarcode(option);
               return (
                 <Box
                   component="li"
-                  key={key}
-                  {...optionProps}
-                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.8, px: 1.5 }}
+                  {...props}
+                  key={option.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1,
+                    py: 1,
+                  }}
                 >
-                  <Box sx={{ minWidth: 0, mr: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#0b1d39' }} noWrap>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       {option.name}
                     </Typography>
-                    {barcode && (
-                      <Typography variant="caption" color="text.secondary">
-                        Barcode: {barcode}
-                      </Typography>
-                    )}
+                    <Typography variant="caption" color="text.secondary">
+                      {option.category || 'Uncategorized'}
+                    </Typography>
                   </Box>
-                  {isAlreadyAdded && (
+                  {primaryBarcode && (
                     <Chip
-                      label="Added"
                       size="small"
+                      label={primaryBarcode}
                       sx={{
                         height: 20,
                         fontSize: '0.7rem',
@@ -284,13 +287,15 @@ const PriceListConfigurationPanel = ({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && searchInput.trim()) {
                     const query = searchInput.trim().toLowerCase();
-                    const matchedProduct = products.find(
-                      (p) =>
-                        getPrimaryBarcode(p).toLowerCase() === query ||
-                        (p.sku && String(p.sku).toLowerCase() === query)
-                    );
+                    const matchedProduct = products.find((p) => {
+                      const primary = getPrimaryBarcode(p).toLowerCase();
+                      const multiBarcode = p.barcode && String(p.barcode).split('|').some((b) => b.trim().toLowerCase() === query);
+                      const sku = p.sku && String(p.sku).toLowerCase() === query;
+                      return primary === query || multiBarcode || sku;
+                    });
                     if (matchedProduct) {
                       e.preventDefault();
+                      e.stopPropagation();
                       handleAddProduct(matchedProduct);
                       setSearchInput('');
                     }

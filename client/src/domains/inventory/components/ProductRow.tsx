@@ -21,6 +21,12 @@ const isUpdatedToday = (dateStr?: string | null) => {
     d.getDate() === today.getDate();
 };
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 interface ProductRowProps {
   product: Product;
   index: number;
@@ -57,8 +63,10 @@ const ProductRow = React.memo(
           '& td': { px: 1.5 },
         }}
       >
-        <TableCell sx={{ px: 1.5, fontWeight: 600, color: 'text.secondary', width: '5%', minWidth: '55px', whiteSpace: 'nowrap' }}>
-          {index + 1}
+        <TableCell sx={{ px: 1.5, width: '5%', minWidth: '55px', whiteSpace: 'nowrap' }}>
+          <Typography variant="body2" sx={columnTypographySx}>
+            {index + 1}
+          </Typography>
         </TableCell>
         <TableCell sx={{ px: 1.5, width: '37%', minWidth: '220px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -69,21 +77,22 @@ const ProductRow = React.memo(
                 sx={{ 
                   fontWeight: 600, 
                   color: 'text.primary',
+                  textTransform: 'capitalize',
                 }}
               >
                 {product.name}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
                 {product.category || 'Uncategorized'}
               </Typography>
             </Box>
           </Box>
         </TableCell>
         <TableCell sx={{ px: 1.5, width: '28%', minWidth: '190px' }}>
-          <BarcodeChips barcode={product.barcode} size="small" />
+          <BarcodeChips barcode={product.barcode} />
         </TableCell>
         <TableCell sx={{ whiteSpace: 'nowrap', px: 1.5, width: '10%', minWidth: '85px' }}>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: statusColor }}>
+          <Typography variant="body2" sx={columnTypographySx}>
             {product.total_stock}
           </Typography>
         </TableCell>
@@ -91,7 +100,7 @@ const ProductRow = React.memo(
           {product.lastUpdatedAt ? (
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: updatedToday ? '#059669' : 'text.primary' }}>
+                <Typography variant="body2" sx={columnTypographySx}>
                   {new Date(product.lastUpdatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </Typography>
                 {updatedToday && (
@@ -102,12 +111,12 @@ const ProductRow = React.memo(
                   />
                 )}
               </Box>
-              <Typography variant="caption" sx={{ color: updatedToday ? '#10b981' : 'text.secondary' }}>
+              <Typography variant="caption" color="text.secondary">
                 {new Date(product.lastUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Typography>
             </Box>
           ) : (
-            <Typography variant="body2" color="text.secondary">—</Typography>
+            <Typography variant="body2" sx={columnTypographySx}>—</Typography>
           )}
         </TableCell>
       </TableRow>

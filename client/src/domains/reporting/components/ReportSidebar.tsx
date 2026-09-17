@@ -9,7 +9,6 @@ import {
   ListItemIcon,
   ListItemText,
   Collapse,
-  Divider,
 } from '@mui/material';
 import {
   CalendarToday as CalendarIcon,
@@ -66,24 +65,23 @@ const REPORT_ITEMS = [
   },
 ];
 
-// Styles for Parent / Top-Level active items (Primary Highlight)
+// Same selection treatment as CategorySidebar.tsx's category list (Inventory
+// tab): MUI's own default ListItemButton `.Mui-selected` recipe — a
+// primary-tinted background (alpha(primary.main, 0.08), 0.12 on hover) and a
+// background-color-only transition — rather than a hand-picked color. Kept
+// as an explicit constant (instead of just the `selected` prop) so the exact
+// same values are reused verbatim across every in-tab sidebar for a
+// consistent nav language app-wide.
 const parentActiveSx = {
-  bgcolor: '#0b1d39',
-  color: '#ffffff',
-  '&:hover': { bgcolor: '#162b4d' },
-  '& .MuiListItemIcon-root': { color: '#ffffff' },
-  '& .MuiListItemText-primary': { color: '#ffffff', fontWeight: 700 },
-  '& .MuiSvgIcon-root': { color: '#ffffff' },
+  bgcolor: 'rgba(11, 29, 57, 0.08)',
+  '&:hover': { bgcolor: 'rgba(11, 29, 57, 0.12)' },
 };
 
-// Styles for Active Child items (Distinct Visual Hierarchy)
+// Active Child items — identical recipe, indented one level deeper.
 const childActiveSx = {
-  bgcolor: '#f1f5f9',
-  color: '#0b1d39',
-  borderLeft: '4px solid #0b1d39',
+  bgcolor: 'rgba(11, 29, 57, 0.08)',
   borderRadius: '0 4px 4px 0',
-  '&:hover': { bgcolor: '#e2e8f0' },
-  '& .MuiListItemText-primary': { color: '#0b1d39', fontWeight: 800 },
+  '&:hover': { bgcolor: 'rgba(11, 29, 57, 0.12)' },
 };
 
 interface ReportSidebarProps {
@@ -144,7 +142,7 @@ const ReportSidebar = ({ reportType, onReportTypeChange }: ReportSidebarProps) =
                     }}
                     sx={{
                       borderRadius: 1,
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transition: 'background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                       '&.Mui-selected': parentActiveSx,
                       px: 1.5,
                       minHeight: 44,
@@ -153,21 +151,21 @@ const ReportSidebar = ({ reportType, onReportTypeChange }: ReportSidebarProps) =
                     <ListItemIcon
                       sx={{
                         minWidth: 36,
-                        color: isParentSelected ? '#ffffff' : '#64748b',
+                        color: isParentSelected ? '#0b1d39' : '#64748b',
                       }}
                     >
                       {IconComponent && <IconComponent sx={{ fontSize: '1.25rem' }} />}
                     </ListItemIcon>
-                    <ListItemText 
-                      primary={item.label} 
-                      primaryTypographyProps={{ 
-                        fontWeight: isParentSelected ? 700 : 500, 
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{
+                        fontWeight: isParentSelected ? 700 : 500,
                         fontSize: '0.9rem',
-                        color: isParentSelected ? '#ffffff' : '#475467'
-                      }} 
+                        color: '#475467'
+                      }}
                     />
                     {hasChildren && (
-                      <Box sx={{ display: 'flex', color: isParentSelected ? '#ffffff' : '#94a3b8' }}>
+                      <Box sx={{ display: 'flex', color: isParentSelected ? '#0b1d39' : '#94a3b8' }}>
                         {isGroupOpen ? <ExpandLess sx={{ fontSize: '1.2rem' }} /> : <ExpandMore sx={{ fontSize: '1.2rem' }} />}
                       </Box>
                     )}
@@ -189,19 +187,20 @@ const ReportSidebar = ({ reportType, onReportTypeChange }: ReportSidebarProps) =
                               mb: 0.5,
                               mr: 1,
                               ml: 1,
-                              borderRadius: '4px',
+                              transition: 'background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                               ...(isChildActive ? childActiveSx : {
+                                borderRadius: '4px',
                                 '&:hover': { bgcolor: '#f8fafc' },
-                                '& .MuiListItemText-primary': { color: '#64748b', fontWeight: 500 }
                               }),
                             }}
                           >
-                            <ListItemText 
-                              primary={child.label} 
-                              primaryTypographyProps={{ 
+                            <ListItemText
+                              primary={child.label}
+                              primaryTypographyProps={{
                                 fontSize: '0.85rem',
-                                color: isChildActive ? '#0b1d39' : 'inherit'
-                              }} 
+                                fontWeight: isChildActive ? 700 : 500,
+                                color: '#475467'
+                              }}
                             />
                           </ListItemButton>
                         );

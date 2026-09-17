@@ -8,22 +8,47 @@ interface PromotionSidebarProps {
   onChangeTab: (tab: string) => void;
 }
 
+// Same selection treatment as CategorySidebar.tsx's category list (Inventory
+// tab): MUI's own default ListItemButton `.Mui-selected` recipe — a
+// primary-tinted background (alpha(primary.main, 0.08), 0.12 on hover) and a
+// background-color-only transition — rather than a hand-picked color. Kept
+// as explicit constants so the exact same values are reused verbatim across
+// every in-tab sidebar (Reports, Expenses, Promotions, Store Settings) for a
+// consistent nav language app-wide.
+const navItemSx = (isActive: boolean) => ({
+  justifyContent: 'flex-start',
+  py: 1.25,
+  px: 2,
+  borderRadius: '8px',
+  bgcolor: isActive ? 'rgba(11, 29, 57, 0.08)' : 'transparent',
+  color: isActive ? '#0b1d39' : '#334155',
+  fontWeight: isActive ? 600 : 500,
+  fontSize: '0.85rem',
+  textTransform: 'none' as const,
+  transition: 'background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&:hover': {
+    bgcolor: isActive ? 'rgba(11, 29, 57, 0.12)' : '#f8fafc',
+  },
+});
+
+const navIconSx = (isActive: boolean) => ({ color: isActive ? '#0b1d39' : '#64748b' });
+
 const PromotionSidebar = ({ activeTab, onChangeTab }: PromotionSidebarProps) => (
   <Paper
     elevation={0}
     sx={{
-      width: 280,
+      width: 260,
       border: '1px solid #e2e8f0',
       bgcolor: '#ffffff',
       display: 'flex',
       flexDirection: 'column',
-      borderRadius: '12px',
+      borderRadius: '10px',
       overflow: 'hidden',
       flexShrink: 0,
     }}
   >
     <Box sx={{ p: 2, bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-      <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', letterSpacing: '1px', textTransform: 'uppercase' }}>
+      <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', letterSpacing: '0.5px', textTransform: 'uppercase', fontSize: '0.75rem', display: 'block' }}>
         PROMOTION MODULES
       </Typography>
     </Box>
@@ -31,68 +56,24 @@ const PromotionSidebar = ({ activeTab, onChangeTab }: PromotionSidebarProps) => 
       <Button
         fullWidth
         onClick={() => onChangeTab('threshold')}
-        sx={{
-          justifyContent: 'flex-start',
-          py: 1.5,
-          px: 2,
-          borderRadius: '10px',
-          bgcolor: activeTab === 'threshold' ? '#0f172a' : 'transparent',
-          color: activeTab === 'threshold' ? '#ffffff' : '#475569',
-          fontWeight: 800,
-          textTransform: 'none',
-          '&:hover': { 
-            bgcolor: activeTab === 'threshold' ? '#1e293b' : '#f1f5f9',
-            color: activeTab === 'threshold' ? '#ffffff' : '#0f172a'
-          },
-          transition: 'all 0.2s ease'
-        }}
-        startIcon={
-          <SettingsIcon sx={{ color: activeTab === 'threshold' ? '#ffffff' : '#94a3b8' }} />
-        }
+        sx={navItemSx(activeTab === 'threshold')}
+        startIcon={<SettingsIcon sx={navIconSx(activeTab === 'threshold')} />}
       >
         Order Thresholding
       </Button>
       <Button
         fullWidth
         onClick={() => onChangeTab('sales')}
-        sx={{
-          justifyContent: 'flex-start',
-          py: 1.5,
-          px: 2,
-          borderRadius: '10px',
-          bgcolor: activeTab === 'sales' ? '#0f172a' : 'transparent',
-          color: activeTab === 'sales' ? '#ffffff' : '#475569',
-          fontWeight: 800,
-          textTransform: 'none',
-          '&:hover': { 
-            bgcolor: activeTab === 'sales' ? '#1e293b' : '#f1f5f9',
-            color: activeTab === 'sales' ? '#ffffff' : '#0f172a'
-          },
-          transition: 'all 0.2s ease'
-        }}
-        startIcon={<CalendarIcon sx={{ color: activeTab === 'sales' ? '#ffffff' : '#94a3b8' }} />}
+        sx={navItemSx(activeTab === 'sales')}
+        startIcon={<CalendarIcon sx={navIconSx(activeTab === 'sales')} />}
       >
         Scheduled Sales
       </Button>
       <Button
         fullWidth
         onClick={() => onChangeTab('category-sales')}
-        sx={{
-          justifyContent: 'flex-start',
-          py: 1.5,
-          px: 2,
-          borderRadius: '10px',
-          bgcolor: activeTab === 'category-sales' ? '#0f172a' : 'transparent',
-          color: activeTab === 'category-sales' ? '#ffffff' : '#475569',
-          fontWeight: 800,
-          textTransform: 'none',
-          '&:hover': { 
-            bgcolor: activeTab === 'category-sales' ? '#1e293b' : '#f1f5f9',
-            color: activeTab === 'category-sales' ? '#ffffff' : '#0f172a'
-          },
-          transition: 'all 0.2s ease'
-        }}
-        startIcon={<CalendarIcon sx={{ color: activeTab === 'category-sales' ? '#ffffff' : '#94a3b8' }} />}
+        sx={navItemSx(activeTab === 'category-sales')}
+        startIcon={<CalendarIcon sx={navIconSx(activeTab === 'category-sales')} />}
       >
         Category Sales
       </Button>

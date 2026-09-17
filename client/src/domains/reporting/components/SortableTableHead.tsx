@@ -59,12 +59,15 @@ const SortableTableHead = ({ columns, sortConfig, requestSort }: SortableTableHe
                 onClick={() => requestSort(col.id, col.getter)}
                 sx={{
                   color: 'inherit !important',
+                  flexDirection: 'row !important',
                   '&.MuiTableSortLabel-active': {
                     color: '#0b1d39 !important',
                   },
                   '& .MuiTableSortLabel-icon': {
                     color: '#0b1d39 !important',
                     opacity: 1,
+                    marginLeft: '4px !important',
+                    marginRight: '0 !important',
                   },
                 }}
               >

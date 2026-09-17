@@ -248,6 +248,7 @@ const ProductDetailPanel = ({
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    textTransform: 'capitalize',
                   }}
                 >
                   {displayProduct.name}

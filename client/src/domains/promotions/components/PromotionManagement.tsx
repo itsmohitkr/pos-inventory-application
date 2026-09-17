@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type {
-  ProductPriceInfo,
   Promotion,
-  PromotionItem,
   PromotionFormState,
   PromoSettings,
   PromoThresholdConfig,
@@ -22,44 +20,19 @@ import { buildInclusiveDateRange } from '@/shared/utils/isoDate';
 import PromotionSidebar from '@/domains/promotions/components/PromotionSidebar';
 import ThresholdSettingsPanel from '@/domains/promotions/components/ThresholdSettingsPanel';
 import ScheduledSalesPanel from '@/domains/promotions/components/ScheduledSalesPanel';
-import PromotionFormDialog from '@/domains/promotions/components/PromotionFormDialog';
 import CategorySalesPanel from '@/domains/promotions/components/CategorySalesPanel';
 import CategorySaleFormDialog from '@/domains/promotions/components/CategorySaleFormDialog';
 
-/**
- * Promotion form state. Spread directly into the create/update payload, so
- * every field here reaches the API.
- *
- * `isActive` is present only in edit mode — handleEditOpen carries the existing
- * value through, while creating a promotion omits it and lets the server apply
- * its default.
- */
 const PromotionManagement = () => {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [categorySales, setCategorySales] = useState<CategorySale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('threshold');
 
   // Category Sale state
   const [openCategorySaleDialog, setOpenCategorySaleDialog] = useState(false);
   const [categorySaleToEdit, setCategorySaleToEdit] = useState<CategorySale | null>(null);
-
-  // Form state
-  const [formData, setFormData] = useState<PromotionFormState>({
-    name: '',
-    startDate: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD
-    endDate: new Date().toLocaleDateString('en-CA'),
-    items: [],
-  });
-
-  // Product selection state
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [productPriceInfo, setProductPriceInfo] = useState<ProductPriceInfo | null>(null);
-  const [promoPrice, setPromoPrice] = useState('');
 
   const [promoSettings, setPromoSettings] = useState<PromoSettings>({
     enabled: false,
@@ -179,17 +152,20 @@ const PromotionManagement = () => {
     }
   }
 
-  const handleSavePromoSettings = async () => {
+  const handleSavePromoSettings = async (overrideSettings?: PromoSettings, notify = true) => {
     try {
+      const settingsToSave = overrideSettings || promoSettings;
       await settingsService.updateSettings({
         key: 'promotion_buy_x_get_free',
-        value: promoSettings,
+        value: settingsToSave,
       });
-      setSnackbar({
-        open: true,
-        message: 'Promotion settings saved successfully!',
-        severity: 'success',
-      });
+      if (notify) {
+        setSnackbar({
+          open: true,
+          message: 'Changes have been applied successfully!',
+          severity: 'success',
+        });
+      }
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'promotions-save-settings' } });
       console.error('Failed to save promotion settings:', error);
@@ -197,48 +173,86 @@ const PromotionManagement = () => {
     }
   };
 
-  const handleAddThreshold = () => {
-    const val = parseInt(newThreshold);
+  const handleTogglePromoEnabled = (enabled: boolean) => {
+    const updated = { ...promoSettings, enabled };
+    setPromoSettings(updated);
+    handleSavePromoSettings(updated, true);
+  };
+
+  const handleAddThreshold = (customRule?: Partial<PromoThresholdConfig>) => {
+    const val = customRule?.threshold ?? parseInt(newThreshold);
     if (isNaN(val) || val <= 0) return;
 
     const currentConfig = promoSettings.config || [];
-    if (currentConfig.some((c) => c.threshold === val)) return;
+    if (currentConfig.some((c) => c.threshold === val)) {
+      setSnackbar({
+        open: true,
+        message: `Rule for ₹${val.toLocaleString()} already exists`,
+        severity: 'warning',
+      });
+      return;
+    }
 
     const newEntry: PromoThresholdConfig = {
       threshold: val,
-      isActive: false,
-      profitPercentage: 20,
-      minCostPrice: 0,
-      maxCostPrice: null,
-      allowedGroups: [],
-      disallowedGroups: [],
-      sortBySales: 'none',
-      maxGiftsToShow: 5,
+      isActive: customRule?.isActive ?? true,
+      profitPercentage: customRule?.profitPercentage ?? 20,
+      minCostPrice: customRule?.minCostPrice ?? 0,
+      maxCostPrice: customRule?.maxCostPrice ?? null,
+      allowedGroups: customRule?.allowedGroups ?? [],
+      disallowedGroups: customRule?.disallowedGroups ?? [],
+      sortBySales: customRule?.sortBySales ?? 'none',
+      maxGiftsToShow: customRule?.maxGiftsToShow ?? 5,
     };
 
-    setPromoSettings((prev) => ({
-      ...prev,
-      config: [...(prev.config || []), newEntry].sort((a, b) => a.threshold - b.threshold),
-    }));
+    const updated: PromoSettings = {
+      ...promoSettings,
+      config: [...currentConfig, newEntry].sort((a, b) => a.threshold - b.threshold),
+    };
+    setPromoSettings(updated);
+    handleSavePromoSettings(updated, true);
     setNewThreshold('');
   };
 
   const handleRemoveThreshold = (threshold: number) => {
-    setPromoSettings((prev) => ({
-      ...prev,
-      config: (prev.config || []).filter((c) => c.threshold !== threshold),
-    }));
+    const updated: PromoSettings = {
+      ...promoSettings,
+      config: (promoSettings.config || []).filter((c) => c.threshold !== threshold),
+    };
+    setPromoSettings(updated);
+    handleSavePromoSettings(updated, true);
   };
 
   const handleUpdateConfig = (
     threshold: number,
     field: keyof PromoThresholdConfig,
-    value: unknown
+    value: unknown,
+    autoSave = false
   ) => {
-    setPromoSettings((prev) => ({
-      ...prev,
-      config: prev.config.map((c) => (c.threshold === threshold ? { ...c, [field]: value } : c)),
-    }));
+    const updated: PromoSettings = {
+      ...promoSettings,
+      config: (promoSettings.config || []).map((c) =>
+        c.threshold === threshold ? { ...c, [field]: value } : c
+      ),
+    };
+    setPromoSettings(updated);
+    if (autoSave) {
+      handleSavePromoSettings(updated, true);
+    }
+  };
+
+  const handleSaveRuleConfig = (
+    originalThreshold: number,
+    updatedRule: PromoThresholdConfig
+  ) => {
+    const updated: PromoSettings = {
+      ...promoSettings,
+      config: (promoSettings.config || [])
+        .map((c) => (c.threshold === originalThreshold ? updatedRule : c))
+        .sort((a, b) => a.threshold - b.threshold),
+    };
+    setPromoSettings(updated);
+    handleSavePromoSettings(updated, true);
   };
 
   async function fetchPromotions() {
@@ -273,172 +287,118 @@ const PromotionManagement = () => {
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  const handleOpenDialog = () => {
-    setIsEditMode(false);
-    setEditId(null);
-    setFormData({
-      name: '',
-      startDate: new Date().toLocaleDateString('en-CA'),
-      endDate: new Date().toLocaleDateString('en-CA'),
-      items: [],
-    });
-    setOpenDialog(true);
-  };
-
-  const handleEditOpen = async (promo: Promotion) => {
-    setIsEditMode(true);
-    setEditId(promo.id);
-
-    // Convert ISO dates to YYYY-MM-DD
-    const start = promo.startDate.split('T')[0];
-    const end = promo.endDate.split('T')[0];
-
-    // Fetch current pricing for the items in the promotion
-    const enrichedItems = await Promise.all(
-      promo.items.map(async (item: PromotionItem) => {
-        try {
-          const data = await posService.fetchPromotionProductOptions(item.productId);
-          return {
-            productId: item.productId,
-            productName: item.product?.name || 'Unknown Product',
-            promoPrice: item.promoPrice,
-            mrp: data.mrp,
-            costPrice: data.costPrice,
-            sellingPrice: data.sellingPrice,
-          };
-        } catch {
-          return {
-            productId: item.productId,
-            productName: item.product?.name || 'Unknown Product',
-            promoPrice: item.promoPrice,
-            mrp: 0,
-            costPrice: 0,
-            sellingPrice: 0,
-          };
-        }
-      })
-    );
-
-    setFormData({
-      name: promo.name,
-      startDate: start,
-      endDate: end,
-      isActive: promo.isActive,
-      items: enrichedItems,
-    });
-
-    setOpenDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setSelectedProduct(null);
-    setProductPriceInfo(null);
-    setPromoPrice('');
-  };
-
-  const handleProductSelect = async (
-    event: React.SyntheticEvent,
-    newValue: Product | null
-  ) => {
-    setSelectedProduct(newValue);
-    if (newValue) {
-      try {
-        const data = await posService.fetchPromotionProductOptions(newValue.id);
-        setProductPriceInfo(data);
-        setPromoPrice(data.sellingPrice);
-      } catch (error) {
-        Sentry.captureException(error, { tags: { feature: 'promotions-fetch-product-pricing' } });
-        console.error('Failed to fetch product pricing:', error);
-      }
-    } else {
-      setProductPriceInfo(null);
-      setPromoPrice('');
-    }
-  };
-
-  const handleAddItem = () => {
-    if (!selectedProduct || !promoPrice || !productPriceInfo) return;
-
-    const newItem = {
-      productId: selectedProduct.id,
-      productName: selectedProduct.name,
-      promoPrice: parseFloat(promoPrice),
-      mrp: productPriceInfo.mrp,
-      costPrice: productPriceInfo.costPrice,
-      sellingPrice: productPriceInfo.sellingPrice,
-    };
-
-    setFormData((prev) => ({
-      ...prev,
-      items: [...prev.items, newItem],
-    }));
-
-    setSelectedProduct(null);
-    setProductPriceInfo(null);
-    setPromoPrice('');
-  };
-
-  const handleRemoveItem = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.startDate || !formData.endDate) {
+  const handleCreatePromotion = async (
+    promoData: PromotionFormState
+  ): Promise<Promotion | null> => {
+    if (!promoData.startDate || !promoData.endDate) {
       setSnackbar({
         open: true,
         message: 'Please select both start and end dates',
         severity: 'error',
       });
-      return;
+      return null;
     }
 
-    const range = buildInclusiveDateRange(formData.startDate, formData.endDate);
+    const range = buildInclusiveDateRange(promoData.startDate, promoData.endDate);
     if (!range) {
       setSnackbar({ open: true, message: 'Invalid date format selected', severity: 'error' });
-      return;
+      return null;
     }
 
     try {
       const submissionData = {
-        ...formData,
+        ...promoData,
         startDate: range.start,
         endDate: range.end,
       };
 
-      if (isEditMode && editId) {
-        await posService.updatePromotion(editId, submissionData);
-      } else {
-        await posService.createPromotion(submissionData);
-      }
-      fetchPromotions();
-      handleCloseDialog();
+      const res = await posService.createPromotion(submissionData);
+      const createdPromo = (res && typeof res === 'object' && 'data' in res ? res.data : res) as Promotion;
+      setSnackbar({
+        open: true,
+        message: 'Changes have been applied successfully!',
+        severity: 'success',
+      });
+      await fetchPromotions();
+      return createdPromo || null;
     } catch (error) {
-      Sentry.captureException(error, { tags: { feature: 'promotions-save' } });
-      console.error('Failed to save promotion:', error);
+      Sentry.captureException(error, { tags: { feature: 'promotions-create' } });
+      console.error('Failed to create promotion:', error);
+      setSnackbar({ open: true, message: 'Failed to create promotion', severity: 'error' });
+      return null;
     }
   };
 
-  const handleDeletePromotion = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this promotion?')) return;
+  const handleUpdatePromotion = async (
+    id: number,
+    promoData: PromotionFormState
+  ): Promise<boolean> => {
+    if (!promoData.startDate || !promoData.endDate) {
+      setSnackbar({
+        open: true,
+        message: 'Please select both start and end dates',
+        severity: 'error',
+      });
+      return false;
+    }
+
+    const range = buildInclusiveDateRange(promoData.startDate, promoData.endDate);
+    if (!range) {
+      setSnackbar({ open: true, message: 'Invalid date format selected', severity: 'error' });
+      return false;
+    }
+
+    try {
+      const submissionData = {
+        ...promoData,
+        startDate: range.start,
+        endDate: range.end,
+      };
+
+      await posService.updatePromotion(id, submissionData);
+      setSnackbar({
+        open: true,
+        message: 'Changes have been applied successfully!',
+        severity: 'success',
+      });
+      fetchPromotions();
+      return true;
+    } catch (error) {
+      Sentry.captureException(error, { tags: { feature: 'promotions-update' } });
+      console.error('Failed to update promotion:', error);
+      setSnackbar({ open: true, message: 'Failed to update promotion', severity: 'error' });
+      return false;
+    }
+  };
+
+  const handleDeletePromotion = async (id: number, skipConfirm = false) => {
+    if (!skipConfirm && !window.confirm('Are you sure you want to delete this promotion?')) return;
     try {
       await posService.deletePromotion(id);
+      setSnackbar({
+        open: true,
+        message: 'Sale event removed successfully',
+        severity: 'success',
+      });
       fetchPromotions();
     } catch (error) {
       Sentry.captureException(error, { tags: { feature: 'promotions-delete' } });
       console.error('Failed to delete promotion:', error);
+      setSnackbar({ open: true, message: 'Failed to delete promotion', severity: 'error' });
     }
   };
 
-  const isPromotionActive = (promo: Promotion) => {
+  const isPromotionActive = useCallback((promo: Promotion) => {
     const now = new Date();
     const start = new Date(promo.startDate);
     const end = new Date(promo.endDate);
     return promo.isActive && now >= start && now <= end;
-  };
+  }, []);
+
+  const activePromotionCount = useMemo(
+    () => promotions.filter(isPromotionActive).length,
+    [promotions, isPromotionActive]
+  );
 
   return (
     <Box
@@ -466,20 +426,20 @@ const PromotionManagement = () => {
         }}
       >
         <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#0b1d39' }}>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, letterSpacing: -0.3, color: '#0b1d39' }}>
             Promotions & Campaigns
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
             Schedule temporary price reductions and create automated sales events.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Box sx={{ textAlign: 'right', mr: 2 }}>
-            <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', display: 'block', letterSpacing: '0.5px' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', letterSpacing: '0.5px', fontSize: '0.75rem' }}>
               ACTIVE EVENTS
             </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: '#0b1d39', lineHeight: 1 }}>
-              {promotions.filter(isPromotionActive).length}
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#0b1d39', lineHeight: 1 }}>
+              {activePromotionCount}
             </Typography>
           </Box>
         </Stack>
@@ -496,19 +456,19 @@ const PromotionManagement = () => {
             display: 'flex',
             flexDirection: 'column',
             minWidth: 0,
-            overflow: 'auto',
+            overflow: 'hidden',
+            height: '100%',
           }}
         >
           {activeTab === 'threshold' && (
             <ThresholdSettingsPanel
               promoSettings={promoSettings}
               setPromoSettings={setPromoSettings}
-              newThreshold={newThreshold}
-              setNewThreshold={setNewThreshold}
               categories={categories}
-              onSave={handleSavePromoSettings}
+              onToggleEnabled={handleTogglePromoEnabled}
               onAddThreshold={handleAddThreshold}
               onUpdateConfig={handleUpdateConfig}
+              onSaveRuleConfig={handleSaveRuleConfig}
               onRemoveThreshold={handleRemoveThreshold}
             />
           )}
@@ -516,9 +476,10 @@ const PromotionManagement = () => {
           {activeTab === 'sales' && (
             <ScheduledSalesPanel
               promotions={promotions}
-              onCreate={handleOpenDialog}
-              onEdit={handleEditOpen}
-              onDelete={handleDeletePromotion}
+              products={products}
+              onCreatePromotion={handleCreatePromotion}
+              onSavePromotion={handleUpdatePromotion}
+              onDeletePromotion={(id) => handleDeletePromotion(id, true)}
               isPromotionActive={isPromotionActive}
             />
           )}
@@ -540,23 +501,6 @@ const PromotionManagement = () => {
           )}
         </Box>
       </Box>
-
-      <PromotionFormDialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        isEditMode={isEditMode}
-        formData={formData}
-        setFormData={setFormData}
-        products={products}
-        selectedProduct={selectedProduct}
-        onProductSelect={handleProductSelect}
-        productPriceInfo={productPriceInfo}
-        promoPrice={promoPrice}
-        setPromoPrice={setPromoPrice}
-        onAddItem={handleAddItem}
-        onRemoveItem={handleRemoveItem}
-        onSubmit={handleSubmit}
-      />
 
       <CategorySaleFormDialog
         open={openCategorySaleDialog}

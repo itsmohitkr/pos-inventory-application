@@ -32,6 +32,12 @@ interface SalesHistoryRowProps {
   onSelectSale: (sale: ReportSale | null) => void;
 }
 
+const columnTypographySx = {
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  color: '#334155',
+};
+
 const SalesHistoryRow = ({ sale, index, isSelected, onSelectSale }: SalesHistoryRowProps) => {
   const refundStatus = getRefundStatus(sale.items);
   const display = getStatusDisplay(refundStatus);
@@ -51,22 +57,21 @@ const SalesHistoryRow = ({ sale, index, isSelected, onSelectSale }: SalesHistory
         sx={{
           py: 1.25,
           px: 1.5,
-          fontWeight: 600,
-          color: '#64748b',
-          fontSize: '0.78rem',
           width: '5%',
           minWidth: '50px',
           whiteSpace: 'nowrap',
           borderLeft: isSelected ? '3px solid #0b1d39' : '3px solid transparent',
         }}
       >
-        {index + 1}
+        <Typography variant="body2" sx={columnTypographySx}>
+          {index + 1}
+        </Typography>
       </TableCell>
       <TableCell sx={{ py: 1.25, px: 1.5 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
-          {sale?.createdAt ? new Date(sale.createdAt).toLocaleDateString() : 'N/A'}
+        <Typography variant="body2" sx={columnTypographySx}>
+          {sale?.createdAt ? new Date(sale.createdAt).toLocaleDateString() : '—'}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem' }}>
           {sale?.createdAt
             ? new Date(sale.createdAt).toLocaleTimeString([], {
                 hour: '2-digit',
@@ -75,15 +80,23 @@ const SalesHistoryRow = ({ sale, index, isSelected, onSelectSale }: SalesHistory
             : ''}
         </Typography>
       </TableCell>
-      <TableCell sx={{ py: 1.25, px: 1.5, fontWeight: 600, fontSize: '0.85rem' }}>#{sale.id}</TableCell>
-      <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>
-        {cost.toFixed(2)}
-      </TableCell>
-      <TableCell align="right" sx={{ py: 1.25, px: 1.5, fontWeight: 700, fontSize: '0.85rem' }}>
-        {(sale?.netTotalAmount || 0).toFixed(2)}
+      <TableCell sx={{ py: 1.25, px: 1.5 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', color: 'text.primary' }}>
+          #{sale.id}
+        </Typography>
       </TableCell>
       <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
-        <Typography sx={{ color: '#16a34a', fontWeight: 700, fontSize: '0.85rem' }}>
+        <Typography variant="body2" sx={columnTypographySx}>
+          {cost.toFixed(2)}
+        </Typography>
+      </TableCell>
+      <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
+        <Typography variant="body2" sx={columnTypographySx}>
+          {(sale?.netTotalAmount || 0).toFixed(2)}
+        </Typography>
+      </TableCell>
+      <TableCell align="right" sx={{ py: 1.25, px: 1.5 }}>
+        <Typography variant="body2" sx={columnTypographySx}>
           {sale.profit.toFixed(2)}
         </Typography>
       </TableCell>
@@ -265,12 +278,12 @@ const SalesHistory = ({
                 { id: 'id', label: 'ORDER ID', sx: { width: '11%' } },
                 {
                   id: 'cost',
-                  label: 'COST PRICE (₹)',
+                  label: 'COST (₹)',
                   align: 'right',
                   sx: { width: '14%' },
                   getter: (sale) => (sale.netTotalAmount || 0) - (sale.profit || 0),
                 },
-                { id: 'netTotalAmount', label: 'SELLING PRICE (₹)', align: 'right', sx: { width: '14%' } },
+                { id: 'netTotalAmount', label: 'PRICE (₹)', align: 'right', sx: { width: '14%' } },
                 { id: 'profit', label: 'PROFIT (₹)', align: 'right', sx: { width: '13%' } },
                 {
                   id: 'margin',
