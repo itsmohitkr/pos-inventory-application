@@ -19,8 +19,11 @@ export const parseRegMachineGuid = (stdout: string): string | null => {
 
 const runFile = (file: string, args: string[]): Promise<string> =>
   new Promise((resolve, reject) => {
-    execFile(file, args, { timeout: EXEC_TIMEOUT_MS, windowsHide: true, encoding: 'utf8' }, (error, stdout) =>
-      error ? reject(error) : resolve(stdout)
+    execFile(
+      file,
+      args,
+      { timeout: EXEC_TIMEOUT_MS, windowsHide: true, encoding: 'utf8' },
+      (error, stdout) => (error ? reject(error) : resolve(stdout))
     );
   });
 
@@ -47,16 +50,25 @@ const defaultDeps = (): MachineIdDeps => ({
 });
 
 /** Returns the OS-level machine identifier, or null when it cannot be read (the caller then falls back). */
-export const readMachineId = async (overrides: Partial<MachineIdDeps> = {}): Promise<string | null> => {
+export const readMachineId = async (
+  overrides: Partial<MachineIdDeps> = {}
+): Promise<string | null> => {
   const deps = { ...defaultDeps(), ...overrides };
   try {
     if (deps.platform === 'darwin') {
-      return parseIoregPlatformUuid(await deps.run('/usr/sbin/ioreg', ['-rd1', '-c', 'IOPlatformExpertDevice']));
+      return parseIoregPlatformUuid(
+        await deps.run('/usr/sbin/ioreg', ['-rd1', '-c', 'IOPlatformExpertDevice'])
+      );
     }
     if (deps.platform === 'win32') {
       const reg = path.win32.join(deps.systemRoot, 'System32', 'reg.exe');
       return parseRegMachineGuid(
-        await deps.run(reg, ['query', 'HKLM\\SOFTWARE\\Microsoft\\Cryptography', '/v', 'MachineGuid'])
+        await deps.run(reg, [
+          'query',
+          'HKLM\\SOFTWARE\\Microsoft\\Cryptography',
+          '/v',
+          'MachineGuid',
+        ])
       );
     }
     for (const file of ['/etc/machine-id', '/var/lib/dbus/machine-id']) {

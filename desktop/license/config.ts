@@ -29,7 +29,10 @@ const isLocalHttp = (url: URL): boolean =>
  * are ignored in packaged builds: a user must not be able to point the app at their own server or key. (A
  * fake server could not forge a token without the private key anyway, but there is no reason to allow it.)
  */
-export const resolveLicenseConfig = (env: NodeJS.ProcessEnv, isPackaged: boolean): LicenseRuntimeConfig | null => {
+export const resolveLicenseConfig = (
+  env: NodeJS.ProcessEnv,
+  isPackaged: boolean
+): LicenseRuntimeConfig | null => {
   let apiUrl = BUILT_IN_API_URL;
   const publicKeys: Record<string, string> = { ...PUBLIC_KEYS };
   let refreshIntervalMs = DEFAULT_REFRESH_INTERVAL_MS;
@@ -43,7 +46,8 @@ export const resolveLicenseConfig = (env: NodeJS.ProcessEnv, isPackaged: boolean
     }
     // Lets a developer watch state changes live instead of waiting hours for the next refresh.
     const seconds = Number(env.TROVIX_LICENSE_REFRESH_SECONDS);
-    if (Number.isInteger(seconds) && seconds >= 2 && seconds <= 86_400) refreshIntervalMs = seconds * 1000;
+    if (Number.isInteger(seconds) && seconds >= 2 && seconds <= 86_400)
+      refreshIntervalMs = seconds * 1000;
   }
 
   if (!apiUrl || Object.keys(publicKeys).length === 0) return null;
@@ -56,5 +60,10 @@ export const resolveLicenseConfig = (env: NodeJS.ProcessEnv, isPackaged: boolean
   }
   if (parsed.protocol !== 'https:' && !(isLocalHttp(parsed) && !isPackaged)) return null;
 
-  return { apiUrl: parsed.toString().replace(/\/$/, ''), publicKeys, defaultEnforcement: 'warn', refreshIntervalMs };
+  return {
+    apiUrl: parsed.toString().replace(/\/$/, ''),
+    publicKeys,
+    defaultEnforcement: 'warn',
+    refreshIntervalMs,
+  };
 };

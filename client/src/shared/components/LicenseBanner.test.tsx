@@ -28,7 +28,9 @@ type Listener = (event: unknown, ...args: unknown[]) => void;
 
 const installElectron = (initial: LicenseStatusDto) => {
   const listeners = new Map<string, Listener>();
-  const invoke = vi.fn(async (channel: string) => (channel === IPC.LICENSE_GET_STATUS ? initial : initial));
+  const invoke = vi.fn(async (channel: string) =>
+    channel === IPC.LICENSE_GET_STATUS ? initial : initial
+  );
   const ipcRenderer = {
     send: vi.fn(),
     invoke,
@@ -36,7 +38,11 @@ const installElectron = (initial: LicenseStatusDto) => {
     off: vi.fn((channel: string) => void listeners.delete(channel)),
     removeAllListeners: vi.fn(),
   };
-  Object.defineProperty(window, 'electron', { value: { app: {}, ipcRenderer }, configurable: true, writable: true });
+  Object.defineProperty(window, 'electron', {
+    value: { app: {}, ipcRenderer },
+    configurable: true,
+    writable: true,
+  });
   return { ipcRenderer, listeners, invoke };
 };
 
@@ -79,7 +85,12 @@ describe('LicenseBannerView', () => {
   it('offers Check again for an info banner when the service is unreachable', () => {
     render(
       <LicenseBannerView
-        status={status({ mode: 'trialing', severity: 'info', message: 'Free trial: 5 days left.', offline: true })}
+        status={status({
+          mode: 'trialing',
+          severity: 'info',
+          message: 'Free trial: 5 days left.',
+          offline: true,
+        })}
         onRefresh={vi.fn()}
       />
     );
@@ -105,7 +116,9 @@ describe('useLicenseStatus', () => {
     await waitFor(() => expect(result.current?.mode).toBe('grace'));
     expect(invoke).toHaveBeenCalledWith(IPC.LICENSE_GET_STATUS);
 
-    act(() => listeners.get(IPC.LICENSE_STATUS_CHANGED)?.({}, status({ mode: 'lapsed', severity: 'error' })));
+    act(() =>
+      listeners.get(IPC.LICENSE_STATUS_CHANGED)?.({}, status({ mode: 'lapsed', severity: 'error' }))
+    );
     expect(result.current?.mode).toBe('lapsed');
 
     unmount();

@@ -55,20 +55,44 @@ const setup = (options: Options = {}) => {
   });
 
   const okReply =
-    (spec: { st?: LicenseStatus; tendMs?: number | null; guMs?: number | null; enf?: 'off' | 'warn' | 'on'; secret?: string; at?: number }) =>
+    (spec: {
+      st?: LicenseStatus;
+      tendMs?: number | null;
+      guMs?: number | null;
+      enf?: 'off' | 'warn' | 'on';
+      secret?: string;
+      at?: number;
+    }) =>
     (request: { deviceId: string; nonce: string }): Reply => ({
       kind: 'ok',
       data: {
-        token: issueToken(keys, { deviceId: request.deviceId, nonce: request.nonce, nowMs: spec.at ?? clock.now, ...spec }),
+        token: issueToken(keys, {
+          deviceId: request.deviceId,
+          nonce: request.nonce,
+          nowMs: spec.at ?? clock.now,
+          ...spec,
+        }),
         ...(spec.secret ? { deviceSecret: spec.secret } : {}),
       },
     });
 
-  return { manager, keys, store, clock, activateCalls, validateCalls, activateScript, validateScript, okReply };
+  return {
+    manager,
+    keys,
+    store,
+    clock,
+    activateCalls,
+    validateCalls,
+    activateScript,
+    validateScript,
+    okReply,
+  };
 };
 
 /** Boots a manager that has already completed a first successful activation. */
-const activated = async (options: Options & { spec?: Parameters<ReturnType<typeof setup>['okReply']>[0] } = {}) => {
+const activated = async (
+  options: Options & { spec?: Parameters<ReturnType<typeof setup>['okReply']>[0] } = {}
+) => {
   const ctx = setup(options);
   await ctx.manager.start();
   ctx.activateScript.push(ctx.okReply({ secret: SECRET, ...options.spec }));
@@ -81,7 +105,12 @@ describe('first launch', () => {
     const ctx = setup();
     await ctx.manager.start();
 
-    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', provisional: true, salesAllowed: true, daysLeft: 7 });
+    expect(ctx.manager.getStatus()).toMatchObject({
+      mode: 'trialing',
+      provisional: true,
+      salesAllowed: true,
+      daysLeft: 7,
+    });
     expect(ctx.store.record.provisionalStartedAtMs).toBe(NOW);
     expect(ctx.activateCalls).toHaveLength(0);
 
@@ -96,12 +125,25 @@ describe('first launch', () => {
     await ctx.manager.refresh();
 
     const request = ctx.activateCalls[0]!;
-    expect(request).toMatchObject({ deviceId: DEVICE_ID, appVersion: '1.0.255', platform: 'darwin' });
+    expect(request).toMatchObject({
+      deviceId: DEVICE_ID,
+      appVersion: '1.0.255',
+      platform: 'darwin',
+    });
     expect(request.provisionalStartedAt).toBe(new Date(NOW).toISOString());
     expect(request.deviceSecret).toBeUndefined();
 
-    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', provisional: false, offline: false, daysLeft: 7 });
-    expect(ctx.store.record).toMatchObject({ deviceSecret: SECRET, provisionalStartedAtMs: null, lastValidatedAtMs: NOW });
+    expect(ctx.manager.getStatus()).toMatchObject({
+      mode: 'trialing',
+      provisional: false,
+      offline: false,
+      daysLeft: 7,
+    });
+    expect(ctx.store.record).toMatchObject({
+      deviceSecret: SECRET,
+      provisionalStartedAtMs: null,
+      lastValidatedAtMs: NOW,
+    });
     expect(ctx.store.record.token).toBeTruthy();
     expect(ctx.store.record.highWaterMarkSec).toBe(Math.floor(NOW / 1000));
   });
@@ -122,7 +164,10 @@ describe('first launch', () => {
     const ctx = setup({ machineId: null });
     await ctx.manager.start();
     await ctx.manager.refresh();
-    expect(ctx.activateCalls[0]).toMatchObject({ fingerprint: 'weak', deviceId: deriveDeviceId('f'.repeat(64)) });
+    expect(ctx.activateCalls[0]).toMatchObject({
+      fingerprint: 'weak',
+      deviceId: deriveDeviceId('f'.repeat(64)),
+    });
     expect(ctx.store.record.fallbackMachineId).toBe('f'.repeat(64));
   });
 });
@@ -133,7 +178,11 @@ describe('subsequent launches', () => {
     const restarted = setup({ store: first.store, keys: first.keys });
     await restarted.manager.start();
 
-    expect(restarted.manager.getStatus()).toMatchObject({ mode: 'trialing', provisional: false, daysLeft: 7 });
+    expect(restarted.manager.getStatus()).toMatchObject({
+      mode: 'trialing',
+      provisional: false,
+      daysLeft: 7,
+    });
     expect(restarted.activateCalls).toHaveLength(0);
     expect(restarted.validateCalls).toHaveLength(0);
   });
@@ -165,7 +214,11 @@ describe('subsequent launches', () => {
     ctx.validateScript.push(() => ({ kind: 'rejected' }));
     ctx.activateScript.push(() => ({ kind: 'rejected' }));
     await ctx.manager.refresh();
-    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', offline: true, salesAllowed: true });
+    expect(ctx.manager.getStatus()).toMatchObject({
+      mode: 'trialing',
+      offline: true,
+      salesAllowed: true,
+    });
   });
 });
 
@@ -174,7 +227,11 @@ describe('an unreachable service never reduces entitlement', () => {
     const ctx = await activated();
     ctx.validateScript.push(() => ({ kind: 'offline', reason: 'network' }));
     await ctx.manager.refresh();
-    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', offline: true, salesAllowed: true });
+    expect(ctx.manager.getStatus()).toMatchObject({
+      mode: 'trialing',
+      offline: true,
+      salesAllowed: true,
+    });
   });
 
   it('only degrades once the token is older than its expiry plus the offline grace', async () => {
@@ -183,7 +240,10 @@ describe('an unreachable service never reduces entitlement', () => {
     expect(ctx.manager.getStatus().mode).not.toBe('unverified');
     ctx.clock.now = NOW + 8 * DAY;
     expect(ctx.manager.getStatus()).toMatchObject({ mode: 'unverified', salesAllowed: false });
-    expect(ctx.manager.evaluateSalesGate()).toMatchObject({ allowed: false, reason: 'LICENSE_UNVERIFIED' });
+    expect(ctx.manager.evaluateSalesGate()).toMatchObject({
+      allowed: false,
+      reason: 'LICENSE_UNVERIFIED',
+    });
   });
 
   it('shares a single request between concurrent refreshes', async () => {
@@ -204,7 +264,16 @@ describe('hostile responses are ignored', () => {
     const attacker = makeKeys('k1');
     ctx.validateScript.push((request) => ({
       kind: 'ok',
-      data: { token: issueToken(attacker, { deviceId: request.deviceId, nonce: request.nonce, nowMs: NOW, st: 'active', tendMs: null, pendMs: NOW + 365 * DAY }) },
+      data: {
+        token: issueToken(attacker, {
+          deviceId: request.deviceId,
+          nonce: request.nonce,
+          nowMs: NOW,
+          st: 'active',
+          tendMs: null,
+          pendMs: NOW + 365 * DAY,
+        }),
+      },
     }));
     const before = ctx.store.record.token;
     await ctx.manager.refresh();
@@ -217,7 +286,16 @@ describe('hostile responses are ignored', () => {
     const ctx = await activated();
     ctx.validateScript.push((request) => ({
       kind: 'ok',
-      data: { token: issueToken(ctx.keys, { deviceId: request.deviceId, nonce: 'someOtherNonce000000000', nowMs: NOW + DAY, st: 'active', tendMs: null, pendMs: NOW + 365 * DAY }) },
+      data: {
+        token: issueToken(ctx.keys, {
+          deviceId: request.deviceId,
+          nonce: 'someOtherNonce000000000',
+          nowMs: NOW + DAY,
+          st: 'active',
+          tendMs: null,
+          pendMs: NOW + 365 * DAY,
+        }),
+      },
     }));
     await ctx.manager.refresh();
     expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', offline: true });
@@ -233,7 +311,14 @@ describe('hostile responses are ignored', () => {
     ctx.clock.now = NOW + 3 * DAY;
     ctx.validateScript.push((request) => ({
       kind: 'ok',
-      data: { token: issueToken(ctx.keys, { deviceId: request.deviceId, nonce: request.nonce, nowMs: NOW, st: 'trialing' }) },
+      data: {
+        token: issueToken(ctx.keys, {
+          deviceId: request.deviceId,
+          nonce: request.nonce,
+          nowMs: NOW,
+          st: 'trialing',
+        }),
+      },
     }));
     await ctx.manager.refresh();
     expect(ctx.manager.getStatus()).toMatchObject({ mode: 'revoked', offline: true });
@@ -244,7 +329,10 @@ describe('hostile responses are ignored', () => {
     await ctx.manager.start();
     ctx.activateScript.push((request) => ({
       kind: 'ok',
-      data: { token: issueToken(ctx.keys, { deviceId: 'b'.repeat(64), nonce: request.nonce, nowMs: NOW }), deviceSecret: SECRET },
+      data: {
+        token: issueToken(ctx.keys, { deviceId: 'b'.repeat(64), nonce: request.nonce, nowMs: NOW }),
+        deviceSecret: SECRET,
+      },
     }));
     await ctx.manager.refresh();
     expect(ctx.store.record.token).toBeNull();
@@ -257,7 +345,14 @@ describe('tampering with the local record', () => {
   it('a token copied from another machine is ignored and starts a provisional trial, not unlimited use', async () => {
     const keys = makeKeys();
     const store = new MemoryStore();
-    store.record.token = issueToken(keys, { deviceId: 'c'.repeat(64), nonce: 'n'.repeat(22), nowMs: NOW, st: 'active', tendMs: null, pendMs: NOW + 365 * DAY });
+    store.record.token = issueToken(keys, {
+      deviceId: 'c'.repeat(64),
+      nonce: 'n'.repeat(22),
+      nowMs: NOW,
+      st: 'active',
+      tendMs: null,
+      pendMs: NOW + 365 * DAY,
+    });
     store.record.deviceSecret = SECRET;
     const ctx = setup({ store, keys });
     await ctx.manager.start();
@@ -281,7 +376,12 @@ describe('tampering with the local record', () => {
     const restarted = setup({ store: first.store, keys: first.keys });
     restarted.clock.now = NOW - 5 * DAY;
     await restarted.manager.start();
-    expect(restarted.manager.getStatus()).toMatchObject({ mode: 'trialing', provisional: false, daysLeft: 7, clockSuspect: true });
+    expect(restarted.manager.getStatus()).toMatchObject({
+      mode: 'trialing',
+      provisional: false,
+      daysLeft: 7,
+      clockSuspect: true,
+    });
   });
 
   it('a wrong local clock does not stop a genuine live response being accepted', async () => {
@@ -290,10 +390,21 @@ describe('tampering with the local record', () => {
     ctx.clock.now = NOW - 30 * DAY;
     ctx.activateScript.push((request) => ({
       kind: 'ok',
-      data: { token: issueToken(ctx.keys, { deviceId: request.deviceId, nonce: request.nonce, nowMs: NOW }), deviceSecret: SECRET },
+      data: {
+        token: issueToken(ctx.keys, {
+          deviceId: request.deviceId,
+          nonce: request.nonce,
+          nowMs: NOW,
+        }),
+        deviceSecret: SECRET,
+      },
     }));
     await ctx.manager.refresh();
-    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', offline: false, clockSuspect: true });
+    expect(ctx.manager.getStatus()).toMatchObject({
+      mode: 'trialing',
+      offline: false,
+      clockSuspect: true,
+    });
   });
 
   it('a corrupt record file behaves like a fresh install', async () => {
@@ -317,12 +428,21 @@ describe('the passage of time (enforcement on)', () => {
 
     ctx.clock.now = NOW + 6 * DAY + 60_000;
     expect(ctx.manager.getStatus()).toMatchObject({ mode: 'lapsed', salesAllowed: false });
-    expect(ctx.manager.evaluateSalesGate()).toMatchObject({ allowed: false, reason: 'LICENSE_EXPIRED' });
+    expect(ctx.manager.evaluateSalesGate()).toMatchObject({
+      allowed: false,
+      reason: 'LICENSE_EXPIRED',
+    });
   });
 
   it('warn mode never blocks, even long after expiry', async () => {
-    const ctx = await activated({ spec: { st: 'lapsed', tendMs: NOW - 10 * DAY, guMs: NOW - 3 * DAY, enf: 'warn' } });
-    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'lapsed', wouldBlock: true, salesAllowed: true });
+    const ctx = await activated({
+      spec: { st: 'lapsed', tendMs: NOW - 10 * DAY, guMs: NOW - 3 * DAY, enf: 'warn' },
+    });
+    expect(ctx.manager.getStatus()).toMatchObject({
+      mode: 'lapsed',
+      wouldBlock: true,
+      salesAllowed: true,
+    });
     expect(ctx.manager.evaluateSalesGate()).toEqual({ allowed: true });
   });
 
@@ -330,13 +450,20 @@ describe('the passage of time (enforcement on)', () => {
     const ctx = await activated({ spec: { enf: 'on' } });
     ctx.validateScript.push(ctx.okReply({ st: 'revoked', tendMs: null, guMs: null, enf: 'on' }));
     await ctx.manager.refresh();
-    expect(ctx.manager.evaluateSalesGate()).toMatchObject({ allowed: false, reason: 'LICENSE_REVOKED' });
+    expect(ctx.manager.evaluateSalesGate()).toMatchObject({
+      allowed: false,
+      reason: 'LICENSE_REVOKED',
+    });
   });
 
   it('the kill-switch (enf=off) lifts an existing block on the next refresh', async () => {
-    const ctx = await activated({ spec: { st: 'lapsed', tendMs: NOW - 10 * DAY, guMs: NOW - 3 * DAY, enf: 'on' } });
+    const ctx = await activated({
+      spec: { st: 'lapsed', tendMs: NOW - 10 * DAY, guMs: NOW - 3 * DAY, enf: 'on' },
+    });
     expect(ctx.manager.evaluateSalesGate().allowed).toBe(false);
-    ctx.validateScript.push(ctx.okReply({ st: 'lapsed', tendMs: NOW - 10 * DAY, guMs: NOW - 3 * DAY, enf: 'off' }));
+    ctx.validateScript.push(
+      ctx.okReply({ st: 'lapsed', tendMs: NOW - 10 * DAY, guMs: NOW - 3 * DAY, enf: 'off' })
+    );
     await ctx.manager.refresh();
     expect(ctx.manager.evaluateSalesGate()).toEqual({ allowed: true });
   });

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { deriveDeviceId, parseIoregPlatformUuid, parseRegMachineGuid, readMachineId } from './machineId';
+import {
+  deriveDeviceId,
+  parseIoregPlatformUuid,
+  parseRegMachineGuid,
+  readMachineId,
+} from './machineId';
 
 const IOREG = `+-o Root  <class IORegistryEntry, id 0x100000100, retain 20>
   +-o MacBookPro18,3  <class IOPlatformExpertDevice, id 0x10000020f, registered, matched, active, busy 0 (49 ms), retain 39>
@@ -14,7 +19,12 @@ HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography
     MachineGuid    REG_SZ    3A1F0C2E-77B4-4D5A-8E21-ABCDEF012345
 `;
 
-const base = { platform: 'linux' as const, run: async () => '', readFile: () => null, systemRoot: 'C:\\Windows' };
+const base = {
+  platform: 'linux' as const,
+  run: async () => '',
+  readFile: () => null,
+  systemRoot: 'C:\\Windows',
+};
 
 describe('parsers', () => {
   it('reads IOPlatformUUID from ioreg output, lowercased', () => {
@@ -27,7 +37,9 @@ describe('parsers', () => {
 
   it('returns null for unrelated output', () => {
     expect(parseIoregPlatformUuid('nothing here')).toBeNull();
-    expect(parseRegMachineGuid('ERROR: The system was unable to find the specified registry key')).toBeNull();
+    expect(
+      parseRegMachineGuid('ERROR: The system was unable to find the specified registry key')
+    ).toBeNull();
   });
 });
 
@@ -43,7 +55,10 @@ describe('readMachineId', () => {
       },
     });
     expect(id).toBe('6d4e8b0a-1234-4abc-9def-0123456789ab');
-    expect(call).toEqual({ file: '/usr/sbin/ioreg', args: ['-rd1', '-c', 'IOPlatformExpertDevice'] });
+    expect(call).toEqual({
+      file: '/usr/sbin/ioreg',
+      args: ['-rd1', '-c', 'IOPlatformExpertDevice'],
+    });
   });
 
   it('Windows: queries the registry through reg.exe under the system root', async () => {
@@ -62,8 +77,15 @@ describe('readMachineId', () => {
 
   it('Linux: reads /etc/machine-id, falling back to the dbus copy, and validates the format', async () => {
     const good = 'a'.repeat(32);
-    expect(await readMachineId({ ...base, readFile: (p) => (p === '/etc/machine-id' ? good : null) })).toBe(good);
-    expect(await readMachineId({ ...base, readFile: (p) => (p === '/var/lib/dbus/machine-id' ? good : null) })).toBe(good);
+    expect(
+      await readMachineId({ ...base, readFile: (p) => (p === '/etc/machine-id' ? good : null) })
+    ).toBe(good);
+    expect(
+      await readMachineId({
+        ...base,
+        readFile: (p) => (p === '/var/lib/dbus/machine-id' ? good : null),
+      })
+    ).toBe(good);
     expect(await readMachineId({ ...base, readFile: () => 'not-a-machine-id' })).toBeNull();
   });
 

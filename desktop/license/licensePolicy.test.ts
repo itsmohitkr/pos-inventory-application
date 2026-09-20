@@ -45,7 +45,13 @@ const input = (over: Partial<PolicyInput> = {}): PolicyInput => ({
 describe('with a verified token', () => {
   it('trialing: counts whole days left, allows sales, shows an info message', () => {
     const status = evaluateLicense(input());
-    expect(status).toMatchObject({ mode: 'trialing', daysLeft: 5, salesAllowed: true, wouldBlock: false, severity: 'info' });
+    expect(status).toMatchObject({
+      mode: 'trialing',
+      daysLeft: 5,
+      salesAllowed: true,
+      wouldBlock: false,
+      severity: 'info',
+    });
     expect(status.message).toBe('Free trial: 5 days left.');
   });
 
@@ -56,8 +62,16 @@ describe('with a verified token', () => {
   });
 
   it('active: silent', () => {
-    const status = evaluateLicense(input({ claims: claims({ st: 'active', tend: null, pend: sec(NOW + 20 * DAY) }) }));
-    expect(status).toMatchObject({ mode: 'active', severity: 'none', message: null, salesAllowed: true, daysLeft: 20 });
+    const status = evaluateLicense(
+      input({ claims: claims({ st: 'active', tend: null, pend: sec(NOW + 20 * DAY) }) })
+    );
+    expect(status).toMatchObject({
+      mode: 'active',
+      severity: 'none',
+      message: null,
+      salesAllowed: true,
+      daysLeft: 20,
+    });
   });
 
   it('a trial that ends while the app is running moves to grace using the server-supplied deadline', () => {
@@ -68,20 +82,33 @@ describe('with a verified token', () => {
   });
 
   it('blocks new sales once the grace deadline passes (enforcement on)', () => {
-    const status = evaluateLicense(input({ claims: claims({ exp: sec(NOW + 30 * DAY) }), nowMs: NOW + 12 * DAY }));
-    expect(status).toMatchObject({ mode: 'lapsed', salesAllowed: false, wouldBlock: true, severity: 'error' });
+    const status = evaluateLicense(
+      input({ claims: claims({ exp: sec(NOW + 30 * DAY) }), nowMs: NOW + 12 * DAY })
+    );
+    expect(status).toMatchObject({
+      mode: 'lapsed',
+      salesAllowed: false,
+      wouldBlock: true,
+      severity: 'error',
+    });
     expect(toSalesDecision(status)).toMatchObject({ allowed: false, reason: 'LICENSE_EXPIRED' });
   });
 
   it('a lapsed token inside its grace window is grace, not lapsed', () => {
     const status = evaluateLicense(
-      input({ claims: claims({ st: 'lapsed', tend: sec(NOW - DAY), gu: sec(NOW + 6 * DAY) }) }),
+      input({ claims: claims({ st: 'lapsed', tend: sec(NOW - DAY), gu: sec(NOW + 6 * DAY) }) })
     );
     expect(status.mode).toBe('grace');
   });
 
   it('past_due stays past_due inside grace and becomes lapsed after it', () => {
-    const past = claims({ st: 'past_due', tend: null, pend: sec(NOW - DAY), gu: sec(NOW + 6 * DAY), exp: sec(NOW + 30 * DAY) });
+    const past = claims({
+      st: 'past_due',
+      tend: null,
+      pend: sec(NOW - DAY),
+      gu: sec(NOW + 6 * DAY),
+      exp: sec(NOW + 30 * DAY),
+    });
     expect(evaluateLicense(input({ claims: past })).mode).toBe('past_due');
     expect(evaluateLicense(input({ claims: past, nowMs: NOW + 6 * DAY })).mode).toBe('lapsed');
   });
@@ -113,7 +140,9 @@ describe('enforcement modes', () => {
   const expired = { claims: claims({ exp: sec(NOW + 30 * DAY) }), nowMs: NOW + 13 * DAY };
 
   it('warn: reports what would block but never blocks', () => {
-    const status = evaluateLicense(input({ ...expired, claims: claims({ ...expired.claims, enf: 'warn' }) }));
+    const status = evaluateLicense(
+      input({ ...expired, claims: claims({ ...expired.claims, enf: 'warn' }) })
+    );
     expect(status).toMatchObject({ mode: 'lapsed', wouldBlock: true, severity: 'warning' });
     expect(status.salesAllowed).toBe(true);
     expect(toSalesDecision(status)).toEqual({ allowed: true });
@@ -121,8 +150,15 @@ describe('enforcement modes', () => {
 
   it('off: the kill-switch is silent and never blocks, even when revoked', () => {
     const revoked = evaluateLicense(input({ claims: claims({ st: 'revoked', enf: 'off' }) }));
-    expect(revoked).toMatchObject({ mode: 'revoked', salesAllowed: true, severity: 'none', message: null });
-    const lapsed = evaluateLicense(input({ ...expired, claims: claims({ ...expired.claims, enf: 'off' }) }));
+    expect(revoked).toMatchObject({
+      mode: 'revoked',
+      salesAllowed: true,
+      severity: 'none',
+      message: null,
+    });
+    const lapsed = evaluateLicense(
+      input({ ...expired, claims: claims({ ...expired.claims, enf: 'off' }) })
+    );
     expect(lapsed).toMatchObject({ salesAllowed: true, severity: 'none', message: null });
   });
 
@@ -133,28 +169,49 @@ describe('enforcement modes', () => {
 
 describe('without a token', () => {
   it('is just "checking" (allowed) before anything is known', () => {
-    expect(evaluateLicense(input({ claims: null }))).toMatchObject({ mode: 'checking', salesAllowed: true });
+    expect(evaluateLicense(input({ claims: null }))).toMatchObject({
+      mode: 'checking',
+      salesAllowed: true,
+    });
   });
 
   it('runs a provisional offline trial for its length', () => {
     const status = evaluateLicense(input({ claims: null, provisionalStartedAtMs: NOW - 2 * DAY }));
-    expect(status).toMatchObject({ mode: 'trialing', provisional: true, daysLeft: 5, salesAllowed: true });
+    expect(status).toMatchObject({
+      mode: 'trialing',
+      provisional: true,
+      daysLeft: 5,
+      salesAllowed: true,
+    });
   });
 
   it('becomes unverified when the provisional trial runs out, and blocks only under enforcement', () => {
     const at = { claims: null, provisionalStartedAtMs: NOW - PROVISIONAL_TRIAL_MS };
-    expect(evaluateLicense(input({ ...at, defaultEnforcement: 'on' }))).toMatchObject({ mode: 'unverified', salesAllowed: false });
-    expect(evaluateLicense(input({ ...at, defaultEnforcement: 'warn' }))).toMatchObject({ mode: 'unverified', salesAllowed: true });
+    expect(evaluateLicense(input({ ...at, defaultEnforcement: 'on' }))).toMatchObject({
+      mode: 'unverified',
+      salesAllowed: false,
+    });
+    expect(evaluateLicense(input({ ...at, defaultEnforcement: 'warn' }))).toMatchObject({
+      mode: 'unverified',
+      salesAllowed: true,
+    });
   });
 });
 
 describe('passthrough fields', () => {
   it('carries offline and clock flags and the last validation time', () => {
-    const status = evaluateLicense(input({ offline: true, clockSuspect: true, lastValidatedAtMs: NOW - 5 }));
+    const status = evaluateLicense(
+      input({ offline: true, clockSuspect: true, lastValidatedAtMs: NOW - 5 })
+    );
     expect(status).toMatchObject({ offline: true, clockSuspect: true, lastValidatedAt: NOW - 5 });
   });
 
   it('disabledStatus never blocks and shows nothing', () => {
-    expect(disabledStatus()).toMatchObject({ mode: 'disabled', salesAllowed: true, severity: 'none', message: null });
+    expect(disabledStatus()).toMatchObject({
+      mode: 'disabled',
+      salesAllowed: true,
+      severity: 'none',
+      message: null,
+    });
   });
 });

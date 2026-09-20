@@ -28,7 +28,8 @@ export const emptyRecord = (): DeviceRecord => ({
   lastValidatedAtMs: null,
 });
 
-const asString = (value: unknown): string | null => (typeof value === 'string' && value.length > 0 ? value : null);
+const asString = (value: unknown): string | null =>
+  typeof value === 'string' && value.length > 0 ? value : null;
 const asNumber = (value: unknown): number | null =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
 

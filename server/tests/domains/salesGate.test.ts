@@ -15,15 +15,25 @@ describe('salesGate', () => {
   });
 
   it('blocks an ended entitlement with 402 and a machine-readable reason', () => {
-    setSalesGate(() => ({ allowed: false, reason: 'LICENSE_EXPIRED', message: 'Your license has expired.' }));
+    setSalesGate(() => ({
+      allowed: false,
+      reason: 'LICENSE_EXPIRED',
+      message: 'Your license has expired.',
+    }));
     expect(() => assertSalesAllowed()).toThrow(
-      expect.objectContaining({ statusCode: 402, message: 'Your license has expired.', error: 'LICENSE_EXPIRED' })
+      expect.objectContaining({
+        statusCode: 402,
+        message: 'Your license has expired.',
+        error: 'LICENSE_EXPIRED',
+      })
     );
   });
 
   it('blocks a revoked license with 403', () => {
     setSalesGate(() => ({ allowed: false, reason: 'LICENSE_REVOKED', message: 'Access revoked.' }));
-    expect(() => assertSalesAllowed()).toThrow(expect.objectContaining({ statusCode: 403, error: 'LICENSE_REVOKED' }));
+    expect(() => assertSalesAllowed()).toThrow(
+      expect.objectContaining({ statusCode: 403, error: 'LICENSE_REVOKED' })
+    );
   });
 
   it('fails open if the gate function itself throws', () => {
@@ -53,9 +63,15 @@ describe('salesGate', () => {
     });
 
     it('passes the blocking error to next() when blocked', () => {
-      setSalesGate(() => ({ allowed: false, reason: 'LICENSE_UNVERIFIED', message: 'Cannot verify license.' }));
+      setSalesGate(() => ({
+        allowed: false,
+        reason: 'LICENSE_UNVERIFIED',
+        message: 'Cannot verify license.',
+      }));
       const next = run();
-      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 402, error: 'LICENSE_UNVERIFIED' }));
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ statusCode: 402, error: 'LICENSE_UNVERIFIED' })
+      );
     });
   });
 });

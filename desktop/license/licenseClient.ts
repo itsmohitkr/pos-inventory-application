@@ -12,9 +12,15 @@ import {
  * Everything else that goes wrong (no network, timeout, 5xx, captive-portal HTML, garbage) is `offline` and
  * must never reduce anyone's entitlement.
  */
-export type ClientResult<T> = { kind: 'ok'; data: T } | { kind: 'rejected' } | { kind: 'offline'; reason: string };
+export type ClientResult<T> =
+  | { kind: 'ok'; data: T }
+  | { kind: 'rejected' }
+  | { kind: 'offline'; reason: string };
 
-export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal }) => Promise<{
+export type FetchLike = (
+  url: string,
+  init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal }
+) => Promise<{
   status: number;
   ok: boolean;
   text(): Promise<string>;
@@ -77,12 +83,17 @@ export class LicenseClient {
     }
 
     if (status === 401) {
-      const code = typeof body === 'object' && body !== null ? (body as { error?: unknown }).error : undefined;
-      return code === 'device_not_recognized' ? { kind: 'rejected' } : { kind: 'offline', reason: 'http_401' };
+      const code =
+        typeof body === 'object' && body !== null ? (body as { error?: unknown }).error : undefined;
+      return code === 'device_not_recognized'
+        ? { kind: 'rejected' }
+        : { kind: 'offline', reason: 'http_401' };
     }
     if (!ok) return { kind: 'offline', reason: `http_${status}` };
 
     const parsed = parse(body);
-    return parsed.success ? { kind: 'ok', data: parsed.data } : { kind: 'offline', reason: 'bad_response' };
+    return parsed.success
+      ? { kind: 'ok', data: parsed.data }
+      : { kind: 'offline', reason: 'bad_response' };
   }
 }

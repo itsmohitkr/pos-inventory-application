@@ -11,7 +11,8 @@ interface LicenseBannerViewProps {
 }
 
 export const LicenseBannerView = ({ status, onRefresh }: LicenseBannerViewProps) => {
-  if (!status || !status.message || status.severity === 'none' || QUIET_MODES.includes(status.mode)) return null;
+  if (!status || !status.message || status.severity === 'none' || QUIET_MODES.includes(status.mode))
+    return null;
 
   const showRefresh = status.severity !== 'info' || status.offline;
 
@@ -30,7 +31,9 @@ export const LicenseBannerView = ({ status, onRefresh }: LicenseBannerViewProps)
       }
     >
       {status.message}
-      {status.clockSuspect ? " Your computer's clock looks wrong. Please check the date and time." : ''}
+      {status.clockSuspect
+        ? " Your computer's clock looks wrong. Please check the date and time."
+        : ''}
     </Alert>
   );
 };

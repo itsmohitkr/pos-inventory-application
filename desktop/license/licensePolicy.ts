@@ -69,7 +69,8 @@ const BLOCKING_MODES: ReadonlySet<LicenseMode> = new Set(['lapsed', 'revoked', '
 const formatDate = (ms: number): string =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-const daysUntil = (endMs: number, nowMs: number): number => Math.max(0, Math.ceil((endMs - nowMs) / DAY_MS));
+const daysUntil = (endMs: number, nowMs: number): number =>
+  Math.max(0, Math.ceil((endMs - nowMs) / DAY_MS));
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -101,7 +102,7 @@ interface ModeFacts {
 
 const describe = (
   { mode, graceUntilMs, daysLeft }: ModeFacts,
-  salesAllowed: boolean,
+  salesAllowed: boolean
 ): { severity: LicenseSeverity; message: string | null } => {
   switch (mode) {
     case 'trialing':
@@ -117,7 +118,10 @@ const describe = (
         message: `Your license has ended. New sales will be blocked${graceUntilMs ? ` on ${formatDate(graceUntilMs)}` : ''} unless you renew.`,
       };
     case 'lapsed':
-      return { severity: salesAllowed ? 'warning' : 'error', message: 'Your license has expired. Renew to record new sales.' };
+      return {
+        severity: salesAllowed ? 'warning' : 'error',
+        message: 'Your license has expired. Renew to record new sales.',
+      };
     case 'revoked':
       return {
         severity: salesAllowed ? 'warning' : 'error',
@@ -133,11 +137,18 @@ const describe = (
   }
 };
 
-const build = (input: PolicyInput, enforcement: EnforcementMode, facts: ModeFacts): LicenseStatusDto => {
+const build = (
+  input: PolicyInput,
+  enforcement: EnforcementMode,
+  facts: ModeFacts
+): LicenseStatusDto => {
   const wouldBlock = BLOCKING_MODES.has(facts.mode);
   const salesAllowed = enforcement !== 'on' || !wouldBlock;
   // `off` is the global kill-switch: fully silent and never blocks.
-  const shown = enforcement === 'off' ? { severity: 'none' as const, message: null } : describe(facts, salesAllowed);
+  const shown =
+    enforcement === 'off'
+      ? { severity: 'none' as const, message: null }
+      : describe(facts, salesAllowed);
 
   return {
     mode: facts.mode,
@@ -164,7 +175,8 @@ export const evaluateLicense = (input: PolicyInput): LicenseStatusDto => {
   const enforcement = claims?.enf ?? input.defaultEnforcement;
 
   if (!claims) {
-    if (input.provisionalStartedAtMs === null) return build(input, enforcement, { mode: 'checking' });
+    if (input.provisionalStartedAtMs === null)
+      return build(input, enforcement, { mode: 'checking' });
     const trialEnd = input.provisionalStartedAtMs + PROVISIONAL_TRIAL_MS;
     if (nowMs < trialEnd) {
       return build(input, enforcement, {
@@ -185,9 +197,15 @@ export const evaluateLicense = (input: PolicyInput): LicenseStatusDto => {
   // A revocation stays a revocation no matter how stale the token is: staleness must never soften it.
   if (claims.st === 'revoked') return build(input, enforcement, { mode: 'revoked' });
 
-  if (nowMs >= claims.exp * 1000 + OFFLINE_GRACE_MS) return build(input, enforcement, { mode: 'unverified', ...carried });
+  if (nowMs >= claims.exp * 1000 + OFFLINE_GRACE_MS)
+    return build(input, enforcement, { mode: 'unverified', ...carried });
 
-  const endMs = claims.st === 'trialing' ? trialEndsAtMs : claims.st === 'lapsed' ? (trialEndsAtMs ?? paidUntilMs) : paidUntilMs;
+  const endMs =
+    claims.st === 'trialing'
+      ? trialEndsAtMs
+      : claims.st === 'lapsed'
+        ? (trialEndsAtMs ?? paidUntilMs)
+        : paidUntilMs;
 
   if ((claims.st === 'trialing' || claims.st === 'active') && (endMs === null || nowMs < endMs)) {
     return build(input, enforcement, {
@@ -198,7 +216,10 @@ export const evaluateLicense = (input: PolicyInput): LicenseStatusDto => {
   }
 
   if (graceUntilMs !== null && nowMs < graceUntilMs) {
-    return build(input, enforcement, { mode: claims.st === 'past_due' ? 'past_due' : 'grace', ...carried });
+    return build(input, enforcement, {
+      mode: claims.st === 'past_due' ? 'past_due' : 'grace',
+      ...carried,
+    });
   }
 
   return build(input, enforcement, { mode: 'lapsed', ...carried });
@@ -207,6 +228,10 @@ export const evaluateLicense = (input: PolicyInput): LicenseStatusDto => {
 export const toSalesDecision = (status: LicenseStatusDto): SalesDecision => {
   if (status.salesAllowed) return { allowed: true };
   const reason =
-    status.mode === 'revoked' ? 'LICENSE_REVOKED' : status.mode === 'unverified' ? 'LICENSE_UNVERIFIED' : 'LICENSE_EXPIRED';
+    status.mode === 'revoked'
+      ? 'LICENSE_REVOKED'
+      : status.mode === 'unverified'
+        ? 'LICENSE_UNVERIFIED'
+        : 'LICENSE_EXPIRED';
   return { allowed: false, reason, message: status.message ?? 'New sales are currently blocked.' };
 };

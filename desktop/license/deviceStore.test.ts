@@ -22,7 +22,14 @@ describe('DeviceStore', () => {
 
   it('round-trips a record, creating the directory as needed', () => {
     const store = new DeviceStore(file);
-    const record = { ...emptyRecord(), deviceSecret: 's', token: 'a.b.c', highWaterMarkSec: 123, provisionalStartedAtMs: 456, lastValidatedAtMs: 789 };
+    const record = {
+      ...emptyRecord(),
+      deviceSecret: 's',
+      token: 'a.b.c',
+      highWaterMarkSec: 123,
+      provisionalStartedAtMs: 456,
+      lastValidatedAtMs: 789,
+    };
     store.write(record);
     expect(store.read()).toEqual(record);
   });
@@ -44,7 +51,15 @@ describe('DeviceStore', () => {
     fs.writeFileSync(file, JSON.stringify([1, 2, 3]));
     expect(store.read()).toEqual(emptyRecord());
 
-    fs.writeFileSync(file, JSON.stringify({ token: 42, deviceSecret: '', highWaterMarkSec: -5, provisionalStartedAtMs: 'yesterday' }));
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        token: 42,
+        deviceSecret: '',
+        highWaterMarkSec: -5,
+        provisionalStartedAtMs: 'yesterday',
+      })
+    );
     expect(store.read()).toEqual(emptyRecord());
   });
 

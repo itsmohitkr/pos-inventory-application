@@ -15,7 +15,12 @@ import {
 } from '@trovix/license-contract';
 import { emptyRecord, type DeviceRecord, type RecordStore } from './deviceStore';
 import type { ClientResult, LicenseClient } from './licenseClient';
-import { evaluateLicense, toSalesDecision, type LicenseStatusDto, type SalesDecision } from './licensePolicy';
+import {
+  evaluateLicense,
+  toSalesDecision,
+  type LicenseStatusDto,
+  type SalesDecision,
+} from './licensePolicy';
 import { deriveDeviceId } from './machineId';
 
 type ClientLike = Pick<LicenseClient, 'activate' | 'validate'>;
@@ -106,7 +111,9 @@ export class LicenseManager extends EventEmitter {
       await this.exchange();
     } catch (error) {
       this.offline = true;
-      this.log('refresh failed unexpectedly', { error: error instanceof Error ? error.message : String(error) });
+      this.log('refresh failed unexpectedly', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
     this.emitStatus();
   }
@@ -127,13 +134,15 @@ export class LicenseManager extends EventEmitter {
     }
 
     const nonce = this.deps.randomNonce();
-    const activated: ClientResult<{ token: string; deviceSecret?: string }> = await this.deps.client.activate(
-      this.buildActivateRequest(nonce)
-    );
-    if (activated.kind === 'ok') return this.acceptToken(activated.data.token, activated.data.deviceSecret, nonce);
+    const activated: ClientResult<{ token: string; deviceSecret?: string }> =
+      await this.deps.client.activate(this.buildActivateRequest(nonce));
+    if (activated.kind === 'ok')
+      return this.acceptToken(activated.data.token, activated.data.deviceSecret, nonce);
     // A rejected activation (owned device without its secret) needs the activation-key flow; until that exists
     // it is handled like being offline so it can never lock anyone out on its own.
-    return this.markOffline(activated.kind === 'rejected' ? 'activation_rejected' : activated.reason);
+    return this.markOffline(
+      activated.kind === 'rejected' ? 'activation_rejected' : activated.reason
+    );
   }
 
   private acceptToken(token: string, newSecret: string | undefined, nonce: string): void {
@@ -219,7 +228,9 @@ export class LicenseManager extends EventEmitter {
     try {
       this.deps.store.write(this.record);
     } catch (error) {
-      this.log('could not persist license record', { error: error instanceof Error ? error.message : String(error) });
+      this.log('could not persist license record', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

@@ -27,7 +27,10 @@ const log = (message: string, fields?: Record<string, unknown>): void => {
 const isLegacyInstall = (): boolean => {
   if (LICENSE_RELEASE_TIME_MS <= 0) return false;
   try {
-    return fs.statSync(path.join(app.getPath('userData'), 'pos.db')).birthtimeMs < LICENSE_RELEASE_TIME_MS;
+    return (
+      fs.statSync(path.join(app.getPath('userData'), 'pos.db')).birthtimeMs <
+      LICENSE_RELEASE_TIME_MS
+    );
   } catch {
     return false;
   }
@@ -48,10 +51,14 @@ export const initLicensing = (getWindow: () => BrowserWindow | null): void => {
   }
 
   const version = app.getVersion();
-  const platform = process.platform === 'darwin' || process.platform === 'win32' ? process.platform : 'linux';
+  const platform =
+    process.platform === 'darwin' || process.platform === 'win32' ? process.platform : 'linux';
 
   const created = new LicenseManager({
-    client: new LicenseClient({ baseUrl: config.apiUrl, fetchImpl: (url, init) => net.fetch(url, init) }),
+    client: new LicenseClient({
+      baseUrl: config.apiUrl,
+      fetchImpl: (url, init) => net.fetch(url, init),
+    }),
     store: new DeviceStore(path.join(app.getPath('userData'), 'license', 'device.json')),
     publicKeys: config.publicKeys,
     readMachineId,
@@ -68,7 +75,8 @@ export const initLicensing = (getWindow: () => BrowserWindow | null): void => {
 
   created.on('status', (status) => {
     const window = getWindow();
-    if (window && !window.isDestroyed()) window.webContents.send(IPC.LICENSE_STATUS_CHANGED, status);
+    if (window && !window.isDestroyed())
+      window.webContents.send(IPC.LICENSE_STATUS_CHANGED, status);
   });
 
   // Never blocks startup: the cached state is evaluated first, the network refresh happens in the background.

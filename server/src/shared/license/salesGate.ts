@@ -43,7 +43,8 @@ export const assertSalesAllowed = (): void => {
   if (decision.allowed) return;
 
   // 402 for an ended entitlement, 403 for an explicit revocation.
-  const status = decision.reason === 'LICENSE_REVOKED' ? StatusCodes.FORBIDDEN : StatusCodes.PAYMENT_REQUIRED;
+  const status =
+    decision.reason === 'LICENSE_REVOKED' ? StatusCodes.FORBIDDEN : StatusCodes.PAYMENT_REQUIRED;
   throw createHttpError(status, decision.message, { error: decision.reason });
 };
 
