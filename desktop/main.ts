@@ -31,6 +31,7 @@ import url from 'url';
 import net from 'net';
 import http from 'http';
 import IPC = require('./ipcChannels');
+import { initLicensing } from './license';
 
 // Catch any unhandled error in the main process so the app never silently disappears.
 // Log to file and show a dialog so the user knows something went wrong.
@@ -1138,7 +1139,11 @@ ${(() => {
     // 1. Handle any data migration from old app
     handleDataMigration();
 
-    // 2. Start UI
+    // 2. Licensing: cached state is evaluated immediately and the service is contacted in the
+    // background, so this never delays the window. A no-op unless a license API is configured.
+    initLicensing(() => mainWindow);
+
+    // 3. Start UI
     createWindow();
 
     // Auto-update setup runs here so mainWindow exists when events fire.

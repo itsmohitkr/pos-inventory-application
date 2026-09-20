@@ -21,7 +21,8 @@
     "typecheck": "tsc -p desktop --noEmit",
     "typecheck:all": "npm run typecheck && npm --prefix server run typecheck && npm --prefix client run typecheck",
     "server-build": "npm --prefix server run build",
-    "desktop-build": "tsc -p desktop/tsconfig.build.json"
+    "desktop-build": "tsc -p desktop/tsconfig.build.json",
+    "test:desktop": "vitest run --config desktop/vitest.config.mts"
   },
   "keywords": [],
   "devDependencies": {
@@ -33,6 +34,7 @@
     "fs-extra": "^11.3.3",
     "prettier": "^3.8.2",
     "typescript": "^6.0.3",
+    "vitest": "^4.1.4",
     "wait-on": "^7.0.1"
   },
   "type": "commonjs",
@@ -135,6 +137,7 @@
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@sentry/electron": "^7.13.0",
+    "@trovix/license-contract": "file:vendor/trovix-license-contract-0.1.1.tgz",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",

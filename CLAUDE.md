@@ -276,8 +276,10 @@ job that actually printed on a busy Windows spooler with a large label
 batch. Do not remove it, and keep new print paths going through that helper.
 None of this desktop-side print logic (`printWithTimeout`,
 `describePrintError`, the two `ipcMain.handle` bodies) has automated test
-coverage — `desktop/` has zero automated tests altogether (see TypeScript
-strictness section below). Changes here should be verified by hand
+coverage — the only automated `desktop/` tests are the licensing ones under
+`desktop/license/` (see Licensing below), so the print, boot and path code is
+still uncovered (see TypeScript strictness section below). Changes here should
+be verified by hand
 (`electron-dev` / a packaged build), not assumed safe because CI is green.
 
 ### Double-payment guard
@@ -394,6 +396,7 @@ Migrations run automatically on startup via `migrate deploy`. Always test on a D
 | Server unit | Jest + jest-mock-extended (mocked Prisma) | `cd server && npm test` |
 | Client unit | Vitest | `cd client && npm run test:unit` |
 | Client E2E | Playwright (Chromium on PR, all browsers nightly) | `cd client && npm run test:e2e` |
+| Desktop unit (licensing only) | Vitest, config in `desktop/vitest.config.mts` | `npm run test:desktop` (repo root). Not yet wired into `ci.yml`. |
 
 E2E tests run against `vite preview` (port 4173), not the dev server. The backend must be running separately for E2E tests that hit the API.
 
@@ -429,8 +432,8 @@ package once that package's count reaches zero.
 `desktop/` is now TypeScript too (`main.ts`, `preload.ts`,
 `server-wrapper.ts`, `ipcChannels.ts`), but deliberately without `strict` —
 this was a mechanical, types-only conversion (no behavior change), not a
-strictness push, given the package has zero automated test coverage and
-holds the Prisma engine path resolution and Windows `DATABASE_URL`
+strictness push, given the package has almost no automated test coverage
+(only `desktop/license/`) and holds the Prisma engine path resolution and Windows `DATABASE_URL`
 formatting. It still inherits `tsconfig.base.json`'s loose settings. Since
 Electron's main process is loaded via plain Node `require()`, not
 ts-node/tsx, `desktop/` now compiles to `desktop/dist/*.js` before
@@ -541,6 +544,64 @@ Two conventions worth keeping if this is taken further:
   shapes.
 - **Do not satisfy the compiler with `any`.** 15 documented escape hatches
   remain; each carries a comment explaining why.
+
+---
+
+## Licensing (client side)
+
+The app is a client of a separate vendor-side service (repo `trovix-license-service`, sibling folder
+`../trovix-license-service`) that owns trials, subscriptions, device registration and revocation. The full design,
+threat model and roadmap are in `Documents/licensing-subscription-plan.md`. **Licensing is OFF in every build until
+`BUILT_IN_API_URL` in `desktop/license/config.ts` is set**: no network call, no gate, no banner, so this code changes
+nothing for existing customers until then. Enforcement also ships in warn-only mode (the service's token carries the
+global `enf` kill-switch: `off` | `warn` | `on`).
+
+**Where things live**
+- `desktop/license/` — `licensePolicy.ts` (pure: token + time -> status/decision), `licenseManager.ts` (orchestration,
+  Electron-free and injected so it is unit-tested), `licenseClient.ts`, `deviceStore.ts`, `machineId.ts`, `config.ts`,
+  `index.ts` (Electron glue: IPC handlers, timers, `powerMonitor` resume). Started from `main.ts`'s ready handler;
+  never delays the window (cached state is evaluated first, the network refresh runs in the background).
+- `server/src/shared/license/salesGate.ts` — the single choke point for creating sales. `desktop/ipc/license.ipc.ts`
+  registers the decision function after the server modules load. It is consulted by `SALE_PROCESS` and
+  `LOOSE_SALE_CREATE` (IPC) and by `POST /api/sale` and `POST /api/loose-sales` (Express). Refunds/returns are
+  deliberately NOT gated. The IPC handlers and Express share one module instance in-process (verified in a real
+  Electron boot), the same way `adminTokens` is shared.
+- Renderer: `useLicenseStatus` + `LicenseBanner` (mounted in `AppLayout`). The main process decides; React only displays.
+  `LicenseStatusDto` is mirrored in `client/src/shared/types/license.ts`; keep both in sync.
+
+**Invariants**
+- Only a signature-verified, nonce-matched response can change entitlement. Offline, 5xx, garbage, captive-portal HTML and
+  bad signatures are all "offline": the cached token keeps working until its own grace runs out. Nothing may revoke or
+  degrade a customer on transport failure.
+- Time never runs backwards: decisions use `max(local clock, newest server time ever accepted)`.
+- A revocation stays a revocation however stale the token is; staleness must never soften it.
+- The salesGate fails open (no gate registered, or the gate throws => sales allowed).
+- License state lives in `{userData}/license/device.json`, outside `pos.db`, so a database wipe cannot reset a trial.
+  **Wipe Database must never touch `license/`.** The secret is stored as plain JSON (mode 0600), not via Electron
+  `safeStorage`: release builds are unsigned (`mac.identity: null`), so Keychain access would prompt after every update.
+  Revisit after code signing.
+- Trusted public keys come from `@trovix/license-contract`'s `PUBLIC_KEYS`. `TROVIX_LICENSE_API_URL` /
+  `TROVIX_LICENSE_DEV_PUBLIC_KEY` overrides are honored only when `!app.isPackaged`.
+
+**The contract package is vendored.** `@trovix/license-contract` is not published yet, so the root `package.json` depends
+on `file:vendor/trovix-license-contract-<version>.tgz`. To update it: bump the version in
+`trovix-license-service/packages/contract`, build and `npm pack` it into `vendor/`, delete the old tarball, update the
+path in `package.json`, and update that one entry (version, `resolved`, `integrity`) in `package-lock.json`. Always bump
+the version, or the lockfile integrity check will fail. Replace the tarball with the registry version once published.
+
+**Running it locally against the dev service**
+```bash
+# in ../trovix-license-service
+npm run db:test:start && npm run dev:server     # prints the two env vars below
+# in this repo (unset ELECTRON_RUN_AS_NODE, see below)
+TROVIX_LICENSE_API_URL=http://127.0.0.1:5055 TROVIX_LICENSE_DEV_PUBLIC_KEY=dev-1:<key> npm run electron-dev
+```
+- Some hosts (VS Code / Claude Code extension terminals) export `ELECTRON_RUN_AS_NODE=1`, which makes `electron` behave
+  as plain Node and crash inside `@sentry/electron`. Launch with `env -u ELECTRON_RUN_AS_NODE ...`.
+- Use `--user-data-dir=<scratch dir>` for any smoke test so it never touches the real `~/Library/Application Support/Trovix`.
+- **Never run `npm install --no-package-lock` at the repo root.** `electron` is declared as `"latest"`, so it silently
+  upgrades past the pinned 40.x and skips the binary download (`--ignore-scripts`). Repair with
+  `npm install --no-save electron@<version pinned in package-lock.json>`.
 
 ---
 

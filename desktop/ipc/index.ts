@@ -14,6 +14,7 @@ import { registerPurchaseIpc } from './purchase.ipc';
 import { registerSaleIpc } from './sale.ipc';
 import { registerProductIpc } from './product.ipc';
 import { registerAuthIpc } from './auth.ipc';
+import { registerLicenseGate } from './license.ipc';
 
 export const registerAllIpc = (): void => {
   registerCategoryIpc();
@@ -29,4 +30,5 @@ export const registerAllIpc = (): void => {
   registerSaleIpc();
   registerProductIpc();
   registerAuthIpc();
+  registerLicenseGate();
 };

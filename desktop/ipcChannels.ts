@@ -123,6 +123,11 @@ const IPC = {
   AUTH_VERIFY_ADMIN: 'auth:verifyAdmin',
   AUTH_COMPLETE_ONBOARDING: 'auth:completeOnboarding',
 
+  // Licensing
+  LICENSE_GET_STATUS: 'license:getStatus',
+  LICENSE_REFRESH: 'license:refresh',
+  LICENSE_STATUS_CHANGED: 'license:statusChanged', // main → renderer
+
   // Splash screen (main → splash renderer)
   SPLASH_STATUS: 'splash-status',
   SPLASH_VERSION: 'splash-version',

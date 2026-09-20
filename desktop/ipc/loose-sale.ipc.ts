@@ -5,7 +5,7 @@ import { ipcMain } from 'electron';
 import { StatusCodes } from 'http-status-codes';
 import IPC = require('../ipcChannels');
 import { resolveServerModulePath } from './resolveServerModule';
-import { buildSuccessPayload, validateIpcPayload, withErrorHandling } from './ipcHelpers';
+import { assertSalesAllowed, buildSuccessPayload, validateIpcPayload, withErrorHandling } from './ipcHelpers';
 
 type LooseSaleServiceModule = typeof import('../../server/dist/src/domains/loose-sale/loose-sale.service');
 type LooseSaleValidationModule = typeof import('../../server/dist/src/domains/loose-sale/loose-sale.validation');
@@ -24,6 +24,7 @@ const {
 export const registerLooseSaleIpc = (): void => {
   ipcMain.handle(IPC.LOOSE_SALE_CREATE, async (_event, payload: unknown) =>
     withErrorHandling(async () => {
+      assertSalesAllowed();
       const { body } = validateIpcPayload(CreateLooseSaleSchema, { body: payload });
       const parsed = body as { itemName?: string | null; price: number };
       const looseSale = await looseSaleService.createLooseSale({

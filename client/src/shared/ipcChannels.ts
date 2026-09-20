@@ -123,6 +123,9 @@ export const IPC = {
 
   // Splash screen (main → splash renderer)
   SPLASH_STATUS: 'splash-status',
+  LICENSE_GET_STATUS: 'license:getStatus',
+  LICENSE_REFRESH: 'license:refresh',
+  LICENSE_STATUS_CHANGED: 'license:statusChanged',
   SPLASH_VERSION: 'splash-version',
 } as const;
 

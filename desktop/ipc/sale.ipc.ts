@@ -9,7 +9,7 @@ import { ipcMain } from 'electron';
 import { StatusCodes } from 'http-status-codes';
 import IPC = require('../ipcChannels');
 import { resolveServerModulePath } from './resolveServerModule';
-import { buildSuccessPayload, validateIpcPayload, withErrorHandling } from './ipcHelpers';
+import { assertSalesAllowed, buildSuccessPayload, validateIpcPayload, withErrorHandling } from './ipcHelpers';
 
 type SaleServiceModule = typeof import('../../server/dist/src/domains/sale/sale.service');
 type SaleValidationModule = typeof import('../../server/dist/src/domains/sale/sale.validation');
@@ -24,6 +24,7 @@ const { ProcessSaleSchema, GetSaleByIdSchema, ProcessReturnSchema }: SaleValidat
 export const registerSaleIpc = (): void => {
   ipcMain.handle(IPC.SALE_PROCESS, async (_event, payload: unknown) =>
     withErrorHandling(async () => {
+      assertSalesAllowed();
       const { body } = validateIpcPayload(ProcessSaleSchema, { body: payload });
       const sale = await saleService.processSale(
         body as Parameters<typeof saleService.processSale>[0]

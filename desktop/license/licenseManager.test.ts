@@ -1,0 +1,367 @@
+import { describe, expect, it } from 'vitest';
+import type { ActivateRequest, LicenseStatus, ValidateRequest } from '@trovix/license-contract';
+import type { ClientResult } from './licenseClient';
+import { LicenseManager } from './licenseManager';
+import { deriveDeviceId } from './machineId';
+import { DAY, MemoryStore, NOW, SECRET, issueToken, makeKeys } from './testUtils';
+
+type Reply = ClientResult<{ token: string; deviceSecret?: string }>;
+type Script<Req> = (request: Req) => Reply | Promise<Reply>;
+
+const MACHINE = 'machine-1';
+const DEVICE_ID = deriveDeviceId(MACHINE);
+
+interface Options {
+  machineId?: string | null;
+  legacy?: boolean;
+  defaultEnforcement?: 'off' | 'warn' | 'on';
+  store?: MemoryStore;
+  keys?: ReturnType<typeof makeKeys>;
+}
+
+const setup = (options: Options = {}) => {
+  const keys = options.keys ?? makeKeys();
+  const store = options.store ?? new MemoryStore();
+  const clock = { now: NOW };
+  const activateCalls: ActivateRequest[] = [];
+  const validateCalls: ValidateRequest[] = [];
+  const activateScript: Array<Script<ActivateRequest>> = [];
+  const validateScript: Array<Script<ValidateRequest>> = [];
+  let nonceCounter = 0;
+
+  const manager = new LicenseManager({
+    client: {
+      activate: async (request) => {
+        activateCalls.push(request);
+        const next = activateScript.shift();
+        return next ? next(request) : { kind: 'offline', reason: 'unscripted' };
+      },
+      validate: async (request) => {
+        validateCalls.push(request);
+        const next = validateScript.shift();
+        return next ? next(request) : { kind: 'offline', reason: 'unscripted' };
+      },
+    },
+    store,
+    publicKeys: keys.publicKeys,
+    readMachineId: async () => (options.machineId === undefined ? MACHINE : options.machineId),
+    appVersion: '1.0.255',
+    platform: 'darwin',
+    now: () => clock.now,
+    randomNonce: () => `nonce${String((nonceCounter += 1)).padStart(17, '0')}`,
+    randomHex: () => 'f'.repeat(64),
+    isLegacyInstall: () => options.legacy ?? false,
+    defaultEnforcement: options.defaultEnforcement ?? 'warn',
+  });
+
+  const okReply =
+    (spec: { st?: LicenseStatus; tendMs?: number | null; guMs?: number | null; enf?: 'off' | 'warn' | 'on'; secret?: string; at?: number }) =>
+    (request: { deviceId: string; nonce: string }): Reply => ({
+      kind: 'ok',
+      data: {
+        token: issueToken(keys, { deviceId: request.deviceId, nonce: request.nonce, nowMs: spec.at ?? clock.now, ...spec }),
+        ...(spec.secret ? { deviceSecret: spec.secret } : {}),
+      },
+    });
+
+  return { manager, keys, store, clock, activateCalls, validateCalls, activateScript, validateScript, okReply };
+};
+
+/** Boots a manager that has already completed a first successful activation. */
+const activated = async (options: Options & { spec?: Parameters<ReturnType<typeof setup>['okReply']>[0] } = {}) => {
+  const ctx = setup(options);
+  await ctx.manager.start();
+  ctx.activateScript.push(ctx.okReply({ secret: SECRET, ...options.spec }));
+  await ctx.manager.refresh();
+  return ctx;
+};
+
+describe('first launch', () => {
+  it('offline: starts a bounded provisional trial, allows sales and persists the start', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', provisional: true, salesAllowed: true, daysLeft: 7 });
+    expect(ctx.store.record.provisionalStartedAtMs).toBe(NOW);
+    expect(ctx.activateCalls).toHaveLength(0);
+
+    await ctx.manager.refresh();
+    expect(ctx.manager.getStatus()).toMatchObject({ provisional: true, offline: true });
+  });
+
+  it('online: activates, verifies the response, persists token and secret, and clears the provisional trial', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    ctx.activateScript.push(ctx.okReply({ secret: SECRET }));
+    await ctx.manager.refresh();
+
+    const request = ctx.activateCalls[0]!;
+    expect(request).toMatchObject({ deviceId: DEVICE_ID, appVersion: '1.0.255', platform: 'darwin' });
+    expect(request.provisionalStartedAt).toBe(new Date(NOW).toISOString());
+    expect(request.deviceSecret).toBeUndefined();
+
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', provisional: false, offline: false, daysLeft: 7 });
+    expect(ctx.store.record).toMatchObject({ deviceSecret: SECRET, provisionalStartedAtMs: null, lastValidatedAtMs: NOW });
+    expect(ctx.store.record.token).toBeTruthy();
+    expect(ctx.store.record.highWaterMarkSec).toBe(Math.floor(NOW / 1000));
+  });
+
+  it('claims legacy status only on a first activation of a pre-existing install', async () => {
+    const legacy = setup({ legacy: true });
+    await legacy.manager.start();
+    await legacy.manager.refresh();
+    expect(legacy.activateCalls[0]!.legacy).toBe(true);
+
+    const fresh = setup({ legacy: false });
+    await fresh.manager.start();
+    await fresh.manager.refresh();
+    expect(fresh.activateCalls[0]!.legacy).toBeUndefined();
+  });
+
+  it('uses a persisted fallback identity and flags it weak when the machine id cannot be read', async () => {
+    const ctx = setup({ machineId: null });
+    await ctx.manager.start();
+    await ctx.manager.refresh();
+    expect(ctx.activateCalls[0]).toMatchObject({ fingerprint: 'weak', deviceId: deriveDeviceId('f'.repeat(64)) });
+    expect(ctx.store.record.fallbackMachineId).toBe('f'.repeat(64));
+  });
+});
+
+describe('subsequent launches', () => {
+  it('evaluates the cached token immediately with no network call', async () => {
+    const first = await activated();
+    const restarted = setup({ store: first.store, keys: first.keys });
+    await restarted.manager.start();
+
+    expect(restarted.manager.getStatus()).toMatchObject({ mode: 'trialing', provisional: false, daysLeft: 7 });
+    expect(restarted.activateCalls).toHaveLength(0);
+    expect(restarted.validateCalls).toHaveLength(0);
+  });
+
+  it('refreshes with validate using the stored secret and advances the high-water mark', async () => {
+    const ctx = await activated();
+    ctx.clock.now = NOW + DAY;
+    ctx.validateScript.push(ctx.okReply({}));
+    await ctx.manager.refresh();
+
+    expect(ctx.validateCalls[0]).toMatchObject({ deviceId: DEVICE_ID, deviceSecret: SECRET });
+    expect(ctx.store.record.highWaterMarkSec).toBe(Math.floor((NOW + DAY) / 1000));
+    expect(ctx.manager.getStatus().daysLeft).toBe(7);
+  });
+
+  it('recovers by activating again when the service does not recognize the device', async () => {
+    const ctx = await activated();
+    ctx.validateScript.push(() => ({ kind: 'rejected' }));
+    ctx.activateScript.push(ctx.okReply({ secret: 'r'.repeat(43) }));
+    await ctx.manager.refresh();
+
+    expect(ctx.activateCalls).toHaveLength(2);
+    expect(ctx.store.record.deviceSecret).toBe('r'.repeat(43));
+    expect(ctx.manager.getStatus().offline).toBe(false);
+  });
+
+  it('a rejected re-activation never reduces entitlement', async () => {
+    const ctx = await activated();
+    ctx.validateScript.push(() => ({ kind: 'rejected' }));
+    ctx.activateScript.push(() => ({ kind: 'rejected' }));
+    await ctx.manager.refresh();
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', offline: true, salesAllowed: true });
+  });
+});
+
+describe('an unreachable service never reduces entitlement', () => {
+  it('keeps the cached license and reports offline', async () => {
+    const ctx = await activated();
+    ctx.validateScript.push(() => ({ kind: 'offline', reason: 'network' }));
+    await ctx.manager.refresh();
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', offline: true, salesAllowed: true });
+  });
+
+  it('only degrades once the token is older than its expiry plus the offline grace', async () => {
+    const ctx = await activated({ defaultEnforcement: 'on', spec: { enf: 'on' } });
+    ctx.clock.now = NOW + 6 * DAY;
+    expect(ctx.manager.getStatus().mode).not.toBe('unverified');
+    ctx.clock.now = NOW + 8 * DAY;
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'unverified', salesAllowed: false });
+    expect(ctx.manager.evaluateSalesGate()).toMatchObject({ allowed: false, reason: 'LICENSE_UNVERIFIED' });
+  });
+
+  it('shares a single request between concurrent refreshes', async () => {
+    const ctx = await activated();
+    let release: (reply: Reply) => void = () => undefined;
+    ctx.validateScript.push(() => new Promise<Reply>((resolve) => (release = resolve)));
+    const a = ctx.manager.refresh();
+    const b = ctx.manager.refresh();
+    release({ kind: 'offline', reason: 'network' });
+    await Promise.all([a, b]);
+    expect(ctx.validateCalls).toHaveLength(1);
+  });
+});
+
+describe('hostile responses are ignored', () => {
+  it('a token signed by an unknown key', async () => {
+    const ctx = await activated();
+    const attacker = makeKeys('k1');
+    ctx.validateScript.push((request) => ({
+      kind: 'ok',
+      data: { token: issueToken(attacker, { deviceId: request.deviceId, nonce: request.nonce, nowMs: NOW, st: 'active', tendMs: null, pendMs: NOW + 365 * DAY }) },
+    }));
+    const before = ctx.store.record.token;
+    await ctx.manager.refresh();
+
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', offline: true });
+    expect(ctx.store.record.token).toBe(before);
+  });
+
+  it('a replayed response whose nonce does not match the request', async () => {
+    const ctx = await activated();
+    ctx.validateScript.push((request) => ({
+      kind: 'ok',
+      data: { token: issueToken(ctx.keys, { deviceId: request.deviceId, nonce: 'someOtherNonce000000000', nowMs: NOW + DAY, st: 'active', tendMs: null, pendMs: NOW + 365 * DAY }) },
+    }));
+    await ctx.manager.refresh();
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', offline: true });
+  });
+
+  it('a genuine but older token (replay of an earlier "active" answer after a newer one was accepted)', async () => {
+    const ctx = await activated();
+    ctx.clock.now = NOW + 2 * DAY;
+    ctx.validateScript.push(ctx.okReply({ st: 'revoked', tendMs: null, guMs: null }));
+    await ctx.manager.refresh();
+    expect(ctx.manager.getStatus().mode).toBe('revoked');
+
+    ctx.clock.now = NOW + 3 * DAY;
+    ctx.validateScript.push((request) => ({
+      kind: 'ok',
+      data: { token: issueToken(ctx.keys, { deviceId: request.deviceId, nonce: request.nonce, nowMs: NOW, st: 'trialing' }) },
+    }));
+    await ctx.manager.refresh();
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'revoked', offline: true });
+  });
+
+  it('a token issued for a different device', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    ctx.activateScript.push((request) => ({
+      kind: 'ok',
+      data: { token: issueToken(ctx.keys, { deviceId: 'b'.repeat(64), nonce: request.nonce, nowMs: NOW }), deviceSecret: SECRET },
+    }));
+    await ctx.manager.refresh();
+    expect(ctx.store.record.token).toBeNull();
+    expect(ctx.store.record.deviceSecret).toBeNull();
+    expect(ctx.manager.getStatus()).toMatchObject({ provisional: true, offline: true });
+  });
+});
+
+describe('tampering with the local record', () => {
+  it('a token copied from another machine is ignored and starts a provisional trial, not unlimited use', async () => {
+    const keys = makeKeys();
+    const store = new MemoryStore();
+    store.record.token = issueToken(keys, { deviceId: 'c'.repeat(64), nonce: 'n'.repeat(22), nowMs: NOW, st: 'active', tendMs: null, pendMs: NOW + 365 * DAY });
+    store.record.deviceSecret = SECRET;
+    const ctx = setup({ store, keys });
+    await ctx.manager.start();
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', provisional: true });
+  });
+
+  it('an edited token payload is ignored', async () => {
+    const first = await activated();
+    const [h, p, s] = first.store.record.token!.split('.') as [string, string, string];
+    const edited = JSON.parse(Buffer.from(p, 'base64url').toString('utf8'));
+    edited.st = 'active';
+    first.store.record.token = `${h}.${Buffer.from(JSON.stringify(edited)).toString('base64url')}.${s}`;
+    const restarted = setup({ store: first.store, keys: first.keys });
+    await restarted.manager.start();
+    expect(restarted.manager.getStatus().mode).toBe('trialing');
+    expect(restarted.manager.getStatus().provisional).toBe(true);
+  });
+
+  it('rolling the clock back cannot extend a trial: time never runs earlier than the last server time', async () => {
+    const first = await activated();
+    const restarted = setup({ store: first.store, keys: first.keys });
+    restarted.clock.now = NOW - 5 * DAY;
+    await restarted.manager.start();
+    expect(restarted.manager.getStatus()).toMatchObject({ mode: 'trialing', provisional: false, daysLeft: 7, clockSuspect: true });
+  });
+
+  it('a wrong local clock does not stop a genuine live response being accepted', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    ctx.clock.now = NOW - 30 * DAY;
+    ctx.activateScript.push((request) => ({
+      kind: 'ok',
+      data: { token: issueToken(ctx.keys, { deviceId: request.deviceId, nonce: request.nonce, nowMs: NOW }), deviceSecret: SECRET },
+    }));
+    await ctx.manager.refresh();
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'trialing', offline: false, clockSuspect: true });
+  });
+
+  it('a corrupt record file behaves like a fresh install', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    expect(ctx.manager.getStatus().mode).toBe('trialing');
+  });
+});
+
+describe('the passage of time (enforcement on)', () => {
+  it('trial -> grace (warning, still selling) -> lapsed (blocked)', async () => {
+    const ctx = await activated({
+      spec: { st: 'lapsed', tendMs: NOW - DAY, guMs: NOW + 6 * DAY, enf: 'on' },
+    });
+
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'grace', salesAllowed: true });
+    expect(ctx.manager.evaluateSalesGate()).toEqual({ allowed: true });
+
+    ctx.clock.now = NOW + 2 * DAY;
+    expect(ctx.manager.getStatus().mode).toBe('grace');
+
+    ctx.clock.now = NOW + 6 * DAY + 60_000;
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'lapsed', salesAllowed: false });
+    expect(ctx.manager.evaluateSalesGate()).toMatchObject({ allowed: false, reason: 'LICENSE_EXPIRED' });
+  });
+
+  it('warn mode never blocks, even long after expiry', async () => {
+    const ctx = await activated({ spec: { st: 'lapsed', tendMs: NOW - 10 * DAY, guMs: NOW - 3 * DAY, enf: 'warn' } });
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'lapsed', wouldBlock: true, salesAllowed: true });
+    expect(ctx.manager.evaluateSalesGate()).toEqual({ allowed: true });
+  });
+
+  it('a revocation delivered by the service takes effect immediately', async () => {
+    const ctx = await activated({ spec: { enf: 'on' } });
+    ctx.validateScript.push(ctx.okReply({ st: 'revoked', tendMs: null, guMs: null, enf: 'on' }));
+    await ctx.manager.refresh();
+    expect(ctx.manager.evaluateSalesGate()).toMatchObject({ allowed: false, reason: 'LICENSE_REVOKED' });
+  });
+
+  it('the kill-switch (enf=off) lifts an existing block on the next refresh', async () => {
+    const ctx = await activated({ spec: { st: 'lapsed', tendMs: NOW - 10 * DAY, guMs: NOW - 3 * DAY, enf: 'on' } });
+    expect(ctx.manager.evaluateSalesGate().allowed).toBe(false);
+    ctx.validateScript.push(ctx.okReply({ st: 'lapsed', tendMs: NOW - 10 * DAY, guMs: NOW - 3 * DAY, enf: 'off' }));
+    await ctx.manager.refresh();
+    expect(ctx.manager.evaluateSalesGate()).toEqual({ allowed: true });
+  });
+});
+
+describe('status events', () => {
+  it('emits only when something visible changed', async () => {
+    const ctx = setup();
+    const events: unknown[] = [];
+    ctx.manager.on('status', (status) => events.push(status));
+
+    await ctx.manager.start();
+    const afterStart = events.length;
+    ctx.manager.reevaluate();
+    ctx.manager.reevaluate();
+    expect(events).toHaveLength(afterStart);
+
+    ctx.activateScript.push(ctx.okReply({ secret: SECRET }));
+    await ctx.manager.refresh();
+    expect(events.length).toBeGreaterThan(afterStart);
+  });
+
+  it('refresh before start is a harmless no-op', async () => {
+    const ctx = setup();
+    await ctx.manager.refresh();
+    expect(ctx.activateCalls).toHaveLength(0);
+  });
+});

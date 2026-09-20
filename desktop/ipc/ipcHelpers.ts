@@ -10,6 +10,7 @@ type ResolveAppErrorModule = typeof import('../../server/dist/src/shared/error/r
 type ValidateIpcPayloadModule = typeof import('../../server/dist/src/shared/ipc/validateIpcPayload');
 type AdminTokensModule = typeof import('../../server/dist/src/domains/auth/adminTokens');
 type AppErrorModule = typeof import('../../server/dist/src/shared/error/appError');
+type SalesGateModule = typeof import('../../server/dist/src/shared/license/salesGate');
 
 const { buildSuccessPayload, buildErrorPayload }: ResponseHelpersModule = require(
   resolveServerModulePath('src', 'shared', 'utils', 'helper', 'responseHelpers')
@@ -27,7 +28,12 @@ const { createHttpError }: AppErrorModule = require(
   resolveServerModulePath('src', 'shared', 'error', 'appError')
 );
 
-export { buildSuccessPayload, buildErrorPayload, resolveAppError, validateIpcPayload };
+// The same module instance the Express sale routes use, so IPC and HTTP share one gate.
+const { assertSalesAllowed, setSalesGate }: SalesGateModule = require(
+  resolveServerModulePath('src', 'shared', 'license', 'salesGate')
+);
+
+export { buildSuccessPayload, buildErrorPayload, resolveAppError, validateIpcPayload, assertSalesAllowed, setSalesGate };
 
 /**
  * Mirrors requireAdmin.ts's Express middleware exactly, reading the token
