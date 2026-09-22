@@ -11,9 +11,13 @@ import { LicenseClient } from './licenseClient';
 import { LicenseManager } from './licenseManager';
 import { disabledStatus } from './licensePolicy';
 import { readMachineId } from './machineId';
+import type { RedeemKeyOutcome } from './licenseManager';
 
 const REEVALUATE_INTERVAL_MS = 60 * 1000;
 const VERSION_PATTERN = /^\d{1,4}\.\d{1,4}\.\d{1,6}(?:[-+][0-9A-Za-z.-]{1,32})?$/;
+// A key is at most 26 characters (20 body + 2 checksum + separators); this only guards against an absurd
+// payload before it ever reaches parsing/validation, not a real length limit.
+const MAX_KEY_INPUT_LENGTH = 128;
 
 let manager: LicenseManager | null = null;
 
@@ -43,6 +47,20 @@ export const initLicensing = (getWindow: () => BrowserWindow | null): void => {
     await manager.refresh();
     return manager.getStatus();
   });
+  ipcMain.handle(
+    IPC.LICENSE_REDEEM_KEY,
+    async (_event, rawKey: unknown): Promise<RedeemKeyOutcome> => {
+      if (!manager) return { kind: 'offline' };
+      if (
+        typeof rawKey !== 'string' ||
+        rawKey.length === 0 ||
+        rawKey.length > MAX_KEY_INPUT_LENGTH
+      ) {
+        return { kind: 'malformed' };
+      }
+      return manager.redeemActivationKey(rawKey);
+    }
+  );
 
   const config = resolveLicenseConfig(process.env, app.isPackaged);
   if (!config) {

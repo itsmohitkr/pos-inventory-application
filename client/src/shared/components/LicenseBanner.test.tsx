@@ -59,27 +59,31 @@ describe('LicenseBannerView', () => {
     ['kill-switch (severity none)', status({ severity: 'none' })],
     ['no message', status({ message: null })],
   ])('renders nothing for %s', (_label, value) => {
-    const { container } = render(<LicenseBannerView status={value} onRefresh={vi.fn()} />);
+    const { container } = render(
+      <LicenseBannerView status={value} onRefresh={vi.fn()} onEnterKey={vi.fn()} />
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
   it('shows the message and a Check again button for warnings', async () => {
     const onRefresh = vi.fn();
-    render(<LicenseBannerView status={status()} onRefresh={onRefresh} />);
+    render(<LicenseBannerView status={status()} onRefresh={onRefresh} onEnterKey={vi.fn()} />);
     expect(screen.getByTestId('license-banner')).toHaveTextContent('New sales will be blocked');
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the trial info without a button while online', () => {
+  it('shows the trial info with only an Enter key button while online', () => {
     render(
       <LicenseBannerView
         status={status({ mode: 'trialing', severity: 'info', message: 'Free trial: 5 days left.' })}
         onRefresh={vi.fn()}
+        onEnterKey={vi.fn()}
       />
     );
     expect(screen.getByTestId('license-banner')).toHaveTextContent('Free trial: 5 days left.');
     expect(screen.queryByRole('button', { name: 'Check again' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enter key' })).toBeInTheDocument();
   });
 
   it('offers Check again for an info banner when the service is unreachable', () => {
@@ -92,13 +96,43 @@ describe('LicenseBannerView', () => {
           offline: true,
         })}
         onRefresh={vi.fn()}
+        onEnterKey={vi.fn()}
       />
     );
     expect(screen.getByRole('button', { name: 'Check again' })).toBeInTheDocument();
   });
 
+  it('never offers Enter key for revoked or unverified (those need support, not a key)', () => {
+    for (const mode of ['revoked', 'unverified'] as const) {
+      const { unmount } = render(
+        <LicenseBannerView status={status({ mode })} onRefresh={vi.fn()} onEnterKey={vi.fn()} />
+      );
+      expect(screen.queryByRole('button', { name: 'Enter key' })).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('calls onEnterKey when its button is clicked', async () => {
+    const onEnterKey = vi.fn();
+    render(
+      <LicenseBannerView
+        status={status({ mode: 'lapsed' })}
+        onRefresh={vi.fn()}
+        onEnterKey={onEnterKey}
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Enter key' }));
+    expect(onEnterKey).toHaveBeenCalledTimes(1);
+  });
+
   it('adds a clock hint when the system clock looks wrong', () => {
-    render(<LicenseBannerView status={status({ clockSuspect: true })} onRefresh={vi.fn()} />);
+    render(
+      <LicenseBannerView
+        status={status({ clockSuspect: true })}
+        onRefresh={vi.fn()}
+        onEnterKey={vi.fn()}
+      />
+    );
     expect(screen.getByTestId('license-banner')).toHaveTextContent('clock looks wrong');
   });
 });
@@ -134,5 +168,16 @@ describe('LicenseBanner (connected)', () => {
     expect(await screen.findByTestId('license-banner')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
     expect(invoke).toHaveBeenCalledWith(IPC.LICENSE_REFRESH);
+  });
+
+  it('opens the Enter Activation Key dialog from the banner button', async () => {
+    installElectron(status({ mode: 'lapsed' }));
+    render(<LicenseBanner />);
+
+    await screen.findByTestId('license-banner');
+    expect(screen.queryByText('Enter Activation Key')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Enter key' }));
+    expect(screen.getByText('Enter Activation Key')).toBeInTheDocument();
   });
 });

@@ -97,3 +97,70 @@ describe('LicenseClient', () => {
     expect(signal).toBeInstanceOf(AbortSignal);
   });
 });
+
+describe('LicenseClient.redeemActivationKey', () => {
+  const keyRequest = { ...request, activationKey: '0WD2T-G2KCS-WRS7X-JRQCE-DN' };
+
+  it('returns the token on success, and sends the key on /v1/activate', async () => {
+    let url = '';
+    let body = '';
+    const result = await client(async (u, init) => {
+      url = u;
+      body = init.body;
+      return {
+        status: 200,
+        ok: true,
+        text: async () => JSON.stringify({ token: 't', deviceSecret: 's'.repeat(43) }),
+      };
+    }).redeemActivationKey(keyRequest);
+
+    expect(url).toBe('https://license.example.com/v1/activate');
+    expect(JSON.parse(body)).toEqual(keyRequest);
+    expect(result).toEqual({ kind: 'ok', data: { token: 't', deviceSecret: 's'.repeat(43) } });
+  });
+
+  it('maps a 403 invalid_activation_key to invalid_key', async () => {
+    const body = JSON.stringify({ error: 'invalid_activation_key', message: 'x' });
+    expect(await client(respond(403, body)).redeemActivationKey(keyRequest)).toEqual({
+      kind: 'invalid_key',
+    });
+  });
+
+  it('maps a 401 device_not_recognized (key does not match the owned account) to invalid_key too', async () => {
+    const body = JSON.stringify({ error: 'device_not_recognized', message: 'x' });
+    expect(await client(respond(401, body)).redeemActivationKey(keyRequest)).toEqual({
+      kind: 'invalid_key',
+    });
+  });
+
+  it('maps 409 seat_limit_reached and 409 device_already_licensed distinctly', async () => {
+    expect(
+      await client(
+        respond(409, JSON.stringify({ error: 'seat_limit_reached' }))
+      ).redeemActivationKey(keyRequest)
+    ).toEqual({ kind: 'seat_limit_reached' });
+    expect(
+      await client(
+        respond(409, JSON.stringify({ error: 'device_already_licensed' }))
+      ).redeemActivationKey(keyRequest)
+    ).toEqual({ kind: 'device_already_licensed' });
+  });
+
+  it.each([
+    ['a 401 with an unrelated error', respond(401, JSON.stringify({ error: 'something_else' }))],
+    ['a 409 with an unrelated error', respond(409, JSON.stringify({ error: 'something_else' }))],
+    ['a 429', respond(429, JSON.stringify({ error: 'rate_limited' }))],
+    ['a 500', respond(500, JSON.stringify({ error: 'internal_error' }))],
+    [
+      'a network failure',
+      async () => {
+        throw new Error('ECONNREFUSED');
+      },
+    ],
+    ['a 200 with the wrong shape', respond(200, JSON.stringify({ hello: 'world' }))],
+    ['captive-portal HTML with a 200', respond(200, '<html>log in to wifi</html>')],
+  ])('treats %s as offline, never as a verdict', async (_label, fetchImpl) => {
+    const result = await client(fetchImpl).redeemActivationKey(keyRequest);
+    expect(result.kind).toBe('offline');
+  });
+});

@@ -17,6 +17,19 @@ export type ClientResult<T> =
   | { kind: 'rejected' }
   | { kind: 'offline'; reason: string };
 
+/**
+ * Redeeming a key is an interactive, user-initiated action, not a background entitlement check, so (unlike
+ * ClientResult) it surfaces the service's specific reason instead of collapsing every non-2xx into "offline" —
+ * the person typing the key needs to know *why* it didn't work. `offline` here still means the same thing as
+ * everywhere else: a transport failure, never a verdict, and never reduces entitlement.
+ */
+export type KeyRedeemResult =
+  | { kind: 'ok'; data: ActivateResponse }
+  | { kind: 'invalid_key' }
+  | { kind: 'seat_limit_reached' }
+  | { kind: 'device_already_licensed' }
+  | { kind: 'offline'; reason: string };
+
 export type FetchLike = (
   url: string,
   init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal }
@@ -33,6 +46,10 @@ export interface LicenseClientOptions {
 }
 
 const MAX_BODY_CHARS = 16_384;
+
+type RawResponse =
+  | { outcome: 'offline'; reason: string }
+  | { outcome: 'response'; status: number; ok: boolean; body: unknown };
 
 export class LicenseClient {
   private readonly baseUrl: string;
@@ -51,11 +68,30 @@ export class LicenseClient {
     return this.post('/v1/validate', request, (body) => ValidateResponseSchema.safeParse(body));
   }
 
-  private async post<T>(
-    route: string,
-    payload: unknown,
-    parse: (body: unknown) => { success: true; data: T } | { success: false }
-  ): Promise<ClientResult<T>> {
+  /** Same endpoint as activate(), but interprets the response for a person actively entering a key. */
+  async redeemActivationKey(request: ActivateRequest): Promise<KeyRedeemResult> {
+    const raw = await this.rawFetch('/v1/activate', request);
+    if (raw.outcome === 'offline') return { kind: 'offline', reason: raw.reason };
+    const { status, ok, body } = raw;
+
+    const code =
+      typeof body === 'object' && body !== null ? (body as { error?: unknown }).error : undefined;
+    // A key that doesn't resolve to this device's own account also surfaces as device_not_recognized (401)
+    // from the recovery path; from the typist's point of view that is the same as "this key doesn't work here".
+    if (status === 403 && code === 'invalid_activation_key') return { kind: 'invalid_key' };
+    if (status === 401 && code === 'device_not_recognized') return { kind: 'invalid_key' };
+    if (status === 409 && code === 'seat_limit_reached') return { kind: 'seat_limit_reached' };
+    if (status === 409 && code === 'device_already_licensed')
+      return { kind: 'device_already_licensed' };
+    if (!ok) return { kind: 'offline', reason: `http_${status}` };
+
+    const parsed = ActivateResponseSchema.safeParse(body);
+    return parsed.success
+      ? { kind: 'ok', data: parsed.data }
+      : { kind: 'offline', reason: 'bad_response' };
+  }
+
+  private async rawFetch(route: string, payload: unknown): Promise<RawResponse> {
     let status: number;
     let ok: boolean;
     let text: string;
@@ -70,17 +106,28 @@ export class LicenseClient {
       ok = response.ok;
       text = await response.text();
     } catch {
-      return { kind: 'offline', reason: 'network' };
+      return { outcome: 'offline', reason: 'network' };
     }
 
-    if (text.length > MAX_BODY_CHARS) return { kind: 'offline', reason: 'oversized_response' };
+    if (text.length > MAX_BODY_CHARS) return { outcome: 'offline', reason: 'oversized_response' };
 
     let body: unknown;
     try {
       body = JSON.parse(text);
     } catch {
-      return { kind: 'offline', reason: `non_json_${status}` };
+      return { outcome: 'offline', reason: `non_json_${status}` };
     }
+    return { outcome: 'response', status, ok, body };
+  }
+
+  private async post<T>(
+    route: string,
+    payload: unknown,
+    parse: (body: unknown) => { success: true; data: T } | { success: false }
+  ): Promise<ClientResult<T>> {
+    const raw = await this.rawFetch(route, payload);
+    if (raw.outcome === 'offline') return { kind: 'offline', reason: raw.reason };
+    const { status, ok, body } = raw;
 
     if (status === 401) {
       const code =

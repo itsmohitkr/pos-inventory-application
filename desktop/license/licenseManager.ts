@@ -8,13 +8,14 @@
 //  - Time never runs backwards: decisions use max(local clock, newest server time ever accepted).
 import { EventEmitter } from 'events';
 import {
+  normalizeActivationKey,
   verifyLicenseToken,
   type ActivateRequest,
   type EnforcementMode,
   type TokenClaims,
 } from '@trovix/license-contract';
 import { emptyRecord, type DeviceRecord, type RecordStore } from './deviceStore';
-import type { ClientResult, LicenseClient } from './licenseClient';
+import type { ClientResult, KeyRedeemResult, LicenseClient } from './licenseClient';
 import {
   evaluateLicense,
   toSalesDecision,
@@ -23,7 +24,21 @@ import {
 } from './licensePolicy';
 import { deriveDeviceId } from './machineId';
 
-type ClientLike = Pick<LicenseClient, 'activate' | 'validate'>;
+type ClientLike = Pick<LicenseClient, 'activate' | 'validate' | 'redeemActivationKey'>;
+
+/**
+ * Sent to the renderer as the result of an "Enter key" attempt. `malformed` is a purely local checksum
+ * rejection (see @trovix/license-contract's normalizeActivationKey) — no network call is made for it, so a
+ * typo is caught instantly and never counts against the service's guess-lockout. Every other outcome came
+ * from (or is a stand-in for) a real service response; `offline` never means the key was rejected.
+ */
+export type RedeemKeyOutcome =
+  | { kind: 'ok' }
+  | { kind: 'malformed' }
+  | { kind: 'invalid_key' }
+  | { kind: 'seat_limit_reached' }
+  | { kind: 'device_already_licensed' }
+  | { kind: 'offline' };
 
 export interface LicenseManagerDeps {
   client: ClientLike;
@@ -90,6 +105,47 @@ export class LicenseManager extends EventEmitter {
     return toSalesDecision(this.getStatus());
   }
 
+  /**
+   * Redeems a key the person typed into the app. Unlike the background exchange(), this always sends the
+   * device's current secret when one exists (buildActivateRequest deliberately does not, since it is only ever
+   * called when no working secret exists) — without it, an already-owned device would be routed into the
+   * secret-recovery check instead of the actual key-redeem path, and could never apply a key for a different
+   * account. Never throws; concurrent calls with the background refresh are safe (this is a plain activate()).
+   */
+  async redeemActivationKey(rawKey: string): Promise<RedeemKeyOutcome> {
+    if (!this.started) return { kind: 'offline' };
+    if (normalizeActivationKey(rawKey) === null) return { kind: 'malformed' };
+
+    const nonce = this.deps.randomNonce();
+    const request: ActivateRequest = {
+      deviceId: this.deviceId,
+      nonce,
+      appVersion: this.deps.appVersion,
+      platform: this.deps.platform,
+      activationKey: rawKey,
+    };
+    if (this.weakIdentity) request.fingerprint = 'weak';
+    if (this.record.deviceSecret) request.deviceSecret = this.record.deviceSecret;
+
+    let result: KeyRedeemResult;
+    try {
+      result = await this.deps.client.redeemActivationKey(request);
+    } catch (error) {
+      this.log('redeemActivationKey failed unexpectedly', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return { kind: 'offline' };
+    }
+
+    if (result.kind === 'ok') {
+      const applied = this.acceptToken(result.data.token, result.data.deviceSecret, nonce);
+      this.emitStatus();
+      return applied ? { kind: 'ok' } : { kind: 'offline' };
+    }
+    if (result.kind === 'offline') return { kind: 'offline' };
+    return result;
+  }
+
   /** Re-evaluates against the current time and notifies listeners if anything visible changed. */
   reevaluate(): void {
     this.emitStatus();
@@ -128,7 +184,10 @@ export class LicenseManager extends EventEmitter {
         appVersion: this.deps.appVersion,
         platform: this.deps.platform,
       });
-      if (validated.kind === 'ok') return this.acceptToken(validated.data.token, undefined, nonce);
+      if (validated.kind === 'ok') {
+        this.acceptToken(validated.data.token, undefined, nonce);
+        return;
+      }
       if (validated.kind === 'offline') return this.markOffline(validated.reason);
       // rejected: the service does not know this device/secret pair, so recover by activating again.
     }
@@ -136,16 +195,18 @@ export class LicenseManager extends EventEmitter {
     const nonce = this.deps.randomNonce();
     const activated: ClientResult<{ token: string; deviceSecret?: string }> =
       await this.deps.client.activate(this.buildActivateRequest(nonce));
-    if (activated.kind === 'ok')
-      return this.acceptToken(activated.data.token, activated.data.deviceSecret, nonce);
+    if (activated.kind === 'ok') {
+      this.acceptToken(activated.data.token, activated.data.deviceSecret, nonce);
+      return;
+    }
     // A rejected activation (owned device without its secret) needs the activation-key flow; until that exists
     // it is handled like being offline so it can never lock anyone out on its own.
-    return this.markOffline(
-      activated.kind === 'rejected' ? 'activation_rejected' : activated.reason
-    );
+    this.markOffline(activated.kind === 'rejected' ? 'activation_rejected' : activated.reason);
   }
 
-  private acceptToken(token: string, newSecret: string | undefined, nonce: string): void {
+  /** Returns whether the response was actually applied — false for an untrusted/unmatched token, which is
+   *  always treated as 'offline' by callers, never as a rejection or a silent no-op success. */
+  private acceptToken(token: string, newSecret: string | undefined, nonce: string): boolean {
     const verdict = verifyLicenseToken(token, {
       publicKeys: this.deps.publicKeys,
       expectedDeviceId: this.deviceId,
@@ -157,7 +218,7 @@ export class LicenseManager extends EventEmitter {
     if (verdict.ok === false) {
       this.log('ignored an unacceptable service response', { reason: verdict.reason });
       this.offline = true;
-      return;
+      return false;
     }
 
     this.record = {
@@ -172,6 +233,7 @@ export class LicenseManager extends EventEmitter {
     this.persist();
     this.claims = verdict.claims;
     this.offline = false;
+    return true;
   }
 
   private markOffline(reason: string): void {

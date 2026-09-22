@@ -6,7 +6,7 @@ Electron desktop POS (Point of Sale) — "Where Retail Meets Intelligence". Pack
 
 ## Verification discipline
 
-Always verify claims against the actual source code before acting on them — including claims from this file, from prior conversation summaries, from a subagent's report, or from your own memory of the codebase. Documentation and summaries drift out of date; a function, file, or behavior described here may have been renamed, moved, or removed since. Before recommending, fixing, or building on top of something specific (a function name, a file path, a line of logic, a migration precedent), grep or read the current file to confirm it still exists and still works the way it's described. This is especially important before implementing a fix, cutting a release, or making a claim about *why* something behaves a certain way — trace it in the live code rather than assuming a description (including one in this document) is still accurate.
+Always verify claims against the actual source code before acting on them — including claims from this file, from prior conversation summaries, from a subagent's report, or from your own memory of the codebase. Documentation and summaries drift out of date; a function, file, or behavior described here may have been renamed, moved, or removed since. Before recommending, fixing, or building on top of something specific (a function name, a file path, a line of logic, a migration precedent), grep or read the current file to confirm it still exists and still works the way it's described. This is especially important before implementing a fix, cutting a release, or making a claim about _why_ something behaves a certain way — trace it in the live code rather than assuming a description (including one in this document) is still accurate.
 
 ---
 
@@ -138,12 +138,14 @@ Always verify claims against the actual source code before acting on them — in
 ## Development Commands
 
 ### Full stack (recommended)
+
 ```bash
 npm run dev          # Starts Vite dev server + Express server concurrently
 npm run electron-dev # Starts client dev server + Electron shell
 ```
 
 ### Individual layers
+
 ```bash
 # Client
 cd client && npm run dev        # Vite dev server → http://localhost:5173
@@ -162,6 +164,7 @@ npm run sync-version            # Sync version across all package.json files
 ```
 
 ### Release
+
 Push a `v*` tag (e.g. `git tag v1.2.0 && git push origin v1.2.0`). The `build-release.yml` workflow runs quality gates, then builds macOS (DMG + ZIP) and Windows (NSIS x64) installers and uploads them to GitHub Releases. Auto-update feed is served from GitHub Releases via `latest.yml` / `latest-mac.yml`.
 
 ---
@@ -169,11 +172,13 @@ Push a `v*` tag (e.g. `git tag v1.2.0 && git push origin v1.2.0`). The `build-re
 ## Architecture
 
 ### Communication layers
+
 - **Renderer → Main (Electron IPC):** All IPC channel names are defined in `desktop/ipcChannels.ts` (CommonJS) and mirrored in `client/src/shared/ipcChannels.ts` (ES module). **Never use raw string literals for channel names.**
 - **Renderer → Server:** REST API calls to `http://localhost:5001/api/*`
 - **Main → Server:** Server runs in the same Node.js process via `require(wrapperPath)`
 
 ### Security model
+
 The Express server binds exclusively to `127.0.0.1:5001` — it is never reachable from other machines on the network. Two layers enforce this:
 
 1. **Bind address** — `server/index.ts` calls `app.listen(PORT, '127.0.0.1', ...)`. Do not remove the second argument.
@@ -183,6 +188,7 @@ The Express server binds exclusively to `127.0.0.1:5001` — it is never reachab
 Because the server is localhost-only, there is **no JWT/session middleware** on API routes — auth is UI-enforced in the renderer. Do not add network-facing endpoints without also adding authentication middleware.
 
 ### Print flow (critical — handle with care)
+
 Both receipt and barcode printing use the same `print-manual` IPC channel. The flow is **always silent** (no OS print dialog) and **always direct** (no pop-ups for the cashier).
 
 ```
@@ -205,6 +211,7 @@ User clicks Pay & Print / Print Label
 For barcode labels specifically, `document.body.classList.add('is-printing-labels')` must fire **before** the invoke so `@media print` CSS hides everything except `.printable-area`. The 100 ms setTimeout in `BarcodePrintDialog.tsx` is intentional.
 
 **IPC/print code location rule:** `ipcRenderer.invoke` calls for printing must never be moved out of their current file:
+
 - Receipt print (Pay & Print / Last Receipt) → `usePOSSale.ts` (`handlePayAndPrint`, `handlePrintLastReceipt`)
 - Receipt print (Sales History) → `SaleHistory.tsx` (`handlePrintReceipt`)
 - Receipt print (Bill Preview dialog) → `ReceiptPreviewDialog.tsx` (`printPreview`)
@@ -215,7 +222,7 @@ For barcode labels specifically, `document.body.classList.add('is-printing-label
 - Price list print → `PriceListPanel.tsx` (`handlePrint`)
 
 The rule constrains the **invoke**, not the logic around it. Pure helpers may
-and should be shared — printer *resolution* lives in
+and should be shared — printer _resolution_ lives in
 `client/src/shared/utils/resolvePrinterName.ts` and the cached `get-printers`
 call lives in `client/src/shared/hooks/usePrinters.ts`. What must stay in the
 component is the `invoke` itself, so the `is-printing-*` class timing stays
@@ -225,7 +232,7 @@ next to the call it gates.
 `buildPriceListPrintableHtml` clones the preview's `.price-label-item` nodes,
 but emotion's generated classes never reach the print window — so a label
 styled through `sx` looks right on screen and silently loses that styling on
-paper. Cloning gives WYSIWYG *structure* only. The styling comes from
+paper. Cloning gives WYSIWYG _structure_ only. The styling comes from
 `buildLabelCss(...)`, one mm-based stylesheet that the preview injects in a
 `<style>` tag and the print document embeds verbatim; that shared string is
 what actually makes preview and printout agree, and it is why the two used to
@@ -243,7 +250,7 @@ receipts: saved printer (only if still present in the live list) → system
 default → first `isDefault` → first available. The list check matters — a
 renamed or unplugged printer sent to main is rejected as an unknown device,
 so skipping it turns a recoverable situation into a hard failure. Barcode and
-price-list printing deliberately do *not* use this: they keep their own
+price-list printing deliberately do _not_ use this: they keep their own
 per-dialog printer choice in `localStorage`.
 
 **Both print handlers return `{ success, error }` and never throw.** Callers
@@ -258,7 +265,7 @@ hardening pass — its only caller, `PriceListPanel.tsx`, was updated to check
 don't wrap the invoke in a bare try/catch expecting a throw.
 
 **A print failure is not a payment failure.** In `handlePayAndPrint` the sale
-commits *before* printing, so the print block has its own `try/catch`. Never
+commits _before_ printing, so the print block has its own `try/catch`. Never
 let a print error reach the outer handler: a cashier told "Payment failed"
 for a committed sale will re-ring it and double-charge the customer. Print
 failure messages must say the sale was saved and point at Sale History.
@@ -283,9 +290,11 @@ be verified by hand
 (`electron-dev` / a packaged build), not assumed safe because CI is green.
 
 ### Double-payment guard
+
 `POS.tsx` uses an `isPaying` state flag set at the top of both `handlePay` and `handlePayAndPrint` and cleared in `finally`. The flag is propagated to `TransactionPanel → TransactionActionButtons` to disable the Pay button during an in-flight transaction. Never remove this guard — rapid double-taps would create duplicate sales.
 
 ### Batch system
+
 Products have a `batchTrackingEnabled` flag that controls two separate flows:
 
 **Batch tracking OFF (default):** One logical batch per product. `addBatch` accumulates quantity into the existing batch record. The POS shows a price-selection dialog (`mode: 'price'`) if multiple MRP tiers exist.
@@ -293,6 +302,7 @@ Products have a `batchTrackingEnabled` flag that controls two separate flows:
 **Batch tracking ON:** Each stock addition creates a distinct `Batch` record with a unique auto-generated `batchCode` (format `B-YYYYMMDDHHMMSSmmm`). The POS shows a batch-selection dialog (`mode: 'batch'`) when multiple batches have stock. All sales record the exact `batchId` consumed; returns restore stock to the original batch.
 
 Key invariants to preserve:
+
 - `addBatch` and `createOrUpdateProduct` are always wrapped in `prisma.$transaction()` — batch creation and stock movement are atomic.
 - `deleteBatch` is blocked if any `SaleItem` references the batch (sales history must not be erased). To retire a batch, set its quantity to 0 instead.
 - `processSale` (`sale.service.ts`) rejects expired batches (`expiryDate < now`) before touching stock — the error message includes the product name and expiry date.
@@ -300,14 +310,18 @@ Key invariants to preserve:
 - Toggling `batchTrackingEnabled` from OFF → ON via `updateProduct` auto-assigns `batchCode` values to any existing batches that lack one.
 
 ### Settings storage (two layers — keep in sync)
+
 Receipt settings live in two places:
+
 1. **Backend DB** (primary) — `Setting` table, key `posReceiptSettings`, JSON value
 2. **localStorage** (cache/fallback) — key `posReceiptSettings`
 
 `useSettings.ts → handleSaveBillSettings` writes to both on every save. On load, the DB value wins (fetched with 3 retries); localStorage is a fallback if the API is unreachable during startup. The authoritative default shape is `server/src/config/constants.ts → DEFAULT_RECEIPT_SETTINGS`.
 
 ### Database bootstrap and migrations
+
 On every startup:
+
 1. `desktop/main.ts` copies bundled `pos.db` to `~/{userData}/pos.db` if missing or <5 KB
 2. `DATABASE_URL` env var is set before the server starts
 3. `server/index.ts` runs a tiered migration check (cached version file → `_prisma_migrations` query → `prisma migrate deploy` subprocess only if genuinely pending), backing up `pos.db` → `pos.db.bak` first whenever a deploy is about to run
@@ -317,17 +331,22 @@ On every startup:
 Default users seeded on first boot: `admin / admin123`, `cashier / cashier123`, `salesman / salesman123`. Passwords are bcrypt-hashed at seed time (not plaintext). Change the admin password before deploying to a production machine.
 
 ### Wipe-database flow
+
 Settings → Account Details → Wipe Database requires **two** inputs before the server accepts the request:
+
 1. The admin's current password
 2. The confirmation phrase typed exactly as `WIPE ALL DATA`
 
 The Joi schema (`auth.validation.ts → wipeDatabaseBodySchema`) enforces `confirmPhrase` server-side, so the check cannot be bypassed by manipulating the UI.
 
 ### Crash prevention (main process)
+
 `desktop/main.ts` registers `process.on('uncaughtException')` and `process.on('unhandledRejection')` at the top of the file. Both handlers write to the log file and show a `dialog.showErrorBox` to the user instead of silently crashing. `waitForServer` timeout is 90 s (covers the full migration + listen cycle). `server/index.ts` registers `app.on('error')` to handle `EADDRINUSE` and other listen errors with a clean `process.exit(1)`.
 
 ### Prisma engine in packaged builds
+
 The native Prisma query engine binary lives in `node_modules/.prisma/client/`. electron-builder skips dot-folders by default, so it is handled two ways:
+
 - `asarUnpack` in `package.json` includes `"node_modules/.prisma/**/*"`
 - `extraFiles` copies `node_modules/.prisma` → `app.asar.unpacked/node_modules/.prisma`
 - `scripts/post-build.js` copies it again as a safety net
@@ -340,15 +359,16 @@ The native Prisma query engine binary lives in `node_modules/.prisma/client/`. e
 
 Large components follow a **hook + shell** pattern. The parent file is a thin orchestrator; all state and logic live in a co-located `use*.ts` hook.
 
-| Shell component | Hook | Responsibility split |
-|---|---|---|
-| `ProductList.tsx` | `useProductList.ts` | Shell keeps `forwardRef`/`useImperativeHandle` + layout; hook owns all state, effects, handlers. Spreads `useCategoryManagement`, `useInventoryLayout`, `useProductSelection`, `useProductActions`. |
-| `useCategoryManagement.ts` | (sub-hook of useProductList) | Category fetch, CRUD, `handleCategorySelect`, `handleCategorySortToggle`. All returned and spread via useProductList. |
-| `PriceListPanel.tsx` | `usePriceList.ts` | Shell keeps IPC print call + dialog; hook owns state, computed values, handlers |
-| `ExpenseManagement.tsx` | `useExpenseManagement.ts` | Shell renders tabs + dialogs; hook owns all expense/purchase state |
-| `AddProductForm.tsx` | `useAddProductForm.ts` | Shell renders form sections (single scrollable page — a deliberate redesign away from an earlier tabbed wizard); hook owns barcode checking, validation, submit |
+| Shell component            | Hook                         | Responsibility split                                                                                                                                                                                |
+| -------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ProductList.tsx`          | `useProductList.ts`          | Shell keeps `forwardRef`/`useImperativeHandle` + layout; hook owns all state, effects, handlers. Spreads `useCategoryManagement`, `useInventoryLayout`, `useProductSelection`, `useProductActions`. |
+| `useCategoryManagement.ts` | (sub-hook of useProductList) | Category fetch, CRUD, `handleCategorySelect`, `handleCategorySortToggle`. All returned and spread via useProductList.                                                                               |
+| `PriceListPanel.tsx`       | `usePriceList.ts`            | Shell keeps IPC print call + dialog; hook owns state, computed values, handlers                                                                                                                     |
+| `ExpenseManagement.tsx`    | `useExpenseManagement.ts`    | Shell renders tabs + dialogs; hook owns all expense/purchase state                                                                                                                                  |
+| `AddProductForm.tsx`       | `useAddProductForm.ts`       | Shell renders form sections (single scrollable page — a deliberate redesign away from an earlier tabbed wizard); hook owns barcode checking, validation, submit                                     |
 
 **Rules for future work:**
+
 - New files go in the **same folder** as their parent component — no folder moves without updating all import chains.
 - `forwardRef` on `ProductList` must be preserved — parent pages call `ref.current.refresh()` on it.
 - `ProductListTable.tsx` owns its own `tableContainerRef` and `useVirtualizer` — do not lift the ref to the parent.
@@ -360,7 +380,9 @@ Large components follow a **hook + shell** pattern. The parent file is a thin or
 ## Key Conventions
 
 ### Adding a new domain (backend)
+
 Create `server/src/domains/<name>/` with four files:
+
 - `<name>.router.ts` — Express routes mounted in `server/src/app.ts`
 - `<name>.controller.ts` — HTTP handlers, import `logger` (not `console.error`)
 - `<name>.service.ts` — Business logic, Prisma queries, transactions
@@ -369,34 +391,38 @@ Create `server/src/domains/<name>/` with four files:
 Use `asyncHandler` wrapper in controllers. Throw `createHttpError(status, message)` from services. Map Prisma errors via `toAppError`. Wrap multi-step DB operations in `prisma.$transaction()`.
 
 ### Adding a new IPC channel
+
 1. Add the constant to `desktop/ipcChannels.ts`
 2. Add the same constant to `client/src/shared/ipcChannels.ts`
 3. Register the handler in `desktop/main.ts` with `ipcMain.handle` (not `ipcMain.on`) so the renderer always gets a response
 4. Use `ipcRenderer.invoke` in the renderer (not `send`)
 
 ### Adding a new receipt setting field
+
 1. Add the field + default to `server/src/config/constants.ts → DEFAULT_RECEIPT_SETTINGS`
 2. Add the same field + default to `client/src/domains/pos/components/posReceiptSettings.ts → DEFAULT_RECEIPT_SETTINGS`
 3. Use it in `client/src/domains/pos/components/Receipt.tsx`
 4. Wire a control in `client/src/domains/pos/components/ReceiptPreviewDialog.tsx`
 
 ### Database migrations
+
 ```bash
 cd server
 npx prisma migrate dev --name describe_your_change
 ```
+
 Migrations run automatically on startup via `migrate deploy`. Always test on a DB with existing data before releasing.
 
 ---
 
 ## Testing
 
-| Layer | Tool | Command |
-|---|---|---|
-| Server unit | Jest + jest-mock-extended (mocked Prisma) | `cd server && npm test` |
-| Client unit | Vitest | `cd client && npm run test:unit` |
-| Client E2E | Playwright (Chromium on PR, all browsers nightly) | `cd client && npm run test:e2e` |
-| Desktop unit (licensing only) | Vitest, config in `desktop/vitest.config.mts` | `npm run test:desktop` (repo root). Not yet wired into `ci.yml`. |
+| Layer                         | Tool                                              | Command                                                          |
+| ----------------------------- | ------------------------------------------------- | ---------------------------------------------------------------- |
+| Server unit                   | Jest + jest-mock-extended (mocked Prisma)         | `cd server && npm test`                                          |
+| Client unit                   | Vitest                                            | `cd client && npm run test:unit`                                 |
+| Client E2E                    | Playwright (Chromium on PR, all browsers nightly) | `cd client && npm run test:e2e`                                  |
+| Desktop unit (licensing only) | Vitest, config in `desktop/vitest.config.mts`     | `npm run test:desktop` (repo root). Not yet wired into `ci.yml`. |
 
 E2E tests run against `vite preview` (port 4173), not the dev server. The backend must be running separately for E2E tests that hit the API.
 
@@ -408,14 +434,14 @@ When `updateProduct` is tested, mock `prisma.$transaction` with `mockImplementat
 
 Set automatically by `desktop/main.ts` at runtime. For standalone server development, create `server/.env`:
 
-| Variable | Set by | Purpose |
-|---|---|---|
-| `DATABASE_URL` | `desktop/main.ts` | Prisma SQLite path (`file:/path/to/pos.db`) |
-| `PRISMA_CLIENT_ENGINE_TYPE` | `desktop/main.ts` | Must be `library` |
+| Variable                      | Set by            | Purpose                                      |
+| ----------------------------- | ----------------- | -------------------------------------------- |
+| `DATABASE_URL`                | `desktop/main.ts` | Prisma SQLite path (`file:/path/to/pos.db`)  |
+| `PRISMA_CLIENT_ENGINE_TYPE`   | `desktop/main.ts` | Must be `library`                            |
 | `PRISMA_QUERY_ENGINE_LIBRARY` | `desktop/main.ts` | Absolute path to `.dylib.node` / `.dll.node` |
-| `PORT` | `desktop/main.ts` | Express port (default 5001) |
-| `NODE_ENV` | `desktop/main.ts` | `development` or `production` |
-| `LOG_LEVEL` | optional | Pino log level (default `info`) |
+| `PORT`                        | `desktop/main.ts` | Express port (default 5001)                  |
+| `NODE_ENV`                    | `desktop/main.ts` | `development` or `production`                |
+| `LOG_LEVEL`                   | optional          | Pino log level (default `info`)              |
 
 ---
 
@@ -467,6 +493,7 @@ actual release on a real Windows machine before wide rollout.
 
 Test files converted last, once source was fully clean — they are the net
 that verifies the migration, so they had to keep passing throughout:
+
 - Server: all 14 files under `server/tests/` (13 Jest domain suites +
   `tests/setup/prisma-mock.ts`) are now `.ts`. `server/tsconfig.json`
   includes `tests/**/*` so `tsc --noEmit` enforces strict mode on them too;
@@ -486,22 +513,22 @@ instead of `prisma.purchasePayment` — invisible in JS because
 `jest-mock-extended`'s `mockDeep` proxy auto-mocks any property access, real
 or not), two client source bugs in date-range and response-envelope null
 handling (`saleHistoryDateUtils.ts`, `responseGuards.ts`) that strict typing
-on their *tests* exposed, and one dead E2E helper calling a Playwright API
+on their _tests_ exposed, and one dead E2E helper calling a Playwright API
 that never existed (`.getByTypography(...)`).
 
 Everything measured, not guessed:
 
-| Flag | Server | Client | Desktop | State |
-|---|---|---|---|---|
-| `strict` (all flags) | 0 | 0 | not enabled | **on** (server + client only) |
-| explicit return types | ~174 | ~192 | not measured | rule not enabled |
-| `allowJs` | — | — | `true` (inherited) | **off** (server + client), still on for desktop |
+| Flag                  | Server | Client | Desktop            | State                                           |
+| --------------------- | ------ | ------ | ------------------ | ----------------------------------------------- |
+| `strict` (all flags)  | 0      | 0      | not enabled        | **on** (server + client only)                   |
+| explicit return types | ~174   | ~192   | not measured       | rule not enabled                                |
+| `allowJs`             | —      | —      | `true` (inherited) | **off** (server + client), still on for desktop |
 
 Re-measure with, e.g., `cd client && npx tsc --noEmit --strict`.
 
 `strict` on the server found two more real bugs beyond missing annotations:
 `useUnknownInCatchVariables` (part of `strict`) caught a handful of
-`catch (err) { ...err.message }` sites that would throw *inside* the error
+`catch (err) { ...err.message }` sites that would throw _inside_ the error
 handler itself if something non-`Error` were ever thrown — see the new
 `shared/utils/errorMessage.ts` helper and its call sites. It also caught a
 few `const x = []` "evolving array" declarations whose inferred `never[]`
@@ -557,6 +584,7 @@ nothing for existing customers until then. Enforcement also ships in warn-only m
 global `enf` kill-switch: `off` | `warn` | `on`).
 
 **Where things live**
+
 - `desktop/license/` — `licensePolicy.ts` (pure: token + time -> status/decision), `licenseManager.ts` (orchestration,
   Electron-free and injected so it is unit-tested), `licenseClient.ts`, `deviceStore.ts`, `machineId.ts`, `config.ts`,
   `index.ts` (Electron glue: IPC handlers, timers, `powerMonitor` resume). Started from `main.ts`'s ready handler;
@@ -568,8 +596,20 @@ global `enf` kill-switch: `off` | `warn` | `on`).
   Electron boot), the same way `adminTokens` is shared.
 - Renderer: `useLicenseStatus` + `LicenseBanner` (mounted in `AppLayout`). The main process decides; React only displays.
   `LicenseStatusDto` is mirrored in `client/src/shared/types/license.ts`; keep both in sync.
+- **Activation-key entry**: `LicenseBanner` shows an "Enter key" button (trialing/past_due/grace/lapsed only, not
+  revoked/unverified — those need support) opening `EnterActivationKeyDialog.tsx`, which calls the
+  `LICENSE_REDEEM_KEY` IPC channel. Main-process handling is `LicenseManager.redeemActivationKey()`: checks the
+  key's checksum locally via the contract's `normalizeActivationKey` before any network call, then calls
+  `LicenseClient.redeemActivationKey()` (same `/v1/activate` endpoint as normal, but this method surfaces the
+  service's specific 401/403/409 codes instead of collapsing everything non-2xx to "offline" — a person
+  typing a key needs a real reason, unlike the background sync). It deliberately sends the device's _current_
+  secret when one exists, unlike the background `buildActivateRequest` (which never does, since it is only
+  called when no working secret exists) — without it, an already-owned device would be misrouted into the
+  secret-recovery check and could never apply a key for a different account. `RedeemKeyOutcome` is mirrored in
+  `client/src/shared/types/license.ts`.
 
 **Invariants**
+
 - Only a signature-verified, nonce-matched response can change entitlement. Offline, 5xx, garbage, captive-portal HTML and
   bad signatures are all "offline": the cached token keeps working until its own grace runs out. Nothing may revoke or
   degrade a customer on transport failure.
@@ -590,12 +630,14 @@ path in `package.json`, and update that one entry (version, `resolved`, `integri
 the version, or the lockfile integrity check will fail. Replace the tarball with the registry version once published.
 
 **Running it locally against the dev service**
+
 ```bash
 # in ../trovix-license-service
 npm run db:test:start && npm run dev:server     # prints the two env vars below
 # in this repo (unset ELECTRON_RUN_AS_NODE, see below)
 TROVIX_LICENSE_API_URL=http://127.0.0.1:5055 TROVIX_LICENSE_DEV_PUBLIC_KEY=dev-1:<key> npm run electron-dev
 ```
+
 - Some hosts (VS Code / Claude Code extension terminals) export `ELECTRON_RUN_AS_NODE=1`, which makes `electron` behave
   as plain Node and crash inside `@sentry/electron`. Launch with `env -u ELECTRON_RUN_AS_NODE ...`.
 - Use `--user-data-dir=<scratch dir>` for any smoke test so it never touches the real `~/Library/Application Support/Trovix`.
@@ -614,7 +656,7 @@ TROVIX_LICENSE_API_URL=http://127.0.0.1:5055 TROVIX_LICENSE_DEV_PUBLIC_KEY=dev-1
 - **No JWT/session middleware** — because the server is localhost-only, API routes rely on UI-enforced auth. If the server ever needs to be network-accessible, add authentication middleware before exposing any routes.
 - **Print CSS** — receipt printing forces `color: #000000 !important` and `-webkit-print-color-adjust: exact` on all elements. Do not add colour-dependent logic to receipt rendering. Use camelCase for CSS-in-JS properties (`WebkitPrintColorAdjust`, not `'-webkit-print-color-adjust'`).
 - **IPC print location** — `ipcRenderer.invoke` for `print-manual` and `print-html-content` must stay in the component files listed above. Moving them breaks the `is-printing-labels` / `is-printing-price-labels` CSS class timing that hides the UI during print capture. Pure helpers (printer resolution, the cached printer list) are shared on purpose — it is the invoke that is pinned.
-- **Print error strings are Electron-version-specific** — `describePrintError` in `desktop/main.ts` matches the descriptive strings Electron passes to the print callback (verified on 40.4.0: `"Invalid deviceName provided"`, `"No printers available on the network"`). It does *not* rely on the older `Error code: N` form, which that version never emits. If Electron is upgraded, re-probe the real strings and update the patterns, or users silently fall back to a generic message.
+- **Print error strings are Electron-version-specific** — `describePrintError` in `desktop/main.ts` matches the descriptive strings Electron passes to the print callback (verified on 40.4.0: `"Invalid deviceName provided"`, `"No printers available on the network"`). It does _not_ rely on the older `Error code: N` form, which that version never emits. If Electron is upgraded, re-probe the real strings and update the patterns, or users silently fall back to a generic message.
 - **The print window is network-isolated** — `print-html-content` renders unsanitised database-derived HTML, so its `BrowserWindow` uses a dedicated `print-isolated` session partition with a `webRequest` block on every non-`data:` URL, plus a CSP in the template. Do not move that block onto the default session (it would break auto-update) and do not drop the partition.
 - **waitForServer timeout** — set to 90 s in `desktop/main.ts` to cover the full Prisma migration + `app.listen()` cycle. Do not reduce this below the longest expected migration time.
 - **MUI v6 Grid** — use `<Grid size={{ xs: n, md: m }}>` syntax. The deprecated `item`, `xs`, `md` props have been removed. Fractional grid sizes are not supported; round to the nearest integer.

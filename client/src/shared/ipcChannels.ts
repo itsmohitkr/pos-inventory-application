@@ -125,6 +125,7 @@ export const IPC = {
   SPLASH_STATUS: 'splash-status',
   LICENSE_GET_STATUS: 'license:getStatus',
   LICENSE_REFRESH: 'license:refresh',
+  LICENSE_REDEEM_KEY: 'license:redeemKey',
   LICENSE_STATUS_CHANGED: 'license:statusChanged',
   SPLASH_VERSION: 'splash-version',
 } as const;

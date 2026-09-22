@@ -29,3 +29,12 @@ export interface LicenseStatusDto {
   clockSuspect: boolean;
   lastValidatedAt: number | null;
 }
+
+/** Mirror of RedeemKeyOutcome in desktop/license/licenseManager.ts. Keep the two in sync. */
+export type RedeemKeyOutcome =
+  | { kind: 'ok' }
+  | { kind: 'malformed' }
+  | { kind: 'invalid_key' }
+  | { kind: 'seat_limit_reached' }
+  | { kind: 'device_already_licensed' }
+  | { kind: 'offline' };

@@ -126,6 +126,7 @@ const IPC = {
   // Licensing
   LICENSE_GET_STATUS: 'license:getStatus',
   LICENSE_REFRESH: 'license:refresh',
+  LICENSE_REDEEM_KEY: 'license:redeemKey',
   LICENSE_STATUS_CHANGED: 'license:statusChanged', // main → renderer
 
   // Splash screen (main → splash renderer)

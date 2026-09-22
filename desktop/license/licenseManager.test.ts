@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ActivateRequest, LicenseStatus, ValidateRequest } from '@trovix/license-contract';
-import type { ClientResult } from './licenseClient';
+import type { ClientResult, KeyRedeemResult } from './licenseClient';
 import { LicenseManager } from './licenseManager';
 import { deriveDeviceId } from './machineId';
 import { DAY, MemoryStore, NOW, SECRET, issueToken, makeKeys } from './testUtils';
@@ -25,8 +25,12 @@ const setup = (options: Options = {}) => {
   const clock = { now: NOW };
   const activateCalls: ActivateRequest[] = [];
   const validateCalls: ValidateRequest[] = [];
+  const redeemCalls: ActivateRequest[] = [];
   const activateScript: Array<Script<ActivateRequest>> = [];
   const validateScript: Array<Script<ValidateRequest>> = [];
+  const redeemScript: Array<
+    (request: ActivateRequest) => KeyRedeemResult | Promise<KeyRedeemResult>
+  > = [];
   let nonceCounter = 0;
 
   const manager = new LicenseManager({
@@ -39,6 +43,11 @@ const setup = (options: Options = {}) => {
       validate: async (request) => {
         validateCalls.push(request);
         const next = validateScript.shift();
+        return next ? next(request) : { kind: 'offline', reason: 'unscripted' };
+      },
+      redeemActivationKey: async (request) => {
+        redeemCalls.push(request);
+        const next = redeemScript.shift();
         return next ? next(request) : { kind: 'offline', reason: 'unscripted' };
       },
     },
@@ -83,8 +92,10 @@ const setup = (options: Options = {}) => {
     clock,
     activateCalls,
     validateCalls,
+    redeemCalls,
     activateScript,
     validateScript,
+    redeemScript,
     okReply,
   };
 };
@@ -490,5 +501,133 @@ describe('status events', () => {
     const ctx = setup();
     await ctx.manager.refresh();
     expect(ctx.activateCalls).toHaveLength(0);
+  });
+});
+
+describe('redeeming an activation key', () => {
+  const GOOD_KEY = '0WD2T-G2KCS-WRS7X-JRQCE-DN'; // well-formed test vector, checksum-valid
+  const MALFORMED = 'not-a-real-key';
+
+  it('rejects a malformed key locally: no network call, no status change', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    const before = ctx.manager.getStatus();
+
+    const outcome = await ctx.manager.redeemActivationKey(MALFORMED);
+
+    expect(outcome).toEqual({ kind: 'malformed' });
+    expect(ctx.redeemCalls).toHaveLength(0);
+    expect(ctx.manager.getStatus()).toEqual(before);
+  });
+
+  it('on success: verifies the token, updates status, and persists a returned secret', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    ctx.redeemScript.push(() => ({
+      kind: 'ok',
+      data: {
+        token: issueToken(ctx.keys, {
+          deviceId: DEVICE_ID,
+          nonce: 'nonce00000000000000001',
+          nowMs: ctx.clock.now,
+          st: 'active',
+        }),
+        deviceSecret: SECRET,
+      },
+    }));
+
+    const outcome = await ctx.manager.redeemActivationKey(GOOD_KEY);
+
+    expect(outcome).toEqual({ kind: 'ok' });
+    expect(ctx.manager.getStatus()).toMatchObject({ mode: 'active', salesAllowed: true });
+    expect(ctx.store.record.deviceSecret).toBe(SECRET);
+  });
+
+  it('sends the CURRENT device secret when one exists, so an owned device is not misrouted into recovery', async () => {
+    const ctx = await activated();
+    ctx.redeemScript.push(ctx.okReply({ st: 'active', secret: SECRET }));
+
+    await ctx.manager.redeemActivationKey(GOOD_KEY);
+
+    expect(ctx.redeemCalls[0]).toMatchObject({ deviceSecret: SECRET, activationKey: GOOD_KEY });
+  });
+
+  it('sends no deviceSecret for a fresh trial device (there is none yet)', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    ctx.redeemScript.push(ctx.okReply({ st: 'active', secret: SECRET }));
+
+    await ctx.manager.redeemActivationKey(GOOD_KEY);
+
+    expect(ctx.redeemCalls[0]!.deviceSecret).toBeUndefined();
+    expect(ctx.redeemCalls[0]!.activationKey).toBe(GOOD_KEY);
+  });
+
+  it.each(['invalid_key', 'seat_limit_reached', 'device_already_licensed'] as const)(
+    'passes a %s verdict straight through, and does not touch the cached status',
+    async (kind) => {
+      const ctx = setup();
+      await ctx.manager.start();
+      const before = ctx.manager.getStatus();
+      ctx.redeemScript.push(() => ({ kind }));
+
+      const outcome = await ctx.manager.redeemActivationKey(GOOD_KEY);
+
+      expect(outcome).toEqual({ kind });
+      expect(ctx.manager.getStatus()).toEqual(before);
+    }
+  );
+
+  it('an offline result from the client never changes entitlement', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    const before = ctx.manager.getStatus();
+    ctx.redeemScript.push(() => ({ kind: 'offline', reason: 'network' }));
+
+    const outcome = await ctx.manager.redeemActivationKey(GOOD_KEY);
+
+    expect(outcome).toEqual({ kind: 'offline' });
+    expect(ctx.manager.getStatus()).toEqual(before);
+  });
+
+  it('a client that throws is treated as offline, never crashes', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    ctx.redeemScript.push(() => {
+      throw new Error('boom');
+    });
+
+    await expect(ctx.manager.redeemActivationKey(GOOD_KEY)).resolves.toEqual({ kind: 'offline' });
+  });
+
+  it('a response that fails signature/nonce verification is treated as offline, not applied', async () => {
+    const ctx = setup();
+    await ctx.manager.start();
+    const otherKeys = makeKeys();
+    ctx.redeemScript.push(() => ({
+      kind: 'ok',
+      data: {
+        token: issueToken(otherKeys, {
+          deviceId: DEVICE_ID,
+          nonce: 'nonce00000000000000001',
+          nowMs: ctx.clock.now,
+          st: 'active',
+        }),
+      },
+    }));
+
+    const outcome = await ctx.manager.redeemActivationKey(GOOD_KEY);
+
+    // acceptToken() rejects it internally (untrusted signer): the outcome is honestly reported as offline, not
+    // a false 'ok', since nothing was actually applied.
+    expect(outcome).toEqual({ kind: 'offline' });
+    expect(ctx.manager.getStatus().mode).not.toBe('active');
+  });
+
+  it('before start(), redeeming is a safe no-op reported as offline', async () => {
+    const ctx = setup();
+    const outcome = await ctx.manager.redeemActivationKey(GOOD_KEY);
+    expect(outcome).toEqual({ kind: 'offline' });
+    expect(ctx.redeemCalls).toHaveLength(0);
   });
 });
