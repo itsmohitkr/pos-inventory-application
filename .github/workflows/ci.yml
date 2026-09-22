@@ -2,14 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -73,6 +73,12 @@ jobs:
       - name: Typecheck Client
         run: cd client && npm run typecheck
 
+      # desktop/ has almost no automated coverage (see CLAUDE.md's TypeScript strictness section) except the
+      # licensing modules, which are Electron-free and injected on purpose so they run here under plain Node —
+      # no Electron binary, no display, nothing else built first.
+      - name: Run Desktop Unit Tests
+        run: npm run test:desktop
+
       # 1. LINTING
       # Both configs cover .ts/.tsx. The client config previously matched only
       # js/jsx, so after the TypeScript migration it linted 50 files while 194
@@ -114,7 +120,7 @@ jobs:
       - name: Run E2E Tests
         run: cd client && npx playwright test --project=chromium
         env:
-          DATABASE_URL: "file:../server/test.db"
+          DATABASE_URL: 'file:../server/test.db'
 
       # 6. ARTIFACTS & REPORTS
       - name: Upload Server Coverage Report

@@ -583,6 +583,14 @@ threat model and roadmap are in `Documents/licensing-subscription-plan.md`. **Li
 nothing for existing customers until then. Enforcement also ships in warn-only mode (the service's token carries the
 global `enf` kill-switch: `off` | `warn` | `on`).
 
+**Two release-day values, set together, never before:** `BUILT_IN_API_URL` (the deployed service's URL) and
+`LICENSE_RELEASE_TIME_MS` (`desktop/license/config.ts`, epoch ms) — the instant this cutoff is baked into a build,
+any install whose `pos.db` predates it claims legacy/grandfathered status once, per the server's
+`LEGACY_CLAIM_CUTOFF`/`LEGACY_GRACE_UNTIL`. Both are `0`/empty until then, which is a no-op (licensing entirely off,
+so `LICENSE_RELEASE_TIME_MS` is inert with no `apiUrl` to gate). Do not set a placeholder value ahead of time — it
+must be the real timestamp of the actual first license-enabled release, decided once at P9 (turn enforcement on),
+not before.
+
 **Where things live**
 
 - `desktop/license/` — `licensePolicy.ts` (pure: token + time -> status/decision), `licenseManager.ts` (orchestration,
@@ -596,13 +604,13 @@ global `enf` kill-switch: `off` | `warn` | `on`).
   Electron boot), the same way `adminTokens` is shared.
 - Renderer: `useLicenseStatus` + `LicenseBanner` (mounted in `AppLayout`). The main process decides; React only displays.
   `LicenseStatusDto` is mirrored in `client/src/shared/types/license.ts`; keep both in sync.
-- **Activation-key entry**: `LicenseBanner` shows an "Enter key" button (trialing/past_due/grace/lapsed only, not
+- **Activation-key entry**: `LicenseBanner` shows an "Enter key" button (trialing/past*due/grace/lapsed only, not
   revoked/unverified — those need support) opening `EnterActivationKeyDialog.tsx`, which calls the
   `LICENSE_REDEEM_KEY` IPC channel. Main-process handling is `LicenseManager.redeemActivationKey()`: checks the
   key's checksum locally via the contract's `normalizeActivationKey` before any network call, then calls
   `LicenseClient.redeemActivationKey()` (same `/v1/activate` endpoint as normal, but this method surfaces the
   service's specific 401/403/409 codes instead of collapsing everything non-2xx to "offline" — a person
-  typing a key needs a real reason, unlike the background sync). It deliberately sends the device's _current_
+  typing a key needs a real reason, unlike the background sync). It deliberately sends the device's \_current*
   secret when one exists, unlike the background `buildActivateRequest` (which never does, since it is only
   called when no working secret exists) — without it, an already-owned device would be misrouted into the
   secret-recovery check and could never apply a key for a different account. `RedeemKeyOutcome` is mirrored in
