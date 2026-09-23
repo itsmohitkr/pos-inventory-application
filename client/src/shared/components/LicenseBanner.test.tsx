@@ -110,6 +110,26 @@ describe('LicenseBannerView', () => {
     expect(screen.getByRole('button', { name: 'Upgrade' })).toBeInTheDocument();
   });
 
+  it('shows the renewal reminder for active mode with only an Upgrade button, no Enter key (P6.6)', () => {
+    render(
+      <LicenseBannerView
+        status={status({
+          mode: 'active',
+          severity: 'info',
+          message:
+            'Your plan renews in 5 days (on 28 Sep 2026). Renew now to avoid any interruption.',
+        })}
+        onRefresh={vi.fn()}
+        onEnterKey={vi.fn()}
+        onUpgrade={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('license-banner')).toHaveTextContent('Your plan renews in 5 days');
+    expect(screen.getByRole('button', { name: 'Upgrade' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enter key' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Check again' })).not.toBeInTheDocument();
+  });
+
   it('offers Check again for an info banner when the service is unreachable', () => {
     render(
       <LicenseBannerView

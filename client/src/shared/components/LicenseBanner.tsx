@@ -6,17 +6,24 @@ import useLicenseStatus from '@/shared/hooks/useLicenseStatus';
 import { IPC } from '@/shared/ipcChannels';
 import type { LicenseStatusDto } from '@/shared/types/license';
 
-const QUIET_MODES: ReadonlyArray<LicenseStatusDto['mode']> = ['disabled', 'checking', 'active'];
-/** Modes where typing a key is a plausible next step. Kept narrow: revoked/unverified need support, not a key. */
+// 'active' is deliberately NOT quiet (P6.6): licensePolicy.ts's evaluateLicense now gives it a real
+// severity/message in the last RENEWAL_REMINDER_DAYS of a still-fully-paid period (the renewal reminder), and
+// `severity === 'none'` below already suppresses it the rest of the time — same mechanism 'trialing'/'checking'
+// rely on, so nothing here needed to special-case the reminder further.
+const QUIET_MODES: ReadonlyArray<LicenseStatusDto['mode']> = ['disabled', 'checking'];
+/** Modes where typing a key is a plausible next step. Kept narrow: revoked/unverified need support, not a key,
+ *  and 'active' never needs a key at all (see OFFERS_UPGRADE below for its one action). */
 const OFFERS_ENTER_KEY: ReadonlyArray<LicenseStatusDto['mode']> = [
   'trialing',
   'past_due',
   'grace',
   'lapsed',
 ];
-/** Same set as OFFERS_ENTER_KEY: a self-serve Upgrade (P6.5) is the other way to resolve exactly these modes,
- *  offered alongside the manual key path rather than instead of it. */
-const OFFERS_UPGRADE: ReadonlyArray<LicenseStatusDto['mode']> = OFFERS_ENTER_KEY;
+/** OFFERS_ENTER_KEY's modes, plus 'active': the renewal reminder's whole point is offering the same
+ *  self-serve Upgrade/Renew flow (P6.5) proactively, before the period actually ends. The button is still
+ *  gated by the banner rendering at all (severity !== 'none'), so it only ever appears alongside the
+ *  reminder message itself, never for an 'active' account with time to spare. */
+const OFFERS_UPGRADE: ReadonlyArray<LicenseStatusDto['mode']> = [...OFFERS_ENTER_KEY, 'active'];
 
 interface LicenseBannerViewProps {
   status: LicenseStatusDto | null;

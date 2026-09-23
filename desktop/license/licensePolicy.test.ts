@@ -61,7 +61,7 @@ describe('with a verified token', () => {
     expect(status.message).toBe('Free trial: 1 day left.');
   });
 
-  it('active: silent', () => {
+  it('active: silent while well outside the renewal window', () => {
     const status = evaluateLicense(
       input({ claims: claims({ st: 'active', tend: null, pend: sec(NOW + 20 * DAY) }) })
     );
@@ -72,6 +72,60 @@ describe('with a verified token', () => {
       salesAllowed: true,
       daysLeft: 20,
     });
+  });
+
+  it('active: shows a renewal reminder in the last 7 days of a still-fully-paid period (P6.6)', () => {
+    const status = evaluateLicense(
+      input({ claims: claims({ st: 'active', tend: null, pend: sec(NOW + 5 * DAY) }) })
+    );
+    expect(status).toMatchObject({
+      mode: 'active',
+      severity: 'info',
+      salesAllowed: true,
+      wouldBlock: false,
+      daysLeft: 5,
+    });
+    expect(status.message).toContain('Your plan renews in 5 days');
+    expect(status.message).toContain('Renew now');
+  });
+
+  it('active: the renewal reminder never changes salesAllowed/wouldBlock -- purely informational', () => {
+    const farOut = evaluateLicense(
+      input({ claims: claims({ st: 'active', tend: null, pend: sec(NOW + 20 * DAY) }) })
+    );
+    const reminder = evaluateLicense(
+      input({ claims: claims({ st: 'active', tend: null, pend: sec(NOW + 5 * DAY) }) })
+    );
+    expect(reminder.salesAllowed).toBe(farOut.salesAllowed);
+    expect(reminder.wouldBlock).toBe(farOut.wouldBlock);
+    expect(reminder.mode).toBe(farOut.mode);
+  });
+
+  it('active: exactly at the 7-day boundary still shows the reminder (inclusive)', () => {
+    const status = evaluateLicense(
+      input({ claims: claims({ st: 'active', tend: null, pend: sec(NOW + 7 * DAY) }) })
+    );
+    expect(status.daysLeft).toBe(7);
+    expect(status.severity).toBe('info');
+  });
+
+  it('active: 8 days out is still silent (one day past the boundary)', () => {
+    const status = evaluateLicense(
+      input({ claims: claims({ st: 'active', tend: null, pend: sec(NOW + 8 * DAY) }) })
+    );
+    expect(status.daysLeft).toBe(8);
+    expect(status.severity).toBe('none');
+    expect(status.message).toBeNull();
+  });
+
+  it('active: the renewal reminder is silenced entirely when enforcement is off (kill-switch)', () => {
+    const status = evaluateLicense(
+      input({
+        claims: claims({ st: 'active', tend: null, pend: sec(NOW + 5 * DAY), enf: 'off' }),
+      })
+    );
+    expect(status.severity).toBe('none');
+    expect(status.message).toBeNull();
   });
 
   it('a trial that ends while the app is running moves to grace using the server-supplied deadline', () => {

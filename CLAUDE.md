@@ -655,6 +655,19 @@ null}`, never `null`, since `UpgradeDialog` renders unconditionally once mounted
   - Vendored contract bumped to 0.3.0 for the new `CreateCheckoutSessionRequest/Response` and
     `PollCheckoutSessionRequest/Response` schemas (additive; `unknown_plan`/`checkout_session_not_found`
     error codes new in this version).
+- **Renewal reminder (P6.6, decided with the user 2026-09-23: in-app banner only, no email/SES infrastructure)**:
+  `licensePolicy.ts#describe()` gives `active` mode a real `severity`/`message` — `{severity: 'info', ...}` —
+  during the last `RENEWAL_REMINDER_DAYS` (7) of a still-fully-paid period, computed from the `daysLeft` the
+  `active` branch already calculated for other purposes; outside that window it stays exactly what it always
+  was, `{severity: 'none', message: null}`. This is **purely informational**: `mode` stays `'active'`,
+  `salesAllowed`/`wouldBlock` are computed from `mode` in `build()` _before_ `describe()` even runs, so the
+  reminder cannot touch entitlement by construction — a shop stays fully entitled right up to `paidUntil`,
+  identical to before this reminder existed. `LicenseBanner.tsx`'s `QUIET_MODES` no longer force-hides
+  `'active'` (it only ever needed `severity === 'none'` to suppress it, the same mechanism `'checking'` still
+  relies on — the explicit `'active'` entry was redundant even before this change and is what would have
+  silently swallowed the new reminder if left in place). `OFFERS_UPGRADE` gained `'active'` so the reminder
+  can point straight at the existing P6.5 Upgrade/Renew flow; `OFFERS_ENTER_KEY` deliberately did **not** —
+  typing an activation key isn't a sensible action for an account that isn't locked out of anything yet.
 
 **Invariants**
 

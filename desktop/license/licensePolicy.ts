@@ -12,6 +12,11 @@ export const OFFLINE_GRACE_MS = 4 * DAY_MS;
 /** Local trial allowed before the very first successful contact with the service. */
 export const PROVISIONAL_TRIAL_MS = 7 * DAY_MS;
 export const SUPPORT_EMAIL = 'support@trovix.app';
+/** How many days before an ACTIVE period ends the renewal reminder starts showing (P6.6, decided with the
+ *  user 2026-09-23: an in-app banner only, no email — this is the one place that reminder lives). Purely
+ *  informational: it never changes `mode`, `salesAllowed` or `wouldBlock` — a shop paid through this date and
+ *  stays fully entitled right up to it, same as before this reminder existed. */
+export const RENEWAL_REMINDER_DAYS = 7;
 
 export type LicenseMode =
   | 'disabled'
@@ -101,12 +106,22 @@ interface ModeFacts {
 }
 
 const describe = (
-  { mode, graceUntilMs, daysLeft }: ModeFacts,
+  { mode, graceUntilMs, paidUntilMs, daysLeft }: ModeFacts,
   salesAllowed: boolean
 ): { severity: LicenseSeverity; message: string | null } => {
   switch (mode) {
     case 'trialing':
       return { severity: 'info', message: `Free trial: ${plural(daysLeft ?? 0, 'day')} left.` };
+    case 'active':
+      // Renewal reminder (P6.6): purely informational, shown only in the last stretch of a still-fully-paid
+      // period — everything else about 'active' (no banner at all) is unchanged.
+      if (daysLeft !== null && daysLeft !== undefined && daysLeft <= RENEWAL_REMINDER_DAYS) {
+        return {
+          severity: 'info',
+          message: `Your plan renews in ${plural(daysLeft, 'day')}${paidUntilMs ? ` (on ${formatDate(paidUntilMs)})` : ''}. Renew now to avoid any interruption.`,
+        };
+      }
+      return { severity: 'none', message: null };
     case 'past_due':
       return {
         severity: 'warning',
