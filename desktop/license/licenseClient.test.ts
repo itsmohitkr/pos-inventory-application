@@ -164,3 +164,128 @@ describe('LicenseClient.redeemActivationKey', () => {
     expect(result.kind).toBe('offline');
   });
 });
+
+describe('LicenseClient checkout (P6.5)', () => {
+  const checkoutCreateRequest = {
+    deviceId: DEVICE,
+    deviceSecret: 's'.repeat(43),
+    appVersion: '1.0.255',
+    platform: 'darwin' as const,
+    plan: 'monthly',
+  };
+  const checkoutPollRequest = {
+    deviceId: DEVICE,
+    deviceSecret: 's'.repeat(43),
+    nonce: NONCE,
+    appVersion: '1.0.255',
+    platform: 'darwin' as const,
+  };
+  const checkoutResponse = {
+    sessionId: 'sess_abc123',
+    checkoutUrl: 'https://rzp.io/i/xyz',
+    expiresAt: '2026-10-01T00:00:00.000Z',
+  };
+
+  it('posts to /v1/checkout-sessions and returns a parsed success', async () => {
+    let seen: { url: string; body: string; method: string } | null = null;
+    const result = await client(async (url, init) => {
+      seen = { url, body: init.body, method: init.method };
+      return { status: 201, ok: true, text: async () => JSON.stringify(checkoutResponse) };
+    }).createCheckoutSession(checkoutCreateRequest);
+
+    expect(result).toEqual({ kind: 'ok', data: checkoutResponse });
+    expect(seen).toMatchObject({
+      url: 'https://license.example.com/v1/checkout-sessions',
+      method: 'POST',
+    });
+    expect(JSON.parse(seen!.body)).toEqual(checkoutCreateRequest);
+  });
+
+  it('maps 401 device_not_recognized to rejected and 400 unknown_plan distinctly', async () => {
+    expect(
+      await client(
+        respond(401, JSON.stringify({ error: 'device_not_recognized' }))
+      ).createCheckoutSession(checkoutCreateRequest)
+    ).toEqual({ kind: 'rejected' });
+    expect(
+      await client(respond(400, JSON.stringify({ error: 'unknown_plan' }))).createCheckoutSession(
+        checkoutCreateRequest
+      )
+    ).toEqual({ kind: 'unknown_plan' });
+  });
+
+  it.each([
+    ['a 401 with an unrelated error', respond(401, JSON.stringify({ error: 'something_else' }))],
+    ['a 400 with an unrelated error', respond(400, JSON.stringify({ error: 'invalid_request' }))],
+    ['a 500', respond(500, JSON.stringify({ error: 'internal_error' }))],
+    ['a 200 with the wrong shape', respond(200, JSON.stringify({ hello: 'world' }))],
+  ])('createCheckoutSession treats %s as offline', async (_label, fetchImpl) => {
+    const result = await client(fetchImpl).createCheckoutSession(checkoutCreateRequest);
+    expect(result.kind).toBe('offline');
+  });
+
+  it('posts (not GETs) to /v1/checkout-sessions/:id — a credential never belongs in a URL', async () => {
+    let seen: { url: string; body: string; method: string } | null = null;
+    const result = await client(async (url, init) => {
+      seen = { url, body: init.body, method: init.method };
+      return {
+        status: 200,
+        ok: true,
+        text: async () => JSON.stringify({ status: 'pending' }),
+      };
+    }).pollCheckoutSession('sess_abc123', checkoutPollRequest);
+
+    expect(result).toEqual({ kind: 'ok', data: { status: 'pending' } });
+    expect(seen).toMatchObject({
+      url: 'https://license.example.com/v1/checkout-sessions/sess_abc123',
+      method: 'POST',
+    });
+    expect(JSON.parse(seen!.body)).toEqual(checkoutPollRequest);
+  });
+
+  it('URL-encodes the session id', async () => {
+    let url = '';
+    await client(async (u) => {
+      url = u;
+      return { status: 200, ok: true, text: async () => JSON.stringify({ status: 'pending' }) };
+    }).pollCheckoutSession('sess/weird id', checkoutPollRequest);
+    expect(url).toBe('https://license.example.com/v1/checkout-sessions/sess%2Fweird%20id');
+  });
+
+  it('returns the fresh token when the response reports paid', async () => {
+    const result = await client(async () => ({
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({ status: 'paid', token: 'a.b.c' }),
+    })).pollCheckoutSession('sess_abc123', checkoutPollRequest);
+    expect(result).toEqual({ kind: 'ok', data: { status: 'paid', token: 'a.b.c' } });
+  });
+
+  it('maps 401 device_not_recognized to rejected and 404 checkout_session_not_found to not_found', async () => {
+    expect(
+      await client(
+        respond(401, JSON.stringify({ error: 'device_not_recognized' }))
+      ).pollCheckoutSession('sess_abc123', checkoutPollRequest)
+    ).toEqual({ kind: 'rejected' });
+    expect(
+      await client(
+        respond(404, JSON.stringify({ error: 'checkout_session_not_found' }))
+      ).pollCheckoutSession('sess_abc123', checkoutPollRequest)
+    ).toEqual({ kind: 'not_found' });
+  });
+
+  it.each([
+    ['a 401 with an unrelated error', respond(401, JSON.stringify({ error: 'something_else' }))],
+    ['a 404 with an unrelated error', respond(404, JSON.stringify({ error: 'invalid_request' }))],
+    ['a 500', respond(500, JSON.stringify({ error: 'internal_error' }))],
+    [
+      'a network failure',
+      async () => {
+        throw new Error('ECONNREFUSED');
+      },
+    ],
+  ])('pollCheckoutSession treats %s as offline', async (_label, fetchImpl) => {
+    const result = await client(fetchImpl).pollCheckoutSession('sess_abc123', checkoutPollRequest);
+    expect(result.kind).toBe('offline');
+  });
+});

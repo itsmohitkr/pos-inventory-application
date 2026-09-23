@@ -129,6 +129,12 @@ const IPC = {
   LICENSE_REDEEM_KEY: 'license:redeemKey',
   LICENSE_STATUS_CHANGED: 'license:statusChanged', // main → renderer
 
+  // Checkout (Upgrade/Renew, P6.5)
+  LICENSE_START_CHECKOUT: 'license:startCheckout',
+  LICENSE_GET_CHECKOUT_STATE: 'license:getCheckoutState',
+  LICENSE_CANCEL_CHECKOUT: 'license:cancelCheckout',
+  LICENSE_CHECKOUT_STATE_CHANGED: 'license:checkoutStateChanged', // main → renderer
+
   // Splash screen (main → splash renderer)
   SPLASH_STATUS: 'splash-status',
   SPLASH_VERSION: 'splash-version',

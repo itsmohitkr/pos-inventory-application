@@ -38,3 +38,23 @@ export type RedeemKeyOutcome =
   | { kind: 'seat_limit_reached' }
   | { kind: 'device_already_licensed' }
   | { kind: 'offline' };
+
+/** Mirror of CheckoutState in desktop/license/licenseManager.ts (P6.5). The main process decides this; the
+ *  renderer only displays it — pushed live over LICENSE_CHECKOUT_STATE_CHANGED, the same pattern as
+ *  LicenseStatusDto. */
+export type CheckoutPhase = 'idle' | 'pending' | 'paid' | 'failed' | 'expired';
+
+export interface CheckoutState {
+  phase: CheckoutPhase;
+  /** Set only while `phase === 'pending'`, and only for the launch that started it — resuming a session left
+   *  pending across a restart does not restore it, so the waiting UI must tolerate it being null. */
+  checkoutUrl: string | null;
+}
+
+/** Mirror of CheckoutStartResult in desktop/license/licenseManager.ts. Keep the two in sync. */
+export type CheckoutStartResult =
+  | { kind: 'ok'; checkoutUrl: string }
+  | { kind: 'already_pending' }
+  | { kind: 'rejected' }
+  | { kind: 'unknown_plan' }
+  | { kind: 'offline' };

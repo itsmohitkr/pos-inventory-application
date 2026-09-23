@@ -15,7 +15,12 @@ import {
   type TokenClaims,
 } from '@trovix/license-contract';
 import { emptyRecord, type DeviceRecord, type RecordStore } from './deviceStore';
-import type { ClientResult, KeyRedeemResult, LicenseClient } from './licenseClient';
+import type {
+  CheckoutPollResult,
+  ClientResult,
+  KeyRedeemResult,
+  LicenseClient,
+} from './licenseClient';
 import {
   evaluateLicense,
   toSalesDecision,
@@ -24,7 +29,29 @@ import {
 } from './licensePolicy';
 import { deriveDeviceId } from './machineId';
 
-type ClientLike = Pick<LicenseClient, 'activate' | 'validate' | 'redeemActivationKey'>;
+type ClientLike = Pick<
+  LicenseClient,
+  'activate' | 'validate' | 'redeemActivationKey' | 'createCheckoutSession' | 'pollCheckoutSession'
+>;
+
+export type CheckoutPhase = 'idle' | 'pending' | 'paid' | 'failed' | 'expired';
+
+/** Pushed to the renderer as the Upgrade/Renew dialog's entire state — decided here, only displayed there. */
+export interface CheckoutState {
+  phase: CheckoutPhase;
+  /** Set only while `phase === 'pending'` and only for the call that started it — a relaunch resumes polling
+   *  without it (see DeviceRecord's own comment), so the waiting UI must tolerate it being null. */
+  checkoutUrl: string | null;
+}
+
+export type CheckoutStartResult =
+  | { kind: 'ok'; checkoutUrl: string }
+  | { kind: 'already_pending' }
+  | { kind: 'rejected' }
+  | { kind: 'unknown_plan' }
+  | { kind: 'offline' };
+
+const IDLE_CHECKOUT: CheckoutState = { phase: 'idle', checkoutUrl: null };
 
 /**
  * Sent to the renderer as the result of an "Enter key" attempt. `malformed` is a purely local checksum
@@ -58,6 +85,16 @@ export interface LicenseManagerDeps {
 
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
 
+// Polling cadence for an in-progress checkout (plan section N): fast while the person is plausibly still on
+// the payment page, slower after that so a browser left open overnight does not hammer the service.
+const CHECKOUT_FAST_INTERVAL_MS = 3 * 1000;
+const CHECKOUT_FAST_WINDOW_MS = 2 * 60 * 1000;
+const CHECKOUT_SLOW_INTERVAL_MS = 10 * 1000;
+// A little past the session's own server-side expiry (30 min) before the client gives up entirely: the
+// service's own "paid wins over expiry" policy means a payment completed right at the boundary can still
+// resolve after the client's naive clock-based expiry, so this is a grace window, not a hard cutoff to race.
+const CHECKOUT_EXPIRY_GRACE_MS = 2 * 60 * 1000;
+
 export class LicenseManager extends EventEmitter {
   private record: DeviceRecord = emptyRecord();
   private deviceId = '';
@@ -67,6 +104,12 @@ export class LicenseManager extends EventEmitter {
   private started = false;
   private inFlight: Promise<void> | null = null;
   private lastEmitted = '';
+
+  private checkoutState: CheckoutState = IDLE_CHECKOUT;
+  private checkoutSessionId: string | null = null;
+  private checkoutStartedAtMs = 0;
+  private checkoutTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastEmittedCheckout = '';
 
   constructor(private readonly deps: LicenseManagerDeps) {
     super();
@@ -78,6 +121,16 @@ export class LicenseManager extends EventEmitter {
     await this.resolveIdentity(record);
     this.record = record;
     this.claims = this.loadCachedClaims();
+
+    // Resume polling a checkout that was in progress when the app last closed (plan: "quitting and
+    // relaunching ... still resolves"). The cadence restarts from "just launched", not wherever it left off —
+    // simpler, and never worse than the steady-state slow cadence.
+    if (this.record.pendingCheckoutSessionId) {
+      this.checkoutSessionId = this.record.pendingCheckoutSessionId;
+      this.checkoutStartedAtMs = this.deps.now();
+      this.checkoutState = { phase: 'pending', checkoutUrl: null };
+      this.scheduleNextCheckoutPoll();
+    }
 
     // No usable token: start the local provisional trial once, before any network attempt, so a first
     // launch with no internet still gets a bounded trial and an unusable token cannot mean "unlimited".
@@ -144,6 +197,174 @@ export class LicenseManager extends EventEmitter {
     }
     if (result.kind === 'offline') return { kind: 'offline' };
     return result;
+  }
+
+  getCheckoutState(): CheckoutState {
+    return this.checkoutState;
+  }
+
+  /**
+   * Starts a checkout for `plan` (the Upgrade/Renew button). The price is decided server-side; this never
+   * sends an amount. Refuses to start a second session while one is already pending — the caller should show
+   * the existing waiting state instead (checking `getCheckoutState()` before offering the button at all).
+   */
+  async startCheckout(plan: string): Promise<CheckoutStartResult> {
+    if (!this.started) return { kind: 'offline' };
+    if (this.checkoutState.phase === 'pending') return { kind: 'already_pending' };
+    // No secret yet means this device has never successfully activated -- nothing to authenticate a checkout
+    // session with. Should not be reachable from the UI (the Upgrade button only shows once licensed at all).
+    if (!this.record.deviceSecret) return { kind: 'offline' };
+
+    const result = await this.deps.client.createCheckoutSession({
+      deviceId: this.deviceId,
+      deviceSecret: this.record.deviceSecret,
+      appVersion: this.deps.appVersion,
+      platform: this.deps.platform,
+      plan,
+    });
+    if (result.kind === 'rejected') return { kind: 'rejected' };
+    if (result.kind === 'unknown_plan') return { kind: 'unknown_plan' };
+    if (result.kind === 'offline') return { kind: 'offline' };
+
+    const expiresAtMs = Date.parse(result.data.expiresAt);
+    this.checkoutSessionId = result.data.sessionId;
+    this.checkoutStartedAtMs = this.deps.now();
+    this.record = {
+      ...this.record,
+      pendingCheckoutSessionId: result.data.sessionId,
+      pendingCheckoutExpiresAtMs: Number.isFinite(expiresAtMs) ? expiresAtMs : null,
+    };
+    this.persist();
+    this.checkoutState = { phase: 'pending', checkoutUrl: result.data.checkoutUrl };
+    this.emitCheckoutState();
+    this.scheduleNextCheckoutPoll();
+    return { kind: 'ok', checkoutUrl: result.data.checkoutUrl };
+  }
+
+  /** Cancel (while pending) and Close (after a terminal outcome) are the same action: stop polling if any is
+   *  running, forget the pending session, and go back to idle. */
+  cancelCheckout(): void {
+    this.stopCheckoutPolling();
+    this.checkoutSessionId = null;
+    if (this.record.pendingCheckoutSessionId !== null) {
+      this.record = {
+        ...this.record,
+        pendingCheckoutSessionId: null,
+        pendingCheckoutExpiresAtMs: null,
+      };
+      this.persist();
+    }
+    this.checkoutState = IDLE_CHECKOUT;
+    this.emitCheckoutState();
+  }
+
+  /** An extra, out-of-schedule check — called when the app window regains focus, since that is exactly when
+   *  the person plausibly just finished paying in the system browser and switched back. */
+  pollCheckoutNow(): void {
+    if (this.checkoutState.phase !== 'pending') return;
+    this.stopCheckoutPolling();
+    void this.pollCheckoutOnce();
+  }
+
+  private stopCheckoutPolling(): void {
+    if (this.checkoutTimer) {
+      clearTimeout(this.checkoutTimer);
+      this.checkoutTimer = null;
+    }
+  }
+
+  private scheduleNextCheckoutPoll(): void {
+    this.stopCheckoutPolling();
+    const now = this.deps.now();
+    const expiresAtMs = this.record.pendingCheckoutExpiresAtMs;
+    if (expiresAtMs !== null && now >= expiresAtMs + CHECKOUT_EXPIRY_GRACE_MS) {
+      // Long past expiry with no terminal answer: stop polling for good. A truly lost webhook past this point
+      // is what the service's own reconciliation job is for, not indefinite client-side polling.
+      this.finishCheckout('expired');
+      return;
+    }
+    const elapsed = now - this.checkoutStartedAtMs;
+    const delay =
+      elapsed < CHECKOUT_FAST_WINDOW_MS ? CHECKOUT_FAST_INTERVAL_MS : CHECKOUT_SLOW_INTERVAL_MS;
+    this.checkoutTimer = setTimeout(() => void this.pollCheckoutOnce(), delay);
+  }
+
+  private async pollCheckoutOnce(): Promise<void> {
+    const sessionId = this.checkoutSessionId;
+    if (!sessionId || this.checkoutState.phase !== 'pending') return;
+
+    const nonce = this.deps.randomNonce();
+    let result: CheckoutPollResult;
+    try {
+      result = await this.deps.client.pollCheckoutSession(sessionId, {
+        deviceId: this.deviceId,
+        deviceSecret: this.record.deviceSecret ?? '',
+        nonce,
+        appVersion: this.deps.appVersion,
+        platform: this.deps.platform,
+      });
+    } catch (error) {
+      this.log('checkout poll failed unexpectedly', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      this.scheduleNextCheckoutPoll();
+      return;
+    }
+    // The session may have been cancelled while this request was in flight.
+    if (this.checkoutSessionId !== sessionId || this.checkoutState.phase !== 'pending') return;
+
+    // offline/rejected are both transient from the poller's point of view: a real payment provider outage or a
+    // momentary blip must never surface as "failed" — only a genuine terminal status from the service does.
+    if (result.kind === 'offline' || result.kind === 'rejected') {
+      this.scheduleNextCheckoutPoll();
+      return;
+    }
+    if (result.kind === 'not_found') {
+      // Gone (long expired and forgotten, or never valid) -- nothing more to learn by asking again.
+      this.finishCheckout('expired');
+      return;
+    }
+
+    const { status, token } = result.data;
+    if (status === 'pending') {
+      this.scheduleNextCheckoutPoll();
+      return;
+    }
+    if (status === 'paid') {
+      // A "paid" status without a verifiable token is never trusted on its own (only a signature-verified,
+      // nonce-matched response may change entitlement) -- keep polling; the next background validate() will
+      // pick up the new entitlement even if this particular response was malformed.
+      if (token && this.acceptToken(token, undefined, nonce)) {
+        this.finishCheckout('paid');
+      } else {
+        this.scheduleNextCheckoutPoll();
+      }
+      return;
+    }
+    this.finishCheckout(status); // 'failed' | 'expired'
+  }
+
+  private finishCheckout(phase: 'paid' | 'failed' | 'expired'): void {
+    this.stopCheckoutPolling();
+    this.checkoutSessionId = null;
+    if (this.record.pendingCheckoutSessionId !== null) {
+      this.record = {
+        ...this.record,
+        pendingCheckoutSessionId: null,
+        pendingCheckoutExpiresAtMs: null,
+      };
+      this.persist();
+    }
+    this.checkoutState = { phase, checkoutUrl: null };
+    this.emitCheckoutState();
+    if (phase === 'paid') this.emitStatus(); // entitlement just changed
+  }
+
+  private emitCheckoutState(): void {
+    const serialized = JSON.stringify(this.checkoutState);
+    if (serialized === this.lastEmittedCheckout) return;
+    this.lastEmittedCheckout = serialized;
+    this.emit('checkoutState', this.checkoutState);
   }
 
   /** Re-evaluates against the current time and notifies listeners if anything visible changed. */

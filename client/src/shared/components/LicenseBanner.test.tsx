@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import useLicenseStatus from '@/shared/hooks/useLicenseStatus';
 import { IPC } from '@/shared/ipcChannels';
-import type { LicenseStatusDto } from '@/shared/types/license';
+import type { CheckoutState, LicenseStatusDto } from '@/shared/types/license';
 import LicenseBanner, { LicenseBannerView } from './LicenseBanner';
 
 const status = (over: Partial<LicenseStatusDto> = {}): LicenseStatusDto => ({
@@ -24,13 +24,23 @@ const status = (over: Partial<LicenseStatusDto> = {}): LicenseStatusDto => ({
   ...over,
 });
 
+const IDLE_CHECKOUT: CheckoutState = { phase: 'idle', checkoutUrl: null };
+
 type Listener = (event: unknown, ...args: unknown[]) => void;
 
-const installElectron = (initial: LicenseStatusDto) => {
+/** Routes by channel, the way the real preload/main-process pair actually behaves — LicenseBanner always
+ *  mounts UpgradeDialog (even closed), so its useCheckoutState() hook fires LICENSE_GET_CHECKOUT_STATE
+ *  alongside useLicenseStatus()'s LICENSE_GET_STATUS in every test, not just the checkout-specific ones. */
+const installElectron = (
+  initialStatus: LicenseStatusDto,
+  initialCheckout: CheckoutState = IDLE_CHECKOUT
+) => {
   const listeners = new Map<string, Listener>();
-  const invoke = vi.fn(async (channel: string) =>
-    channel === IPC.LICENSE_GET_STATUS ? initial : initial
-  );
+  const invoke = vi.fn(async (channel: string): Promise<unknown> => {
+    if (channel === IPC.LICENSE_GET_STATUS) return initialStatus;
+    if (channel === IPC.LICENSE_GET_CHECKOUT_STATE) return initialCheckout;
+    return undefined;
+  });
   const ipcRenderer = {
     send: vi.fn(),
     invoke,
@@ -60,30 +70,44 @@ describe('LicenseBannerView', () => {
     ['no message', status({ message: null })],
   ])('renders nothing for %s', (_label, value) => {
     const { container } = render(
-      <LicenseBannerView status={value} onRefresh={vi.fn()} onEnterKey={vi.fn()} />
+      <LicenseBannerView
+        status={value}
+        onRefresh={vi.fn()}
+        onEnterKey={vi.fn()}
+        onUpgrade={vi.fn()}
+      />
     );
     expect(container).toBeEmptyDOMElement();
   });
 
   it('shows the message and a Check again button for warnings', async () => {
     const onRefresh = vi.fn();
-    render(<LicenseBannerView status={status()} onRefresh={onRefresh} onEnterKey={vi.fn()} />);
+    render(
+      <LicenseBannerView
+        status={status()}
+        onRefresh={onRefresh}
+        onEnterKey={vi.fn()}
+        onUpgrade={vi.fn()}
+      />
+    );
     expect(screen.getByTestId('license-banner')).toHaveTextContent('New sales will be blocked');
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the trial info with only an Enter key button while online', () => {
+  it('shows the trial info with Enter key and Upgrade buttons while online', () => {
     render(
       <LicenseBannerView
         status={status({ mode: 'trialing', severity: 'info', message: 'Free trial: 5 days left.' })}
         onRefresh={vi.fn()}
         onEnterKey={vi.fn()}
+        onUpgrade={vi.fn()}
       />
     );
     expect(screen.getByTestId('license-banner')).toHaveTextContent('Free trial: 5 days left.');
     expect(screen.queryByRole('button', { name: 'Check again' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enter key' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Upgrade' })).toBeInTheDocument();
   });
 
   it('offers Check again for an info banner when the service is unreachable', () => {
@@ -97,17 +121,24 @@ describe('LicenseBannerView', () => {
         })}
         onRefresh={vi.fn()}
         onEnterKey={vi.fn()}
+        onUpgrade={vi.fn()}
       />
     );
     expect(screen.getByRole('button', { name: 'Check again' })).toBeInTheDocument();
   });
 
-  it('never offers Enter key for revoked or unverified (those need support, not a key)', () => {
+  it('never offers Enter key or Upgrade for revoked or unverified (those need support, not self-serve)', () => {
     for (const mode of ['revoked', 'unverified'] as const) {
       const { unmount } = render(
-        <LicenseBannerView status={status({ mode })} onRefresh={vi.fn()} onEnterKey={vi.fn()} />
+        <LicenseBannerView
+          status={status({ mode })}
+          onRefresh={vi.fn()}
+          onEnterKey={vi.fn()}
+          onUpgrade={vi.fn()}
+        />
       );
       expect(screen.queryByRole('button', { name: 'Enter key' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Upgrade' })).not.toBeInTheDocument();
       unmount();
     }
   });
@@ -119,10 +150,25 @@ describe('LicenseBannerView', () => {
         status={status({ mode: 'lapsed' })}
         onRefresh={vi.fn()}
         onEnterKey={onEnterKey}
+        onUpgrade={vi.fn()}
       />
     );
     await userEvent.click(screen.getByRole('button', { name: 'Enter key' }));
     expect(onEnterKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onUpgrade when its button is clicked', async () => {
+    const onUpgrade = vi.fn();
+    render(
+      <LicenseBannerView
+        status={status({ mode: 'lapsed' })}
+        onRefresh={vi.fn()}
+        onEnterKey={vi.fn()}
+        onUpgrade={onUpgrade}
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Upgrade' }));
+    expect(onUpgrade).toHaveBeenCalledTimes(1);
   });
 
   it('adds a clock hint when the system clock looks wrong', () => {
@@ -131,6 +177,7 @@ describe('LicenseBannerView', () => {
         status={status({ clockSuspect: true })}
         onRefresh={vi.fn()}
         onEnterKey={vi.fn()}
+        onUpgrade={vi.fn()}
       />
     );
     expect(screen.getByTestId('license-banner')).toHaveTextContent('clock looks wrong');
@@ -179,5 +226,34 @@ describe('LicenseBanner (connected)', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Enter key' }));
     expect(screen.getByText('Enter Activation Key')).toBeInTheDocument();
+  });
+
+  it('opens the Upgrade dialog from the banner button, showing plan choices', async () => {
+    installElectron(status({ mode: 'lapsed' }));
+    render(<LicenseBanner />);
+
+    await screen.findByTestId('license-banner');
+    expect(screen.queryByText('Monthly')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Upgrade' }));
+    expect(screen.getByText('Monthly')).toBeInTheDocument();
+    expect(screen.getByText('Yearly')).toBeInTheDocument();
+  });
+
+  it('starting a checkout from the dialog invokes LICENSE_START_CHECKOUT with the chosen plan', async () => {
+    const { invoke } = installElectron(status({ mode: 'lapsed' }));
+    invoke.mockImplementation(async (channel: string): Promise<unknown> => {
+      if (channel === IPC.LICENSE_GET_STATUS) return status({ mode: 'lapsed' });
+      if (channel === IPC.LICENSE_GET_CHECKOUT_STATE) return IDLE_CHECKOUT;
+      if (channel === IPC.LICENSE_START_CHECKOUT) return { kind: 'ok', checkoutUrl: 'https://x' };
+      return undefined;
+    });
+    render(<LicenseBanner />);
+
+    await screen.findByTestId('license-banner');
+    await userEvent.click(screen.getByRole('button', { name: 'Upgrade' }));
+    await userEvent.click(screen.getByRole('button', { name: /Monthly/ }));
+
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith(IPC.LICENSE_START_CHECKOUT, 'monthly'));
   });
 });

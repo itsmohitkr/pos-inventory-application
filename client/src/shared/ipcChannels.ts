@@ -127,6 +127,10 @@ export const IPC = {
   LICENSE_REFRESH: 'license:refresh',
   LICENSE_REDEEM_KEY: 'license:redeemKey',
   LICENSE_STATUS_CHANGED: 'license:statusChanged',
+  LICENSE_START_CHECKOUT: 'license:startCheckout',
+  LICENSE_GET_CHECKOUT_STATE: 'license:getCheckoutState',
+  LICENSE_CANCEL_CHECKOUT: 'license:cancelCheckout',
+  LICENSE_CHECKOUT_STATE_CHANGED: 'license:checkoutStateChanged',
   SPLASH_VERSION: 'splash-version',
 } as const;
 

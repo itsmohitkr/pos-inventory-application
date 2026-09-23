@@ -1,8 +1,14 @@
 import {
   ActivateResponseSchema,
+  CreateCheckoutSessionResponseSchema,
+  PollCheckoutSessionResponseSchema,
   ValidateResponseSchema,
   type ActivateRequest,
   type ActivateResponse,
+  type CreateCheckoutSessionRequest,
+  type CreateCheckoutSessionResponse,
+  type PollCheckoutSessionRequest,
+  type PollCheckoutSessionResponse,
   type ValidateRequest,
   type ValidateResponse,
 } from '@trovix/license-contract';
@@ -28,6 +34,24 @@ export type KeyRedeemResult =
   | { kind: 'invalid_key' }
   | { kind: 'seat_limit_reached' }
   | { kind: 'device_already_licensed' }
+  | { kind: 'offline'; reason: string };
+
+/** Starting a checkout is user-initiated (the Upgrade button), so — like KeyRedeemResult — it surfaces the
+ *  service's specific reason instead of collapsing everything into "offline". `unknown_plan` should be
+ *  unreachable in practice (the app only ever sends a plan key it itself offered), but is still a distinct,
+ *  non-`offline` outcome rather than silently treated as a transport failure. */
+export type CheckoutCreateResult =
+  | { kind: 'ok'; data: CreateCheckoutSessionResponse }
+  | { kind: 'rejected' }
+  | { kind: 'unknown_plan' }
+  | { kind: 'offline'; reason: string };
+
+/** `not_found` covers a session that expired long enough ago to be forgotten, or (in principle) one that never
+ *  belonged to this device — both answer identically server-side, and either way polling should stop. */
+export type CheckoutPollResult =
+  | { kind: 'ok'; data: PollCheckoutSessionResponse }
+  | { kind: 'rejected' }
+  | { kind: 'not_found' }
   | { kind: 'offline'; reason: string };
 
 export type FetchLike = (
@@ -86,6 +110,50 @@ export class LicenseClient {
     if (!ok) return { kind: 'offline', reason: `http_${status}` };
 
     const parsed = ActivateResponseSchema.safeParse(body);
+    return parsed.success
+      ? { kind: 'ok', data: parsed.data }
+      : { kind: 'offline', reason: 'bad_response' };
+  }
+
+  /** Authenticated like validate() (device secret, no key). Price and plan validity are decided server-side;
+   *  this never sends an amount. */
+  async createCheckoutSession(
+    request: CreateCheckoutSessionRequest
+  ): Promise<CheckoutCreateResult> {
+    const raw = await this.rawFetch('/v1/checkout-sessions', request);
+    if (raw.outcome === 'offline') return { kind: 'offline', reason: raw.reason };
+    const { status, ok, body } = raw;
+    const code =
+      typeof body === 'object' && body !== null ? (body as { error?: unknown }).error : undefined;
+    if (status === 401 && code === 'device_not_recognized') return { kind: 'rejected' };
+    if (status === 400 && code === 'unknown_plan') return { kind: 'unknown_plan' };
+    if (!ok) return { kind: 'offline', reason: `http_${status}` };
+
+    const parsed = CreateCheckoutSessionResponseSchema.safeParse(body);
+    return parsed.success
+      ? { kind: 'ok', data: parsed.data }
+      : { kind: 'offline', reason: 'bad_response' };
+  }
+
+  /** POST, not GET: a credential (the device secret) never belongs in a URL, matching the service's own
+   *  design (see its CLAUDE.md). `sessionId` is unguessable but still escaped like any path segment. */
+  async pollCheckoutSession(
+    sessionId: string,
+    request: PollCheckoutSessionRequest
+  ): Promise<CheckoutPollResult> {
+    const raw = await this.rawFetch(
+      `/v1/checkout-sessions/${encodeURIComponent(sessionId)}`,
+      request
+    );
+    if (raw.outcome === 'offline') return { kind: 'offline', reason: raw.reason };
+    const { status, ok, body } = raw;
+    const code =
+      typeof body === 'object' && body !== null ? (body as { error?: unknown }).error : undefined;
+    if (status === 401 && code === 'device_not_recognized') return { kind: 'rejected' };
+    if (status === 404 && code === 'checkout_session_not_found') return { kind: 'not_found' };
+    if (!ok) return { kind: 'offline', reason: `http_${status}` };
+
+    const parsed = PollCheckoutSessionResponseSchema.safeParse(body);
     return parsed.success
       ? { kind: 'ok', data: parsed.data }
       : { kind: 'offline', reason: 'bad_response' };

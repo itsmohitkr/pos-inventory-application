@@ -16,6 +16,12 @@ export interface DeviceRecord {
   /** Random stand-in identity used only when the OS machine id cannot be read. */
   fallbackMachineId: string | null;
   lastValidatedAtMs: number | null;
+  /** A checkout session started via the Upgrade/Renew flow (P6.5) that has not yet resolved. Persisted so
+   *  quitting and relaunching, or paying from a phone while the app is closed, still resolves on next boot —
+   *  the app resumes polling this exact session instead of losing track of it. Cleared once the session
+   *  reaches any terminal state (paid/failed/expired) or the person cancels. */
+  pendingCheckoutSessionId: string | null;
+  pendingCheckoutExpiresAtMs: number | null;
 }
 
 export const emptyRecord = (): DeviceRecord => ({
@@ -26,6 +32,8 @@ export const emptyRecord = (): DeviceRecord => ({
   provisionalStartedAtMs: null,
   fallbackMachineId: null,
   lastValidatedAtMs: null,
+  pendingCheckoutSessionId: null,
+  pendingCheckoutExpiresAtMs: null,
 });
 
 const asString = (value: unknown): string | null =>
@@ -55,6 +63,8 @@ export class DeviceStore implements RecordStore {
         provisionalStartedAtMs: asNumber(data.provisionalStartedAtMs),
         fallbackMachineId: asString(data.fallbackMachineId),
         lastValidatedAtMs: asNumber(data.lastValidatedAtMs),
+        pendingCheckoutSessionId: asString(data.pendingCheckoutSessionId),
+        pendingCheckoutExpiresAtMs: asNumber(data.pendingCheckoutExpiresAtMs),
       };
     } catch {
       return emptyRecord();

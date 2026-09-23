@@ -1,12 +1,29 @@
-import { describe, expect, it } from 'vitest';
-import type { ActivateRequest, LicenseStatus, ValidateRequest } from '@trovix/license-contract';
-import type { ClientResult, KeyRedeemResult } from './licenseClient';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type {
+  ActivateRequest,
+  CreateCheckoutSessionRequest,
+  LicenseStatus,
+  PollCheckoutSessionRequest,
+  ValidateRequest,
+} from '@trovix/license-contract';
+import type {
+  CheckoutCreateResult,
+  CheckoutPollResult,
+  ClientResult,
+  KeyRedeemResult,
+} from './licenseClient';
 import { LicenseManager } from './licenseManager';
 import { deriveDeviceId } from './machineId';
-import { DAY, MemoryStore, NOW, SECRET, issueToken, makeKeys } from './testUtils';
+import { DAY, MemoryStore, NOW, SECRET, issueToken, makeKeys, type TokenSpec } from './testUtils';
 
 type Reply = ClientResult<{ token: string; deviceSecret?: string }>;
 type Script<Req> = (request: Req) => Reply | Promise<Reply>;
+type CheckoutCreateScript = (
+  request: CreateCheckoutSessionRequest
+) => CheckoutCreateResult | Promise<CheckoutCreateResult>;
+type CheckoutPollScript = (
+  request: PollCheckoutSessionRequest
+) => CheckoutPollResult | Promise<CheckoutPollResult>;
 
 const MACHINE = 'machine-1';
 const DEVICE_ID = deriveDeviceId(MACHINE);
@@ -26,11 +43,15 @@ const setup = (options: Options = {}) => {
   const activateCalls: ActivateRequest[] = [];
   const validateCalls: ValidateRequest[] = [];
   const redeemCalls: ActivateRequest[] = [];
+  const checkoutCreateCalls: CreateCheckoutSessionRequest[] = [];
+  const checkoutPollCalls: PollCheckoutSessionRequest[] = [];
   const activateScript: Array<Script<ActivateRequest>> = [];
   const validateScript: Array<Script<ValidateRequest>> = [];
   const redeemScript: Array<
     (request: ActivateRequest) => KeyRedeemResult | Promise<KeyRedeemResult>
   > = [];
+  const checkoutCreateScript: CheckoutCreateScript[] = [];
+  const checkoutPollScript: CheckoutPollScript[] = [];
   let nonceCounter = 0;
 
   const manager = new LicenseManager({
@@ -48,6 +69,16 @@ const setup = (options: Options = {}) => {
       redeemActivationKey: async (request) => {
         redeemCalls.push(request);
         const next = redeemScript.shift();
+        return next ? next(request) : { kind: 'offline', reason: 'unscripted' };
+      },
+      createCheckoutSession: async (request) => {
+        checkoutCreateCalls.push(request);
+        const next = checkoutCreateScript.shift();
+        return next ? next(request) : { kind: 'offline', reason: 'unscripted' };
+      },
+      pollCheckoutSession: async (_sessionId, request) => {
+        checkoutPollCalls.push(request);
+        const next = checkoutPollScript.shift();
         return next ? next(request) : { kind: 'offline', reason: 'unscripted' };
       },
     },
@@ -85,6 +116,20 @@ const setup = (options: Options = {}) => {
       },
     });
 
+  /** A real, correctly signed token for a poll response's `paid` status — never a placeholder string, so
+   *  checkout tests exercise the exact same signature-verification path as activate()/validate(). */
+  const paidToken = (
+    nonce: string,
+    spec: Partial<Omit<TokenSpec, 'deviceId' | 'nonce'>> = {}
+  ): string =>
+    issueToken(keys, {
+      deviceId: DEVICE_ID,
+      nonce,
+      nowMs: clock.now,
+      st: 'active',
+      ...spec,
+    });
+
   return {
     manager,
     keys,
@@ -93,10 +138,15 @@ const setup = (options: Options = {}) => {
     activateCalls,
     validateCalls,
     redeemCalls,
+    checkoutCreateCalls,
+    checkoutPollCalls,
     activateScript,
     validateScript,
     redeemScript,
+    checkoutCreateScript,
+    checkoutPollScript,
     okReply,
+    paidToken,
   };
 };
 
@@ -629,5 +679,324 @@ describe('redeeming an activation key', () => {
     const outcome = await ctx.manager.redeemActivationKey(GOOD_KEY);
     expect(outcome).toEqual({ kind: 'offline' });
     expect(ctx.redeemCalls).toHaveLength(0);
+  });
+});
+
+describe('checkout (P6.5)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Advances both vitest's fake timers (so scheduled polls fire) and the manager's own injected clock (so its
+   *  elapsed-time cadence math sees the same passage of time) — the two are deliberately separate in this
+   *  suite's `now: () => clock.now`, so they must be moved together or `elapsed` never changes. Stepped in
+   *  small increments, not one lump jump: a poll firing partway through a large advance must see `now()` at
+   *  the moment IT fires, not the final target time, or every poll mid-advance sees the same (wrong) elapsed
+   *  time and the fast/slow cadence boundary can never be observed correctly. */
+  const advance = async (ctx: { clock: { now: number } }, ms: number): Promise<void> => {
+    const STEP = 250;
+    let remaining = ms;
+    while (remaining > 0) {
+      const step = Math.min(STEP, remaining);
+      ctx.clock.now += step;
+      await vi.advanceTimersByTimeAsync(step);
+      remaining -= step;
+    }
+  };
+
+  const CHECKOUT_RESPONSE = {
+    sessionId: 'sess_abc123',
+    checkoutUrl: 'https://rzp.io/i/xyz',
+    expiresAt: new Date(NOW + 30 * 60 * 1000).toISOString(),
+  };
+
+  it('starts a checkout, persists the session, and reports it pending with the checkout URL', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+
+    const result = await ctx.manager.startCheckout('monthly');
+
+    expect(result).toEqual({ kind: 'ok', checkoutUrl: CHECKOUT_RESPONSE.checkoutUrl });
+    expect(ctx.manager.getCheckoutState()).toEqual({
+      phase: 'pending',
+      checkoutUrl: CHECKOUT_RESPONSE.checkoutUrl,
+    });
+    expect(ctx.checkoutCreateCalls[0]).toMatchObject({
+      deviceId: DEVICE_ID,
+      deviceSecret: SECRET,
+      plan: 'monthly',
+    });
+    expect(ctx.store.record.pendingCheckoutSessionId).toBe(CHECKOUT_RESPONSE.sessionId);
+    expect(ctx.store.record.pendingCheckoutExpiresAtMs).toBe(NOW + 30 * 60 * 1000);
+  });
+
+  it('never sends an amount or price — only a plan key', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('yearly');
+    expect(Object.keys(ctx.checkoutCreateCalls[0]!)).not.toContain('amount');
+  });
+
+  it('refuses to start a second checkout while one is already pending, without a second network call', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+
+    const second = await ctx.manager.startCheckout('yearly');
+
+    expect(second).toEqual({ kind: 'already_pending' });
+    expect(ctx.checkoutCreateCalls).toHaveLength(1);
+  });
+
+  it('a device that has never activated (no secret) cannot start a checkout', async () => {
+    const ctx = setup();
+    await ctx.manager.start(); // no refresh(): no secret yet
+
+    const result = await ctx.manager.startCheckout('monthly');
+
+    expect(result).toEqual({ kind: 'offline' });
+    expect(ctx.checkoutCreateCalls).toHaveLength(0);
+  });
+
+  it.each([
+    ['rejected', { kind: 'rejected' } as const, { kind: 'rejected' }],
+    ['unknown_plan', { kind: 'unknown_plan' } as const, { kind: 'unknown_plan' }],
+    ['offline', { kind: 'offline', reason: 'network' } as const, { kind: 'offline' }],
+  ])('passes a %s outcome straight through, changing no state', async (_label, reply, expected) => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => reply);
+
+    const result = await ctx.manager.startCheckout('monthly');
+
+    expect(result).toEqual(expected);
+    expect(ctx.manager.getCheckoutState()).toEqual({ phase: 'idle', checkoutUrl: null });
+    expect(ctx.store.record.pendingCheckoutSessionId).toBeNull();
+  });
+
+  it('polls every 3s at first', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+    ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status: 'pending' } }));
+    ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status: 'pending' } }));
+
+    await advance(ctx, 3_000);
+    expect(ctx.checkoutPollCalls).toHaveLength(1);
+    await advance(ctx, 3_000);
+    expect(ctx.checkoutPollCalls).toHaveLength(2);
+    expect(ctx.manager.getCheckoutState().phase).toBe('pending');
+  });
+
+  it('slows to every 10s once the 2-minute fast window has passed', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+    // Enough scripted "pending" replies to cover every poll up to and past the 2-minute mark.
+    for (let i = 0; i < 60; i += 1) {
+      ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status: 'pending' } }));
+    }
+
+    // Safely past the fast window (2 min), comfortably into slow-cadence territory.
+    await advance(ctx, 3 * 60 * 1000);
+    const callsByThreeMinutes = ctx.checkoutPollCalls.length;
+    expect(callsByThreeMinutes).toBeGreaterThan(0);
+
+    // The next poll cannot have fired yet if the cadence is genuinely 10s, not 3s.
+    await advance(ctx, 3_000);
+    expect(ctx.checkoutPollCalls).toHaveLength(callsByThreeMinutes);
+    // ...but does fire once the full 10s has elapsed.
+    await advance(ctx, 7_000);
+    expect(ctx.checkoutPollCalls).toHaveLength(callsByThreeMinutes + 1);
+
+    expect(ctx.manager.getCheckoutState().phase).toBe('pending');
+  });
+
+  it('a paid response with a verifiable token activates the device and stops polling', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+
+    let statusEvents = 0;
+    ctx.manager.on('status', () => (statusEvents += 1));
+
+    ctx.checkoutPollScript.push((request) => ({
+      kind: 'ok',
+      data: { status: 'paid', token: ctx.paidToken(request.nonce) },
+    }));
+    await advance(ctx, 3_000);
+
+    expect(ctx.manager.getCheckoutState()).toEqual({ phase: 'paid', checkoutUrl: null });
+    expect(ctx.manager.getStatus().mode).toBe('active');
+    expect(ctx.store.record.pendingCheckoutSessionId).toBeNull();
+    expect(ctx.store.record.pendingCheckoutExpiresAtMs).toBeNull();
+    expect(statusEvents).toBeGreaterThan(0);
+
+    // Polling has genuinely stopped: no further calls even if more time passes.
+    const callsAtPaid = ctx.checkoutPollCalls.length;
+    await advance(ctx, 60_000);
+    expect(ctx.checkoutPollCalls).toHaveLength(callsAtPaid);
+  });
+
+  it('a paid response WITHOUT a verifiable token is never trusted on its own; polling continues', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+
+    ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status: 'paid' } })); // no token
+    ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status: 'pending' } }));
+    await advance(ctx, 3_000);
+    expect(ctx.manager.getCheckoutState().phase).toBe('pending');
+    expect(ctx.manager.getStatus().mode).not.toBe('active');
+
+    await advance(ctx, 3_000);
+    expect(ctx.checkoutPollCalls).toHaveLength(2);
+  });
+
+  it('a paid response with a token signed by an untrusted key is never trusted; polling continues', async () => {
+    const ctx = await activated();
+    const impostor = makeKeys('impostor');
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+
+    ctx.checkoutPollScript.push((request) => ({
+      kind: 'ok',
+      data: {
+        status: 'paid',
+        token: issueToken(impostor, { deviceId: DEVICE_ID, nonce: request.nonce, nowMs: NOW }),
+      },
+    }));
+    await advance(ctx, 3_000);
+
+    expect(ctx.manager.getCheckoutState().phase).toBe('pending');
+    expect(ctx.manager.getStatus().mode).not.toBe('active');
+  });
+
+  it.each(['failed', 'expired'] as const)(
+    'a terminal %s status stops polling and is reported as-is',
+    async (status) => {
+      const ctx = await activated();
+      ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+      await ctx.manager.startCheckout('monthly');
+
+      ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status } }));
+      await advance(ctx, 3_000);
+
+      expect(ctx.manager.getCheckoutState()).toEqual({ phase: status, checkoutUrl: null });
+      expect(ctx.store.record.pendingCheckoutSessionId).toBeNull();
+    }
+  );
+
+  it('a not_found poll response (session forgotten) is treated as expired', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+
+    ctx.checkoutPollScript.push(() => ({ kind: 'not_found' }));
+    await advance(ctx, 3_000);
+
+    expect(ctx.manager.getCheckoutState()).toEqual({ phase: 'expired', checkoutUrl: null });
+  });
+
+  it.each([
+    ['offline', { kind: 'offline', reason: 'network' } as const],
+    ['rejected', { kind: 'rejected' } as const],
+  ])(
+    'a transient %s poll result never changes the visible phase; polling continues',
+    async (_label, reply) => {
+      const ctx = await activated();
+      ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+      await ctx.manager.startCheckout('monthly');
+
+      ctx.checkoutPollScript.push(() => reply);
+      ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status: 'pending' } }));
+      await advance(ctx, 3_000);
+      expect(ctx.manager.getCheckoutState().phase).toBe('pending');
+
+      await advance(ctx, 3_000);
+      expect(ctx.checkoutPollCalls).toHaveLength(2);
+    }
+  );
+
+  it('cancelCheckout stops polling, clears the persisted session, and returns to idle', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+
+    ctx.manager.cancelCheckout();
+
+    expect(ctx.manager.getCheckoutState()).toEqual({ phase: 'idle', checkoutUrl: null });
+    expect(ctx.store.record.pendingCheckoutSessionId).toBeNull();
+
+    // No poll fires even though the fast interval would otherwise have elapsed.
+    await advance(ctx, 10_000);
+    expect(ctx.checkoutPollCalls).toHaveLength(0);
+  });
+
+  it('cancelCheckout after a terminal outcome is a safe no-op (Close reuses Cancel)', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+    ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status: 'failed' } }));
+    await advance(ctx, 3_000);
+
+    expect(() => ctx.manager.cancelCheckout()).not.toThrow();
+    expect(ctx.manager.getCheckoutState()).toEqual({ phase: 'idle', checkoutUrl: null });
+  });
+
+  it('pollCheckoutNow polls immediately, bypassing the scheduled interval', async () => {
+    const ctx = await activated();
+    ctx.checkoutCreateScript.push(() => ({ kind: 'ok', data: CHECKOUT_RESPONSE }));
+    await ctx.manager.startCheckout('monthly');
+
+    ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status: 'pending' } }));
+    ctx.manager.pollCheckoutNow();
+    await advance(ctx, 0);
+
+    expect(ctx.checkoutPollCalls).toHaveLength(1);
+  });
+
+  it('pollCheckoutNow is a no-op when nothing is pending', async () => {
+    const ctx = await activated();
+    ctx.manager.pollCheckoutNow();
+    await advance(ctx, 0);
+    expect(ctx.checkoutPollCalls).toHaveLength(0);
+  });
+
+  it('resumes polling a session left pending across a restart', async () => {
+    const store = new MemoryStore();
+    store.record = {
+      ...store.record,
+      deviceSecret: SECRET,
+      pendingCheckoutSessionId: 'sess_resumed',
+      pendingCheckoutExpiresAtMs: NOW + 20 * 60 * 1000,
+    };
+    const ctx = setup({ store });
+    await ctx.manager.start();
+
+    expect(ctx.manager.getCheckoutState()).toEqual({ phase: 'pending', checkoutUrl: null });
+
+    ctx.checkoutPollScript.push(() => ({ kind: 'ok', data: { status: 'pending' } }));
+    await advance(ctx, 3_000);
+
+    expect(ctx.checkoutPollCalls).toHaveLength(1);
+  });
+
+  it('a resumed session already well past its expiry finishes as expired without polling', async () => {
+    const store = new MemoryStore();
+    store.record = {
+      ...store.record,
+      deviceSecret: SECRET,
+      pendingCheckoutSessionId: 'sess_stale',
+      pendingCheckoutExpiresAtMs: NOW - 10 * 60 * 1000, // expired 10 minutes before "now", past the grace window
+    };
+    const ctx = setup({ store });
+    await ctx.manager.start();
+
+    expect(ctx.manager.getCheckoutState()).toEqual({ phase: 'expired', checkoutUrl: null });
+    expect(ctx.store.record.pendingCheckoutSessionId).toBeNull();
+    expect(ctx.checkoutPollCalls).toHaveLength(0);
   });
 });

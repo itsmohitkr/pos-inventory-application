@@ -34,6 +34,17 @@ describe('DeviceStore', () => {
     expect(store.read()).toEqual(record);
   });
 
+  it('round-trips a pending checkout session', () => {
+    const store = new DeviceStore(file);
+    const record = {
+      ...emptyRecord(),
+      pendingCheckoutSessionId: 'sess_abc123',
+      pendingCheckoutExpiresAtMs: 1_700_000_000_000,
+    };
+    store.write(record);
+    expect(store.read()).toEqual(record);
+  });
+
   it('writes owner-only and leaves no temp file behind', () => {
     const store = new DeviceStore(file);
     store.write(emptyRecord());

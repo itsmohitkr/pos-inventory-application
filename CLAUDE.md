@@ -615,6 +615,46 @@ not before.
   called when no working secret exists) — without it, an already-owned device would be misrouted into the
   secret-recovery check and could never apply a key for a different account. `RedeemKeyOutcome` is mirrored in
   `client/src/shared/types/license.ts`.
+- **Upgrade/Renew checkout (P6.5)**: `LicenseBanner` also shows an "Upgrade" button (same mode set as
+  "Enter key" — trialing/past_due/grace/lapsed) opening `UpgradeDialog.tsx`, which lets the shop owner pick
+  a plan and pay without leaving the app to type a key. Three new IPC channels: `LICENSE_START_CHECKOUT`,
+  `LICENSE_GET_CHECKOUT_STATE`, `LICENSE_CANCEL_CHECKOUT`, plus one main→renderer push,
+  `LICENSE_CHECKOUT_STATE_CHANGED`. `LicenseManager` owns a `CheckoutState` (`idle | pending | paid | failed
+| expired`, plus the provider's `checkoutUrl`) alongside its existing license state:
+  - `startCheckout(plan)` calls `LicenseClient.createCheckoutSession()` (`POST /v1/checkout-sessions`,
+    authenticated the same way as `/validate`), persists the returned `sessionId` and its expiry into
+    `DeviceRecord` (`pendingCheckoutSessionId`/`pendingCheckoutExpiresAtMs` — so a pending checkout survives
+    an app restart or the shop owner paying from their phone), opens the returned `checkoutUrl` in the
+    system browser via `shell.openExternal` (never an embedded webview — UPI/3-D Secure/bank redirects need
+    a real browser), and begins polling.
+  - Polling cadence matches the plan exactly: every 3 s for the first 2 minutes, then every 10 s until the
+    session resolves or expires, plus one immediate extra poll whenever the app window regains focus
+    (`app.on('browser-window-focus', ...)` in `desktop/license/index.ts` — `initLicensing()` runs before
+    `createWindow()`, so this is on `app`, not a specific `BrowserWindow`, unlike a per-window focus
+    listener).
+  - `pollCheckoutOnce()` calls `LicenseClient.pollCheckoutSession()` (`POST /v1/checkout-sessions/:id` — POST,
+    not GET, matching the service's own deliberate choice not to put a session id in a URL a load balancer's
+    access log would capture) and, on a `paid` result, reuses the **exact same `acceptToken()` verification
+    path** as activate/validate — a bare `"paid"` string is never trusted on its own; only a signature- and
+    nonce-verified token actually changes entitlement, preserving the one invariant this whole system is
+    built around.
+  - `cancelCheckout()` clears the pending session (client-side only — the server-side session simply expires
+    on its own 30-minute TTL; cancelling never needs a network call).
+  - `start()` resumes a pending checkout found in `DeviceRecord` on boot, so quitting mid-payment and
+    relaunching still resolves it.
+  - Client: `useCheckoutState.ts` mirrors `useLicenseStatus.ts` (defaults to `{phase: 'idle', checkoutUrl:
+null}`, never `null`, since `UpgradeDialog` renders unconditionally once mounted). `UpgradeDialog.tsx`
+    shows plan choice (no price — pricing isn't finalized server-side yet) → waiting → paid/failed/expired,
+    with Cancel/Done/Try again wired straight back to the three IPC calls above.
+  - **Deliberately not built**: a "reopen payment page" button. Doing so would need a new generic
+    `SHELL_OPEN_EXTERNAL`-style IPC channel registered in `desktop/main.ts`, and that file is intentionally
+    left untouched by this slice (see IPC/print location rule and the channel-registration convention above
+    — every new channel must be registered in `main.ts`). If this is wanted later, add the channel there
+    deliberately rather than smuggling a raw string literal past the "never use string literals for channel
+    names" rule.
+  - Vendored contract bumped to 0.3.0 for the new `CreateCheckoutSessionRequest/Response` and
+    `PollCheckoutSessionRequest/Response` schemas (additive; `unknown_plan`/`checkout_session_not_found`
+    error codes new in this version).
 
 **Invariants**
 

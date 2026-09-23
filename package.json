@@ -1,7 +1,7 @@
 {
   "name": "trovix",
   "version": "1.0.1",
-  "description": "Trovix \u2014 POS for any shop",
+  "description": "Trovix — POS for any shop",
   "main": "desktop/dist/main.js",
   "homepage": "./",
   "author": "Trovix <support@trovix.app>",
@@ -137,7 +137,7 @@
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@sentry/electron": "^7.13.0",
-    "@trovix/license-contract": "file:vendor/trovix-license-contract-0.2.0.tgz",
+    "@trovix/license-contract": "file:vendor/trovix-license-contract-0.3.0.tgz",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",
