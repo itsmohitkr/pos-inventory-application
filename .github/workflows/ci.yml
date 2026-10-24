@@ -1,136 +1,29 @@
 name: CI
 
+# Kept so main's branch protection (required check "lint-and-test") still works. It only confirms that this
+# repository holds nothing but this README and this workflow: releases are published here from the private
+# development repository, never built here.
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   lint-and-test:
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install Root Dependencies
-        run: npm ci
-
-      - name: Install Client Dependencies
-        run: cd client && npm ci
-
-      - name: Install Server Dependencies
-        run: cd server && npm ci
-
-      # Server typecheck depends on @prisma/client's generated types (every
-      # domain service imports `Prisma`-derived types from it). Two things
-      # have to both be true for that to work, not just "run generate":
-      #
-      # 1. `prisma`'s own postinstall (triggered by npm ci above) generates a
-      #    client into server/node_modules/.prisma from a stale/default schema
-      #    snapshot — a DIFFERENT copy from the one schema.prisma's custom
-      #    `output` actually targets (repo-root node_modules/.prisma). Node's
-      #    module resolution finds this nearer, stale copy first, so it has
-      #    to be removed or it silently shadows the correct one generated
-      #    below — confirmed by reproducing this in a fresh clone: adding the
-      #    generate step alone did NOT fix CI; only removing the stale copy
-      #    first did.
-      # 2. The correct client then has to actually be generated before any
-      #    tsc step (build or typecheck) runs, or every Prisma-touching file
-      #    typechecks against a fallback `{}` shape instead of the real
-      #    schema. build-release.yml already did this explicitly; ci.yml did
-      #    not, which is exactly why this was missed until a PR that actually
-      #    exercised full strict-mode typecheck on the server.
-      - name: Generate Prisma Client
+          persist-credentials: false
+      - name: Only the releases README and this workflow are tracked
         run: |
-          cd server
-          rm -rf node_modules/.prisma
-          npx prisma generate
-
-      # desktop/ipc/*.ts type-imports compiled server output directly
-      # (`typeof import('../../server/dist/src/...')`, see the IPC migration)
-      # so server/dist has to exist before "Typecheck Desktop" below runs, or
-      # every one of those type-only imports fails with TS2307. This was
-      # missed initially because a local `server/dist` from a prior manual
-      # build masked the gap — a truly fresh checkout has no dist/ at all.
-      - name: Build Server
-        run: cd server && npm run build
-
-      # 0. TYPE CHECKING
-      # Gates the TypeScript migration. Passes trivially while the codebase is
-      # still JavaScript (allowJs + checkJs:false), and becomes a real gate as
-      # files are converted. A type regression must not reach a release.
-      - name: Typecheck Desktop
-        run: npm run typecheck
-      - name: Typecheck Server
-        run: cd server && npm run typecheck
-      - name: Typecheck Client
-        run: cd client && npm run typecheck
-
-      # 1. LINTING
-      # Both configs cover .ts/.tsx. The client config previously matched only
-      # js/jsx, so after the TypeScript migration it linted 50 files while 194
-      # TypeScript files went unchecked — this step passed without inspecting
-      # any converted code. The server had no ESLint setup at all.
-      - name: Lint Client
-        run: cd client && npm run lint
-
-      - name: Lint Server
-        run: cd server && npm run lint
-
-      # 2. PRISMA & DATABASE INTEGRITY
-      - name: Validate Prisma Schema
-        run: |
-          cd server
-          echo "DATABASE_URL=\"file:./test.db\"" > .env
-          npx prisma validate
-          # This checks if the schema has changes that are NOT in migrations
-          npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --exit-code
-
-      # 3. UNIT TESTS & COVERAGE
-      - name: Run Server Unit Tests & Coverage
-        run: |
-          cd server
-          npx prisma migrate deploy
-          npm run test:coverage
-
-      - name: Run Client Unit Tests
-        run: cd client && npm run test:unit
-
-      # 4. BUILD VERIFICATION
-      - name: Build Client
-        run: cd client && npm run build
-
-      # 5. E2E TESTS
-      - name: Install Playwright Browsers
-        run: cd client && npx playwright install --with-deps chromium
-
-      - name: Run E2E Tests
-        run: cd client && npx playwright test --project=chromium
-        env:
-          DATABASE_URL: "file:../server/test.db"
-
-      # 6. ARTIFACTS & REPORTS
-      - name: Upload Server Coverage Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-coverage-report
-          path: server/coverage
-          retention-days: 30
-
-      - name: Upload Playwright Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: |
-            client/playwright-report
-            client/test-results
-          retention-days: 30
+          set -euo pipefail
+          unexpected=$(git ls-files | grep -vxE 'README\.md|\.github/workflows/ci\.yml' || true)
+          if [ -n "$unexpected" ]; then
+            echo "::error::This repository only hosts releases. Unexpected files:"; echo "$unexpected"; exit 1
+          fi
+          echo "OK"
