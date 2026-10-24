@@ -31,6 +31,11 @@ import url from 'url';
 import net from 'net';
 import http from 'http';
 import IPC = require('./ipcChannels');
+import { initAutoUpdate, type AutoUpdate } from './updater';
+
+// Set up first thing in the 'ready' handler, so a failure anywhere later in
+// startup can still hand over to recoverFromStartupFailure().
+let autoUpdate: AutoUpdate | null = null;
 
 // Catch any unhandled error in the main process so the app never silently disappears.
 // Log to file and show a dialog so the user knows something went wrong.
@@ -52,8 +57,8 @@ process.on('unhandledRejection', (reason: unknown) => {
   console.error('[FATAL] unhandledRejection:', reason);
 });
 
-// Auto-update wiring is done inside the second app.on('ready') handler,
-// after createWindow(), so mainWindow is guaranteed to exist when events fire.
+// Auto-update wiring lives in desktop/updater.ts and is started at the top of
+// the app.on('ready') handler. Events are forwarded to mainWindow once it exists.
 
 // IPC handlers
 ipcMain.handle('get-app-version', () => app.getVersion());
@@ -897,9 +902,13 @@ const createWindow = (): void => {
       console.error('Failed to start server:', err);
       dialog.showErrorBox(
         'Server Error',
-        `Background server failed to start.\n\nDetails: ${err.message}`
+        `Background server failed to start.\n\nDetails: ${err.message}\n\nTrovix will now look for an update that fixes this and install it if one is found. Otherwise it will close; open it again to retry.`
       );
       if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+      // The main window only appears once the backend settles, so without this
+      // the app would stay running but invisible, unable to install a fix.
+      if (autoUpdate) autoUpdate.recoverFromStartupFailure();
+      else app.quit();
     });
 };
 
@@ -995,6 +1004,19 @@ const stopServer = (): void => {
 // App metadata moved to top for correct directory resolution
 
 app.on('ready', async () => {
+  try {
+    autoUpdate = initAutoUpdate({
+      updater: autoUpdater,
+      getWindow: () => mainWindow,
+      quit: () => app.quit(),
+      isAppUsable: () => Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()),
+      log: (message) => console.log(message),
+      enabled: app.isPackaged,
+    });
+  } catch (updateErr) {
+    console.error('Failed to start auto-update setup:', updateErr);
+  }
+
   try {
     // Create Application Menu
     const template: Electron.MenuItemConstructorOptions[] = [
@@ -1140,36 +1162,15 @@ ${(() => {
 
     // 2. Start UI
     createWindow();
-
-    // Auto-update setup runs here so mainWindow exists when events fire.
-    try {
-      setTimeout(() => autoUpdater.checkForUpdatesAndNotify(), 5000);
-      autoUpdater.on('update-available', () => {
-        if (mainWindow) mainWindow.webContents.send('update-available');
-      });
-      autoUpdater.on('update-downloaded', () => {
-        if (mainWindow) mainWindow.webContents.send('update-downloaded');
-      });
-      autoUpdater.on('update-not-available', () => {
-        if (mainWindow) mainWindow.webContents.send('update-not-available');
-      });
-      autoUpdater.on('error', (err) => {
-        if (mainWindow) mainWindow.webContents.send('update-error', err.message);
-      });
-      autoUpdater.on('download-progress', (progressObj) => {
-        if (mainWindow) mainWindow.webContents.send('download-progress', progressObj.percent);
-      });
-    } catch (updateErr) {
-      console.error('Failed to start auto-update setup:', updateErr);
-    }
   } catch (error) {
     console.error('Failed to start application:', error);
     const message = error instanceof Error ? error.message : String(error);
     dialog.showErrorBox(
       'Server Error',
-      `Failed to start the application server.\n\nDetails: ${message}\n\nPlease check the console logs for more information.`
+      `Failed to start the application server.\n\nDetails: ${message}\n\nTrovix will now look for an update that fixes this and install it if one is found. Otherwise it will close; open it again to retry.`
     );
-    app.quit();
+    if (autoUpdate) autoUpdate.recoverFromStartupFailure();
+    else app.quit();
   }
 });
 
