@@ -131,6 +131,11 @@ export const IPC = {
   LICENSE_GET_CHECKOUT_STATE: 'license:getCheckoutState',
   LICENSE_CANCEL_CHECKOUT: 'license:cancelCheckout',
   LICENSE_CHECKOUT_STATE_CHANGED: 'license:checkoutStateChanged',
+
+  // Subscription details (License & Subscription tab, P7)
+  LICENSE_GET_SUBSCRIPTION: 'license:getSubscription',
+  LICENSE_REFRESH_SUBSCRIPTION: 'license:refreshSubscription',
+  LICENSE_SUBSCRIPTION_CHANGED: 'license:subscriptionChanged',
   SPLASH_VERSION: 'splash-version',
 } as const;
 

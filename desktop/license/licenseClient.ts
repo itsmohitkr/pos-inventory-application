@@ -2,6 +2,7 @@ import {
   ActivateResponseSchema,
   CreateCheckoutSessionResponseSchema,
   PollCheckoutSessionResponseSchema,
+  SubscriptionSnapshotResponseSchema,
   ValidateResponseSchema,
   type ActivateRequest,
   type ActivateResponse,
@@ -9,6 +10,8 @@ import {
   type CreateCheckoutSessionResponse,
   type PollCheckoutSessionRequest,
   type PollCheckoutSessionResponse,
+  type SubscriptionSnapshotRequest,
+  type SubscriptionSnapshotResponse,
   type ValidateRequest,
   type ValidateResponse,
 } from '@trovix/license-contract';
@@ -90,6 +93,16 @@ export class LicenseClient {
 
   validate(request: ValidateRequest): Promise<ClientResult<ValidateResponse>> {
     return this.post('/v1/validate', request, (body) => ValidateResponseSchema.safeParse(body));
+  }
+
+  /** Display-only account details (P7). Authenticated like validate(); the response is a signed snapshot the
+   *  caller must verify, so a bare 200 proves nothing on its own. */
+  fetchSubscription(
+    request: SubscriptionSnapshotRequest
+  ): Promise<ClientResult<SubscriptionSnapshotResponse>> {
+    return this.post('/v1/subscription', request, (body) =>
+      SubscriptionSnapshotResponseSchema.safeParse(body)
+    );
   }
 
   /** Same endpoint as activate(), but interprets the response for a person actively entering a key. */

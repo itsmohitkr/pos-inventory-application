@@ -10,8 +10,10 @@ import { EventEmitter } from 'events';
 import {
   normalizeActivationKey,
   verifyLicenseToken,
+  verifySubscriptionSnapshot,
   type ActivateRequest,
   type EnforcementMode,
+  type SubscriptionSnapshotClaims,
   type TokenClaims,
 } from '@trovix/license-contract';
 import { emptyRecord, type DeviceRecord, type RecordStore } from './deviceStore';
@@ -28,10 +30,16 @@ import {
   type SalesDecision,
 } from './licensePolicy';
 import { deriveDeviceId } from './machineId';
+import { buildSubscriptionDetails, type SubscriptionDetailsDto } from './subscriptionDetails';
 
 type ClientLike = Pick<
   LicenseClient,
-  'activate' | 'validate' | 'redeemActivationKey' | 'createCheckoutSession' | 'pollCheckoutSession'
+  | 'activate'
+  | 'validate'
+  | 'fetchSubscription'
+  | 'redeemActivationKey'
+  | 'createCheckoutSession'
+  | 'pollCheckoutSession'
 >;
 
 export type CheckoutPhase = 'idle' | 'pending' | 'paid' | 'failed' | 'expired';
@@ -85,6 +93,12 @@ export interface LicenseManagerDeps {
 
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
 
+// How often the display-only subscription snapshot is re-fetched by the background refreshes (boot, focus,
+// resume, the periodic timer). A manual Refresh in the tab forces it. After a failed attempt the retry gap is
+// short so coming back online is picked up quickly, without hammering an unreachable service.
+const SUBSCRIPTION_MIN_GAP_MS = 15 * 60 * 1000;
+const SUBSCRIPTION_RETRY_GAP_MS = 60 * 1000;
+
 // Polling cadence for an in-progress checkout (plan section N): fast while the person is plausibly still on
 // the payment page, slower after that so a browser left open overnight does not hammer the service.
 const CHECKOUT_FAST_INTERVAL_MS = 3 * 1000;
@@ -105,6 +119,14 @@ export class LicenseManager extends EventEmitter {
   private inFlight: Promise<void> | null = null;
   private lastEmitted = '';
 
+  // The display-only subscription snapshot (P7). Nothing below ever feeds `claims`/getStatus(): a snapshot
+  // cannot grant or remove the right to sell, so a stale or even forged one can only mislead a screen.
+  private snapshot: SubscriptionSnapshotClaims | null = null;
+  private subscriptionSyncFailed = false;
+  private lastSubscriptionAttemptMs = 0;
+  private subscriptionInFlight: Promise<void> | null = null;
+  private lastEmittedSubscription = '';
+
   private checkoutState: CheckoutState = IDLE_CHECKOUT;
   private checkoutSessionId: string | null = null;
   private checkoutStartedAtMs = 0;
@@ -121,6 +143,7 @@ export class LicenseManager extends EventEmitter {
     await this.resolveIdentity(record);
     this.record = record;
     this.claims = this.loadCachedClaims();
+    this.snapshot = this.loadCachedSnapshot();
 
     // Resume polling a checkout that was in progress when the app last closed (plan: "quitting and
     // relaunching ... still resolves"). The cadence restarts from "just launched", not wherever it left off —
@@ -152,6 +175,36 @@ export class LicenseManager extends EventEmitter {
       clockSuspect: this.deps.now() < this.record.highWaterMarkSec * 1000 - CLOCK_SKEW_MS,
       lastValidatedAtMs: this.record.lastValidatedAtMs,
     });
+  }
+
+  /** What the License & Subscription tab shows. Works fully offline: it is built from the last verified
+   *  snapshot on disk, never from a live request. */
+  getSubscriptionDetails(): SubscriptionDetailsDto {
+    return buildSubscriptionDetails({
+      claims: this.snapshot,
+      fetchedAtMs: this.record.subscriptionFetchedAtMs,
+      nowMs: this.effectiveNowMs(),
+      syncFailed: this.subscriptionSyncFailed,
+    });
+  }
+
+  /**
+   * Fetches the latest snapshot. Never throws or rejects; concurrent calls share one request. Background callers
+   * are throttled; `force` (the tab's Refresh button, a fresh payment, a redeemed key) is not. A failure of any
+   * kind (offline, 5xx, garbage, bad signature, replay) leaves the cached copy untouched and only sets the
+   * "last sync failed" flag.
+   */
+  refreshSubscription(options: { force?: boolean } = {}): Promise<void> {
+    if (!this.started || !this.record.deviceSecret) return Promise.resolve();
+    if (this.subscriptionInFlight) return this.subscriptionInFlight;
+    const gap = this.subscriptionSyncFailed ? SUBSCRIPTION_RETRY_GAP_MS : SUBSCRIPTION_MIN_GAP_MS;
+    if (!options.force && this.deps.now() - this.lastSubscriptionAttemptMs < gap) {
+      return Promise.resolve();
+    }
+    this.subscriptionInFlight = this.doRefreshSubscription().finally(() => {
+      this.subscriptionInFlight = null;
+    });
+    return this.subscriptionInFlight;
   }
 
   evaluateSalesGate(): SalesDecision {
@@ -193,6 +246,7 @@ export class LicenseManager extends EventEmitter {
     if (result.kind === 'ok') {
       const applied = this.acceptToken(result.data.token, result.data.deviceSecret, nonce);
       this.emitStatus();
+      if (applied) void this.refreshSubscription({ force: true });
       return applied ? { kind: 'ok' } : { kind: 'offline' };
     }
     if (result.kind === 'offline') return { kind: 'offline' };
@@ -357,7 +411,10 @@ export class LicenseManager extends EventEmitter {
     }
     this.checkoutState = { phase, checkoutUrl: null };
     this.emitCheckoutState();
-    if (phase === 'paid') this.emitStatus(); // entitlement just changed
+    if (phase === 'paid') {
+      this.emitStatus(); // entitlement just changed
+      void this.refreshSubscription({ force: true }); // and so did the plan, dates and payment history
+    }
   }
 
   private emitCheckoutState(): void {
@@ -370,6 +427,7 @@ export class LicenseManager extends EventEmitter {
   /** Re-evaluates against the current time and notifies listeners if anything visible changed. */
   reevaluate(): void {
     this.emitStatus();
+    this.emitSubscription(); // freshness moves with time
   }
 
   /** Contacts the service. Never throws and never rejects; concurrent calls share one request. */
@@ -393,6 +451,57 @@ export class LicenseManager extends EventEmitter {
       });
     }
     this.emitStatus();
+    // Not awaited: the entitlement result above must never wait on (or be affected by) the display-only details.
+    if (!this.offline) void this.refreshSubscription();
+  }
+
+  private async doRefreshSubscription(): Promise<void> {
+    const deviceSecret = this.record.deviceSecret;
+    if (!deviceSecret) return;
+    this.lastSubscriptionAttemptMs = this.deps.now();
+    const nonce = this.deps.randomNonce();
+    try {
+      const result = await this.deps.client.fetchSubscription({
+        deviceId: this.deviceId,
+        deviceSecret,
+        nonce,
+        appVersion: this.deps.appVersion,
+        platform: this.deps.platform,
+      });
+      if (result.kind !== 'ok') {
+        this.failSubscriptionSync(result.kind === 'offline' ? result.reason : 'rejected');
+        return;
+      }
+      const verdict = verifySubscriptionSnapshot(result.data.snapshot, {
+        publicKeys: this.deps.publicKeys,
+        expectedDeviceId: this.deviceId,
+        expectedNonce: nonce,
+        // An older snapshot than the one held is a replay, not an update.
+        ...(this.snapshot ? { minIatSec: this.snapshot.iat } : {}),
+      });
+      if (verdict.ok === false) {
+        this.failSubscriptionSync(verdict.reason);
+        return;
+      }
+      this.record = {
+        ...this.record,
+        subscriptionSnapshot: result.data.snapshot,
+        subscriptionFetchedAtMs: this.deps.now(),
+      };
+      this.persist();
+      this.snapshot = verdict.claims;
+      this.subscriptionSyncFailed = false;
+    } catch (error) {
+      this.failSubscriptionSync(error instanceof Error ? error.message : String(error));
+      return;
+    }
+    this.emitSubscription();
+  }
+
+  private failSubscriptionSync(reason: string): void {
+    this.subscriptionSyncFailed = true;
+    this.log('subscription details not refreshed; keeping the last known copy', { reason });
+    this.emitSubscription();
   }
 
   private async exchange(): Promise<void> {
@@ -491,6 +600,18 @@ export class LicenseManager extends EventEmitter {
     return null;
   }
 
+  /** Verifies the stored snapshot without network. One that fails (edited, another machine's) is simply ignored. */
+  private loadCachedSnapshot(): SubscriptionSnapshotClaims | null {
+    if (!this.record.subscriptionSnapshot) return null;
+    const verdict = verifySubscriptionSnapshot(this.record.subscriptionSnapshot, {
+      publicKeys: this.deps.publicKeys,
+      expectedDeviceId: this.deviceId,
+    });
+    if (verdict.ok === true) return verdict.claims;
+    this.log('cached subscription snapshot rejected', { reason: verdict.reason });
+    return null;
+  }
+
   private async resolveIdentity(record: DeviceRecord): Promise<void> {
     const machineId = await this.deps.readMachineId();
     if (machineId) {
@@ -523,6 +644,14 @@ export class LicenseManager extends EventEmitter {
     if (serialized === this.lastEmitted) return;
     this.lastEmitted = serialized;
     this.emit('status', status);
+  }
+
+  private emitSubscription(): void {
+    const details = this.getSubscriptionDetails();
+    const serialized = JSON.stringify(details);
+    if (serialized === this.lastEmittedSubscription) return;
+    this.lastEmittedSubscription = serialized;
+    this.emit('subscription', details);
   }
 
   private log(message: string, fields?: Record<string, unknown>): void {

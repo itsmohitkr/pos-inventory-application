@@ -686,7 +686,7 @@ null}`, never `null`, since `UpgradeDialog` renders unconditionally once mounted
 
 **The contract package is vendored.** `@trovix/license-contract` is not published yet, so the root `package.json` depends
 on `file:vendor/trovix-license-contract-<version>.tgz`. To update it: bump the version in
-`trovix-license-service/packages/contract`, build and `npm pack` it into `vendor/`, delete the old tarball, update the
+`trovix-license-service/shared/contract`, build and `npm pack` it into `vendor/`, delete the old tarball, update the
 path in `package.json`, and update that one entry (version, `resolved`, `integrity`) in `package-lock.json`. Always bump
 the version, or the lockfile integrity check will fail. Replace the tarball with the registry version once published.
 
@@ -694,7 +694,7 @@ the version, or the lockfile integrity check will fail. Replace the tarball with
 
 ```bash
 # in ../trovix-license-service
-npm run db:test:start && npm run dev:server     # prints the two env vars below
+./start.sh                                      # local Postgres + API + admin dashboard; the API prints the two env vars below
 # in this repo (unset ELECTRON_RUN_AS_NODE, see below)
 TROVIX_LICENSE_API_URL=http://127.0.0.1:5055 TROVIX_LICENSE_DEV_PUBLIC_KEY=dev-1:<key> npm run electron-dev
 ```

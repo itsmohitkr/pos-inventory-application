@@ -25,13 +25,13 @@
       "Bash(env -u ELECTRON_RUN_AS_NODE ./node_modules/.bin/electron .ipc-harness.js)",
       "Bash(node -e ' *)",
       "Bash(mkdir -p /private/tmp/claude-501/-Users-mokumar-Downloads-trovix-pos-application/71e3d230-8728-4328-ac38-90496a1ff3c6/scratchpad/ipc-harness)",
-      "Bash(cp /Users/mokumar/Downloads/trovix-pos-application/server/prisma/pos.db /private/tmp/claude-501/-Users-mokumar-Downloads-trovix-pos-application/71e3d230-8728-4328-ac38-90496a1ff3c6/scratchpad/ipc-harness/scratch-pos.db)",
+      "Bash(cp /Users/mokumar/Documents/personal-directory/Trovix/trovix-pos-application/server/prisma/pos.db /private/tmp/claude-501/-Users-mokumar-Downloads-trovix-pos-application/71e3d230-8728-4328-ac38-90496a1ff3c6/scratchpad/ipc-harness/scratch-pos.db)",
       "Bash(env -u ELECTRON_RUN_AS_NODE ./node_modules/.bin/electron .ipc-harness-isonsale.js)",
-      "Bash(grep -n \"sortedProducts.map\\\\|Group 4 Data\\\\|Group 5 Data\\\\|</TableRow>\\\\s*$\" /Users/mokumar/Downloads/trovix-pos-application/client/src/domains/promotions/components/CategorySaleFormDialog.tsx)",
+      "Bash(grep -n \"sortedProducts.map\\\\|Group 4 Data\\\\|Group 5 Data\\\\|</TableRow>\\\\s*$\" /Users/mokumar/Documents/personal-directory/Trovix/trovix-pos-application/client/src/domains/promotions/components/CategorySaleFormDialog.tsx)",
       "Bash(env -u ELECTRON_RUN_AS_NODE ./node_modules/.bin/electron .ipc-harness-override.js)",
       "Read(//temp/readonly/**)",
       "Bash(npm run *)",
-      "Bash(grep -n \"key={sale.id}\\\\|id={\\\\`sale-row-\\\\${sale.id}\\\\`}\\\\|sale.id\" /Users/mokumar/Downloads/trovix-pos-application/client/src/domains/saleHistory/components/SalesListPanel.tsx)",
+      "Bash(grep -n \"key={sale.id}\\\\|id={\\\\`sale-row-\\\\${sale.id}\\\\`}\\\\|sale.id\" /Users/mokumar/Documents/personal-directory/Trovix/trovix-pos-application/client/src/domains/saleHistory/components/SalesListPanel.tsx)",
       "Bash(git symbolic-ref *)",
       "Bash(grep -B2 -A2 'Install silently\\\\|Start-Process -FilePath $setup')",
       "Bash(env -u ELECTRON_RUN_AS_NODE ./node_modules/.bin/electron .harness-product-ipc.js)",
@@ -39,7 +39,7 @@
       "Bash(curl -s https://www.githubstatus.com/api/v2/incidents/unresolved.json)",
       "Bash(gh release *)",
       "Bash(xxd client/src/shared/utils/expiryDateBounds.ts)",
-      "Bash(grep -n 'total_stock\\\\|SUM\\(\\\\|$queryRaw' /Users/mokumar/Downloads/trovix-pos-application/server/src/domains/product/product.service.ts)",
+      "Bash(grep -n 'total_stock\\\\|SUM\\(\\\\|$queryRaw' /Users/mokumar/Documents/personal-directory/Trovix/trovix-pos-application/server/src/domains/product/product.service.ts)",
       "Bash(echo \"EXIT $?\")",
       "mcp__claude_ai_sentry-mcp__find_organizations",
       "mcp__claude_ai_sentry-mcp__find_projects",
@@ -62,7 +62,15 @@
       "Bash(jobs)",
       "Bash(lsof -nP -iTCP:5001 -sTCP:LISTEN)",
       "Bash(lsof -nP -iTCP:5173 -sTCP:LISTEN)",
-      "Bash(ps -p 99099 -o pid,ppid,command)"
+      "Bash(ps -p 99099 -o pid,ppid,command)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://api.github.com --max-time 10)",
+      "Bash(ping -c 2 8.8.8.8)",
+      "Bash(nslookup api.github.com)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://github.com --max-time 10)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://api.github.com --max-time 15)",
+      "Bash(curl -s -o /dev/null -w \"https_status:%{http_code}\\\\n\" https://api.github.com --max-time 15)",
+      "Bash(wc -l client/src/domains/settings/**/*.tsx client/src/domains/settings/**/*.ts)",
+      "Bash(find client/src/domains/settings -name \"*.tsx\" -o -name \"*.ts\")"
     ]
   }
 }

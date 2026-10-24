@@ -10,6 +10,7 @@ import { DeviceStore } from './deviceStore';
 import { LicenseClient } from './licenseClient';
 import { LicenseManager } from './licenseManager';
 import { disabledStatus } from './licensePolicy';
+import { emptySubscriptionDetails } from './subscriptionDetails';
 import { readMachineId } from './machineId';
 import type { CheckoutStartResult, RedeemKeyOutcome } from './licenseManager';
 
@@ -50,6 +51,14 @@ export const initLicensing = (getWindow: () => BrowserWindow | null): void => {
     if (!manager) return disabledStatus();
     await manager.refresh();
     return manager.getStatus();
+  });
+  ipcMain.handle(IPC.LICENSE_GET_SUBSCRIPTION, () =>
+    manager ? manager.getSubscriptionDetails() : emptySubscriptionDetails()
+  );
+  ipcMain.handle(IPC.LICENSE_REFRESH_SUBSCRIPTION, async () => {
+    if (!manager) return emptySubscriptionDetails();
+    await manager.refreshSubscription({ force: true });
+    return manager.getSubscriptionDetails();
   });
   ipcMain.handle(
     IPC.LICENSE_REDEEM_KEY,
@@ -126,6 +135,11 @@ export const initLicensing = (getWindow: () => BrowserWindow | null): void => {
     const window = getWindow();
     if (window && !window.isDestroyed())
       window.webContents.send(IPC.LICENSE_STATUS_CHANGED, status);
+  });
+  created.on('subscription', (details) => {
+    const window = getWindow();
+    if (window && !window.isDestroyed())
+      window.webContents.send(IPC.LICENSE_SUBSCRIPTION_CHANGED, details);
   });
   created.on('checkoutState', (state) => {
     const window = getWindow();

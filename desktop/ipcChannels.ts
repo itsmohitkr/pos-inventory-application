@@ -135,6 +135,11 @@ const IPC = {
   LICENSE_CANCEL_CHECKOUT: 'license:cancelCheckout',
   LICENSE_CHECKOUT_STATE_CHANGED: 'license:checkoutStateChanged', // main → renderer
 
+  // Subscription details (License & Subscription tab, P7)
+  LICENSE_GET_SUBSCRIPTION: 'license:getSubscription',
+  LICENSE_REFRESH_SUBSCRIPTION: 'license:refreshSubscription',
+  LICENSE_SUBSCRIPTION_CHANGED: 'license:subscriptionChanged', // main → renderer
+
   // Splash screen (main → splash renderer)
   SPLASH_STATUS: 'splash-status',
   SPLASH_VERSION: 'splash-version',

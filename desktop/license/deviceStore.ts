@@ -22,6 +22,13 @@ export interface DeviceRecord {
    *  reaches any terminal state (paid/failed/expired) or the person cancels. */
   pendingCheckoutSessionId: string | null;
   pendingCheckoutExpiresAtMs: number | null;
+  /** The service's signed subscription snapshot (P7), stored VERBATIM and re-verified on every load, never as a
+   *  parsed copy that could be edited on disk. Display-only: it never feeds an entitlement decision. Lives here
+   *  (not in pos.db) for the same reason the token does: a database wipe or restore must not touch it. */
+  subscriptionSnapshot: string | null;
+  /** Local clock reading when `subscriptionSnapshot` was received. Informational; staleness is judged from
+   *  the snapshot's own server `iat`, never from this. */
+  subscriptionFetchedAtMs: number | null;
 }
 
 export const emptyRecord = (): DeviceRecord => ({
@@ -34,6 +41,8 @@ export const emptyRecord = (): DeviceRecord => ({
   lastValidatedAtMs: null,
   pendingCheckoutSessionId: null,
   pendingCheckoutExpiresAtMs: null,
+  subscriptionSnapshot: null,
+  subscriptionFetchedAtMs: null,
 });
 
 const asString = (value: unknown): string | null =>
@@ -65,6 +74,8 @@ export class DeviceStore implements RecordStore {
         lastValidatedAtMs: asNumber(data.lastValidatedAtMs),
         pendingCheckoutSessionId: asString(data.pendingCheckoutSessionId),
         pendingCheckoutExpiresAtMs: asNumber(data.pendingCheckoutExpiresAtMs),
+        subscriptionSnapshot: asString(data.subscriptionSnapshot),
+        subscriptionFetchedAtMs: asNumber(data.subscriptionFetchedAtMs),
       };
     } catch {
       return emptyRecord();
